@@ -1,0 +1,15 @@
+ipython
+ipdb
+flake8
+isort>=4.3.0
+pylint
+flake8-bugbear
+flake8-builtins
+flake8-commas
+flake8-comprehensions
+flake8-debugger
+flake8-isort>=2.5
+flake8-pep3101
+pytest
+coverage
+hypothesis
