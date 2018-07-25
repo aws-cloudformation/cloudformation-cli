@@ -1,0 +1,332 @@
+{
+  "$id": "http://www.cloudformation.com/resource.schema.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "description": "Uluru Resource Specification Schema",
+  "type": "object",
+  "properties": {
+    "Type": {
+      "type": "string",
+      "pattern": "([a-zA-Z]{3,64})::([a-zA-Z]{3,64})::([a-zA-Z]{3,64})"
+    },
+    "IdentifierPaths": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "Definitions": {
+      "type": "object",
+      "additionalProperties": { "$ref": "#" },
+      "default": {}
+    },
+    "Properties": {
+      "type": "array",
+      "items": {
+        "anyOf": [
+          { "$ref": "#/definitions/arrayProperty" },
+          { "$ref": "#/definitions/booleanProperty" },
+          { "$ref": "#/definitions/integerProperty" },
+          { "$ref": "#/definitions/objectProperty" },
+          { "$ref": "#/definitions/stringProperty" }
+
+        ]
+      }
+    },
+    "Attributes": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/resourceAttribute"
+      }
+    },
+
+    "Client": {
+      "$ref": "#/definitions/clientProperty"
+    },
+    "Handlers": {
+      "$ref": "#/definitions/handlersProperty"
+    },
+    "Statuses": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/stabilizationStatusesProperty"
+      }
+    },
+    "SetStatusCall": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "definitions": {
+    "arrayProperty": {
+      "properties": {
+        "Name": {
+          "type": "string"
+        },
+        "Type": {
+          "enum": [ "array" ]
+        },
+        "UpdateType": {
+          "enum": [ "Mutable", "Immutable" ]
+        },
+        "Required": {
+          "type": "boolean"
+        },
+        "ItemType": {
+          "type": "string"
+        },
+        "Validation": {
+          "type": "object",
+          "properties": {
+            "MaxLength": {
+              "type": "integer"
+            },
+            "MinLength": {
+              "type": "integer"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "Name", "Type", "UpdateType", "Required"
+      ],
+      "additionalProperties": false
+    },
+    "booleanProperty": {
+      "properties": {
+        "Name": {
+          "type": "string"
+        },
+        "Type": {
+          "type": "string",
+          "enum": [ "boolean" ]
+        },
+        "UpdateType": {
+          "enum": [ "Mutable", "Immutable" ]
+        },
+        "Required": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "Name", "Type", "UpdateType", "Required"
+      ],
+      "additionalProperties": false
+    },
+    "integerProperty": {
+      "properties": {
+        "Name": {
+          "type": "string"
+        },
+        "Type": {
+          "type": "string",
+          "enum": [ "integer" ]
+        },
+        "UpdateType": {
+          "enum": [ "Mutable", "Immutable" ]
+        },
+        "Required": {
+          "type": "boolean"
+        },
+        "Validation": {
+          "type": "object",
+          "properties": {
+            "MaxValue": {
+              "type": "integer"
+            },
+            "MinValue": {
+              "type": "integer"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "Name", "Type", "UpdateType", "Required"
+      ],
+      "additionalProperties": false
+    },
+    "objectProperty": {
+      "properties": {
+        "Name": {
+          "type": "string"
+        },
+        "Type": {
+          "oneOf": [
+            {
+              "type": "string",
+              "enum": [ "object" ]
+            },
+            {
+              "type": "object"
+            }
+          ]
+        },
+        "UpdateType": {
+          "enum": [ "Mutable", "Immutable" ]
+        },
+        "Required": {
+          "type": "boolean"
+        },
+        "ItemType": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "Name", "Type", "UpdateType", "Required"
+      ],
+      "additionalProperties": false
+    },
+    "stringProperty": {
+      "properties": {
+        "Name": {
+          "type": "string"
+        },
+        "Type": {
+          "type": "string",
+          "enum": [ "string" ]
+        },
+        "UpdateType": {
+          "enum": [ "Mutable", "Immutable" ]
+        },
+        "Required": {
+          "type": "boolean"
+        },
+        "Validation": {
+          "type": "object",
+          "properties": {
+            "MaxLength": {
+              "type": "integer"
+            },
+            "MinLength": {
+              "type": "integer"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "Name", "Type", "UpdateType", "Required"
+      ],
+      "additionalProperties": false
+    },
+
+    "clientProperty": {
+      "properties": {
+        "Client": {
+          "type": "string"
+        },
+        "Builder": {
+          "type": "string"
+        },
+        "ResourceModel": {
+          "type": "string"
+        }
+      }
+    },
+    "handler": {
+      "properties": {
+        "ApiCall": {
+          "type": "string"
+        },
+        "RequestType": {
+          "type": "string"
+        },
+        "ReturnType": {
+          "type": "string"
+        },
+        "Modifies": {
+          "type": "boolean"
+        },
+        "Exceptions": {
+          "type": "array",
+          "items": {"$ref": "#/definitions/exceptionProperty"}
+        }
+      },
+      "required": ["ApiCall", "Modifies", "RequestType", "ReturnType"],
+      "additionalProperties": false
+    },
+    "handlersProperty": {
+      "properties": {
+        "CreateHandler": {
+          "$ref": "#/definitions/handler"
+        },
+        "UpdateHandler": {
+          "$ref": "#/definitions/handler"
+        },
+        "DeleteHandler": {
+          "$ref": "#/definitions/handler"
+        },
+        "ReadHandler": {
+          "$ref": "#/definitions/handler"
+        }
+      },
+      "required": ["CreateHandler", "DeleteHandler", "UpdateHandler", "ReadHandler"],
+      "additionalProperties": false
+    },
+    "exceptionProperty": {
+      "properties": {
+        "Name": {
+          "type": "string"
+        },
+        "Response": {
+          "enum": ["Success", "Fail", "Retry"]
+        }
+      },
+      "required": ["Name", "Response"],
+      "additionalProperties": false
+    },
+    "stabilizationStatusesProperty": {
+      "properties": {
+        "Name": {
+          "type": "string"
+        },
+        "Value": {
+          "type": "string"
+        },
+        "Handler": {
+          "enum": ["CreateHandler", "ReadHandler", "UpdateHandler", "DeleteHandler"]
+        },
+        "Response": {
+          "enum": ["Success", "Fail", "Retry"]
+        }
+      },
+      "additionalProperties": false,
+      "required": ["Name", "Value", "Handler", "Response"]
+    },
+
+    "resourceAttribute": {
+      "properties": {
+        "Name": {
+          "type": "string"
+        },
+        "Type": {
+          "$ref": "#/definitions/simpleTypes"
+        }
+      },
+      "required": [
+        "Name", "Type"
+      ],
+      "additionalProperties": false
+    },
+    "simpleTypes": {
+      "enum": [
+        "array",
+        "boolean",
+        "integer",
+        "null",
+        "number",
+        "object",
+        "string"
+      ]
+    },
+    "workflowTypes": {
+      "enum": [
+        "create",
+        "read",
+        "update",
+        "delete"
+      ]
+    }
+  }
+}

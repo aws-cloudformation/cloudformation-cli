@@ -1,0 +1,122 @@
+{
+  "Type": "AWS::Kinesis::Stream",
+  "IdentifierPaths": ["/Properties/Name"],
+  "Definitions": {
+    "StreamEncryption": {
+      "Properties": [
+        {
+          "Name": "EncryptionType",
+          "Type": "string",
+          "Required": true,
+          "UpdateType": "Mutable"
+        },
+        {
+          "Name": "KeyId",
+          "Type": "string",
+          "Required": true,
+          "UpdateType": "Mutable"
+        }
+      ]
+    }
+  },
+  "Properties": [
+    {
+      "Name": "Name",
+      "Type": "string",
+      "UpdateType": "Immutable",
+      "Required": false
+    },
+    {
+      "Name": "ShardCount",
+      "Type": "integer",
+      "UpdateType": "Mutable",
+      "Required": true
+    },
+    {
+      "Name": "RetentionPeriodHours",
+      "Type": "integer",
+      "UpdateType": "Mutable",
+      "Required": true
+    },
+    {
+      "Name": "StreamEncryption",
+      "Type": {"$ref": "#/Definitions/StreamEncryption"},
+      "UpdateType": "Mutable",
+      "Required": false
+    }
+  ],
+  "Attributes": [
+    {
+      "Name": "Arn",
+      "Type": "string"
+    }
+  ],
+  "Client": {
+    "Client": "com.amazonaws.services.kinesis.AmazonKinesis",
+    "Builder": "com.amazonaws.services.kinesis.AmazonKinesisClientBuilder",
+    "ResourceModel": "com.amazonaws.services.kinesis.model"
+  },
+  "Handlers": {
+    "CreateHandler": {
+      "ApiCall": "createStream",
+      "RequestType": "CreateStreamRequest",
+      "ReturnType": "CreateStreamResult",
+      "Exceptions": [
+        {
+          "Name": "ResourceInUseException",
+          "Response": "Success"
+        },
+        {
+          "Name": "LimitExceededException",
+          "Response": "Fail"
+        },
+        {
+          "Name": "InvalidArgumentException",
+          "Response": "Fail"
+        }
+      ],
+      "Modifies": true
+    },
+    "DeleteHandler": {
+      "ApiCall": "deleteStream",
+      "RequestType": "DeleteStreamRequest",
+      "ReturnType": "DeleteStreamResult",
+      "Exceptions": [
+        {
+          "Name": "ResourceNotFoundException",
+          "Response": "Success"
+        },
+        {
+          "Name": "LimitExceededException",
+          "Response": "Fail"
+        }
+      ],
+      "Modifies": true
+    },
+    "UpdateHandler": {
+      "ApiCall": "custom",
+      "RequestType": "custom",
+      "ReturnType": "custom",
+      "Exceptions": [],
+      "Modifies": true
+    },
+    "ReadHandler": {
+      "ApiCall": "describeStream",
+      "RequestType": "DescribeStreamRequest",
+      "ReturnType": "DescribeStreamResult",
+      "Exceptions": [
+        {
+          "Name": "ResourceNotFoundException",
+          "Response": "Fail"
+        },
+        {
+          "Name": "LimitExceededException",
+          "Response": "Fail"
+        }
+      ],
+      "Modifies": false
+    }
+  },
+  "Statuses": [],
+  "SetStatusCall": "describeStream(new DescribeStreamRequest().withStreamName(streamName)).setStreamDescription(new StreamDescription().withStreamStatus(streamStatus))"
+}
