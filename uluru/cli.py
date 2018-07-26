@@ -1,10 +1,18 @@
 """This tool auto-generated resource providers given a specification."""
 import argparse
+from logging.config import dictConfig
+
+import pkg_resources
+import yaml
 
 from .generate import setup_subparser as generate_setup_subparser
 
 
 def main():
+    logging_config = yaml.safe_load(pkg_resources.resource_stream(
+        __name__, 'data/logging.yaml'))
+    dictConfig(logging_config)
+
     # see docstring of this file
     parser = argparse.ArgumentParser(description=__doc__)
 
