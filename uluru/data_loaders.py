@@ -2,13 +2,14 @@ import json
 
 import jsonschema
 import pkg_resources
+import yaml
 
 
 def load_resource_spec(resource_spec_file):
     """Load a resource specification from a file, and validate it."""
     try:
-        resource_spec = json.load(resource_spec_file)
-    except json.JSONDecodeError as e:
+        resource_spec = yaml.safe_load(resource_spec_file)
+    except yaml.YAMLError as e:
         print(e)
         raise
         # TODO: error handling, decode errors have 'msg', 'doc', 'pos'
@@ -32,13 +33,13 @@ def load_project_settings(language, project_settings_file):
 
     ``project_settings_file`` can be ``None`.
     """
-    project_settings = json.load(pkg_resources.resource_stream(
-        __name__, 'data/{}/project_defaults.json'.format(language)))
+    project_settings = yaml.safe_load(pkg_resources.resource_stream(
+        __name__, 'data/{}/project_defaults.yaml'.format(language)))
 
     if project_settings_file:
         try:
-            project_settings_user = json.load(project_settings_file)
-        except json.JSONDecodeError as e:
+            project_settings_user = yaml.safe_load(project_settings_file)
+        except yaml.YAMLError as e:
             print(e)
             raise
             # TODO: error handling, decode errors have 'msg', 'doc', 'pos'
