@@ -1,0 +1,2 @@
+# User-provided project settings override the default project settings
+package_name_prefix: org.my.package

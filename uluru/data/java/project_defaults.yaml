@@ -1,0 +1,3 @@
+# The default project settings are loaded first and then merged/overridden by
+# the user-provided project settings.
+package_name_prefix: org.example

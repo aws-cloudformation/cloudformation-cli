@@ -23,6 +23,7 @@ setup(
     install_requires=[
         'jinja2',
         'jsonschema',
+        'pyyaml',
     ],
     zip_safe=True,
     entry_points={
