@@ -1,8 +1,11 @@
 import json
+import logging
 
 import jsonschema
 import pkg_resources
 import yaml
+
+LOG = logging.getLogger(__name__)
 
 
 def load_resource_spec(resource_spec_file):
@@ -45,6 +48,10 @@ def load_project_settings(language, project_settings_file):
             # TODO: error handling, decode errors have 'msg', 'doc', 'pos'
         else:
             project_settings.update(project_settings_user)
+    else:
+        LOG.warning(
+            'Using default project settings. Provide custom project settings '
+            'to further customize code generation.')
 
     project_settings_schema = json.load(pkg_resources.resource_stream(
         __name__, 'data/{}/project_schema.json'.format(language)))
