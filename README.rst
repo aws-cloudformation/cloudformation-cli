@@ -4,6 +4,8 @@ Uluru resource provider CLI
 Usage
 =====
 
+TODO: add command to write out default project settings
+
 .. code-block:: bash
 
     uluru-cli generate \
