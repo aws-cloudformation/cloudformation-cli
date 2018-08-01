@@ -16,6 +16,14 @@ LANGUAGE_GENERATOR_REGISTRY = {
 }
 
 
+def add_language_argument(parser):
+    parser.add_argument(
+        '--language',
+        choices=list(LANGUAGE_GENERATOR_REGISTRY.keys()),
+        default='java',
+        help='The language for code generation. (Default: java)')
+
+
 def generate(args):
     resource_spec = load_resource_spec(args.resource_spec_file)
     project_settings = load_project_settings(
@@ -38,11 +46,7 @@ def setup_subparser(subparsers):
         'resource_spec_file',
         type=argparse.FileType('r'),
         help='The resource specification to use for generating the code.')
-    parser.add_argument(
-        '--language',
-        choices=list(LANGUAGE_GENERATOR_REGISTRY.keys()),
-        default='java',
-        help='The language for code generation.')
+    add_language_argument(parser)
     # we should always be able to provide some kind of default project setting,
     # so the user doesn't need to look these up before trying out codegen.
     # this reduces on-boarding friction, as the resource spec is already quite
@@ -55,5 +59,6 @@ def setup_subparser(subparsers):
         dest='project_settings_file',
         help=(
             'The project settings to use for generation. '
-            'These are language dependent.'
+            'These are language dependent. '
+            '(Default: use default project settings)'
         ))
