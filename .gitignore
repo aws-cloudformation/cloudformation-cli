@@ -104,3 +104,6 @@ ENV/
 
 # PyCharm
 *.iml
+
+# reStructuredText preview
+README.html

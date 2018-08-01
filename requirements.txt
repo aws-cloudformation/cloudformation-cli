@@ -13,3 +13,4 @@ flake8-pep3101
 pytest
 coverage
 hypothesis
+docutils

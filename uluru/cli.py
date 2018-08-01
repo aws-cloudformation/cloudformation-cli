@@ -7,6 +7,8 @@ import pkg_resources
 import yaml
 
 from .generate import setup_subparser as generate_setup_subparser
+from .project_settings import \
+    setup_subparser as project_settings_setup_subparser
 
 
 def setup_logging(verbosity=0):
@@ -38,6 +40,7 @@ def main():
 
     subparsers = parser.add_subparsers(dest='subparser_name')
     generate_setup_subparser(subparsers)
+    project_settings_setup_subparser(subparsers)
 
     args = parser.parse_args()
 
