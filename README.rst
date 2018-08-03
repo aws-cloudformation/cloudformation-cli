@@ -39,7 +39,7 @@ To output the default project settings for a given language, use the
 Command: generate
 ^^^^^^^^^^^^^^^^^
 
-To generate code, a resource specification is required. You can customize
+To generate code, a resource provider definition is required. You can customize
 certain, language-specific project settings, otherwise the default settings
 are used.
 

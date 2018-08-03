@@ -1,4 +1,5 @@
-"""This tool auto-generated resource providers given a specification."""
+"""This tool provides support for creating CloudFormation resource providers.
+"""
 import argparse
 import logging
 from logging.config import dictConfig
