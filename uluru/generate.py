@@ -1,6 +1,8 @@
-"""This sub command generates a resource provider from a resource specification
-and a given language. Language-specific project settings can optionally
-be provided to further customize the code generation.
+"""This sub command generates a basic resource provider code skeleton from a
+resource provider definition and a given language.
+
+Language-specific project settings can optionally be provided to further
+customize the code generation.
 """
 import argparse
 
@@ -25,7 +27,7 @@ def add_language_argument(parser):
 
 
 def generate(args):
-    resource_spec = load_resource_spec(args.resource_spec_file)
+    resource_spec = load_resource_spec(args.resource_def_file)
     project_settings = load_project_settings(
         args.language, args.project_settings_file)
 
@@ -43,15 +45,10 @@ def setup_subparser(subparsers):
     parser = subparsers.add_parser('generate', description=__doc__)
     parser.set_defaults(command=generate)
     parser.add_argument(
-        'resource_spec_file',
+        'resource_def_file',
         type=argparse.FileType('r'),
-        help='The resource specification to use for generating the code.')
+        help='The resource provider definition to use for code generation.')
     add_language_argument(parser)
-    # we should always be able to provide some kind of default project setting,
-    # so the user doesn't need to look these up before trying out codegen.
-    # this reduces on-boarding friction, as the resource spec is already quite
-    # a lot of effort. maybe we should have another command to write these
-    # defaults to a file?
     parser.add_argument(
         '--project-settings',
         type=argparse.FileType('r'),
