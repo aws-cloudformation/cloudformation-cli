@@ -1,42 +1,61 @@
-"""Uluru CLI."""
+#!/usr/bin/env python
 import os.path
+import re
 
-from setuptools import setup
+from setuptools import find_packages, setup
 
-readme_path = os.path.abspath(os.path.join(os.path.dirname(__file__), 'README.rst'))
-with open(readme_path, encoding='utf-8') as f:
-    readme = f.read()
+here = os.path.abspath(os.path.dirname(__file__))
+
+
+def read(*parts):
+    with open(os.path.join(here, *parts), 'r', encoding='utf-8') as fp:
+        return fp.read()
+
+
+# https://packaging.python.org/guides/single-sourcing-package-version/
+def find_version(*file_paths):
+    version_file = read(*file_paths)
+    version_match = re.search(
+        r"^__version__ = ['\"]([^'\"]*)['\"]",
+        version_file,
+        re.M)
+    if version_match:
+        return version_match.group(1)
+    raise RuntimeError('Unable to find version string.')
+
 
 setup(
     name='uluru-cli',
-    version='0.1',
+    version=find_version('uluru', '__init__.py'),
     description=__doc__,
-    long_description=readme,
-    author='AWS CloudFormation',
-    author_email='no-reply@amazon.com',
+    long_description=read('README.rst'),
+    author='Amazon Web Services',
     url='https://aws.amazon.com/cloudformation/',
-    license='All rights reserved',
-    packages=['uluru'],
-    package_data={
-        'uluru': ['data/*', 'templates/*']
-    },
+    packages=find_packages(exclude=['tests*']),
+    # package_data -> use MANIFEST.in instead
+    include_package_data=True,
+    zip_safe=True,
     install_requires=[
         'jinja2',
         'jsonschema',
         'pyyaml',
     ],
-    zip_safe=True,
     entry_points={
         'console_scripts': ['uluru-cli = uluru.cli:main']
     },
-    classifiers=[
+    license='Apache License 2.0',
+    classifiers=(
         'Development Status :: 2 - Pre-Alpha',
         'Intended Audience :: Developers',
-        'License :: Other/Proprietary License',
+        'License :: OSI Approved :: Apache Software License',
         'Natural Language :: English',
-        'Programming Language :: Python :: 3 :: Only',
         'Topic :: Software Development :: Build Tools',
         'Topic :: Software Development :: Code Generators',
         'Operating System :: OS Independent',
-    ],
-    keywords='AWS CloudFormation')
+        'Programming Language :: Python :: 3 :: Only',
+        'Programming Language :: Python :: 3.4',
+        'Programming Language :: Python :: 3.5',
+        'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7',
+    ),
+    keywords='Amazon Web Services AWS CloudFormation')
