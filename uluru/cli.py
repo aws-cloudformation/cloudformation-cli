@@ -7,9 +7,15 @@ from logging.config import dictConfig
 import pkg_resources
 import yaml
 
-from .generate import setup_subparser as generate_setup_subparser
 from .project_settings import \
     setup_subparser as project_settings_setup_subparser
+
+from .generate import setup_subparser as generate_setup_subparser
+from .init import init_setup_subparser
+from .publish_stub import publish_setup_subparser
+from .submit_stub import submit_setup_subparser
+from .test_stub import test_setup_subparser
+from .validate import setup_subparser as validate_setup_subparser
 
 
 def setup_logging(verbosity=0):
@@ -40,8 +46,13 @@ def main():
     parser.set_defaults(command=lambda args: parser.print_help())
 
     subparsers = parser.add_subparsers(dest='subparser_name')
+    init_setup_subparser(subparsers)
+    validate_setup_subparser(subparsers)
     generate_setup_subparser(subparsers)
     project_settings_setup_subparser(subparsers)
+    test_setup_subparser(subparsers)
+    submit_setup_subparser(subparsers)
+    publish_setup_subparser(subparsers)
 
     args = parser.parse_args()
 

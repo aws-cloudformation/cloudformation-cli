@@ -5,8 +5,11 @@ IFS=$'\n\t'
 echo "--- Automatically fixing up imports using isort ---"
 isort -y
 
-echo "--- Linting code with flake8 ---"
-flake8 "uluru/" "tests/"
+echo "--- Linting uluru code with flake8 ---"
+flake8 "uluru/"
+
+echo "--- Linting testsc code with flake8 ---"
+flake8 "tests/"
 
 echo "--- Linting code with pylint ---"
 pylint "uluru/" "tests/"

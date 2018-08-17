@@ -1,0 +1,166 @@
+{
+  "Type": "AWS::Cafe::Cat",
+  "Documentation": "https://en.wikipedia.org/wiki/Cat",
+  "PhysicalResourceId": "id",
+  "IdentifierPaths": [
+    "/Properties/Name"
+  ],
+  "Relationships": [
+    {
+      "Target": "https://en.wikipedia.org/wiki/Mouse",
+      "Type": "Uses"
+    },
+    {
+      "Target": "https://en.wikipedia.org/wiki/Dog",
+      "Type": "UsedBy"
+    },
+    {
+      "Target": "http://www.nyan.cat/",
+      "Type": "RelatedTo"
+    }
+  ],
+  "Definitions": {
+    "Owner": {
+      "Type": "object",
+      "Properties": {
+        "Name": {
+          "Required": true,
+          "Type": "string",
+          "UpdateType": "Conditional"
+        },
+        "Address": {
+          "Required": false,
+          "Type": "string",
+          "UpdateType": "Mutable"
+        },
+        "Phone": {
+          "Required": true,
+          "type": "string",
+          "pattern": "^(\+\d{1,2}\s)?\(?\d{3}\)?[\s.-]\d{3}[\s.-]\d{4}$",
+          "UpdateType": "Conditional"
+        }
+      }
+    }
+  },
+  "Properties": {
+    "Name": {
+      "Required": true,
+      "Type": "string",
+      "UpdateType": "Immutable"
+    },
+    "Breed": {
+      "Required": true,
+      "Type": "string",
+      "UpdateType": "Immutable"
+    },
+    "Owner": {
+      "Required": true,
+      "Type": {"$ref": "#/Definitions/Owner" },
+      "UpdateType": "Mutable"
+    },
+    "Sleeping": {
+      "Required": false,
+      "Type": "boolean",
+      "UpdateType": "Mutable"
+    },
+    "Weight": {
+      "Required": false,
+      "Type": "integer",
+      "UpdateType": "Mutable"
+    },
+    "NumLives": {
+      "Required": false,
+      "Type": "integer",
+      "UpdateType": "Mutable",
+      "Default": 9
+    }
+  },
+  "Handlers": {
+    "CreateHandler": {
+      "InvocationType": "Synchronous",
+      "FlowType": "sequential",
+      "ApiCalls": [
+        {
+          "Name": "ConceiveCat",
+          "ActionType": "write",
+          "Exceptions": [
+            {
+              "Name": "ConceiveFailedException",
+              "Response": "Retry"
+            }
+          ]
+        },
+        {
+          "Name": "KittenBirth",
+          "ActionType": "write",
+          "Exceptions": [
+            {
+              "Name": "BirthComplicationsException",
+              "Response": "Custom"
+            }
+          ]
+        }
+      ]
+    },
+    "UpdateHandler": {
+      "InvocationType": "Asynchronous",
+      "ApiCalls": [
+        {
+          "Name": "ToggleSleep",
+          "ActionType": "write",
+          "PropertiesUsed": [ "#/Properties/Name", "#/Properties/Sleeping" ]
+        },
+        {
+          "Name": "UpdateWeight",
+          "ActionType": "write",
+          "PropertiesUsed": [ "#/Properties/Name", "#/Properties/Weight"]
+        },
+        {
+          "Name": "UpdateLives",
+          "ActionType": "write",
+          "PropertiesUsed": [ "#/Properties/Name", "#/Properties/NumLives"]
+        }
+      ]
+    },
+    "DeleteHandler": {
+      "InvocationType": "Synchronous",
+      "ApiCalls": [
+        {
+          "Name": "CatDeath",
+          "ActionType": "write",
+          "PropertiesUsed": [ "#/Properties/Name", "#/Properties/NumLives"],
+          "Exceptions": [
+            {
+              "Name": "HasLivesLeftException",
+              "Response": "Failure"
+            },
+            {
+              "Name": "CatNotFoundException",
+              "Response": "Success"
+            }
+          ]
+        }
+      ]
+    },
+    "ReadHandler": {
+      "InvocationType": "Asynchronous",
+      "ApiCalls": [
+        {
+          "Name": "DescribeCat",
+          "ActionType": "read",
+          "PropertiesUsed": [ "#/Properties/Name" ]
+        }
+      ]
+    },
+    "ListHandler": {
+      "InvocationType": "Asynchronous",
+      "ApiCalls": [
+        {
+          "Name": "ListCat",
+          "ActionType": "read",
+          "PropertiesUsed": [ "#/Properties/Name" ]
+        }
+      ]
+    }
+  }
+}

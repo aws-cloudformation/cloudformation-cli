@@ -28,14 +28,14 @@ def test_load_project_settings_java_defaults():
 
 
 def test_load_project_settings_java_user_specified_valid():
-    user_settings = {'package_name_prefix': 'org.my.package'}
+    user_settings = {'PackageNamePrefix': 'org.my.package'}
     file_like = StringIO(yaml.dump(user_settings))
     merged_settings = load_project_settings('java', file_like)
-    assert merged_settings['package_name_prefix'] == 'org.my.package'
+    assert merged_settings['PackageNamePrefix'] == 'org.my.package'
 
 
 def test_load_project_settings_java_user_specified_invalid():
-    user_settings = {'package_name_prefix': {}}
+    user_settings = {'PackageNamePrefix': {}}
     file_like = StringIO(yaml.dump(user_settings))
 
     with pytest.raises(jsonschema.exceptions.ValidationError):

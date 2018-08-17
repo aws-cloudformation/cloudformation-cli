@@ -27,17 +27,32 @@ def add_language_argument(parser):
 
 
 def generate(args):
-    resource_spec = load_resource_spec(args.resource_def_file)
+    print("Validating your resource schema and project settings...")
+    resource_def = load_resource_spec(args.resource_def_file)
     project_settings = load_project_settings(
         args.language, args.project_settings_file)
+    project_settings["output_directory"] = args.output_directory \
+        if args.output_directory is not None else ''
+    print("VALIDATION SUCCESS. Proceeding to code generation...")
 
     generate_function = LANGUAGE_GENERATOR_REGISTRY[args.language]
 
     loader = jinja2.PackageLoader(__name__, 'templates/' + args.language)
-    env = jinja2.Environment(loader=loader)
+    env = jinja2.Environment(
+        loader=loader,
+        trim_blocks=True,
+        lstrip_blocks=True,
+        keep_trailing_newline=True,
+        )
     for filter_name, filter_func in FILTER_REGISTRY.items():
         env.filters[filter_name] = filter_func
-    generate_function(env, resource_spec, project_settings)
+
+    env.trim_blocks = True
+    env.lstrip_blocks = True
+    env.keep_trailing_newline = True
+
+    generate_function(env, resource_def, project_settings)
+    print("CODE GENERATION SUCCESS.")
 
 
 def setup_subparser(subparsers):
@@ -49,6 +64,15 @@ def setup_subparser(subparsers):
         type=argparse.FileType('r'),
         help='The resource provider definition to use for code generation.')
     add_language_argument(parser)
+    parser.add_argument(
+        '--output-directory',
+        dest='output_directory',
+        help='Output directory for sample schema.')
+    # we should always be able to provide some kind of default project setting,
+    # so the user doesn't need to look these up before trying out codegen.
+    # this reduces on-boarding friction, as the resource definition is already quite
+    # a lot of effort. maybe we should have another command to write these
+    # defaults to a file?
     parser.add_argument(
         '--project-settings',
         type=argparse.FileType('r'),
