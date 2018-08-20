@@ -1,0 +1,22 @@
+{
+  "$id": "http://www.cloudformation.com/codegen/java/project_schema.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "description": "Uluru project settings schema for Java codegen projects",
+  "type": "object",
+  "properties": {
+    "PackageNamePrefix": {
+      "type": "string",
+      "pattern": "([a-z0-9._]{3,128})"
+    },
+    "Client": {
+      "type": "object",
+      "properties": {
+        "Client": {"type": "string"},
+        "Builder": {"type": "string"},
+        "ResourceModel": {"type": "string"}
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

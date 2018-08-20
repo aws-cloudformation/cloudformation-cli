@@ -1,0 +1,20 @@
+#!/bin/bash
+set -euo pipefail
+IFS=$'\n\t'
+
+echo "--- Automatically fixing up imports using isort ---"
+isort -y
+
+echo "--- Linting uluru code with flake8 ---"
+flake8 "uluru/"
+
+echo "--- Linting testsc code with flake8 ---"
+flake8 "tests/"
+
+echo "--- Linting code with pylint ---"
+pylint "uluru/" "tests/"
+
+echo "--- Running unit tests ---"
+pytest "tests/"
+
+echo "PASS"

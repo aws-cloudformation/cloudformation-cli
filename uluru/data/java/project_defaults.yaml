@@ -1,0 +1,3 @@
+# User-provided project settings are merged with the default project settings
+# and override the defaults.
+PackageNamePrefix: org.example
