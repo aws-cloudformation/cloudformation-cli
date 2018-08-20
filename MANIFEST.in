@@ -1,0 +1,4 @@
+include README.rst
+include LICENSE
+recursive-include uluru/data *
+recursive-include uluru/templates *

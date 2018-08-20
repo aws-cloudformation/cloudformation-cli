@@ -1,0 +1,20 @@
+version: 1
+formatters:
+  simple:
+    format: '[%(levelname)-8s] - %(message)s'
+handlers:
+  console:
+    class: logging.StreamHandler
+    level: WARNING
+    formatter: simple
+    stream: ext://sys.stdout
+# tweak specific loggers here (e.g. other libraries)
+# loggers:
+#   uluru:
+#     level: DEBUG
+#     handlers: [console]
+#     propagate: no
+root:
+  level: DEBUG
+  handlers: [console]
+disable_existing_loggers: false
