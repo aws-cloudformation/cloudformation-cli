@@ -1,17 +1,25 @@
-ipython
-ipdb
-flake8
+# better interactive session, debugger
+ipython>=6.5.0
+ipdb>=0.11
+# for previewing the README.rst
+docutils>=0.14
+
+# linting tools
 isort>=4.3.0
-pylint
-flake8-bugbear
-flake8-builtins
-flake8-commas
-flake8-comprehensions
-flake8-debugger
+black>=18.6b4
+flake8>=3.5.0
+flake8-bugbear>=18.8.0
+flake8-builtins>=1.4.1
+flake8-commas>=2.0.0
+flake8-comprehensions>=1.4.1
+flake8-debugger>=3.1.0
 flake8-isort>=2.5
-flake8-pep3101
-pytest
-coverage
-hypothesis
-docutils
-hypothesis
+flake8-pep3101>=1.2.1
+pylint>=2.1.1
+bandit>=1.5.0
+
+# testing tools
+coverage>=4.5.1
+pytest>=3.7.2
+pytest-cov>=2.5.1
+hypothesis>=3.69.2
