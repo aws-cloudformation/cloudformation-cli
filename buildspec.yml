@@ -1,0 +1,12 @@
+version: 0.2
+phases:
+  pre_build:
+    commands:
+      - pip install --upgrade pip wheel -r requirements.txt .
+  build:
+    commands:
+      - black --check "setup.py" "uluru/" "tests/"
+      - flake8 "setup.py" "uluru/" "tests/"
+      - pylint "setup.py" "uluru/" "tests/"
+      - bandit -r "uluru/"
+      # - pytest --cov="uluru/" --doctest-modules "uluru/" "tests/"
