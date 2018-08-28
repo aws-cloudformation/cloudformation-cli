@@ -26,12 +26,10 @@ def load_resource_spec(resource_spec_file):
         jsonschema.validate(resource_spec, resource_spec_schema)
         # the unit tests should catch `SchemaError`/if the schema is invalid
     except jsonschema.exceptions.ValidationError as e:
-        LOG.error("The resource provider definition is invalid: %s", e.message)
-        # flake8 will complain about e.message as opposed to str(e); ignore it.
-        # str(e) may print the entire schema and provider def if failed.
-        return None
-        # raise may print out the entire schema and provider def if failed.
-        # TODO: error handling for multiple errors
+        LOG.error(
+            "The resource provider definition is invalid: %s", e.message  # noqa: B306
+        )
+        raise
 
     return resource_spec
 
@@ -74,7 +72,7 @@ def load_project_settings(language, project_settings_file):
         jsonschema.validate(project_settings, project_settings_schema)
         # the unit tests should catch `SchemaError`/if the schema is invalid
     except jsonschema.exceptions.ValidationError as e:
-        LOG.error("The project settings are invalid: %s", e)
+        LOG.error("The project settings are invalid: %s", e.message)  # noqa: B306
         raise  # TODO: error handling
 
     return project_settings

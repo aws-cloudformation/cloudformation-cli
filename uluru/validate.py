@@ -1,16 +1,22 @@
 """This sub command validates a resource provider definition."""
 import argparse
+import logging
+
+from jsonschema.exceptions import ValidationError
 
 from .data_loaders import load_resource_spec
 
+LOG = logging.getLogger(__name__)
+
 
 def validate(args):
-    print("Validating your resource schema...")
-    if load_resource_spec(args.resource_spec_file):
-        print("VALIDATION SUCCESS. You may proceed to code generation.")
+    LOG.info("Validating your resource specification...")
+    try:
+        load_resource_spec(args.resource_spec_file)
+    except ValidationError:
+        LOG.error("Validation failed.")
     else:
-        print("VALIDATION FAILED.")
-    # todo: more validation beyond basic json, primarily json pointers.
+        LOG.info("Validation succeeded.")
 
 
 def setup_subparser(subparsers):
