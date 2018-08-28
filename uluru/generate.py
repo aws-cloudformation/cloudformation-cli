@@ -5,8 +5,10 @@ Language-specific project settings can optionally be provided to further
 customize the code generation.
 """
 import argparse
+import logging
+import os
 
-import jinja2
+from jinja2 import Environment, PackageLoader, select_autoescape
 
 from .data_loaders import load_project_settings, load_resource_spec
 from .filters import FILTER_REGISTRY
@@ -14,6 +16,8 @@ from .generators.java import generate as generate_java
 
 # registry decorators do not work well across files, so manual is simpler
 LANGUAGE_GENERATOR_REGISTRY = {"java": generate_java}
+
+LOG = logging.getLogger(__name__)
 
 
 def add_language_argument(parser):
@@ -26,29 +30,29 @@ def add_language_argument(parser):
 
 
 def generate(args):
-    print("Validating your resource schema and project settings...")
+    LOG.info("Loading the resource provider definition...")
     resource_def = load_resource_spec(args.resource_def_file)
+    LOG.info("Loading the project settings...")
     project_settings = load_project_settings(args.language, args.project_settings_file)
-    project_settings["output_directory"] = (
-        args.output_directory if args.output_directory is not None else ""
-    )
-    print("VALIDATION SUCCESS. Proceeding to code generation...")
+    LOG.info("Done")
+    project_settings["output_directory"] = args.output_directory
 
     generate_function = LANGUAGE_GENERATOR_REGISTRY[args.language]
 
-    loader = jinja2.PackageLoader(__name__, "templates/" + args.language)
-    env = jinja2.Environment(
-        loader=loader, trim_blocks=True, lstrip_blocks=True, keep_trailing_newline=True
+    loader = PackageLoader(__name__, "templates/" + args.language)
+    env = Environment(
+        loader=loader,
+        trim_blocks=True,
+        lstrip_blocks=True,
+        keep_trailing_newline=True,
+        autoescape=select_autoescape(["html", "htm", "xml"]),
     )
     for filter_name, filter_func in FILTER_REGISTRY.items():
         env.filters[filter_name] = filter_func
 
-    env.trim_blocks = True
-    env.lstrip_blocks = True
-    env.keep_trailing_newline = True
-
+    LOG.info("Generating code...")
     generate_function(env, resource_def, project_settings)
-    print("CODE GENERATION SUCCESS.")
+    LOG.info("Done")
 
 
 def setup_subparser(subparsers):
@@ -64,13 +68,11 @@ def setup_subparser(subparsers):
     parser.add_argument(
         "--output-directory",
         dest="output_directory",
-        help="Output directory for sample schema.",
+        default=os.getcwd(),
+        help="Output directory for sample schema. (Default: current directory)",
     )
     # we should always be able to provide some kind of default project setting,
     # so the user doesn't need to look these up before trying out codegen.
-    # this reduces on-boarding friction, as the resource definition is already quite
-    # a lot of effort. maybe we should have another command to write these
-    # defaults to a file?
     parser.add_argument(
         "--project-settings",
         type=argparse.FileType("r"),
