@@ -14,9 +14,10 @@ def validate(args):
 
 
 def setup_subparser(subparsers):
-    parser = subparsers.add_parser('validate', description=__doc__)
+    parser = subparsers.add_parser("validate", description=__doc__)
     parser.set_defaults(command=validate)
     parser.add_argument(
-        'resource_spec_file',
-        type=argparse.FileType('r'),
-        help='The resource specification to use for generating the code.')
+        "resource_spec_file",
+        type=argparse.FileType("r"),
+        help="The resource specification to use for generating the code.",
+    )

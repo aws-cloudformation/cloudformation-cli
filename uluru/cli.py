@@ -7,11 +7,9 @@ from logging.config import dictConfig
 import pkg_resources
 import yaml
 
-from .project_settings import \
-    setup_subparser as project_settings_setup_subparser
-
 from .generate import setup_subparser as generate_setup_subparser
 from .init import init_setup_subparser
+from .project_settings import setup_subparser as project_settings_setup_subparser
 from .publish_stub import publish_setup_subparser
 from .submit_stub import submit_setup_subparser
 from .test_stub import test_setup_subparser
@@ -26,9 +24,10 @@ def setup_logging(verbosity=0):
     else:
         level = logging.WARNING
 
-    logging_config = yaml.safe_load(pkg_resources.resource_stream(
-        __name__, 'data/logging.yaml'))
-    logging_config['handlers']['console']['level'] = level
+    logging_config = yaml.safe_load(
+        pkg_resources.resource_stream(__name__, "data/logging.yaml")
+    )
+    logging_config["handlers"]["console"]["level"] = level
     dictConfig(logging_config)
 
 
@@ -36,16 +35,18 @@ def main():
     # see docstring of this file
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
-        '-v', '--verbose',
-        action='count',
+        "-v",
+        "--verbose",
+        action="count",
         default=0,
-        help='Increase the output verbosity. Can be specified multiple times.')
+        help="Increase the output verbosity. Can be specified multiple times.",
+    )
 
     # the default command just prints the help message
     # subparsers should set their own default commands
     parser.set_defaults(command=lambda args: parser.print_help())
 
-    subparsers = parser.add_subparsers(dest='subparser_name')
+    subparsers = parser.add_subparsers(dest="subparser_name")
     init_setup_subparser(subparsers)
     validate_setup_subparser(subparsers)
     generate_setup_subparser(subparsers)
@@ -60,5 +61,5 @@ def main():
     args.command(args)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
