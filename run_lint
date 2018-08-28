@@ -2,19 +2,26 @@
 set -euo pipefail
 IFS=$'\n\t'
 
+PACKAGE="uluru/"
+TESTS="tests/"
+FILES=("setup.py" "$PACKAGE" "$TESTS")
+
 echo "--- Automatically fixing up imports using isort ---"
-isort -y
+isort -rc -y "${FILES[@]}"
 
-echo "--- Linting uluru code with flake8 ---"
-flake8 "uluru/"
+echo "--- Formatting code with black ---"
+black "${FILES[@]}"
 
-echo "--- Linting testsc code with flake8 ---"
-flake8 "tests/"
+echo "--- Linting code with flake8 ---"
+flake8 "${FILES[@]}"
 
 echo "--- Linting code with pylint ---"
-pylint "uluru/" "tests/"
+pylint "${FILES[@]}"
+
+echo "--- Running safety tests ---"
+bandit -r "$PACKAGE"
 
 echo "--- Running unit tests ---"
-pytest "tests/"
+pytest --cov="$PACKAGE" --doctest-modules "$PACKAGE" "$TESTS"
 
 echo "PASS"

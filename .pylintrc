@@ -6,16 +6,14 @@ persistent=yes
 
 [MESSAGES CONTROL]
 
-disable=missing-docstring,fixme
+# bad-continuation clashes with black
+disable=missing-docstring,fixme,bad-continuation
 
 [BASIC]
 
-good-names=e,ex,f,i,j,k,n,_
+good-names=e,ex,f,fp,i,j,k,n,_
 
 [FORMAT]
 
 indent-string='    '
-max-line-length=80
-
-# pylint complains about overly long names: https://github.com/PyCQA/pylint/issues/2047
-function-rgx=(([a-z_][a-z0-9_]{2,})|(_[a-z0-9_]*)|(__[a-z][a-z0-9_]+__))$
+max-line-length=88

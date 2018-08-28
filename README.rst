@@ -1,5 +1,7 @@
-Uluru resource provider CLI
-===========================
+AWS CloudFormation Resource Provider Development Kit
+====================================================
+
+The CloudFormation Resource Provider Development Kit (RPDK) allows you to author your own resource providers that can be used by CloudFormation.
 
 Usage
 -----
@@ -65,6 +67,17 @@ tool.)
     pip install -r requirements.txt
     pip install -e .
 
-Before submitting code, please execute the ``run_lint`` script. It will execute
-all linters (`flake8 <http://flake8.pycqa.org/en/latest/>`_ and
-`pylint <https://www.pylint.org/>`_), as well as the unit tests.
+Before committing code, please execute the ``run_lint`` script. This performs
+several steps for your convenience:
+
+* Auto-formatting of all code to make it uniform and PEP8 compliant
+* Linting for issues the auto-formatter doesn't catch
+* Run all tests and confirm coverage is over a threshold
+
+If you want to generate an HTML coverage report afterwards, run
+``coverage html``. The report is output to ``htmlcov/index.html``.
+
+License
+-------
+
+This library is licensed under the Apache 2.0 License.
