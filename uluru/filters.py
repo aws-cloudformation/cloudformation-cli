@@ -17,7 +17,7 @@ def resource_type_name(resource_type):
     >>> resource_type_name('AWS::ECS::Instance')
     'Instance'
     """
-    split_result = resource_type.split('::')
+    split_result = resource_type.split("::")
     if len(split_result) == 3:
         return split_result[2]
     return resource_type
@@ -31,7 +31,7 @@ def resource_service_name(resource_type):
     >>> resource_service_name('AWS::ECS::Instance')
     'ECS'
     """
-    split_result = resource_type.split('::')
+    split_result = resource_type.split("::")
     if len(split_result) == 3:
         return split_result[1]
     return resource_type
@@ -45,7 +45,7 @@ def java_class_name(import_name):
     >>> java_class_name('com.example.MyClass')
     'MyClass'
     """
-    return import_name.split('.')[-1]
+    return import_name.split(".")[-1]
 
 
 @register_filter
@@ -74,13 +74,13 @@ def property_type_json_to_java(schema_type):
         "boolean": "boolean",
         "number": "float",
         "array": "List",
-        }
+    }
     # what add'l things to add?
 
     try:
         return types[schema_type]
     except TypeError:
-        return schema_type["$ref"].rpartition('/')[-1] + "Model"
+        return schema_type["$ref"].rpartition("/")[-1] + "Model"
         # todo I realize this is pretty hacky
     except KeyError:
         return schema_type
@@ -98,6 +98,6 @@ def modified_from_action_type(action_type):
     >>> modified_from_action_type('')
     'false'
     """
-    if action_type == 'write':
-        return 'true'
-    return 'false'
+    if action_type == "write":
+        return "true"
+    return "false"

@@ -9,12 +9,12 @@ from uluru.data_loaders import load_project_settings, load_resource_spec
 
 def test_load_resource_spec_json_error():
     with pytest.raises(yaml.parser.ParserError):
-        load_resource_spec(StringIO('}'))
+        load_resource_spec(StringIO("}"))
 
 
 def test_load_resource_spec_invalid_spec():
     # TODO: our spec is too lenient
-    load_resource_spec(StringIO('{}'))
+    load_resource_spec(StringIO("{}"))
 
 
 def test_load_resource_spec_valid_spec():
@@ -24,19 +24,19 @@ def test_load_resource_spec_valid_spec():
 
 
 def test_load_project_settings_java_defaults():
-    assert load_project_settings('java', None)
+    assert load_project_settings("java", None)
 
 
 def test_load_project_settings_java_user_specified_valid():
-    user_settings = {'PackageNamePrefix': 'org.my.package'}
+    user_settings = {"PackageNamePrefix": "org.my.package"}
     file_like = StringIO(yaml.dump(user_settings))
-    merged_settings = load_project_settings('java', file_like)
-    assert merged_settings['PackageNamePrefix'] == 'org.my.package'
+    merged_settings = load_project_settings("java", file_like)
+    assert merged_settings["PackageNamePrefix"] == "org.my.package"
 
 
 def test_load_project_settings_java_user_specified_invalid():
-    user_settings = {'PackageNamePrefix': {}}
+    user_settings = {"PackageNamePrefix": {}}
     file_like = StringIO(yaml.dump(user_settings))
 
     with pytest.raises(jsonschema.exceptions.ValidationError):
-        load_project_settings('java', file_like)
+        load_project_settings("java", file_like)

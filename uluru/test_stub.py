@@ -22,7 +22,5 @@ def test(args):
 
 
 def test_setup_subparser(subparsers):
-    parser = subparsers.add_parser(
-        'test',
-        description=__doc__)
+    parser = subparsers.add_parser("test", description=__doc__)
     parser.set_defaults(command=test)

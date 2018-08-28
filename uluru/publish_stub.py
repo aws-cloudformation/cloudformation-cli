@@ -11,7 +11,5 @@ def publish(args):
 
 
 def publish_setup_subparser(subparsers):
-    parser = subparsers.add_parser(
-        'publish',
-        description=__doc__)
+    parser = subparsers.add_parser("publish", description=__doc__)
     parser.set_defaults(command=publish)

@@ -10,7 +10,5 @@ def submit(args):
 
 
 def submit_setup_subparser(subparsers):
-    parser = subparsers.add_parser(
-        'submit',
-        description=__doc__)
+    parser = subparsers.add_parser("submit", description=__doc__)
     parser.set_defaults(command=submit)
