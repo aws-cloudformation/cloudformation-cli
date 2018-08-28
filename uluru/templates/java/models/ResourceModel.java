@@ -3,7 +3,7 @@
 	resource_name (name of the subresource as specified in the resource schema)
 	resource_properties (dictionary of properties for this subresource)
 #}
-{# {% set resource_name = Type|resource_type_name %} #}
+{# {% set resource_name = Type|resource_type_resource %} #}
 package {{ PackageNamePrefix }}.models;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
@@ -16,7 +16,7 @@ public class {{ resource_name }}Model {
 	{% set property_type = property_details.Type|property_type_json_to_java %}
 	@JsonProperty("{{ property_name }}")
 	private {{ property_type }} {{ property_variable }};
-	
+
 	{% endfor %}
 
 	@JsonCreator
@@ -32,7 +32,7 @@ public class {{ resource_name }}Model {
 		{% set property_variable = property_name|lowercase_first_letter %}
 		this.{{ property_variable }} = {{ property_variable }};
 		{% endfor %}
-		
+
 	}
 
 	{% for property_name, property_details in resource_properties.items() %}

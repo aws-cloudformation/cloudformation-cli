@@ -1,4 +1,4 @@
-{% set resource_name = Type|resource_type_name %}
+{% set resource_name = Type|resource_type_resource %}
 package unit;
 
 import com.amazon.cloudformation.selfservice.messages.ResourceRequest;
@@ -13,7 +13,7 @@ import {{ Client.Client }};
 
 import org.junit.Before;
 import org.mockito.Mock;
-import utils.{{ Type|resource_service_name }}ClientBuilder;
+import utils.{{ Type|resource_type_service }}ClientBuilder;
 
 import static org.junit.Assert.assertEquals;
 
@@ -25,7 +25,7 @@ public class TestBase {
     protected static final RuntimeException unknownException = new RuntimeException("Runtime error");
 
     @Mock
-    protected {{ Client.Client|java_class_name }} client = {{ Type|resource_service_name }}ClientBuilder.getClient(new ResourceRequest());
+    protected {{ Client.Client|java_class_name }} client = {{ Type|resource_type_service }}ClientBuilder.getClient(new ResourceRequest());
     @Mock
     protected static ResourceRequest context = new ResourceRequest();
     protected static final String TOKEN = "token";
@@ -54,7 +54,7 @@ public class TestBase {
         /** END PROVIDER CUSTOMIZATION **/
     }
 
-    static { 
+    static {
         context.setClientRequestToken(TOKEN);
         exception400.setStatusCode(400);
         exception500.setStatusCode(500);

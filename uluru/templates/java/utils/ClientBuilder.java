@@ -11,7 +11,7 @@ import {{ Client.Client }};
 /*
     Provides a standardized class for handlers to retrieve clients.
  */
-public class {{ Type|resource_service_name }}ClientBuilder {
+public class {{ Type|resource_type_service }}ClientBuilder {
 
     public static {{ Client.Client|java_class_name }} getClient(ResourceRequest input) {
 
