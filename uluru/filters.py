@@ -10,30 +10,65 @@ def register_filter(f):
 
 
 @register_filter
-def resource_type_name(resource_type):
-    """Gets the resource name from a resource type. The resource type is
-    returned if the resource type separator ("::") is not found.
+def resource_type_namespace(resource_type):
+    """Gets the namespace from a resource type.
 
-    >>> resource_type_name('AWS::ECS::Instance')
-    'Instance'
+    The unmodified resource type is returned if the resource type is invalid.
+
+    >>> resource_type_namespace('AWS::ECS::Instance')
+    'AWS'
+    >>> resource_type_namespace('AWS::ECS')
+    'AWS::ECS'
+    >>> resource_type_namespace('AWS::ECS::Instance::1')
+    'AWS::ECS::Instance::1'
+    >>> resource_type_namespace('AWS__ECS__Instance')
+    'AWS__ECS__Instance'
     """
-    split_result = resource_type.split("::")
-    if len(split_result) == 3:
-        return split_result[2]
+    segments = resource_type.split("::")
+    if len(segments) == 3:
+        return segments[0]
     return resource_type
 
 
 @register_filter
-def resource_service_name(resource_type):
-    """Gets the service name from a resource type. The resource type is
-    returned if the resource type separator ("::") is not found.
+def resource_type_service(resource_type):
+    """Gets the service name from a resource type.
 
-    >>> resource_service_name('AWS::ECS::Instance')
+    The unmodified resource type is returned if the resource type is invalid.
+
+    >>> resource_type_service('AWS::ECS::Instance')
     'ECS'
+    >>> resource_type_service('AWS::ECS')
+    'AWS::ECS'
+    >>> resource_type_service('AWS::ECS::Instance::1')
+    'AWS::ECS::Instance::1'
+    >>> resource_type_service('AWS__ECS__Instance')
+    'AWS__ECS__Instance'
     """
-    split_result = resource_type.split("::")
-    if len(split_result) == 3:
-        return split_result[1]
+    segments = resource_type.split("::")
+    if len(segments) == 3:
+        return segments[1]
+    return resource_type
+
+
+@register_filter
+def resource_type_resource(resource_type):
+    """Gets the resource name from a resource type.
+
+    The unmodified resource type is returned if the resource type is invalid.
+
+    >>> resource_type_resource('AWS::ECS::Instance')
+    'Instance'
+    >>> resource_type_resource('AWS::ECS')
+    'AWS::ECS'
+    >>> resource_type_resource('AWS::ECS::Instance::1')
+    'AWS::ECS::Instance::1'
+    >>> resource_type_resource('AWS__ECS__Instance')
+    'AWS__ECS__Instance'
+    """
+    segments = resource_type.split("::")
+    if len(segments) == 3:
+        return segments[2]
     return resource_type
 
 
@@ -44,21 +79,27 @@ def java_class_name(import_name):
 
     >>> java_class_name('com.example.MyClass')
     'MyClass'
+    >>> java_class_name('com_example_MyClass')
+    'com_example_MyClass'
+    >>> java_class_name('')
+    ''
     """
-    return import_name.split(".")[-1]
+    return import_name.rpartition(".")[2]
 
 
 @register_filter
-def lowercase_first_letter(s):
-    """Makes the first letter of a string lowercase. Useful for creating
-    lowerCamelCase variable names from UpperCamelCase strings.
-    Returns an empty string if the input is empty.
+def lowercase_first_letter(string):
+    """Converts the first letter of a string to lowercase.
 
-    >>> lowercase_first_letter("CreateHandler")
-    "createHandler"
+    >>> lowercase_first_letter('CreateHandler')
+    'createHandler'
+    >>> lowercase_first_letter('createHandler')
+    'createHandler'
+    >>> lowercase_first_letter('')
+    ''
     """
-    if s:
-        return s[0].lower() + s[1:]
+    if string:
+        return string[0].lower() + string[1:]
     return ""
 
 
@@ -75,13 +116,12 @@ def property_type_json_to_java(schema_type):
         "number": "float",
         "array": "List",
     }
-    # what add'l things to add?
-
     try:
         return types[schema_type]
     except TypeError:
-        return schema_type["$ref"].rpartition("/")[-1] + "Model"
-        # todo I realize this is pretty hacky
+        # this happens for unhashable types, in which case `schema_type`
+        # should be a dictionary
+        return schema_type["$ref"].rpartition("/")[2] + "Model"
     except KeyError:
         return schema_type
 

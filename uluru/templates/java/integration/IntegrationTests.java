@@ -1,5 +1,5 @@
 {# Integration tests to test that the handlers work as CFN expects #}
-{% set resource_name = Type|resource_type_name -%}
+{% set resource_name = Type|resource_type_resource -%}
 {% set resource_variable = "requestResource" -%}
 
 package integration;
@@ -7,7 +7,7 @@ package integration;
 import com.amazon.cloudformation.selfservice.messages.ResourceRequest;
 import {{ PackageNamePrefix }}.handlers.*;
 import {{ PackageNamePrefix }}.models.{{ resource_name }}Model;
-import {{ PackageNamePrefix }}.utils.{{ Type|resource_service_name }}ClientBuilder;
+import {{ PackageNamePrefix }}.utils.{{ Type|resource_type_service }}ClientBuilder;
 
 import {{ Client.Client }};
 import {{ Client.ResourceModel }}.*;
@@ -29,7 +29,7 @@ public class {{ resource_name }}IntegrationTests {
         Outline. More exception handling will need to be added.
      */
 
-    private {{ Client.Client|java_class_name }} client = {{ Type|resource_service_name }}ClientBuilder.getClient(new ResourceRequest());
+    private {{ Client.Client|java_class_name }} client = {{ Type|resource_type_service }}ClientBuilder.getClient(new ResourceRequest());
     //NOTE: "new ResourceRequest()" is kinda hacky. Thoughts??
 
     private {{ resource_name }}Model {{ resource_variable }};
@@ -39,7 +39,7 @@ public class {{ resource_name }}IntegrationTests {
     {% set property_type = property_details.Type|property_type_json_to_java %}
     protected static final {{ property_type }} {{ property_name|upper }} = "SAMPLE";
     {% endfor %}
-    
+
     /** END PROVIDER CODE **/
 
     protected ResourceRequest context;
@@ -59,7 +59,7 @@ public class {{ resource_name }}IntegrationTests {
         {{ resource_variable }} = new {{ resource_name }}Model()
         {% for property_name, property_details in Properties.items()%}
             .with{{ property_name }}({{ property_name|upper }}){% if loop.last %};{% endif %}
-            
+
         {% endfor %}
 		/** END PROVIDER CODE **/
 

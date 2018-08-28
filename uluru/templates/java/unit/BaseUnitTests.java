@@ -3,7 +3,7 @@
     handler_type (name of handler)
     subhandler (object with the handler's properties)
 #}
-{% set resource_name = Type|resource_type_name %}
+{% set resource_name = Type|resource_type_resource %}
 {% set handler_variable = handler_type|lower ~ 'Handler' %}
 package unit;
 
