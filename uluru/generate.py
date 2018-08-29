@@ -69,7 +69,7 @@ def setup_subparser(subparsers):
         "--output-directory",
         dest="output_directory",
         default=os.getcwd(),
-        help="Output directory for sample schema. (Default: current directory)",
+        help="Output directory for code generation. (Default: current directory)",
     )
     # we should always be able to provide some kind of default project setting,
     # so the user doesn't need to look these up before trying out codegen.
