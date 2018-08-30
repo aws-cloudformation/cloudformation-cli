@@ -7,7 +7,8 @@ persistent=yes
 [MESSAGES CONTROL]
 
 # bad-continuation clashes with black
-disable=missing-docstring,fixme,bad-continuation
+# duplicate-code finds dupes between tests and plugins and is annoying to override
+disable=missing-docstring,fixme,bad-continuation,duplicate-code
 
 [BASIC]
 

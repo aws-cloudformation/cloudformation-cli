@@ -28,7 +28,7 @@ setup(
     long_description=read("README.rst"),
     author="Amazon Web Services",
     url="https://aws.amazon.com/cloudformation/",
-    packages=find_packages(exclude=["tests*"]),
+    packages=find_packages(exclude=["tests", "*.tests"]),
     # package_data -> use MANIFEST.in instead
     include_package_data=True,
     zip_safe=True,
@@ -37,7 +37,10 @@ setup(
         "jsonschema",  # fmt: off
         "pyyaml",  # fmt: off
     ],
-    entry_points={"console_scripts": ["uluru-cli = uluru.cli:main"]},
+    entry_points={
+        "console_scripts": ["uluru-cli = uluru.cli:main"],
+        "uluru.languages": ["java = uluru.languages.java:JavaLanguagePlugin"],
+    },
     license="Apache License 2.0",
     classifiers=(
         "Development Status :: 2 - Pre-Alpha",

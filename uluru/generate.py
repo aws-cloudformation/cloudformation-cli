@@ -8,49 +8,23 @@ import argparse
 import logging
 import os
 
-from jinja2 import Environment, PackageLoader, select_autoescape
-
 from .data_loaders import load_project_settings, load_resource_spec
-from .filters import FILTER_REGISTRY
-from .generators.java import generate as generate_java
-
-# registry decorators do not work well across files, so manual is simpler
-LANGUAGE_GENERATOR_REGISTRY = {"java": generate_java}
+from .plugin_registry import PLUGIN_REGISTRY, add_language_argument
 
 LOG = logging.getLogger(__name__)
 
 
-def add_language_argument(parser):
-    parser.add_argument(
-        "--language",
-        choices=list(LANGUAGE_GENERATOR_REGISTRY.keys()),
-        default="java",
-        help="The language for code generation. (Default: java)",
-    )
-
-
 def generate(args):
-    LOG.info("Loading the resource provider definition...")
-    resource_def = load_resource_spec(args.resource_def_file)
+    plugin = PLUGIN_REGISTRY[args.language]
+
     LOG.info("Loading the project settings...")
-    project_settings = load_project_settings(args.language, args.project_settings_file)
+    project_settings = load_project_settings(plugin, args.project_settings_file)
     project_settings["output_directory"] = args.output_directory
 
-    generate_function = LANGUAGE_GENERATOR_REGISTRY[args.language]
-
-    loader = PackageLoader(__name__, "templates/" + args.language)
-    env = Environment(
-        loader=loader,
-        trim_blocks=True,
-        lstrip_blocks=True,
-        keep_trailing_newline=True,
-        autoescape=select_autoescape(["html", "htm", "xml"]),
-    )
-    for filter_name, filter_func in FILTER_REGISTRY.items():
-        env.filters[filter_name] = filter_func
-
+    LOG.info("Loading the resource provider definition...")
+    resource_def = load_resource_spec(args.resource_def_file)
     LOG.info("Generating code...")
-    generate_function(env, resource_def, project_settings)
+    plugin.generate(resource_def, project_settings)
 
 
 def setup_subparser(subparsers):
