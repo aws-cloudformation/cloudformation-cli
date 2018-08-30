@@ -4,12 +4,12 @@ generation for a given language.
 import argparse
 import sys
 
-from .data_loaders import default_project_settings_file
-from .generate import add_language_argument
+from .plugin_registry import PLUGIN_REGISTRY, add_language_argument
 
 
 def project_settings(args):
-    with default_project_settings_file(args.language) as f:
+    plugin = PLUGIN_REGISTRY[args.language]
+    with plugin.project_settings_defaults() as f:
         settings = f.read().decode("utf-8")
     args.output.write("# Project settings for {}\n".format(args.language))
     args.output.write(settings)

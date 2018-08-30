@@ -52,6 +52,24 @@ are used.
         --language java \
         --project-settings examples/java_project.json
 
+Plugin system
+-------------
+
+New language plugins can be independently developed. As long as they declare
+the appropriate entry point and are installed in the same environment, they can
+even be completely separate codebases. For example, a plugin for Groovy might
+have the following entry point:
+
+.. code-block:: python
+
+    entry_points={
+        "uluru.languages": ["groovy = uluru-groovy:GroovyLanguagePlugin"],
+    },
+
+Plugins must provide the same interface as ``LanguagePlugin`` (in
+``plugin_base.py``). And they may inherit from ``LanguagePlugin`` for the helper
+methods - but this is not necessary. As long as the class has the same methods,
+it will work as a plugin.
 
 Development
 -----------

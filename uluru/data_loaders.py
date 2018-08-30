@@ -34,19 +34,13 @@ def load_resource_spec(resource_spec_file):
     return resource_spec
 
 
-def default_project_settings_file(language):
-    filename = "data/{}/project_defaults.yaml".format(language)
-    return pkg_resources.resource_stream(__name__, filename)
-
-
-def load_project_settings(language, project_settings_file):
+def load_project_settings(plugin, project_settings_file):
     """Load language-specific project settings from a file, merge them into
     the default project settings, and validate the result.
 
     ``project_settings_file`` can be ``None``.
     """
-    with default_project_settings_file(language) as f:
-        project_settings = yaml.safe_load(f)
+    project_settings = yaml.safe_load(plugin.project_settings_defaults())
 
     if project_settings_file:
         try:
@@ -63,13 +57,8 @@ def load_project_settings(language, project_settings_file):
             "to further customize code generation."
         )
 
-    with pkg_resources.resource_stream(
-        __name__, "data/{}/project_schema.json".format(language)
-    ) as f:
-        project_settings_schema = json.load(f)
-
     try:
-        jsonschema.validate(project_settings, project_settings_schema)
+        jsonschema.validate(project_settings, plugin.project_settings_schema())
         # the unit tests should catch `SchemaError`/if the schema is invalid
     except jsonschema.exceptions.ValidationError as e:
         LOG.error("The project settings are invalid: %s", e.message)  # noqa: B306
