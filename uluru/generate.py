@@ -34,7 +34,6 @@ def generate(args):
     resource_def = load_resource_spec(args.resource_def_file)
     LOG.info("Loading the project settings...")
     project_settings = load_project_settings(args.language, args.project_settings_file)
-    LOG.info("Done")
     project_settings["output_directory"] = args.output_directory
 
     generate_function = LANGUAGE_GENERATOR_REGISTRY[args.language]
@@ -52,7 +51,6 @@ def generate(args):
 
     LOG.info("Generating code...")
     generate_function(env, resource_def, project_settings)
-    LOG.info("Done")
 
 
 def setup_subparser(subparsers):
