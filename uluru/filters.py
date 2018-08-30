@@ -9,67 +9,65 @@ def register_filter(f):
     return f
 
 
+def parse_resource_type(resource_type):
+    """Splits a resource type into it's components.
+
+    :exc:`ValueError` is raised if the resource type is invalid.
+
+    >>> parse_resource_type('AWS::ECS::Instance')
+    ['AWS', 'ECS', 'Instance']
+    >>> parse_resource_type('AWS::ECS')
+    Traceback (most recent call last):
+    ...
+    ValueError: Resource type 'AWS::ECS' is invalid
+    >>> parse_resource_type('AWS__ECS__Instance')
+    Traceback (most recent call last):
+    ...
+    ValueError: Resource type 'AWS__ECS__Instance' is invalid
+    """
+    segments = resource_type.split("::")
+    if len(segments) != 3:
+        raise ValueError("Resource type '{}' is invalid".format(resource_type))
+    return segments
+
+
 @register_filter
 def resource_type_namespace(resource_type):
     """Gets the namespace from a resource type.
 
-    The unmodified resource type is returned if the resource type is invalid.
+    :exc:`ValueError` is raised if the resource type is invalid, see
+    :function:`parse_resource_type`.
 
     >>> resource_type_namespace('AWS::ECS::Instance')
     'AWS'
-    >>> resource_type_namespace('AWS::ECS')
-    'AWS::ECS'
-    >>> resource_type_namespace('AWS::ECS::Instance::1')
-    'AWS::ECS::Instance::1'
-    >>> resource_type_namespace('AWS__ECS__Instance')
-    'AWS__ECS__Instance'
     """
-    segments = resource_type.split("::")
-    if len(segments) == 3:
-        return segments[0]
-    return resource_type
+    return parse_resource_type(resource_type)[0]
 
 
 @register_filter
 def resource_type_service(resource_type):
     """Gets the service name from a resource type.
 
-    The unmodified resource type is returned if the resource type is invalid.
+    :exc:`ValueError` is raised if the resource type is invalid, see
+    :function:`parse_resource_type`.
 
     >>> resource_type_service('AWS::ECS::Instance')
     'ECS'
-    >>> resource_type_service('AWS::ECS')
-    'AWS::ECS'
-    >>> resource_type_service('AWS::ECS::Instance::1')
-    'AWS::ECS::Instance::1'
-    >>> resource_type_service('AWS__ECS__Instance')
-    'AWS__ECS__Instance'
     """
-    segments = resource_type.split("::")
-    if len(segments) == 3:
-        return segments[1]
-    return resource_type
+    return parse_resource_type(resource_type)[1]
 
 
 @register_filter
 def resource_type_resource(resource_type):
     """Gets the resource name from a resource type.
 
-    The unmodified resource type is returned if the resource type is invalid.
+    :exc:`ValueError` is raised if the resource type is invalid, see
+    :function:`parse_resource_type`.
 
     >>> resource_type_resource('AWS::ECS::Instance')
     'Instance'
-    >>> resource_type_resource('AWS::ECS')
-    'AWS::ECS'
-    >>> resource_type_resource('AWS::ECS::Instance::1')
-    'AWS::ECS::Instance::1'
-    >>> resource_type_resource('AWS__ECS__Instance')
-    'AWS__ECS__Instance'
     """
-    segments = resource_type.split("::")
-    if len(segments) == 3:
-        return segments[2]
-    return resource_type
+    return parse_resource_type(resource_type)[2]
 
 
 @register_filter
