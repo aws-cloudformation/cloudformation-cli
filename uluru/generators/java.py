@@ -78,10 +78,9 @@ def generate(env, resource_def, project_settings):
     # template:output pair to the dictionary.
     template_path = "models/ResourceModel.java"
     template = env.get_template(template_path)
+    defs = resource_def["Definitions"]
     try:
-        for definition_name, definition_properties in resource_def[
-            "Definitions"
-        ].items():
+        for definition_name, definition_properties in defs.items():
             # not sure how to format long line above
             definition_properties = definition_properties["Properties"]
             def_output_path = (
