@@ -103,9 +103,23 @@ def lowercase_first_letter(string):
 
 @register_filter
 def property_type_json_to_java(schema_type):
-    """Returns Java types based on the JSON type of a property.
-    Currently supports the below types.
-    Otherwise will return the original JSON type.
+    """Maps JSON schema types to Java types. If the type cannot be mapped, it
+    is returned as is.
+
+    >>> property_type_json_to_java('string')
+    'String'
+    >>> property_type_json_to_java('integer')
+    'int'
+    >>> property_type_json_to_java('boolean')
+    'boolean'
+    >>> property_type_json_to_java('number')
+    'float'
+    >>> property_type_json_to_java('array')
+    'List'
+    >>> property_type_json_to_java('foo')
+    'foo'
+    >>> property_type_json_to_java({'$ref': '#/Definitions/StreamEncryption'})
+    'StreamEncryptionModel'
     """
     types = {
         "string": "String",

@@ -9,4 +9,4 @@ phases:
       - flake8 "setup.py" "uluru/" "tests/"
       - pylint "setup.py" "uluru/" "tests/"
       - bandit -r "uluru/"
-      # - pytest --cov="uluru/" --doctest-modules "uluru/" "tests/"
+      - pytest --cov="uluru/" --doctest-modules "uluru/" "tests/"
