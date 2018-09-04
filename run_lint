@@ -1,27 +1,23 @@
-#!/bin/bash
-set -euo pipefail
-IFS=$'\n\t'
+#!/usr/bin/env python
+from subprocess import CalledProcessError, check_call
 
-PACKAGE="uluru/"
-TESTS="tests/"
-FILES=("setup.py" "$PACKAGE" "$TESTS")
+import yaml
 
-echo "--- Automatically fixing up imports using isort ---"
-isort -rc -y "${FILES[@]}"
 
-echo "--- Formatting code with black ---"
-black "${FILES[@]}"
+def main():
+    with open("buildspec.yml", "r", encoding="utf-8") as f:
+        buildspec = yaml.safe_load(f)
 
-echo "--- Linting code with flake8 ---"
-flake8 "${FILES[@]}"
+    for cmd in buildspec["phases"]["build"]["commands"]:
+        print(">>>", cmd, "<<<")
+        try:
+            # this may not work if the commands rely on things in the shell's
+            # environment between calls
+            check_call(cmd, shell=True)
+        except CalledProcessError:
+            print("FAIL:", cmd)
+            return
 
-echo "--- Linting code with pylint ---"
-pylint "${FILES[@]}"
 
-echo "--- Running safety tests ---"
-bandit -r "$PACKAGE"
-
-echo "--- Running unit tests ---"
-pytest --cov="$PACKAGE" --doctest-modules "$PACKAGE" "$TESTS"
-
-echo "PASS"
+if __name__ == "__main__":
+    main()
