@@ -8,6 +8,7 @@ import pkg_resources
 import yaml
 
 from .generate import setup_subparser as generate_setup_subparser
+from .initialize import setup_subparser as initialize_setup_subparser
 from .project_settings import setup_subparser as project_settings_setup_subparser
 from .validate import setup_subparser as validate_setup_subparser
 
@@ -43,6 +44,7 @@ def main():
     parser.set_defaults(command=lambda args: parser.print_help())
 
     subparsers = parser.add_subparsers(dest="subparser_name")
+    initialize_setup_subparser(subparsers)
     validate_setup_subparser(subparsers)
     generate_setup_subparser(subparsers)
     project_settings_setup_subparser(subparsers)

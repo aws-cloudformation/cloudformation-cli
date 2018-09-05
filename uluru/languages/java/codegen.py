@@ -141,19 +141,22 @@ class JavaLanguagePlugin(LanguagePlugin):
 
     def initialize(self, project_settings):
         project_settings["buildSystem"] = "maven"
+        project_settings["output_directory"] = Path(
+            project_settings["output_directory"]
+        ).resolve(strict=True)
         self._initialize_maven(project_settings)
         self._initialize_intellij(project_settings)
 
     def _initialize_intellij(self, project_settings):
-        output_dir = Path(project_settings["output_directory"]).resolve(strict=True)
-
-        intellij_conf_dir = output_dir / ".idea"
+        intellij_conf_dir = project_settings["output_directory"] / ".idea"
         intellij_conf_dir.mkdir(exist_ok=True)
 
         resource_schema_stream = pkg_resources.resource_stream(
             "uluru", "data/resource_provider_schema.json"
         )
-        resource_schema_out = output_dir / "resource_provider_schema.json"
+        resource_schema_out = (
+            project_settings["output_directory"] / "resource_provider_schema.json"
+        )
         with resource_schema_out.open("wb") as f:
             shutil.copyfileobj(resource_schema_stream, f)
 
@@ -169,9 +172,7 @@ class JavaLanguagePlugin(LanguagePlugin):
             shutil.copyfileobj(json_schemas_stream, f)
 
     def _initialize_maven(self, project_settings):
-        output_pom = (
-            Path(project_settings["output_directory"]).resolve(strict=True) / "pom.xml"
-        )
+        output_pom = project_settings["output_directory"] / "pom.xml"
         pom_template = self.env.get_template("maven/pom.xml")
         with output_pom.open("w", encoding="utf-8") as f:
             f.write(pom_template.render(project_settings))

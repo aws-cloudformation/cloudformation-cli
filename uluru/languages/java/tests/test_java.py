@@ -1,6 +1,7 @@
 # fixture and parameter have the same name
 # pylint: disable=redefined-outer-name
 import xml.etree.ElementTree as ET
+from pathlib import Path
 
 import pytest
 import yaml
@@ -16,7 +17,7 @@ def plugin():
 @pytest.fixture
 def project_settings(plugin, tmpdir):
     project_settings = yaml.safe_load(plugin.project_settings_defaults())
-    project_settings["output_directory"] = tmpdir
+    project_settings["output_directory"] = Path(tmpdir).resolve(strict=True)
     return project_settings
 
 
@@ -38,18 +39,12 @@ def test_java_language_plugin_generate(plugin):
 
 def test_initialize_maven(plugin, project_settings):
     plugin._initialize_maven(project_settings)
-
     pom_tree = ET.parse(str(project_settings["output_directory"] / "pom.xml"))
-    xmlns = "http://maven.apache.org/POM/4.0.0"
-
-    assert (
-        pom_tree.find("./{{{0}}}groupId".format(xmlns)).text
-        == project_settings["packageNamePrefix"]
-    )
-    assert (
-        pom_tree.find("./{{{0}}}artifactId".format(xmlns)).text
-        == project_settings["packageName"]
-    )
+    ns = {"maven": "http://maven.apache.org/POM/4.0.0"}
+    package_name_prefix = pom_tree.find("maven:groupId", ns)
+    assert package_name_prefix.text == project_settings["packageNamePrefix"]
+    package_name = pom_tree.find("maven:artifactId", ns)
+    assert package_name.text == project_settings["packageName"]
 
 
 def test_initialize_intellij(plugin, project_settings):
