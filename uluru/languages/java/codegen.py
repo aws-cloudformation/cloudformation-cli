@@ -1,7 +1,10 @@
 # pylint: disable=useless-super-delegation,too-many-locals
 # pylint doesn't recognize abstract methods
 import logging
+import shutil
 from pathlib import Path
+
+import pkg_resources
 
 from uluru.plugin_base import LanguagePlugin
 
@@ -135,3 +138,40 @@ class JavaLanguagePlugin(LanguagePlugin):
                         resource_properties=resource_def["Properties"],
                     )
                 )
+
+    def initialize(self, project_settings):
+        project_settings["buildSystem"] = "maven"
+        self._initialize_maven(project_settings)
+        self._initialize_intellij(project_settings)
+
+    def _initialize_intellij(self, project_settings):
+        output_dir = Path(project_settings["output_directory"]).resolve(strict=True)
+
+        intellij_conf_dir = output_dir / ".idea"
+        intellij_conf_dir.mkdir(exist_ok=True)
+
+        resource_schema_stream = pkg_resources.resource_stream(
+            "uluru", "data/resource_provider_schema.json"
+        )
+        resource_schema_out = output_dir / "resource_provider_schema.json"
+        with resource_schema_out.open("wb") as f:
+            shutil.copyfileobj(resource_schema_stream, f)
+
+        misc_template = self.env.get_template("intellij/misc.xml")
+        with open(intellij_conf_dir / "misc.xml", "w", encoding="utf-8") as f:
+            f.write(misc_template.render(project_settings))
+
+        json_schemas_stream = pkg_resources.resource_stream(
+            __name__, "data/jsonSchemas.xml"
+        )
+        json_schemas_out = intellij_conf_dir / "jsonSchemas.xml"
+        with json_schemas_out.open("wb") as f:
+            shutil.copyfileobj(json_schemas_stream, f)
+
+    def _initialize_maven(self, project_settings):
+        output_pom = (
+            Path(project_settings["output_directory"]).resolve(strict=True) / "pom.xml"
+        )
+        pom_template = self.env.get_template("maven/pom.xml")
+        with output_pom.open("w", encoding="utf-8") as f:
+            f.write(pom_template.render(project_settings))

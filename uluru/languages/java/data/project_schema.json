@@ -4,9 +4,13 @@
   "description": "Uluru project settings schema for Java codegen projects",
   "type": "object",
   "properties": {
-    "PackageNamePrefix": {
+    "packageNamePrefix": {
       "type": "string",
       "pattern": "([a-z0-9._]{3,128})"
+    },
+    "packageName": {
+      "type": "string",
+      "pattern": "([a-z0-9_]{3,128})"
     },
     "Client": {
       "type": "object",
