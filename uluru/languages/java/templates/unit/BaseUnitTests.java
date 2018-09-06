@@ -11,8 +11,8 @@ import com.amazon.cloudformation.selfservice.messages.ResourceRequest;
 import com.amazon.cloudformation.selfservice.messages.ResourceResponse;
 import com.amazon.cloudformation.selfservice.messages.Status;
 import com.amazonaws.services.kms.model.AlreadyExistsException;
-import {{ PackageNamePrefix }}.handlers.{{ resource_name }}{{ handler_type }}Handler;
-import {{ PackageNamePrefix }}.models.{{ resource_name }}Model;
+import {{ packageNamePrefix }}.handlers.{{ resource_name }}{{ handler_type }}Handler;
+import {{ packageNamePrefix }}.models.{{ resource_name }}Model;
 
 import org.junit.After;
 import org.junit.Test;

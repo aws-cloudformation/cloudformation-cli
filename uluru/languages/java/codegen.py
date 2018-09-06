@@ -33,7 +33,7 @@ class JavaLanguagePlugin(LanguagePlugin):
         output_directory = Path(project_settings["output_directory"]).resolve(
             strict=True
         )
-        package_name_prefix = project_settings["PackageNamePrefix"]
+        package_name_prefix = project_settings["packageNamePrefix"]
 
         project_settings.setdefault("Client", {})
         java_client_keys = ["Client", "Builder", "ResourceModel"]

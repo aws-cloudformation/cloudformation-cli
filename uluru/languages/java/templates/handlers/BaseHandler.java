@@ -5,12 +5,12 @@
 #}
 {% set resource_name = Type|resource_type_resource -%}
 
-package {{ PackageNamePrefix }}.handlers;
+package {{ packageNamePrefix }}.handlers;
 
 import com.amazon.cloudformation.selfservice.messages.ResourceRequest;
 import com.amazon.cloudformation.selfservice.messages.ResourceResponse;
-import {{ PackageNamePrefix }}.models.{{ resource_name }}Model;
-import {{ PackageNamePrefix }}.utils.ResourceResponseReturner;
+import {{ packageNamePrefix }}.models.{{ resource_name }}Model;
+import {{ packageNamePrefix }}.utils.ResourceResponseReturner;
 import {{ Client.ResourceModel }}.*;
 import {{ Client.Client }};
 

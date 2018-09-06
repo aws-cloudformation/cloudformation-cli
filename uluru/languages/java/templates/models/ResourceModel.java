@@ -4,7 +4,7 @@
 	resource_properties (dictionary of properties for this subresource)
 #}
 {# {% set resource_name = Type|resource_type_resource %} #}
-package {{ PackageNamePrefix }}.models;
+package {{ packageNamePrefix }}.models;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
