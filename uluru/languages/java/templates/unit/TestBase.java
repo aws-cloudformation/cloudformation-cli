@@ -6,7 +6,7 @@ import com.amazon.cloudformation.selfservice.messages.ResourceResponse;
 import com.amazon.cloudformation.selfservice.messages.Status;
 import com.amazonaws.AmazonServiceException;
 
-import {{ PackageNamePrefix }}.models.{{ resource_name }}Model;
+import {{ packageNamePrefix }}.models.{{ resource_name }}Model;
 
 import {{ Client.ResourceModel }}.*;
 import {{ Client.Client }};

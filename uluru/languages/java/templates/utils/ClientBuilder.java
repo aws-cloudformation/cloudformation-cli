@@ -1,4 +1,4 @@
-package {{ PackageNamePrefix }}.utils;
+package {{ packageNamePrefix }}.utils;
 
 import com.amazon.cloudformation.selfservice.messages.Credentials;
 import com.amazon.cloudformation.selfservice.messages.ResourceRequest;

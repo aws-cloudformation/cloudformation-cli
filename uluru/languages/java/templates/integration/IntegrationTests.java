@@ -5,9 +5,9 @@
 package integration;
 
 import com.amazon.cloudformation.selfservice.messages.ResourceRequest;
-import {{ PackageNamePrefix }}.handlers.*;
-import {{ PackageNamePrefix }}.models.{{ resource_name }}Model;
-import {{ PackageNamePrefix }}.utils.{{ Type|resource_type_service }}ClientBuilder;
+import {{ packageNamePrefix }}.handlers.*;
+import {{ packageNamePrefix }}.models.{{ resource_name }}Model;
+import {{ packageNamePrefix }}.utils.{{ Type|resource_type_service }}ClientBuilder;
 
 import {{ Client.Client }};
 import {{ Client.ResourceModel }}.*;
