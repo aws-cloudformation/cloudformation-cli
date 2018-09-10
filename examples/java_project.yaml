@@ -1,5 +1,5 @@
 # User-provided project settings override the default project settings
-packageNamePrefix: org.my.package
+packageName: org.my.package
 Client:
   Client: com.amazonaws.services.kinesis.AmazonKinesis
   Builder: com.amazonaws.services.kinesis.AmazonKinesisClientBuilder

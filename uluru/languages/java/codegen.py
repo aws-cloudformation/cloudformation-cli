@@ -33,14 +33,14 @@ class JavaLanguagePlugin(LanguagePlugin):
         output_directory = Path(project_settings["output_directory"]).resolve(
             strict=True
         )
-        package_name_prefix = project_settings["packageNamePrefix"]
+        project_settings["packageNamePrefix"] = self.env.filters["package_prefix"](project_settings["packageName"])
 
         project_settings.setdefault("Client", {})
         java_client_keys = ["Client", "Builder", "ResourceModel"]
         for key in java_client_keys:
             project_settings["Client"].setdefault(key, key.upper())
 
-        project_directory = package_name_prefix.split(".")
+        project_directory = project_settings["packageNamePrefix"].split(".")
 
         source_directory = output_directory.joinpath("src", *project_directory)
         test_directory = output_directory.joinpath("tst", *project_directory)
