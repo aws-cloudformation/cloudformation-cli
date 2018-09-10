@@ -25,7 +25,6 @@ the Python Package Index (PyPI). It requires Python 3.
 
     pip3 install uluru-cli
 
-
 Command: project-settings
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -37,6 +36,20 @@ To output the default project settings for a given language, use the
     uluru-cli project-settings \
         --language java \
         --output project.yaml
+
+Command: initialize
+^^^^^^^^^^^^^^^^^^^
+
+To create project files such as build files and autocomplete for your specific language and IDE,
+use the ``initialize`` command. An output directory an be set with the optional ``output-directory`` argument
+(Defaults to the current directory). You can customize certain, language-specific project settings, otherwise the
+default settings are used.
+
+.. code-block:: bash
+
+    uluru-cli initialize \
+        --language java \
+        --project-settings examples/java_project.json
 
 Command: generate
 ^^^^^^^^^^^^^^^^^
@@ -50,7 +63,8 @@ are used.
     uluru-cli generate \
         examples/aws-kinesis-stream.yaml \
         --language java \
-        --project-settings examples/java_project.json
+        --project-settings examples/java_project.json \
+        --output-directory projects/resource-provider/
 
 Plugin system
 -------------
