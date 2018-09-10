@@ -1,4 +1,3 @@
 # User-provided project settings are merged with the default project settings
 # and override the defaults.
-packageName: ResourceProviderExample
-packageNamePrefix: com.example
+packageName: com.example.ResourceProviderExample
