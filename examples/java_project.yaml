@@ -1,5 +1,5 @@
 # User-provided project settings override the default project settings
-packageName: org.my.package
+packageName: com.example.ResourceProviderExample
 Client:
   Client: com.amazonaws.services.kinesis.AmazonKinesis
   Builder: com.amazonaws.services.kinesis.AmazonKinesisClientBuilder

@@ -157,20 +157,21 @@ def modified_from_action_type(action_type):
 
 @register_filter
 def package_prefix(full_package_name):
-    """Maps JSON schema types to Java types. If the type cannot be mapped, it
-        is returned as is.
+    """Returns the package prefix from the package name specified.
 
-        >>> package_prefix('com.example.test')
-        'com.example'
-        >>> package_prefix('example.test')
-        'example'
-        >>> package_prefix('com.example.this.isa.test')
-        'com.example.this.isa'
-        >>> package_prefix('exampletest')
-        Traceback (most recent call last):
-        ...
-        ValueError: Package name 'exampletest' is invalid
-        """
+    :exc:`ValueError` is raised if the package name format is invalid.
+
+    >>> package_prefix('com.example.test')
+    'com.example'
+    >>> package_prefix('example.test')
+    'example'
+    >>> package_prefix('com.example.this.isa.test')
+    'com.example.this.isa'
+    >>> package_prefix('exampletest')
+    Traceback (most recent call last):
+    ...
+    ValueError: Package name 'exampletest' is invalid
+    """
     package_segments = full_package_name.rpartition(".")
     if package_segments[0]:
         return package_segments[0]
