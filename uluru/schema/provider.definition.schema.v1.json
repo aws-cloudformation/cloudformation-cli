@@ -1,6 +1,6 @@
 {
     "$schema": "http://json-schema.org/draft-07/schema#",
-    "$id": "http://cloudformation.amazonaws.com/schema/draft-07/provider.definition.v1.json",
+    "$id": "provider.definition.schema.v1.json",
     "title": "CloudFormation Resource Provider Definition MetaSchema",
     "description": "This schema validates a CloudFormation resource provider definition.",
     "definitions": {
@@ -68,9 +68,6 @@
         "writeOnly": {
             "description": "A list of properties (typically sensitive) that are able to be specified by the customer but unable to be returned in a Read request",
             "$ref": "http://json-schema.org/draft-07/schema#/definitions/stringArray"
-        },
-        "$version": {
-            "type": "string"
         },
         "insertionOrder": {
             "description": "When set to true, this flag indicates that the order of insertion of the array will be honored, and that changing the order of the array would indicate a diff",
