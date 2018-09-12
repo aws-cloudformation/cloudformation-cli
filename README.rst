@@ -96,6 +96,7 @@ tool.)
 
     virtualenv -p python3 env
     source env/bin/activate
+    pip install --upgrade --pre jsonschema
     pip install -r requirements.txt
     pip install -e .
 
