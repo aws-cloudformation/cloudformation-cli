@@ -141,7 +141,7 @@ class JavaLanguagePlugin(LanguagePlugin):
                     )
                 )
 
-    def initialize(self, project_settings):
+    def init(self, project_settings):
         project_settings["buildSystem"] = "maven"
         project_settings["output_directory"] = Path(
             project_settings["output_directory"]

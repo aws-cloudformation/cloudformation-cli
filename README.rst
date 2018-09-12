@@ -37,17 +37,17 @@ To output the default project settings for a given language, use the
         --language java \
         --output project.yaml
 
-Command: initialize
-^^^^^^^^^^^^^^^^^^^
+Command: init
+^^^^^^^^^^^^^
 
 To create project files such as build files and autocomplete for your specific language and IDE,
-use the ``initialize`` command. An output directory an be set with the optional ``output-directory`` argument
+use the ``init`` command. An output directory can be set with the optional ``output-directory`` argument
 (Defaults to the current directory). You can customize certain, language-specific project settings, otherwise the
 default settings are used.
 
 .. code-block:: bash
 
-    uluru-cli initialize \
+    uluru-cli init \
         --language java \
         --project-settings examples/java_project.yaml
 

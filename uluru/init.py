@@ -10,7 +10,7 @@ from .plugin_registry import PLUGIN_REGISTRY, add_language_argument
 LOG = logging.getLogger(__name__)
 
 
-def initialize(args):
+def init(args):
     plugin = PLUGIN_REGISTRY[args.language]
 
     LOG.info("Loading the project settings...")
@@ -18,13 +18,13 @@ def initialize(args):
     project_settings["output_directory"] = args.output_directory
 
     LOG.info("Initializing project files...")
-    plugin.initialize(project_settings)
+    plugin.init(project_settings)
 
 
 def setup_subparser(subparsers):
     # see docstring of this file
-    parser = subparsers.add_parser("initialize", description=__doc__)
-    parser.set_defaults(command=initialize)
+    parser = subparsers.add_parser("init", description=__doc__)
+    parser.set_defaults(command=init)
     parser.add_argument(
         "--output-directory",
         dest="output_directory",
