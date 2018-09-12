@@ -41,7 +41,7 @@ Command: init
 ^^^^^^^^^^^^^
 
 To create project files such as build files and autocomplete for your specific language and IDE,
-use the ``init`` command. An output directory an be set with the optional ``output-directory`` argument
+use the ``init`` command. An output directory can be set with the optional ``output-directory`` argument
 (Defaults to the current directory). You can customize certain, language-specific project settings, otherwise the
 default settings are used.
 
