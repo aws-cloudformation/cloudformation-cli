@@ -3,6 +3,7 @@ phases:
   pre_build:
     commands:
       - pip install --upgrade pip wheel -r requirements.txt .
+      - pip install --upgrade --pre jsonschema
   build:
     commands:
       - isort --check-only --verbose --recursive "setup.py" "run_lint" "uluru/" "tests/"
