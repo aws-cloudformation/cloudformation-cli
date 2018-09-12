@@ -153,3 +153,26 @@ def modified_from_action_type(action_type):
     if action_type == "write":
         return "true"
     return "false"
+
+
+@register_filter
+def package_prefix(full_package_name):
+    """Returns the package prefix from the package name specified.
+
+    :exc:`ValueError` is raised if the package name format is invalid.
+
+    >>> package_prefix('com.example.test')
+    'com.example'
+    >>> package_prefix('example.test')
+    'example'
+    >>> package_prefix('com.example.this.isa.test')
+    'com.example.this.isa'
+    >>> package_prefix('exampletest')
+    Traceback (most recent call last):
+    ...
+    ValueError: Package name 'exampletest' is invalid
+    """
+    package_segments = full_package_name.rpartition(".")
+    if package_segments[0]:
+        return package_segments[0]
+    raise ValueError("Package name '{}' is invalid".format(full_package_name))
