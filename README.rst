@@ -49,7 +49,7 @@ default settings are used.
 
     uluru-cli initialize \
         --language java \
-        --project-settings examples/java_project.json
+        --project-settings examples/java_project.yaml
 
 Command: generate
 ^^^^^^^^^^^^^^^^^
@@ -63,7 +63,7 @@ are used.
     uluru-cli generate \
         examples/aws-kinesis-stream.yaml \
         --language java \
-        --project-settings examples/java_project.json \
+        --project-settings examples/java_project.yaml \
         --output-directory projects/resource-provider/
 
 Plugin system
