@@ -154,10 +154,10 @@ class JavaLanguagePlugin(LanguagePlugin):
         intellij_conf_dir.mkdir(exist_ok=True)
 
         resource_schema_stream = pkg_resources.resource_stream(
-            "uluru", "data/resource_provider_schema.json"
+            "uluru", "data/schema/provider.definition.schema.v1.json"
         )
         resource_schema_out = (
-            project_settings["output_directory"] / "resource_provider_schema.json"
+            project_settings["output_directory"] / "provider.definition.schema.v1.json"
         )
         with resource_schema_out.open("wb") as f:
             shutil.copyfileobj(resource_schema_stream, f)

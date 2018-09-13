@@ -19,7 +19,7 @@ def load_resource_spec(resource_spec_file):
         # TODO: error handling, decode errors have 'msg', 'doc', 'pos'
 
     with pkg_resources.resource_stream(
-        __name__, "data/resource_provider_schema.json"
+        __name__, "data/schema/provider.definition.schema.v1.json"
     ) as f:
         resource_spec_schema = json.load(f)
 

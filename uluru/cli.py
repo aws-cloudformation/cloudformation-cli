@@ -22,7 +22,7 @@ def setup_logging(verbosity=0):
         level = logging.WARNING
 
     logging_config = yaml.safe_load(
-        pkg_resources.resource_stream(__name__, "data/logging.yaml")
+        pkg_resources.resource_stream(__name__, "data/logging/logging.yaml")
     )
     logging_config["handlers"]["console"]["level"] = level
     dictConfig(logging_config)
