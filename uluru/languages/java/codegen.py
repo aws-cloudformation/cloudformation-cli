@@ -154,7 +154,7 @@ class JavaLanguagePlugin(LanguagePlugin):
         intellij_conf_dir.mkdir(exist_ok=True)
 
         resource_schema_stream = pkg_resources.resource_stream(
-            "uluru", "schema/provider.definition.schema.v1.json"
+            "uluru", "data/schema/provider.definition.schema.v1.json"
         )
         resource_schema_out = (
             project_settings["output_directory"] / "provider.definition.schema.v1.json"
