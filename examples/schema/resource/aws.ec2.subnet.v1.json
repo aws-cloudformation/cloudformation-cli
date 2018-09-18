@@ -8,22 +8,20 @@
         "Ipv6CidrBlocks": {
             "type": "array",
             "items": {
-                "$comment": "TODO: hopefully can find a sane regex for an ipv6 cidr block",
-                "type": "string"
+                "$ref": "../common.types.v1.json#/definitions/IpV6CidrBlock"
             }
         },
         "NetworkAclAssociationId": {
-            "$comment": "TODO: should be ref to http://127.0.0.1:8000/examples/schema/resource/aws.ec2.networkacl.v1.json#/properties/Id",
-            "type": "string"
+            "$ref": "aws.ec2.networkacl.v1.json#/properties/Id"
         },
         "VpcId": {
             "$ref": "aws.ec2.vpc.v1.json#/properties/Id"
         },
         "CidrBlock": {
-            "$ref": "http://127.0.0.1:8000/examples/schema/common.types.v1.json#/definitions/CidrBlock"
+            "$ref": "../common.types.v1.json#/definitions/CidrBlock"
         },
         "AvailabilityZone": {
-            "$ref": "http://127.0.0.1:8000/examples/schema/aws.common.types.v1.json#/definitions/AvailabilityZone"
+            "$ref": "../aws.common.types.v1.json#/definitions/AvailabilityZone"
         },
         "MapPublicIpOnLaunch": {
             "type": "boolean"
@@ -32,8 +30,7 @@
             "type": "boolean"
         },
         "Ipv6CidrBlock": {
-            "$comment": "TODO: hopefully can find a sane regex for an ipv6 cidr block",
-            "type": "string"
+            "$ref": "../common.types.v1.json#/definitions/IpV6CidrBlock"
         }
     },
     "readOnly": [

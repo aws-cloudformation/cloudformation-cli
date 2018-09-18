@@ -4,8 +4,7 @@
         "Ipv6CidrBlocks": {
             "type": "array",
             "items": {
-                "$comment": "hopefully can find a sane regex for an ipv6 cidr block",
-                "type": "string"
+                "$ref": "../common.types.v1.json#/definitions/IpV6CidrBlock"
             }
         },
         "Id": {
@@ -13,21 +12,19 @@
             "pattern": "^vpc-[a-z0-9]+$"
         },
         "DefaultNetworkAcl": {
-            "$comment": "TODO: should be ref to http://127.0.0.1:8000/examples/schema/resource/aws.ec2.networkacl.v1.json#/properties/Id",
-            "type": "string"
+            "$ref": "aws.ec2.networkacl.v1.json#/properties/Id"
         },
         "DefaultSecurityGroup": {
-            "$comment": "TODO: should be ref to http://127.0.0.1:8000/examples/schema/resource/aws.ec2.securitygroup.v1.json#/properties/Id",
-            "type": "string"
+            "$ref": "aws.ec2.securitygroup.v1.json#/properties/Id"
         },
         "CidrBlockAssociations": {
             "type": "array",
             "items": {
-                "$ref": "http://127.0.0.1:8000/examples/schema/common.types.v1.json#/definitions/CidrBlock"
+                "$ref": "../common.types.v1.json#/definitions/CidrBlock"
             }
         },
         "CidrBlock": {
-            "$ref": "http://127.0.0.1:8000/examples/schema/common.types.v1.json#/definitions/CidrBlock"
+            "$ref": "../common.types.v1.json#/definitions/CidrBlock"
         },
         "EnableDnsHostnames": {
             "type": "boolean"  
@@ -43,7 +40,7 @@
             "default": "default"
         },
         "Tags": {
-            "$ref": "http://127.0.0.1:8000/examples/schema/aws.common.types.v1.json#/definitions/Tags"
+            "$ref": "../aws.common.types.v1.json#/definitions/Tags"
         }
     },
     "readOnly": [
