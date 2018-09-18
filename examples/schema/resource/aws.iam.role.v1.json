@@ -1,0 +1,64 @@
+{
+    "$schema": "http://127.0.0.1:8000/uluru/data/provider.definition.schema.v1.json",
+    "$id": "aws.iam.role.v1.json",
+    "definitions": {
+        "Policy": {
+            "type": "object",
+            "properties": {
+                "PolicyDocument": {
+                    "type": "object"
+                },
+                "PolicyName": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false
+        }
+    },
+    "properties": {
+        "Arn": {
+            "$ref": "http://127.0.0.1:8000/examples/schema/aws.common.types.v1.json#/definitions/Arn"
+        },
+        "RoleId": {
+            "type": "string"
+        },
+        "RoleName": {
+            "type": "string",
+            "pattern": "[a-zA-Z_+=,.@-]+",
+            "minLength": 1,
+            "maxLength": 64
+        },
+        "AssumeRolePolicyDocument": {
+            "type": "object"
+        },
+        "MaxSessionDuration": {
+            "type": "integer",
+            "minimum": 3600,
+            "maximum": 43200
+        },
+        "ManagedPolicyArns": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            }
+        },
+        "Path": {
+            "type": "string",
+            "default": "/"
+        },
+        "Policies": {
+            "type": "array",
+            "items": {
+                "$ref": "#/definitions/Policy"
+            }
+        }
+    },
+    "additionalProperties": false,
+    "readOnly": [
+        "Arn",
+        "RoleId"
+    ],
+    "required": [
+        "AssumeRolePolicyDocument"
+    ]
+}

@@ -1,0 +1,417 @@
+{
+    "$id": "aws.kinesisfirehose.deliverystream.v1.json",
+    "$schema": "http://127.0.0.1:8000/uluru/data/provider.definition.schema.v1.json.json",
+    "type": "object",
+    "definitions": {
+        "KinesisStreamSourceConfiguration": {
+            "type": "object",
+            "properties": {
+                "KinesisStreamArn": {
+                    "$ref": "http://127.0.0.1:8000/examples/schema/resource/aws.kinesis.stream.v1.json#/properties/Arn"
+                },
+                "RoleARN": {
+                    "$ref": "http://127.0.0.1:8000/examples/schema/resource/aws.iam.role.v1.json#/properties/Arn" 
+                }
+            }
+        },
+        "ElasticsearchDestinationConfiguration": {
+            "type": "object",
+            "properties": {
+                "BufferingHints": {
+                    "$ref": "#/definitions/BufferingHints"
+                },
+                "CloudWatchLoggingOptions": {
+                    "$ref": "#/definitions/CloudWatchLoggingOptions"
+                },
+                "DomainARN": {
+                    "$ref": "http://127.0.0.1:8000/examples/schema/resource/aws.elasticsearch.domain.v1.json#/properties/Arn"
+                },
+                "IndexName": {
+                    "type": "string"
+                },
+                "IndexRotationPeriod": {
+                    "type": "string",
+                    "enum": [
+                        "NoRotation", "OneHour", "OneDay", "OneWeek", "OneMonth"
+                    ]
+                },
+                "ProcessingConfiguration": {
+                    "$ref": "#/definitions/ProcessingConfiguration"
+                },
+                "RetryOptions": {
+                    "$ref": "#/definitions/RetryOptions"
+                },
+                "RoleARN": {
+                    "$ref": "http://127.0.0.1:8000/examples/schema/resource/aws.iam.role.v1.json#/properties/Arn"
+                },
+                "S3BackupMode": {
+                    "type": "string"   ,
+                    "enum": [
+                        "FailedDocumentsOnly", "AllDocuments"
+                    ]
+                },
+                "S3Configuration": {
+                    "$ref": "#/definitions/S3DestinationConfiguration"
+                },
+                "TypeName": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100
+                }
+            },
+            "required": [
+                "BufferingHints", "DomainARN", "IndexName", "IndexRotationPeriod", "RetryOptions", "RoleARN", "S3BackupMode", "S3Configuration", "TypeName"
+            ],
+            "additionalProperties": false
+        },
+        "ExtendedS3DestinationConfiguration": {
+            "type": "object",
+            "properties": {   
+                "BucketARN": {
+                    "$ref": "http://127.0.0.1:8000/examples/schema/resource/aws.s3.bucket.v1.json#/properties/Arn"
+                },
+                "BufferingHints": {
+                    "$ref": "#/definitions/BufferingHints"
+                },
+                "CloudWatchLoggingOptions": {
+                    "$ref": "#/definitions/CloudWatchLoggingOptions"
+                },
+                "CompressionFormat": {
+                    "type": "string",
+                    "enum": [
+                        "UNCOMPRESSED", "GZIP", "ZIP", "Snappy"
+                    ]
+                },
+                "EncryptionConfiguration": {
+                    "$ref": "#/definitions/EncryptionConfiguration"
+                },
+                "Prefix": {
+                    "type": "string"
+                },
+                "RoleARN": {
+                    "$ref": "http://127.0.0.1:8000/examples/schema/resource/aws.iam.role.v1.json#/properties/Arn"
+                },
+                "ProcessingConfiguration": {
+                    "$ref": "#/definitions/ProcessingConfiguration"
+                },
+
+                "S3BackupConfiguration": {
+                    "$ref": "#/definitions/S3DestinationConfiguration"
+                },
+                "S3BackupMode": {
+                    "type": "string",
+                    "enum": [
+                        "Disabled", "Enabled"
+                    ]
+                }
+            },
+            "required": [
+                "BucketARN", "BufferingHints", "CompressionFormat", "Prefix", "RoleARN"
+            ],
+            "additionalProperties": false
+        },
+        "RedshiftDestinationConfiguration": {
+            "type": "object",
+            "properties": {
+                "CloudWatchLoggingOptions": {
+                    "$ref": "#/definitions/CloudWatchLoggingOptions"
+                },
+                "ClusterJDBCURL": {
+                    "type": "string",
+                    "pattern": "jdbc:(redshift|postgresql)://((?!-)[A-Za-z0-9-]{1,63}(?<!-).)+redshift.amazonaws.com:[0-9]{1,5}/[a-zA-Z0-9_$]+"
+                },
+                "CopyCommand": {
+                    "$ref": "#/definitions/CopyCommand"
+                },
+                "Password": {
+                    "type": "string",
+                    "minLength": 6
+                },
+                "ProcessingConfiguration": {
+                    "$ref": "#/definitions/ProcessingConfiguration"
+                },
+                "RetryOptions": {
+                    "$ref": "#/definitions/RetryOptions"
+                },
+                "RoleARN": {
+                    "$ref": "http://127.0.0.1:8000/examples/schema/resource/aws.iam.role.v1.json#/properties/Arn"
+                },
+                "S3Configuration": {
+                    "$ref": "#/definitions/S3DestinationConfiguration"
+                },
+                "Username": {
+                    "type": "string",
+                    "minLength": 1
+                }
+            },
+            "required": [
+                "ClusterJDBCURL", "CopyCommand", "Password", "RoleARN", "S3Configuration", "Username"
+            ],
+            "writeOnly": [
+                "Password"
+            ],
+            "additionalProperties": false
+        },
+        "S3DestinationConfiguration": {
+            "type": "object",
+            "properties": {
+                "BucketARN": {
+                    "$ref": "http://127.0.0.1:8000/examples/schema/resource/aws.s3.bucket.v1.json#/properties/Arn"
+                },
+                "BufferingHints": {
+                    "$ref": "#/definitions/BufferingHints"
+                },
+                "CloudWatchLoggingOptions": {
+                    "$ref": "#/definitions/CloudWatchLoggingOptions"
+                }, 
+                "CompressionFormat": {
+                    "type": "string"
+                },
+                "EncryptionConfiguration": {
+                    "$ref": "#/definitions/EncryptionConfiguration"
+                }, 
+                "Prefix": {
+                    "type": "string"
+                }, 
+                "RoleARN": {
+                    "$ref": "http://127.0.0.1:8000/examples/schema/resource/aws.iam.role.v1.json#/properties/Arn"
+                }
+            },
+            "required": [
+                "BucketARN", "BufferingHints", "CompressionFormat", "RoleARN"
+            ],
+            "additionalProperties": false
+        },
+        "SplunkDestinationConfiguration": {
+            "type": "object",
+            "properties": {
+                "CloudWatchLoggingOptions": {
+                    "$ref": "#/definitions/CloudWatchLoggingOptions"
+                },
+                "HECAcknowledgmentTimeoutInSeconds": {
+                    "type": "integer"
+                },
+                "HECEndpoint": {
+                    "type": "string"
+                },
+                "HECEndpointType": {
+                    "type": "string"
+                },
+                "HECToken": {
+                    "type": "string"
+                },
+                "ProcessingConfiguration": {
+                    "$ref": "#/definitions/ProcessingConfiguration"
+                },
+                "RetryOptions": {
+                    "$ref": "#/definitions/RetryOptions"
+                },
+                "S3BackupMode": {
+                    "type": "string",
+                    "enum": [
+                        "Disabled", "Enabled"
+                    ]
+                },
+                "S3Configuration": {
+                    "$ref": "#/definitions/S3DestinationConfiguration"
+                }
+            },
+            "required": [
+                "HECEndpoint", "HECEndpointType", "HECToken", "S3Configuration"   
+            ],
+            "additionalProperties": false
+        },
+        "BufferingHints": {
+            "properties": {
+                "IntervalInSeconds": {
+                    "type": "integer",
+                    "minimum": 60,
+                    "maximum": 900,
+                    "default": 300
+                },
+                "SizeInMBs": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 128,
+                    "default": 5
+                }
+            },
+            "required": [
+                "IntervalInSeconds", "SizeInMBs"           
+            ],
+            "additionalProperties": false
+        },
+        "CloudWatchLoggingOptions": {
+            "properties": {
+                "Enabled": {
+                    "type": "boolean"
+                },
+                "LogGroupName": {
+                    "$ref": "http://127.0.0.1:8000/examples/schema/resource/aws.logs.loggroup.v1.json#/properties/LogGroupName"
+                },
+                "LogStreamName": {
+                    "$ref": "http://127.0.0.1:8000/examples/schema/resource/aws.logs.logstream.v1.json#/properties/LogStreamName"
+                }
+            },
+            "additionalProperties": false
+        },
+        "ProcessingConfiguration": {
+            "properties": {
+                "Enabled": {
+                    "type": "boolean"
+                },
+                "Processors": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/Processor"    
+                    }
+                }
+            },
+            "additionalProperties": false
+        },
+        "RetryOptions": {
+            "properties": {
+                "DurationInSeconds": {
+                    "type": "integer"
+                }    
+            },
+            "required": [
+                "DurationInSeconds"
+            ],
+            "additionalProperties": false
+        },
+        "Processor": {
+            "properties": {
+                "Parameters": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/ProcessorParameter"
+                    }
+                },
+                "Type": {
+                    "type": "string",
+                    "enum": [
+                        "Lambda"
+                    ]
+                }
+            },
+            "required": [
+                "Type"
+            ],
+            "additionalProperties": false
+        },
+        "ProcessorParameter": {
+            "properties": {
+                "ParameterName": {
+                    "type": "string",
+                    "enum": [
+                        "LambdaArn", "NumberOfRetries", "RoleArn", "BufferSizeInMBs", "BufferIntervalInSeconds"
+                    ]
+                },
+                "ParameterValue": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 512
+                }
+            },
+            "required": [
+                "ParameterName", "ParameterValue"
+            ],
+            "additionalProperties": false
+        },
+        "EncryptionConfiguration": {
+            "properties": {
+                "KMSEncryptionConfig": {
+                    "$ref": "#/definitions/KMSEncryptionConfig"
+                },
+                "NoEncryptionConfig": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false
+        },
+        "KMSEncryptionConfig": {
+            "properties": {
+                "AWSKMSKeyARN": {
+                    "$ref": "http://127.0.0.1:8000/examples/schema/resource/aws.kms.key.v1.json#/properties/Arn"
+                }
+            },
+            "required": [
+                "AWSKMSKeyARN"
+            ],
+            "additionalProperties": false
+        },
+        "CopyCommand": {
+            "properties": {
+                "CopyOptions": {
+                    "type": "string"
+                },
+                "DataTableColumns": {
+                    "type": "string",
+                    "pattern": "^([A-Za-z0-9],)*[A-Za-z0-9]$"
+                },
+                "DataTableName": {
+                    "type": "string",
+                    "minLength": 1
+                }
+            },
+            "additionalProperties": false
+        }
+    },
+    "properties": {
+        "Arn": {
+            "$ref": "http://127.0.0.1:8000/examples/schema/aws.common.types.v1.json#/properties/Arn"
+        },
+        "DeliveryStreamName": {
+            "type": "string",
+            "pattern": "[a-zA-Z0-9_.-]+",
+            "minLength": 1,
+            "maxLength": 64
+        },
+        "DeliveryStreamType": {
+            "type": "string",
+            "enum": [
+                "DirectPut", "KinesisStreamAsSource"
+            ]
+        },
+        "KinesisStreamSourceConfiguration": {
+            "$ref": "#/definitions/KinesisStreamSourceConfiguration"
+        },
+        "ElasticsearchDestinationConfiguration": {
+            "$ref": "#/definitions/ElasticsearchDestinationConfiguration" 
+        },
+        "ExtendedS3DestinationConfiguration": {
+            "$ref": "#/definitions/ExtendedS3DestinationConfiguration"
+        },
+        "SplunkDestinationConfiguration": {
+            "$ref": "#/definitions/SplunkDestinationConfiguration"
+        },
+        "RedshiftDestinationConfiguration": {
+            "$ref": "#/definitions/RedshiftDestinationConfiguration"
+        },
+        "S3DestinationConfiguration": {
+            "$ref": "#/definitions/S3DestinationConfiguration"
+        }
+    },
+    "additionalProperties": false,
+    "readOnly": ["Arn"],
+    "oneOf": [
+        {"required":["ElasticsearchDestinationConfiguration"]},
+        {"required":["ExtendedS3DestinationConfiguration"]},
+        {"required":["SplunkDestinationConfiguration"]},
+        {"required":["RedshiftDestinationConfiguration"]},
+        {"required":["S3DestinationConfiguration"]}
+    ],
+
+    "oneOf": [
+        {
+            "required": ["RediretAllRequestsTo"]
+        },
+        {
+            "anyOf": [
+                {"required":["ErrorDocument"]},
+                {"required":["RoutingRules"]}
+            ]
+        }
+    ]
+}

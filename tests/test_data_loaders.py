@@ -26,9 +26,10 @@ def test_load_resource_spec_empty_is_invalid():
 
 def test_load_resource_spec_example_spec_is_valid():
     basedir = Path(__file__).parent.parent  # tests/test_data_loaders.py
-    example = basedir / "examples" / "schema" / "resource" / "aws.kms.key.v1.json"
-    with example.open("r", encoding="utf-8") as f:
-        assert load_resource_spec(f)
+    exampledir = basedir / "examples" / "schema" / "resource"
+    for example in exampledir.glob("*.json"):
+        with example.open("r", encoding="utf-8") as f:
+            assert load_resource_spec(f)
 
 
 def yaml_s(obj):

@@ -1,0 +1,13 @@
+{
+    "$schema": "http://127.0.0.1:8000/uluru/data/provider.definition.schema.v1.json",
+    "$id": "http://127.0.0.1:8000/examples/schema/common.types",
+    "definitions": {
+        "CidrBlock": {
+            "type": "string",
+            "pattern": "^([0-9]{1,3}.){3}[0-9]{1,3}(\/([0-9]|[1-2][0-9]|3[0-2]))?$"
+        },
+        "IpV6CidrBlock": {
+            
+        }
+    }
+}

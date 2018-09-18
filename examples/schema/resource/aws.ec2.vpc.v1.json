@@ -1,0 +1,56 @@
+{
+    "$id": "aws.ec2.vpc.v1.json",
+    "properties": {
+        "Ipv6CidrBlocks": {
+            "type": "array",
+            "items": {
+                "$comment": "hopefully can find a sane regex for an ipv6 cidr block",
+                "type": "string"
+            }
+        },
+        "Id": {
+            "type": "string",
+            "pattern": "^vpc-[a-z0-9]+$"
+        },
+        "DefaultNetworkAcl": {
+            "$comment": "TODO: should be ref to http://127.0.0.1:8000/examples/schema/resource/aws.ec2.networkacl.v1.json#/properties/Id",
+            "type": "string"
+        },
+        "DefaultSecurityGroup": {
+            "$comment": "TODO: should be ref to http://127.0.0.1:8000/examples/schema/resource/aws.ec2.securitygroup.v1.json#/properties/Id",
+            "type": "string"
+        },
+        "CidrBlockAssociations": {
+            "type": "array",
+            "items": {
+                "$ref": "http://127.0.0.1:8000/examples/schema/common.types.v1.json#/definitions/CidrBlock"
+            }
+        },
+        "CidrBlock": {
+            "$ref": "http://127.0.0.1:8000/examples/schema/common.types.v1.json#/definitions/CidrBlock"
+        },
+        "EnableDnsHostnames": {
+            "type": "boolean"  
+        },
+        "EnableDnsSupport": {
+            "type": "boolean"  
+        },
+        "InstanceTenancy": {
+            "type": "string",
+            "enum": [
+                "default", "dedicated", "host"
+            ],
+            "default": "default"
+        },
+        "Tags": {
+            "$ref": "http://127.0.0.1:8000/examples/schema/aws.common.types.v1.json#/definitions/Tags"
+        }
+    },
+    "readOnly": [
+        "Id", "Ipv6CidrBlocks", "DefaultNetworkAcl", "DefaultSecurityGroup", "CidrBlockAssociations"
+    ],
+    "required": [
+        "CidrBlock"
+    ],
+    "additionalProperties": false
+}
