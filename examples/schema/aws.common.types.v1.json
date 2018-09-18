@@ -1,0 +1,39 @@
+{
+    "$schema": "http://127.0.0.1:8000/uluru/data/provider.definition.schema.v1.json",
+    "$id": "aws.common.types.v1.json",
+    "definitions": {
+        "Arn": {
+            "type": "string",
+            "pattern": "^arn:aws(-(cn|gov))?:[a-z-]+:(([a-z]+-)+[0-9])?:([0-9]{12})?:[^.]+$"
+        },
+        "Tags": {
+            "type": "array",
+            "insertionOrder": false,
+            "uniqueItems": true,
+            "items": {
+                "$ref": "#/definitions/Tag"
+            }
+        },
+        "Tag": {
+            "type": "object",
+            "additionalProperties": {
+                "type": "string"
+            }
+        },
+        "AvailabilityZone": {
+            "type": "string",
+            "pattern": "^([a-z]+-)+[a-z]+-[0-9][a-z]$"
+        }
+    },
+    "properties": {
+        "Arn": {
+            "$ref": "#/definitions/Arn"
+        },
+        "Tags": {
+            "$ref": "#/definitions/Tags"
+        },
+        "Tag": {
+            "$ref": "#/definitions/Tag"
+        }
+    }
+}
