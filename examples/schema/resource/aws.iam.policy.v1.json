@@ -1,5 +1,4 @@
 {
-    "$schema": "http://127.0.0.1:8000/uluru/data/provider.definition.schema.v1.json",
     "$id": "aws.iam.policy.v1.json",
     "definitions": {
         

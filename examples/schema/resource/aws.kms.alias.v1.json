@@ -1,12 +1,11 @@
 {
-    "$schema": "http://127.0.0.1:8000/uluru/data/provider.definition.schema.v1.json",
     "$id": "aws.kms.alias.v1.json",
     "definitions": {
         
     },
     "properties": {
         "Arn": {
-            "$ref": "http://127.0.0.1:8000/examples/schema/aws.common.types.v1.json#/definitions/Arn"
+            "$ref": "../aws.common.types.v1.json#/definitions/Arn"
         },
         "AliasName": {
             "type": "string",
@@ -16,8 +15,8 @@
         },
         "TargetKeyId": {
             "oneOf": [
-                { "$ref": "http://127.0.0.1:8000/examples/schema/resource/aws.kms.key.v1.json#/properties/Arn" },
-                { "$ref": "http://127.0.0.1:8000/examples/schema/resource/aws.kms.key.v1.json#/properties/Id" }
+                { "$ref": "aws.kms.key.v1.json#/properties/Arn" },
+                { "$ref": "aws.kms.key.v1.json#/properties/Id" }
             ]
         }
     },

@@ -1,9 +1,8 @@
 {
-    "$schema": "http://127.0.0.1:8000/uluru/data/provider.definition.schema.v1.json",
     "$id": "aws.logs.logstream.v1.json",
     "properties": {
         "LogGroupName": {
-            "$ref": "http://127.0.0.1:8000/examples/schema/resource/aws.logs.loggroup.v1.json#/properties/LogGroupName"
+            "$ref": "aws.logs.loggroup.v1.json#/properties/LogGroupName"
         },
         "LogStreamName": {
             "type": "string",

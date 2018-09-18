@@ -8,7 +8,7 @@
                     "type": "boolean"
                 },
                 "KmsKeyId": {
-                    "$ref": "http://127.0.0.1:8000/examples/schema/resource/aws.kms.key.v1.json#/properties/Id"
+                    "$ref": "aws.kms.key.v1.json#/properties/Id"
                 }
             },
             "additionalProperties": false
@@ -73,13 +73,13 @@
                 "SubnetIds": {
                     "type": "array",
                     "items": {
-                        "$ref": "http://127.0.0.1:8000/examples/schema/resource/aws.ec2.subnet.v1.json#/properties/SubnetId" 
+                        "$ref": "aws.ec2.subnet.v1.json#/properties/SubnetId" 
                     }
                 },
                 "SecurityGroupIds": {
                     "type": "array",
                     "items": {
-                        "$ref": "http://127.0.0.1:8000/examples/schema/resource/aws.ec2.securitygroup.v1.json#/properties/SecurityGroupId" 
+                        "$ref": "aws.ec2.securitygroup.v1.json#/properties/SecurityGroupId" 
                     }
                 }
             },
@@ -88,7 +88,7 @@
     },
     "properties": {
         "Arn": {
-            "$ref": "http://127.0.0.1:8000/examples/schema/aws.common.types.v1.json#/properties/Arn"
+            "$ref": "../aws.common.types.v1.json#/properties/Arn"
         },
         "DomainEndpoint": {
             "type": "string"  

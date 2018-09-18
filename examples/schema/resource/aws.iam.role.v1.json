@@ -1,5 +1,4 @@
 {
-    "$schema": "http://127.0.0.1:8000/uluru/data/provider.definition.schema.v1.json",
     "$id": "aws.iam.role.v1.json",
     "definitions": {
         "Policy": {
@@ -17,7 +16,7 @@
     },
     "properties": {
         "Arn": {
-            "$ref": "http://127.0.0.1:8000/examples/schema/aws.common.types.v1.json#/definitions/Arn"
+            "$ref": "../aws.common.types.v1.json#/definitions/Arn"
         },
         "RoleId": {
             "type": "string"

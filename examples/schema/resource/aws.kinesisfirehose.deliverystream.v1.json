@@ -1,16 +1,15 @@
 {
     "$id": "aws.kinesisfirehose.deliverystream.v1.json",
-    "$schema": "http://127.0.0.1:8000/uluru/data/provider.definition.schema.v1.json.json",
     "type": "object",
     "definitions": {
         "KinesisStreamSourceConfiguration": {
             "type": "object",
             "properties": {
                 "KinesisStreamArn": {
-                    "$ref": "http://127.0.0.1:8000/examples/schema/resource/aws.kinesis.stream.v1.json#/properties/Arn"
+                    "$ref": "aws.kinesis.stream.v1.json#/properties/Arn"
                 },
                 "RoleARN": {
-                    "$ref": "http://127.0.0.1:8000/examples/schema/resource/aws.iam.role.v1.json#/properties/Arn" 
+                    "$ref": "aws.iam.role.v1.json#/properties/Arn" 
                 }
             }
         },
@@ -24,7 +23,7 @@
                     "$ref": "#/definitions/CloudWatchLoggingOptions"
                 },
                 "DomainARN": {
-                    "$ref": "http://127.0.0.1:8000/examples/schema/resource/aws.elasticsearch.domain.v1.json#/properties/Arn"
+                    "$ref": "aws.elasticsearch.domain.v1.json#/properties/Arn"
                 },
                 "IndexName": {
                     "type": "string"
@@ -42,7 +41,7 @@
                     "$ref": "#/definitions/RetryOptions"
                 },
                 "RoleARN": {
-                    "$ref": "http://127.0.0.1:8000/examples/schema/resource/aws.iam.role.v1.json#/properties/Arn"
+                    "$ref": "aws.iam.role.v1.json#/properties/Arn"
                 },
                 "S3BackupMode": {
                     "type": "string"   ,
@@ -68,7 +67,7 @@
             "type": "object",
             "properties": {   
                 "BucketARN": {
-                    "$ref": "http://127.0.0.1:8000/examples/schema/resource/aws.s3.bucket.v1.json#/properties/Arn"
+                    "$ref": "aws.s3.bucket.v1.json#/properties/Arn"
                 },
                 "BufferingHints": {
                     "$ref": "#/definitions/BufferingHints"
@@ -89,7 +88,7 @@
                     "type": "string"
                 },
                 "RoleARN": {
-                    "$ref": "http://127.0.0.1:8000/examples/schema/resource/aws.iam.role.v1.json#/properties/Arn"
+                    "$ref": "aws.iam.role.v1.json#/properties/Arn"
                 },
                 "ProcessingConfiguration": {
                     "$ref": "#/definitions/ProcessingConfiguration"
@@ -134,7 +133,7 @@
                     "$ref": "#/definitions/RetryOptions"
                 },
                 "RoleARN": {
-                    "$ref": "http://127.0.0.1:8000/examples/schema/resource/aws.iam.role.v1.json#/properties/Arn"
+                    "$ref": "aws.iam.role.v1.json#/properties/Arn"
                 },
                 "S3Configuration": {
                     "$ref": "#/definitions/S3DestinationConfiguration"
@@ -156,7 +155,7 @@
             "type": "object",
             "properties": {
                 "BucketARN": {
-                    "$ref": "http://127.0.0.1:8000/examples/schema/resource/aws.s3.bucket.v1.json#/properties/Arn"
+                    "$ref": "aws.s3.bucket.v1.json#/properties/Arn"
                 },
                 "BufferingHints": {
                     "$ref": "#/definitions/BufferingHints"
@@ -174,7 +173,7 @@
                     "type": "string"
                 }, 
                 "RoleARN": {
-                    "$ref": "http://127.0.0.1:8000/examples/schema/resource/aws.iam.role.v1.json#/properties/Arn"
+                    "$ref": "aws.iam.role.v1.json#/properties/Arn"
                 }
             },
             "required": [
@@ -247,10 +246,10 @@
                     "type": "boolean"
                 },
                 "LogGroupName": {
-                    "$ref": "http://127.0.0.1:8000/examples/schema/resource/aws.logs.loggroup.v1.json#/properties/LogGroupName"
+                    "$ref": "aws.logs.loggroup.v1.json#/properties/LogGroupName"
                 },
                 "LogStreamName": {
-                    "$ref": "http://127.0.0.1:8000/examples/schema/resource/aws.logs.logstream.v1.json#/properties/LogStreamName"
+                    "$ref": "aws.logs.logstream.v1.json#/properties/LogStreamName"
                 }
             },
             "additionalProperties": false
@@ -333,7 +332,7 @@
         "KMSEncryptionConfig": {
             "properties": {
                 "AWSKMSKeyARN": {
-                    "$ref": "http://127.0.0.1:8000/examples/schema/resource/aws.kms.key.v1.json#/properties/Arn"
+                    "$ref": "aws.kms.key.v1.json#/properties/Arn"
                 }
             },
             "required": [
@@ -360,7 +359,7 @@
     },
     "properties": {
         "Arn": {
-            "$ref": "http://127.0.0.1:8000/examples/schema/aws.common.types.v1.json#/properties/Arn"
+            "$ref": "../aws.common.types.v1.json#/properties/Arn"
         },
         "DeliveryStreamName": {
             "type": "string",
