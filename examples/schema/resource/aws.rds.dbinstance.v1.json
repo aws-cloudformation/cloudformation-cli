@@ -1,0 +1,319 @@
+{
+	"$id": "aws.rds.dbinstance.v1.json",
+	"definitions": {
+		"iso-8601-utc": {
+			"type": "string",
+			"pattern": "^([0-2]\\d{3})-(0[0-9]|1[0-2])-([0-2]\\d|3[01])T([01]\\d|2[0-4]):([0-5]\\d):([0-6]\\d)((\\.\\d{3})?)Z$"
+		},
+		"Tag": {
+			"type": "object",
+			"properties": {
+				"Key": {
+					"type": "string",
+					"pattern": "^([\\p{L}\\p{Z}\\p{N}_.:/=+\\-]*)$"
+				},
+				"Value": {
+					"type": "string",
+					"pattern": "^([\\p{L}\\p{Z}\\p{N}_.:/=+\\-]*)$"
+				}
+			},
+			"additionalProperties": false,
+			"required": [
+				"Key",
+				"Value"
+			]
+		}
+	},
+	"properties": {
+		"AllocatedStorage": {
+			"type": "string"
+		},
+		"AllowMajorVersionUpgrade": {
+			"type": "boolean"
+		},
+		"AutoMinorVersionUpgrade": {
+			"type": "boolean",
+			"default": "true"
+		},
+		"AvailabilityZone": {
+			"type": "string"
+		},
+		"BackupRetentionPeriod": {
+			"type": "string"
+		},
+		"CharacterSetName": {
+			"type": "string"
+		},
+		"CopyTagsToSnapshot": {
+			"type": "boolean"
+		},
+		"DBClusterIdentifier": {
+			"type": "string"
+		},
+		"DBInstanceClass": {
+			"type": "string"
+		},
+		"DBInstanceIdentifier": {
+			"type": "string"
+		},
+		"DBName": {
+			"type": "string"
+		},
+		"DBParameterGroupName": {
+			"type": "string"
+		},
+		"DBSecurityGroups": {
+			"type": "array",
+			"items": {
+				"type": "string"
+			}
+		},
+		"DBSnapshotIdentifier": {
+			"type": "string"
+		},
+		"DBSubnetGroupName": {
+			"type": "string"
+		},
+		"Domain": {
+			"type": "string"
+		},
+		"DomainIAMRoleName": {
+			"type": "string"
+		},
+		"Engine": {
+			"type": "string"
+		},
+		"EngineVersion": {
+			"type": "string"
+		},
+		"Iops": {
+			"type": "integer",
+			"minimum": 1000
+		},
+		"KmsKeyId": {
+			"type": "string"
+		},
+		"LicenseModel": {
+			"type": "string"
+		},
+		"MasterUserPassword": {
+			"type": "string"
+		},
+		"MasterUsername": {
+			"type": "string"
+		},
+		"MonitoringInterval": {
+			"type": "integer",
+			"enum": [0, 1, 5, 10, 15, 30, 60]
+		},
+		"MonitoringRoleArn": {
+			"type": "string"
+		},
+		"MultiAZ": {
+			"type": "boolean"
+		},
+		"OptionGroupName": {
+			"type": "string"
+		},
+		"Port": {
+			"type": "string"
+		},
+		"PreferredBackupWindow": {
+			"type": "string"
+		},
+		"PreferredMaintenanceWindow": {
+			"type": "string"
+		},
+		"PubliclyAccessible": {
+			"type": "boolean"
+		},
+		"SourceDBInstanceIdentifier": {
+			"type": "string"
+		},
+		"SourceRegion": {
+			"type": "string"
+		},
+		"StorageEncrypted": {
+			"type": "boolean"
+		},
+		"StorageType": {
+			"type": "string",
+			"enum": ["standard", "gp2", "io1"]
+		},
+		"Tags": {
+			"type": "array",
+			"items": {
+				"$ref": "#/definitions/Tag"
+			}
+		},
+		"Timezone": {
+			"type": "string"
+		},
+		"VPCSecurityGroups": {
+			"type": "array",
+			"items": {
+				"type": "string"
+			}
+		}
+	},
+	"additionalProperties": false,
+	"required": [
+		"DBInstanceClass"
+	],
+	"allOf": [{
+			"if": {
+				"not": {
+					"properties": {
+						"MultiAZ": {
+							"enum": [true]
+						}
+					}
+				}
+			},
+			"then": {
+				"not": {
+					"required": ["AvailabilityZone"]
+				},
+				"$comment": "Can't set the AvailabilityZone parameter if the MultiAZ parameter is set to true"
+			}
+		},
+		{
+			"if": {
+				"anyOf": [{
+						"required": ["DBSnapshotIdentifier"]
+					},
+					{
+						"required": ["SourceDBInstanceIdentifier"]
+					}
+				]
+			},
+			"then": {
+				"allOf": [{
+						"not": {
+							"required": ["CharacterSetName"]
+						}
+					},
+					{
+						"not": {
+							"required": ["MasterUsername"]
+						}
+					},
+					{
+						"not": {
+							"required": ["MasterUserPassword"]
+						}
+					}
+				]
+			}
+		},
+		{
+			"if": {
+				"required": ["DBClusterIdentifier"]
+			},
+			"then": {
+				"allOf": [{
+						"properties": {
+							"Engine": {
+								"enum": ["aurora"]
+							}
+						}
+					},
+					{
+						"not": {
+							"anyOf": [{
+									"required": ["AllocatedStorage"]
+								},
+								{
+									"required": ["BackupRetentionPeriod"]
+								},
+								{
+									"required": ["CharacterSetName"]
+								},
+								{
+									"required": ["DBName"]
+								},
+								{
+									"required": ["DBSecurityGroups"]
+								},
+								{
+									"required": ["MasterUsername"]
+								},
+								{
+									"required": ["MasterUserPassword"]
+								},
+								{
+									"required": ["OptionGroupName"]
+								},
+								{
+									"required": ["PreferredBackupWindow"]
+								},
+								{
+									"required": ["PreferredMaintenanceWindow"]
+								},
+								{
+									"required": ["Port"]
+								},
+								{
+									"required": ["SourceDBInstanceIdentifier"]
+								},
+								{
+									"required": ["StorageType"]
+								},
+								{
+									"required": ["VPCSecurityGroups"]
+								}
+							]
+						}
+					}
+				]
+			}
+		},
+		{
+			"if": {
+				"required": ["MonitoringRoleArn"]
+			},
+			"then": {
+				"not": {
+					"properties": {
+						"forMonitoringInterval": {
+							"enum": [0]
+						}
+					}
+				}
+			}
+		},
+		{
+			"if": {
+				"anyOf": [{
+						"required": ["DBSnapshotIdentifier"]
+					},
+					{
+						"required": ["DBClusterIdentifier"]
+					},
+					{
+						"required": ["SourceDBInstanceIdentifier"]
+					}
+				]
+			},
+			"then": {
+				"not": {
+					"required": ["StorageEncrypted"]
+				}
+			}
+		},
+		{
+			"if": {
+				"properties": {
+					"StorageType": {
+						"enum": ["io1"]
+					}
+				}
+			},
+			"then": {
+				"required": [
+					"Iops"
+				]
+			}
+		}
+	]
+}
