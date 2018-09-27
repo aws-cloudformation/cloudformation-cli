@@ -3,11 +3,26 @@
     "definitions": {
         "CidrBlock": {
             "$comment": "TODO: regex could be more strict, for example this allows the cidr 999.999.999.999 and 999.999.999.999/32",
+            "description": "Classless Inter-Domain Routing (CIDR) block",
             "type": "string",
             "pattern": "^([0-9]{1,3}.){3}[0-9]{1,3}(\/([0-9]|[1-2][0-9]|3[0-2]))?$"
         },
         "IpV6CidrBlock": {
             "$comment": "TODO: find sane regex for this",
+            "description": "IPV6 Classless Inter-Domain Routing (CIDR) block",
+            "type": "string"
+        },
+        "iso-8601-utc": {
+            "description": "The date value in ISO 8601 format. The time is always midnight UTC.",
+            "type": "string",
+            "pattern": "^([0-2]\\d{3})-(0[0-9]|1[0-2])-([0-2]\\d|3[01])T([01]\\d|2[0-4]):([0-5]\\d):([0-6]\\d)((\\.\\d{3})?)Z$"
+        },
+        "Ipv4Address": {
+            "description": "IPV4 address",
+            "type": "string"
+        },
+        "Ipv6Address": {
+            "description": "IPV6 address",
             "type": "string"
         }
     }

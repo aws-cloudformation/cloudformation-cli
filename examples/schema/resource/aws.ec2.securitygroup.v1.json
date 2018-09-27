@@ -4,7 +4,9 @@
         
     },
     "properties": {
-        
+        "Id": {
+            "type": "string"
+        }
     },
     "readOnly": [
         

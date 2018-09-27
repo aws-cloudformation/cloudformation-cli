@@ -9,7 +9,7 @@
                     "$ref": "aws.kinesis.stream.v1.json#/properties/Arn"
                 },
                 "RoleARN": {
-                    "$ref": "aws.iam.role.v1.json#/properties/Arn" 
+                    "$ref": "aws.iam.role.v1.json#/properties/Arn"
                 }
             }
         },
@@ -31,7 +31,11 @@
                 "IndexRotationPeriod": {
                     "type": "string",
                     "enum": [
-                        "NoRotation", "OneHour", "OneDay", "OneWeek", "OneMonth"
+                        "NoRotation",
+                        "OneHour",
+                        "OneDay",
+                        "OneWeek",
+                        "OneMonth"
                     ]
                 },
                 "ProcessingConfiguration": {
@@ -44,9 +48,10 @@
                     "$ref": "aws.iam.role.v1.json#/properties/Arn"
                 },
                 "S3BackupMode": {
-                    "type": "string"   ,
+                    "type": "string",
                     "enum": [
-                        "FailedDocumentsOnly", "AllDocuments"
+                        "FailedDocumentsOnly",
+                        "AllDocuments"
                     ]
                 },
                 "S3Configuration": {
@@ -59,13 +64,21 @@
                 }
             },
             "required": [
-                "BufferingHints", "DomainARN", "IndexName", "IndexRotationPeriod", "RetryOptions", "RoleARN", "S3BackupMode", "S3Configuration", "TypeName"
+                "BufferingHints",
+                "DomainARN",
+                "IndexName",
+                "IndexRotationPeriod",
+                "RetryOptions",
+                "RoleARN",
+                "S3BackupMode",
+                "S3Configuration",
+                "TypeName"
             ],
             "additionalProperties": false
         },
         "ExtendedS3DestinationConfiguration": {
             "type": "object",
-            "properties": {   
+            "properties": {
                 "BucketARN": {
                     "$ref": "aws.s3.bucket.v1.json#/properties/Arn"
                 },
@@ -78,7 +91,10 @@
                 "CompressionFormat": {
                     "type": "string",
                     "enum": [
-                        "UNCOMPRESSED", "GZIP", "ZIP", "Snappy"
+                        "UNCOMPRESSED",
+                        "GZIP",
+                        "ZIP",
+                        "Snappy"
                     ]
                 },
                 "EncryptionConfiguration": {
@@ -93,19 +109,23 @@
                 "ProcessingConfiguration": {
                     "$ref": "#/definitions/ProcessingConfiguration"
                 },
-
                 "S3BackupConfiguration": {
                     "$ref": "#/definitions/S3DestinationConfiguration"
                 },
                 "S3BackupMode": {
                     "type": "string",
                     "enum": [
-                        "Disabled", "Enabled"
+                        "Disabled",
+                        "Enabled"
                     ]
                 }
             },
             "required": [
-                "BucketARN", "BufferingHints", "CompressionFormat", "Prefix", "RoleARN"
+                "BucketARN",
+                "BufferingHints",
+                "CompressionFormat",
+                "Prefix",
+                "RoleARN"
             ],
             "additionalProperties": false
         },
@@ -144,7 +164,12 @@
                 }
             },
             "required": [
-                "ClusterJDBCURL", "CopyCommand", "Password", "RoleARN", "S3Configuration", "Username"
+                "ClusterJDBCURL",
+                "CopyCommand",
+                "Password",
+                "RoleARN",
+                "S3Configuration",
+                "Username"
             ],
             "writeOnly": [
                 "Password"
@@ -162,22 +187,25 @@
                 },
                 "CloudWatchLoggingOptions": {
                     "$ref": "#/definitions/CloudWatchLoggingOptions"
-                }, 
+                },
                 "CompressionFormat": {
                     "type": "string"
                 },
                 "EncryptionConfiguration": {
                     "$ref": "#/definitions/EncryptionConfiguration"
-                }, 
+                },
                 "Prefix": {
                     "type": "string"
-                }, 
+                },
                 "RoleARN": {
                     "$ref": "aws.iam.role.v1.json#/properties/Arn"
                 }
             },
             "required": [
-                "BucketARN", "BufferingHints", "CompressionFormat", "RoleARN"
+                "BucketARN",
+                "BufferingHints",
+                "CompressionFormat",
+                "RoleARN"
             ],
             "additionalProperties": false
         },
@@ -208,7 +236,8 @@
                 "S3BackupMode": {
                     "type": "string",
                     "enum": [
-                        "Disabled", "Enabled"
+                        "Disabled",
+                        "Enabled"
                     ]
                 },
                 "S3Configuration": {
@@ -216,7 +245,10 @@
                 }
             },
             "required": [
-                "HECEndpoint", "HECEndpointType", "HECToken", "S3Configuration"   
+                "HECEndpoint",
+                "HECEndpointType",
+                "HECToken",
+                "S3Configuration"
             ],
             "additionalProperties": false
         },
@@ -236,7 +268,8 @@
                 }
             },
             "required": [
-                "IntervalInSeconds", "SizeInMBs"           
+                "IntervalInSeconds",
+                "SizeInMBs"
             ],
             "additionalProperties": false
         },
@@ -262,7 +295,7 @@
                 "Processors": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/Processor"    
+                        "$ref": "#/definitions/Processor"
                     }
                 }
             },
@@ -272,7 +305,7 @@
             "properties": {
                 "DurationInSeconds": {
                     "type": "integer"
-                }    
+                }
             },
             "required": [
                 "DurationInSeconds"
@@ -304,7 +337,11 @@
                 "ParameterName": {
                     "type": "string",
                     "enum": [
-                        "LambdaArn", "NumberOfRetries", "RoleArn", "BufferSizeInMBs", "BufferIntervalInSeconds"
+                        "LambdaArn",
+                        "NumberOfRetries",
+                        "RoleArn",
+                        "BufferSizeInMBs",
+                        "BufferIntervalInSeconds"
                     ]
                 },
                 "ParameterValue": {
@@ -314,7 +351,8 @@
                 }
             },
             "required": [
-                "ParameterName", "ParameterValue"
+                "ParameterName",
+                "ParameterValue"
             ],
             "additionalProperties": false
         },
@@ -370,14 +408,15 @@
         "DeliveryStreamType": {
             "type": "string",
             "enum": [
-                "DirectPut", "KinesisStreamAsSource"
+                "DirectPut",
+                "KinesisStreamAsSource"
             ]
         },
         "KinesisStreamSourceConfiguration": {
             "$ref": "#/definitions/KinesisStreamSourceConfiguration"
         },
         "ElasticsearchDestinationConfiguration": {
-            "$ref": "#/definitions/ElasticsearchDestinationConfiguration" 
+            "$ref": "#/definitions/ElasticsearchDestinationConfiguration"
         },
         "ExtendedS3DestinationConfiguration": {
             "$ref": "#/definitions/ExtendedS3DestinationConfiguration"
@@ -393,23 +432,60 @@
         }
     },
     "additionalProperties": false,
-    "readOnly": ["Arn"],
-    "oneOf": [
-        {"required":["ElasticsearchDestinationConfiguration"]},
-        {"required":["ExtendedS3DestinationConfiguration"]},
-        {"required":["SplunkDestinationConfiguration"]},
-        {"required":["RedshiftDestinationConfiguration"]},
-        {"required":["S3DestinationConfiguration"]}
+    "readOnly": [
+        "Arn"
     ],
-
-    "oneOf": [
+    "allof": [
         {
-            "required": ["RediretAllRequestsTo"]
+            "oneOf": [
+                {
+                    "required": [
+                        "ElasticsearchDestinationConfiguration"
+                    ]
+                },
+                {
+                    "required": [
+                        "ExtendedS3DestinationConfiguration"
+                    ]
+                },
+                {
+                    "required": [
+                        "SplunkDestinationConfiguration"
+                    ]
+                },
+                {
+                    "required": [
+                        "RedshiftDestinationConfiguration"
+                    ]
+                },
+                {
+                    "required": [
+                        "S3DestinationConfiguration"
+                    ]
+                }
+            ]
         },
         {
-            "anyOf": [
-                {"required":["ErrorDocument"]},
-                {"required":["RoutingRules"]}
+            "oneOf": [
+                {
+                    "required": [
+                        "RediretAllRequestsTo"
+                    ]
+                },
+                {
+                    "anyOf": [
+                        {
+                            "required": [
+                                "ErrorDocument"
+                            ]
+                        },
+                        {
+                            "required": [
+                                "RoutingRules"
+                            ]
+                        }
+                    ]
+                }
             ]
         }
     ]
