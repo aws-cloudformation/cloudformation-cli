@@ -1,0 +1,43 @@
+{
+    "$id": "aws.ec2.subnet.v1.json",
+    "properties": {
+        "Id": {
+            "type": "string",
+            "pattern": "^subnet-[a-z0-9]+$"
+        },
+        "Ipv6CidrBlocks": {
+            "type": "array",
+            "items": {
+                "$ref": "../common.types.v1.json#/definitions/IpV6CidrBlock"
+            }
+        },
+        "NetworkAclAssociationId": {
+            "$ref": "aws.ec2.networkacl.v1.json#/properties/Id"
+        },
+        "VpcId": {
+            "$ref": "aws.ec2.vpc.v1.json#/properties/Id"
+        },
+        "CidrBlock": {
+            "$ref": "../common.types.v1.json#/definitions/CidrBlock"
+        },
+        "AvailabilityZone": {
+            "$ref": "../aws.common.types.v1.json#/definitions/AvailabilityZone"
+        },
+        "MapPublicIpOnLaunch": {
+            "type": "boolean"
+        },
+        "AssignIpv6AddressOnCreation": {
+            "type": "boolean"
+        },
+        "Ipv6CidrBlock": {
+            "$ref": "../common.types.v1.json#/definitions/IpV6CidrBlock"
+        }
+    },
+    "readOnly": [
+        "Ipv6CidrBlocks", "NetworkAclAssociationId"
+    ],
+    "required": [
+        "VpcId", "CidrBlock"
+    ],
+    "additionalProperties": false
+}

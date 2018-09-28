@@ -1,0 +1,18 @@
+{
+    "$id": "aws.logs.logstream.v1.json",
+    "properties": {
+        "LogGroupName": {
+            "$ref": "aws.logs.loggroup.v1.json#/properties/LogGroupName"
+        },
+        "LogStreamName": {
+            "type": "string",
+            "pattern": "[^:*]*",
+            "minLength": 1,
+            "maxLength": 512
+        }
+    },
+    "required": [
+        "LogGroupName"
+    ],
+    "additionalProperties": false
+}

@@ -1,0 +1,18 @@
+{
+    "$id": "aws.ec2.securitygroup.v1.json",
+    "definitions": {
+        
+    },
+    "properties": {
+        "Id": {
+            "type": "string"
+        }
+    },
+    "readOnly": [
+        
+    ],
+    "required": [
+        
+    ],
+    "additionalProperties": false
+}

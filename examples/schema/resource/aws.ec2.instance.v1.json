@@ -1,0 +1,390 @@
+{
+    "$id": "aws.ec2.instance.v1.json",
+    "definitions": {
+        "Ebs": {
+            "type": "object",
+            "properties": {
+                "DeleteOnTermination": {
+                    "type": "boolean"
+                },
+                "Encrypted": {
+                    "type": "boolean"
+                },
+                "Iops": {
+                    "type": "integer"
+                },
+                "SnapshotId": {
+                    "type": "string"
+                },
+                "VolumeSize": {
+                    "type": "integer"
+                },
+                "VolumeType": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false
+        },
+        "NoDevice": {
+            "$comment": "TODO: type definition unclear, needs to be figured out."
+        },
+        "BlockDeviceMapping": {
+            "type": "object",
+            "properties": {
+                "DeviceName": {
+                    "type": "string"
+                },
+                "Ebs": {
+                    "$ref": "#/definitions/Ebs"
+                },
+                "NoDevice": {
+                    "$ref": "#/definitions/NoDevice"
+                },
+                "VirtualName": {
+                    "type": "string",
+                    "pattern": "^(ephemeral)[0-9]+"
+                }
+            },
+            "additionalProperties": false,
+            "description": "Only one of \"Ebs\" and \"VirtualName\" can be specified",
+            "oneOf": [
+                {
+                    "required": [
+                        "DeviceName",
+                        "Ebs"
+                    ]
+                },
+                {
+                    "required": [
+                        "DeviceName",
+                        "VirtualName"
+                    ]
+                }
+            ]
+        },
+        "CreditSpecification": {
+            "type": "object",
+            "properties": {
+                "CPUCredits": {
+                    "type": "string",
+                    "enum": [
+                        "unlimited",
+                        "standard"
+                    ],
+                    "default": "standard"
+                }
+            },
+            "additionalProperties": false
+        },
+        "ElasticGpuSpecification": {
+            "type": "object",
+            "properties": {
+                "Type": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "required": [
+                "Type"
+            ]
+        },
+        "InstanceIpv6Address": {
+            "type": "object",
+            "properties": {
+                "Ipv6Address": {
+                    "$ref": "../common.types.v1.json#/definitions/Ipv6Address"
+                }
+            },
+            "additionalProperties": false,
+            "required": [
+                "Ipv6Address"
+            ]
+        },
+        "PrivateIpAddressSpecification": {
+            "type": "object",
+            "properties": {
+                "Primary": {
+                    "type": "boolean"
+                },
+                "PrivateIpAddress": {
+                    "$ref": "../common.types.v1.json#/definitions/Ipv4Address"
+                }
+            },
+            "additionalProperties": false,
+            "required": [
+                "Primary",
+                "PrivateIpAddress"
+            ]
+        },
+        "NetworkInterface": {
+            "type": "object",
+            "properties": {
+                "AssociatePublicIpAddress": {
+                    "type": "boolean"
+                },
+                "DeleteOnTermination": {
+                    "type": "boolean"
+                },
+                "Description": {
+                    "type": "string"
+                },
+                "DeviceIndex": {
+                    "type": "string"
+                },
+                "GroupSet": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "Ipv6AddressCount": {
+                    "type": "integer"
+                },
+                "Ipv6Addresses": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/InstanceIpv6Address"
+                    }
+                },
+                "NetworkInterfaceId": {
+                    "type": "string"
+                },
+                "PrivateIpAddress": {
+                    "$ref": "../common.types.v1.json#/definitions/Ipv4Address"
+                },
+                "PrivateIpAddresses": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/PrivateIpAddressSpecification"
+                    }
+                },
+                "SecondaryPrivateIpAddressCount": {
+                    "type": "integer"
+                },
+                "SubnetId": {
+                    "$ref": "./aws.ec2.subnet.v1.json#/properties/Id"
+                }
+            },
+            "additionalProperties": false,
+            "description": "One of \"SubnetId\", \"NetworkInterfaceId\" must be specified.",
+            "oneOf": [
+                {
+                    "required": [
+                        "DeviceIndex",
+                        "NetworkInterfaceId"
+                    ]
+                },
+                {
+                    "required": [
+                        "DeviceIndex",
+                        "SubnetId"
+                    ]
+                }
+            ]
+        },
+        "AssociationParameter": {
+            "type": "object",
+            "properties": {
+                "Key": {
+                    "type": "string"
+                },
+                "Value": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            },
+            "additionalProperties": false,
+            "required": [
+                "Key",
+                "Value"
+            ]
+        },
+        "SsmAssociation": {
+            "type": "object",
+            "properties": {
+                "AssociationParameters": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/AssociationParameter"
+                    }
+                },
+                "DocumentName": {
+                    "$ref": "./aws.ssm.document.v1.json#/properties/DocumentName"
+                }
+            },
+            "additionalProperties": false,
+            "required": [
+                "DocumentName"
+            ]
+        },
+        "Volume": {
+            "type": "object",
+            "properties": {
+                "Device": {
+                    "type": "string"
+                },
+                "VolumeId": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "required": [
+                "Device",
+                "VolumeId"
+            ]
+        }
+    },
+    "properties": {
+        "AdditionalInfo": {
+            "type": "string"
+        },
+        "Affinity": {
+            "type": "string",
+            "enum": [
+                "host",
+                "default"
+            ]
+        },
+        "AvailabilityZone": {
+            "$ref": "../common.types.v1.json#/definitions/AvailabilityZone"
+        },
+        "BlockDeviceMappings": {
+            "type": "array",
+            "items": {
+                "$ref": "#/definitions/BlockDeviceMapping"
+            }
+        },
+        "CreditSpecification": {
+            "$ref": "#/definitions/CreditSpecification"
+        },
+        "DisableApiTermination": {
+            "type": "boolean"
+        },
+        "EbsOptimized": {
+            "type": "boolean"
+        },
+        "ElasticGpuSpecifications": {
+            "type": "array",
+            "items": {
+                "$ref": "#/definitions/ElasticGpuSpecification"
+            }
+        },
+        "HostId": {
+            "type": "string"
+        },
+        "IamInstanceProfile": {
+            "type": "string"
+        },
+        "ImageId": {
+            "type": "string"
+        },
+        "InstanceInitiatedShutdownBehavior": {
+            "type": "string",
+            "enum": [
+                "stop",
+                "terminate"
+            ]
+        },
+        "InstanceType": {
+            "type": "string",
+            "default": "m1.small",
+            "$comment": "defined in ../aws.common.types.v1.json#/definitions/InstanceType"
+        },
+        "Ipv6AddressCount": {
+            "type": "integer"
+        },
+        "Ipv6Addresses": {
+            "type": "array",
+            "items": {
+                "$ref": "#/definitions/InstanceIpv6Address"
+            }
+        },
+        "KernelId": {
+            "type": "string"
+        },
+        "KeyName": {
+            "type": "string"
+        },
+        "LaunchTemplate": {
+            "$ref": "../aws.common.types.v1.json#/definitions/LaunchTemplateSpecification"
+        },
+        "Monitoring": {
+            "type": "boolean"
+        },
+        "NetworkInterfaces": {
+            "type": "array",
+            "items": {
+                "$ref": "#/definitions/NetworkInterface"
+            }
+        },
+        "PlacementGroupName": {
+            "type": "string"
+        },
+        "PrivateIpAddress": {
+            "$ref": "../common.types.v1.json#/definitions/Ipv4Address"
+        },
+        "RamdiskId": {
+            "type": "string"
+        },
+        "SecurityGroupIds": {
+            "type": "array",
+            "items": {
+                "$ref": "./aws.ec2.securitygroup.v1.json#/properties/Id"
+            }
+        },
+        "SecurityGroups": {
+            "type": "array",
+            "items": {
+                "$ref": "./aws.ec2.securitygroup.v1.json#"
+            }
+        },
+        "SourceDestCheck": {
+            "type": "boolean"
+        },
+        "SsmAssociations": {
+            "type": "array",
+            "items": {
+                "$ref": "#/definitions/SsmAssociation"
+            }
+        },
+        "SubnetId": {
+            "$ref": "./aws.ec2.subnet.v1.json#/properties/Id"
+        },
+        "Tags": {
+            "$ref": "../aws.common.types.v1.json#/properties/Tags"
+        },
+        "Tenancy": {
+            "type": "string",
+            "enum": [
+                "default",
+                "dedicated",
+                "host"
+            ]
+        },
+        "UserData": {
+            "type": "string"
+        },
+        "Volumes": {
+            "type": "array",
+            "items": {
+                "$ref": "#/definitions/Volume"
+            }
+        }
+    },
+    "additionalProperties": false,
+    "if": {
+        "required": [
+            "NetworkInterfaces"
+        ]
+    },
+    "then": {
+        "description": "If you specified the NetworkInterfaces property, do not specify SecurityGroupIds",
+        "not": {
+            "required": [
+                "SecurityGroupIds"
+            ]
+        }
+    }
+}

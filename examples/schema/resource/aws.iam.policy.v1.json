@@ -1,0 +1,27 @@
+{
+    "$id": "aws.iam.policy.v1.json",
+    "definitions": {
+        
+    },
+    "properties": {
+        "Groups": {
+            
+        },
+        "PolicyDocument": {
+        
+        },
+        "PolicyName": {
+        
+        },
+        "Roles": {
+        
+        },
+        "Users": {
+        
+        }
+    },
+    "required": [
+        
+    ],
+    "additionalProperties": false
+}
