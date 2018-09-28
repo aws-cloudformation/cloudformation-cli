@@ -7,15 +7,6 @@
     "packageName": {
       "type": "string",
       "pattern": "(([a-z0-9]+)\\.)+[a-z0-9]+"
-    },
-    "Client": {
-      "type": "object",
-      "properties": {
-        "Client": {"type": "string"},
-        "Builder": {"type": "string"},
-        "ResourceModel": {"type": "string"}
-      },
-      "additionalProperties": false
     }
   },
   "additionalProperties": false

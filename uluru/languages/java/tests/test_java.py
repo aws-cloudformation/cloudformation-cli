@@ -42,9 +42,9 @@ def test_initialize_maven(plugin, project_settings):
     pom_tree = ET.parse(str(project_settings["output_directory"] / "pom.xml"))
     ns = {"maven": "http://maven.apache.org/POM/4.0.0"}
     package_name_prefix = pom_tree.find("maven:groupId", ns)
-    assert package_name_prefix.text == "com.example"
+    assert package_name_prefix.text == "com.example.provider"
     package_name = pom_tree.find("maven:artifactId", ns)
-    assert package_name.text == "ResourceProviderExample"
+    assert package_name.text == "com-example-provider"
 
 
 def test_initialize_intellij(plugin, project_settings):

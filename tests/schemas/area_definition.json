@@ -1,0 +1,94 @@
+{
+    "resourceType": "AWS::Geography::AreaDescription",
+    "type": "object",
+    "definitions": {
+        "Location": {
+            "type": "object",
+            "properties": {
+                "Country": {
+                    "type": "string"
+                },
+                "Boundary": {
+                    "$ref": "#/definitions/Boundary"
+                }
+            }
+        },
+        "Coordinate": {
+            "type": "object",
+            "properties": {
+                "Latitude": {
+                    "type": "number"
+                },
+                "Longitude": {
+                    "type": "number"
+                }
+            }
+        },
+        "Boundary": {
+            "type": "object",
+            "properties": {
+                "Box": {
+                    "type": "object",
+                    "properties": {
+                        "North": {"$ref": "#/definitions/Coordinate"},
+                        "South": {"$ref": "#/definitions/Coordinate"},
+                        "East": {"$ref": "#/definitions/Coordinate"},
+                        "West": {"$ref": "#/definitions/Coordinate"}
+                    }
+                },
+                "OtherPoints": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/Coordinate"
+                    },
+                    "uniqueItems": true
+                }
+            }
+        },
+        "AreaId": {
+            "type": "string"
+        }
+    },
+    "properties": {
+        "AreaName": {
+            "type": "string"
+        },
+        "AreaId": {
+            "$ref": "#/definitions/AreaId"
+        },
+        "Location": {
+            "$ref": "#/definitions/Location"
+        },
+        "City": {
+            "type": "object",
+            "properties": {
+                "CityName": {
+                    "type": "string"
+                },
+                "Neighborhoods": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "additionalProperties": {
+                            "type": "object",
+                            "properties": {
+                                "Street": {
+                                    "type": "string"
+                                },
+                                "Charter": true,
+                                "Houses": {
+                                    "type": "object",
+                                    "additionalProperties": {
+                                        "type": "number"
+                                    }
+                                }
+                            }
+                        },
+                        "insertionOrder": true
+                    }
+                }
+            }
+        }
+    },
+    "additionalProperties": false
+}
