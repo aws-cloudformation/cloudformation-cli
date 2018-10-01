@@ -31,7 +31,7 @@ def load_resource_spec(resource_spec_file):
             "The resource provider definition is invalid: %s", e.message  # noqa: B306
         )
         raise
-
+    LOG.info("The provider definition is valid!")
     return resource_spec
 
 

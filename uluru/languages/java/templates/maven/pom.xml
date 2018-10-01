@@ -4,8 +4,8 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>{{ packageName | package_prefix}}</groupId>
-    <artifactId>{{ packageName | java_class_name }}</artifactId>
+    <groupId>{{ packageName }}</groupId>
+    <artifactId>uluru-{{ packageName|replace(".","-") }}</artifactId>
     <version>1.0</version>
     <dependencies>
         <dependency>
@@ -28,6 +28,25 @@
                         <phase>package</phase>
                         <goals>
                             <goal>shade</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.jsonschema2pojo</groupId>
+                <artifactId>jsonschema2pojo-maven-plugin</artifactId>
+                <version>0.5.1</version>
+                <configuration>
+                    <sourceDirectory>${basedir}/{{resource_type|resource_type_resource}}.json</sourceDirectory>
+                    <targetPackage>{{ packageName }}.model</targetPackage>
+                    <serialiable> true </serialiable>
+                    <includeConstructors> true </includeConstructors>
+                    <includeAdditionalProperties> true </includeAdditionalProperties>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>generate</goal>
                         </goals>
                     </execution>
                 </executions>

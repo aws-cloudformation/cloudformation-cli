@@ -7,8 +7,11 @@ customize the code generation.
 import argparse
 import logging
 import os
+from pathlib import Path
+from shutil import copy
 
 from .data_loaders import load_project_settings, load_resource_spec
+from .filters import resource_type_resource
 from .plugin_registry import PLUGIN_REGISTRY, add_language_argument
 
 LOG = logging.getLogger(__name__)
@@ -23,8 +26,15 @@ def generate(args):
 
     LOG.info("Loading the resource provider definition...")
     resource_def = load_resource_spec(args.resource_def_file)
-    LOG.info("Generating code...")
+
+    resource_name = resource_type_resource(resource_def["resourceType"])
+    outfile = Path(project_settings["output_directory"]) / (resource_name + ".json")
+    LOG.info('Copying provider definition into project directory as "%s"', outfile)
+    copy(args.resource_def_file.name, outfile)
+
+    LOG.info("Beginning code generation...")
     plugin.generate(resource_def, project_settings)
+    LOG.info("Code generation complete")
 
 
 def setup_subparser(subparsers):

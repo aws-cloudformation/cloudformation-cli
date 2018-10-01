@@ -74,6 +74,11 @@
             "type": "boolean",
             "default": false
         },
+        "resourceType": {
+            "description": "The fully qualified Uluru resource type name.  It should be in the form <namespace>::<service>::<resource> e.g. AWS::EC2::Instance",
+            "type": "string",
+            "pattern": "[A-Za-z0-9]{3,64}::[A-Za-z0-9]{3,64}::[A-Za-z0-9]{3,64}"
+        },
         "examples": {
             "type": "array",
             "items": true

@@ -21,6 +21,11 @@ def project_settings(plugin, tmpdir):
     return project_settings
 
 
+@pytest.fixture
+def resource_type():
+    return "AWS::EC2::Instance"
+
+
 def test_java_language_plugin_module_is_set(plugin):
     assert plugin.MODULE_NAME
 
@@ -37,18 +42,28 @@ def test_java_language_plugin_generate(plugin):
     assert plugin  # TODO
 
 
-def test_initialize_maven(plugin, project_settings):
-    plugin._initialize_maven(project_settings)
+def test_initialize_maven(plugin, resource_type, project_settings):
+    plugin._initialize_maven(resource_type, project_settings)
     pom_tree = ET.parse(str(project_settings["output_directory"] / "pom.xml"))
-    ns = {"maven": "http://maven.apache.org/POM/4.0.0"}
-    package_name_prefix = pom_tree.find("maven:groupId", ns)
-    assert package_name_prefix.text == "com.example"
-    package_name = pom_tree.find("maven:artifactId", ns)
-    assert package_name.text == "ResourceProviderExample"
+    ns = {"m": "http://maven.apache.org/POM/4.0.0"}
+
+    group_id = pom_tree.find("m:groupId", ns)
+    assert group_id.text == "com.uluru.provider"
+    artifact_id = pom_tree.find("m:artifactId", ns)
+    assert artifact_id.text == "uluru-com-uluru-provider"
+
+    jsonschema_plugin = pom_tree.find(
+        "m:build/m:plugins/m:plugin[m:groupId='org.jsonschema2pojo']",
+        ns,
+    )
+    assert jsonschema_plugin is not None
+    source_schema = jsonschema_plugin.find("m:configuration/m:sourceDirectory", ns).text
+    assert source_schema == "${basedir}/Instance.json"
+    target_package = jsonschema_plugin.find("m:configuration/m:targetPackage", ns).text
+    assert target_package == "com.uluru.provider.model"
 
 
 def test_initialize_intellij(plugin, project_settings):
-    project_settings["buildSystem"] = "maven"
     plugin._initialize_intellij(project_settings)
 
     tmp_intellij_dir = project_settings["output_directory"] / ".idea"
