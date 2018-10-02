@@ -53,8 +53,7 @@ def test_initialize_maven(plugin, resource_type, project_settings):
     assert artifact_id.text == "uluru-com-uluru-provider"
 
     jsonschema_plugin = pom_tree.find(
-        "m:build/m:plugins/m:plugin[m:groupId='org.jsonschema2pojo']",
-        ns,
+        "m:build/m:plugins/m:plugin[m:groupId='org.jsonschema2pojo']", ns
     )
     assert jsonschema_plugin is not None
     source_schema = jsonschema_plugin.find("m:configuration/m:sourceDirectory", ns).text
