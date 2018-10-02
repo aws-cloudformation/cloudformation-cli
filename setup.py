@@ -33,9 +33,9 @@ setup(
     include_package_data=True,
     zip_safe=True,
     install_requires=[
-        "jinja2",  # fmt: off
-        "jsonschema",  # fmt: off
-        "pyyaml",  # fmt: off
+        "Jinja2>=2.9",  # fmt: off
+        "jsonschema>=3.0.0a3",  # fmt: off
+        "PyYAML>=3.13",  # fmt: off
     ],
     entry_points={
         "console_scripts": ["uluru-cli = uluru.cli:main"],

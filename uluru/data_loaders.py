@@ -3,7 +3,7 @@ import logging
 
 import pkg_resources
 import yaml
-from jsonschema import Draft6Validator
+from jsonschema import Draft7Validator
 from jsonschema.exceptions import ValidationError
 
 LOG = logging.getLogger(__name__)
@@ -23,7 +23,7 @@ def load_resource_spec(resource_spec_file):
     ) as f:
         resource_spec_schema = json.load(f)
 
-    validator = Draft6Validator(resource_spec_schema)
+    validator = Draft7Validator(resource_spec_schema)
     try:
         validator.validate(resource_spec)
     except ValidationError as e:
@@ -58,7 +58,7 @@ def load_project_settings(plugin, project_settings_file):
             "to further customize code generation."
         )
 
-    validator = Draft6Validator(plugin.project_settings_schema())
+    validator = Draft7Validator(plugin.project_settings_schema())
     try:
         validator.validate(project_settings)
     except ValidationError as e:
