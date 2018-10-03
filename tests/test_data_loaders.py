@@ -1,6 +1,7 @@
 # fixture and parameter have the same name
 # pylint: disable=redefined-outer-name
 import json
+from contextlib import contextmanager
 from io import StringIO
 from pathlib import Path
 from unittest.mock import create_autospec
@@ -9,8 +10,9 @@ import jsonschema
 import pkg_resources
 import pytest
 import yaml
+from pytest_localserver.http import Request, Response, WSGIServer
 
-from uluru.data_loaders import load_project_settings, load_resource_spec
+from uluru.data_loaders import load_project_settings, load_resource_spec, make_validator
 from uluru.plugin_base import LanguagePlugin
 
 
@@ -64,3 +66,30 @@ def test_load_project_settings_user_specified_valid(plugin):
 def test_load_project_settings_user_specified_invalid(plugin):
     with pytest.raises(jsonschema.exceptions.ValidationError):
         load_project_settings(plugin, yaml_s({"foo": {}}))
+
+
+@contextmanager
+def wsgi_serve(application):
+    server = WSGIServer(application=application)
+    try:
+        server.start()
+        yield server
+    finally:
+        server.stop()
+
+
+def test_make_validator_handlers_time_out():
+    from time import sleep
+
+    @Request.application
+    def application(request):  # pylint: disable=unused-argument
+        sleep(3)
+        return Response("true", mimetype="application/json")
+
+    with wsgi_serve(application) as server:
+        with pytest.raises(jsonschema.exceptions.RefResolutionError) as e:
+            validator = make_validator(
+                {"$ref": server.url}, base_uri="http://localhost/", timeout=0.5
+            )
+            validator.validate(True)
+        assert "Read timed out" in str(e)

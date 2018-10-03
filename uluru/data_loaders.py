@@ -2,11 +2,30 @@ import json
 import logging
 
 import pkg_resources
+import requests
 import yaml
-from jsonschema import Draft7Validator
+from jsonschema import Draft7Validator, RefResolver
 from jsonschema.exceptions import ValidationError
 
 LOG = logging.getLogger(__name__)
+
+
+TIMEOUT_IN_SECONDS = 10
+
+
+def make_validator(schema, base_uri=None, timeout=TIMEOUT_IN_SECONDS):
+    if not base_uri:
+        base_uri = Draft7Validator.ID_OF(schema)
+
+    def get_with_timeout(uri):
+        return requests.get(uri, timeout=timeout).json()
+
+    resolver = RefResolver(
+        base_uri=base_uri,
+        referrer=schema,
+        handlers={"http": get_with_timeout, "https": get_with_timeout},
+    )
+    return Draft7Validator(schema, resolver=resolver)
 
 
 def load_resource_spec(resource_spec_file):
@@ -23,7 +42,7 @@ def load_resource_spec(resource_spec_file):
     ) as f:
         resource_spec_schema = json.load(f)
 
-    validator = Draft7Validator(resource_spec_schema)
+    validator = make_validator(resource_spec_schema)
     try:
         validator.validate(resource_spec)
     except ValidationError as e:
@@ -58,7 +77,7 @@ def load_project_settings(plugin, project_settings_file):
             "to further customize code generation."
         )
 
-    validator = Draft7Validator(plugin.project_settings_schema())
+    validator = make_validator(plugin.project_settings_schema())
     try:
         validator.validate(project_settings)
     except ValidationError as e:
