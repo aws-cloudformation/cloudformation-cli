@@ -13,7 +13,7 @@
             "type": "string"
         },
         "iso-8601-utc": {
-            "description": "The date value in ISO 8601 format. The time is always UTC. (YYYY-MM-DDThh:mm:ssZ)",
+            "description": "The date value in ISO 8601 format. The timezone is always UTC. (YYYY-MM-DDThh:mm:ssZ)",
             "type": "string",
             "pattern": "^([0-2]\\d{3})-(0[0-9]|1[0-2])-([0-2]\\d|3[01])T([01]\\d|2[0-4]):([0-5]\\d):([0-6]\\d)((\\.\\d{3})?)Z$"
         },

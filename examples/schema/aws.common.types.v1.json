@@ -18,13 +18,13 @@
             "properties": {
                 "Key": {
                     "type": "string",
-                    "minlength": 1,
+                    "minLength": 1,
                     "maxlength": 127,
                     "pattern": "^(?!aws:.*)[a-z0-9\\s\\_\\.\\/\\=\\+\\-]+$"
                 },
                 "Value": {
                     "type": "string",
-                    "minlength": 1,
+                    "minLength": 1,
                     "maxlength": 255,
                     "pattern": "^(?!aws:.*)[a-z0-9\\s\\_\\.\\/\\=\\+\\-]+$"
                 }
