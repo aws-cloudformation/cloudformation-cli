@@ -19,13 +19,13 @@
                 "Key": {
                     "type": "string",
                     "minLength": 1,
-                    "maxlength": 127,
+                    "maxLength": 127,
                     "pattern": "^(?!aws:.*)[a-z0-9\\s\\_\\.\\/\\=\\+\\-]+$"
                 },
                 "Value": {
                     "type": "string",
                     "minLength": 1,
-                    "maxlength": 255,
+                    "maxLength": 255,
                     "pattern": "^(?!aws:.*)[a-z0-9\\s\\_\\.\\/\\=\\+\\-]+$"
                 }
             },
