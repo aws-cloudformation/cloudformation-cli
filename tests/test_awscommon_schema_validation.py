@@ -13,8 +13,22 @@ def schema():
     basedir = Path(__file__).parent.parent
     awscommonschema = basedir / "examples" / "schema" / "aws.common.types.v1.json"
     with awscommonschema.open("r", encoding="utf-8") as f:
-        resource_schema = json.load(f)
-    return resource_schema
+        return json.load(f)
+
+
+def test_accountid_correct(schema):
+    accountid_config = schema["definitions"]["AccountId"]
+    validator = Draft6Validator(accountid_config)
+
+    validator.validate("123456789012")
+
+
+def test_accountid_wrong(schema):
+    accountid_config = schema["definitions"]["AccountId"]
+    validator = Draft6Validator(accountid_config)
+
+    with pytest.raises(ValidationError):
+        validator.validate("1234567890123")
 
 
 def test_arn_correct(schema):
@@ -36,7 +50,7 @@ def test_availbilityzone_correct(schema):
     availbilityzone_config = schema["definitions"]["AvailabilityZone"]
     validator = Draft6Validator(availbilityzone_config)
 
-    validator.validate("us-wast-2b")
+    validator.validate("us-west-2b")
 
 
 def test_availbilityzone_wrong(schema):
@@ -45,6 +59,21 @@ def test_availbilityzone_wrong(schema):
 
     with pytest.raises(ValidationError):
         validator.validate("us-west")
+
+
+def test_instancetype_correct(schema):
+    instancetype_config = schema["definitions"]["InstanceType"]
+    validator = Draft6Validator(instancetype_config)
+
+    validator.validate("t2.small")
+
+
+def test_instancetype_wrong(schema):
+    instancetype_config = schema["definitions"]["InstanceType"]
+    validator = Draft6Validator(instancetype_config)
+
+    with pytest.raises(ValidationError):
+        validator.validate("t2small")
 
 
 def test_tag_correct(schema):
@@ -60,3 +89,19 @@ def test_tag_wrong(schema):
 
     with pytest.raises(ValidationError):
         validator.validate({"Key": "aws:123abc", "Value": "aws:123abc"})
+
+
+def test_tag_wrong_missing_key(schema):
+    tag_config = schema["definitions"]["Tag"]
+    validator = Draft6Validator(tag_config)
+
+    with pytest.raises(ValidationError):
+        validator.validate({"Key": "", "Value": "123abc"})
+
+
+def test_tag_wrong_missing_value(schema):
+    tag_config = schema["definitions"]["Tag"]
+    validator = Draft6Validator(tag_config)
+
+    with pytest.raises(ValidationError):
+        validator.validate({"Key": "123abc", "Value": ""})

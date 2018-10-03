@@ -1,5 +1,6 @@
 {
     "$id": "aws.s3.bucket.v1.json",
+    "resourceType": "AWS::S3::Bucket",
     "definitions": {
         "AccelerateConfiguration": {
             "type": "object",
@@ -21,7 +22,7 @@
             "type": "object",
             "properties": {
                 "BucketAccountId": {
-                    "$ref": "../aws.common.types.v1.json#/definitions/BucketAccountId"
+                    "$ref": "../aws.common.types.v1.json#/definitions/AccountId"
                 },
                 "BucketArn": {
                     "$ref": "../aws.common.types.v1.json#/definitions/Arn"
@@ -110,7 +111,7 @@
             "type": "object",
             "properties": {
                 "KMSMasterKeyID": {
-                    "$ref": "../aws.common.types.v1.json#/definitions/KMSMasterKeyID"
+                    "type": "string"
                 },
                 "SSEAlgorithm": {
                     "type": "string",
@@ -210,6 +211,9 @@
                 "AllowedOrigins"
             ]
         },
+        "S3BucketName": {
+            "type": "string"
+        },
         "CorsConfiguration": {
             "type": "object",
             "properties": {
@@ -305,7 +309,7 @@
                 }
             },
             "additionalProperties": false,
-            "description": "You must specify at least one of TransitionDate and TransitionInDays",
+            "description": "You must specify at least one of \"TransitionDate\" and \"TransitionInDays\"",
             "oneOf": [
                 {
                     "required": [
@@ -436,7 +440,7 @@
             "type": "object",
             "properties": {
                 "DestinationBucketName": {
-                    "$ref": "../aws.common.types.v1.json#/definitions/S3BucketName"
+                    "$ref": "#/definitions/S3BucketName"
                 },
                 "LogFilePrefix": {
                     "type": "string"
@@ -620,7 +624,7 @@
                     "$ref": "#/definitions/AccessControlTranslation"
                 },
                 "Account": {
-                    "$ref": "../aws.common.types.v1.json#/definitions/BucketAccountId"
+                    "$ref": "../aws.common.types.v1.json#/definitions/AccountId"
                 },
                 "Bucket": {
                     "type": "string"
@@ -890,7 +894,7 @@
             "$ref": "#/definitions/BucketEncryption"
         },
         "BucketName": {
-            "$ref": "../aws.common.types.v1.json#/definitions/S3BucketName"
+            "$ref": "#/definitions/S3BucketName"
         },
         "CorsConfiguration": {
             "$ref": "#/definitions/CorsConfiguration"
