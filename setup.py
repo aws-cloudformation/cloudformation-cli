@@ -36,6 +36,7 @@ setup(
         "Jinja2>=2.9",  # fmt: off
         "jsonschema>=3.0.0a3",  # fmt: off
         "PyYAML>=3.13",  # fmt: off
+        "requests>=2.19",  # fmt: off
     ],
     entry_points={
         "console_scripts": ["uluru-cli = uluru.cli:main"],
