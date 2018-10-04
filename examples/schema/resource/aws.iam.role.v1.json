@@ -1,5 +1,6 @@
 {
     "$id": "aws.iam.role.v1.json",
+    "typeName": "AWS::IAM::Role",
     "definitions": {
         "Policy": {
             "type": "object",
@@ -52,12 +53,12 @@
             }
         }
     },
-    "additionalProperties": false,
     "readOnly": [
         "Arn",
         "RoleId"
     ],
     "required": [
         "AssumeRolePolicyDocument"
-    ]
+    ],
+    "additionalProperties": false
 }

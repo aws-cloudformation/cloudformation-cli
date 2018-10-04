@@ -1,5 +1,6 @@
 {
     "$id": "aws.logs.logstream.v1.json",
+    "typeName": "AWS::Logs::LogStream",
     "properties": {
         "LogGroupName": {
             "$ref": "aws.logs.loggroup.v1.json#/properties/LogGroupName"

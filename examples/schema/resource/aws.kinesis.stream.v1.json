@@ -1,7 +1,6 @@
 {
     "$id": "aws.kinesis.stream.v1.json",
-    "$version": "1.0",
-    "type": "object",
+    "typeName": "AWS::Kinesis::Stream",
     "definitions": {
         "StreamEncryption": {
             "type": "object",

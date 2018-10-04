@@ -26,6 +26,16 @@ def test_load_resource_spec_empty_is_invalid():
         load_resource_spec(StringIO(""))
 
 
+def test_load_resource_spec_boolean_is_invalid():
+    with pytest.raises(jsonschema.exceptions.ValidationError):
+        load_resource_spec(StringIO("true"))
+
+
+def test_load_resource_spec_empty_object_is_invalid():
+    with pytest.raises(jsonschema.exceptions.ValidationError):
+        load_resource_spec(StringIO("{}"))
+
+
 def test_load_resource_spec_example_spec_is_valid():
     basedir = Path(__file__).parent.parent  # tests/test_data_loaders.py
     exampledir = basedir / "examples" / "schema" / "resource"

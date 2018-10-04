@@ -1,5 +1,6 @@
 {
     "$id": "aws.s3.bucket.v1.json",
+    "typeName": "AWS::S3::Bucket",
     "definitions": {
         "AccelerateConfiguration": {
             "type": "object",

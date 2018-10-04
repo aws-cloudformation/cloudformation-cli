@@ -1,5 +1,6 @@
 {
     "$id": "aws.elasticsearch.domain.v1.json",
+    "typeName": "AWS::ElasticSearch::Domain",
     "definitions": {
         "EncryptionAtRestOptions": {
             "type": "object",

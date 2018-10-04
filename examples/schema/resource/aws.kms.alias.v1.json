@@ -1,8 +1,6 @@
 {
     "$id": "aws.kms.alias.v1.json",
-    "definitions": {
-        
-    },
+    "typeName": "AWS::KMS::Alias",
     "properties": {
         "Arn": {
             "$ref": "../aws.common.types.v1.json#/definitions/Arn"

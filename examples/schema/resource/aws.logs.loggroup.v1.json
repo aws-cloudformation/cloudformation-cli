@@ -1,5 +1,6 @@
 {
     "$id": "aws.logs.loggroup.v1.json",
+    "typeName": "AWS::Logs::LogGroup",
     "properties": {
         "Arn": {
             "$ref": "../aws.common.types.v1.json#/definitions/Arn"

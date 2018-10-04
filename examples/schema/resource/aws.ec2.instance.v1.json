@@ -1,5 +1,6 @@
 {
     "$id": "aws.ec2.instance.v1.json",
+    "typeName": "AWS::EC2::Instance",
     "definitions": {
         "Ebs": {
             "type": "object",
@@ -313,12 +314,6 @@
         "Monitoring": {
             "type": "boolean"
         },
-        "NetworkInterfaces": {
-            "type": "array",
-            "items": {
-                "$ref": "#/definitions/NetworkInterface"
-            }
-        },
         "PlacementGroupName": {
             "type": "string"
         },
@@ -327,12 +322,6 @@
         },
         "RamdiskId": {
             "type": "string"
-        },
-        "SecurityGroupIds": {
-            "type": "array",
-            "items": {
-                "$ref": "./aws.ec2.securitygroup.v1.json#/properties/Id"
-            }
         },
         "SecurityGroups": {
             "type": "array",
@@ -348,9 +337,6 @@
             "items": {
                 "$ref": "#/definitions/SsmAssociation"
             }
-        },
-        "SubnetId": {
-            "$ref": "./aws.ec2.subnet.v1.json#/properties/Id"
         },
         "Tags": {
             "$ref": "../aws.common.types.v1.json#/properties/Tags"
@@ -373,18 +359,34 @@
             }
         }
     },
-    "additionalProperties": false,
-    "if": {
-        "required": [
-            "NetworkInterfaces"
-        ]
-    },
-    "then": {
-        "description": "If you specified the NetworkInterfaces property, do not specify SecurityGroupIds",
-        "not": {
-            "required": [
-                "SecurityGroupIds"
-            ]
+    "oneOf": [
+        {
+            "properties": {
+                "SecurityGroupIds": {
+                    "$comment": "If you specified the NetworkInterfaces property, do not specify this property.",
+                    "type": "array",
+                    "items": {
+                        "$ref": "./aws.ec2.securitygroup.v1.json#/properties/Id"
+                    }
+                },
+                "SubnetId": {
+                    "$comment": "If you specified the NetworkInterfaces property, do not specify this property.",
+                    "$ref": "./aws.ec2.subnet.v1.json#/properties/Id"
+                }
+            },
+            "additionalProperties": false
+        },
+        {
+            "properties": {
+                "NetworkInterfaces": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/NetworkInterface"
+                    }
+                }
+            },
+            "additionalProperties": false
         }
-    }
+    ],
+    "additionalProperties": false
 }

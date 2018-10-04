@@ -1,5 +1,6 @@
 {
     "$id": "aws.rds.dbinstance.v1.json",
+    "typeName": "AWS::RDS::DbInstance",
     "definitions": {},
     "properties": {
         "AllocatedStorage": {

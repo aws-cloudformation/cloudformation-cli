@@ -1,5 +1,20 @@
 {
     "$id": "aws.sqs.queue.v1.json",
+    "typeName": "AWS::SQS::Queue",
+    "definitions": {
+        "RedrivePolicy": {
+            "type": "object",
+            "properties": {
+                "deadLetterTargetArn": {
+                    "$ref": "../aws.common.types.v1.json#/definitions/Arn"
+                },
+                "maxReceiveCount": {
+                    "type": "integer"
+                }
+            },
+            "additionalProperties": false
+        }
+    },
     "properties": {
         "ContentBasedDeduplication": {
             "type": "boolean"
@@ -45,16 +60,7 @@
             "maximum": 20
         },
         "RedrivePolicy": {
-            "type": "object",
-            "properties": {
-                "deadLetterTargetArn": {
-                    "$ref": "../aws.common.types.v1.json#/definitions/Arn"
-                },
-                "maxReceiveCount": {
-                    "type": "integer"
-                }
-            },
-            "additionalProperties": false
+            "$ref": "#/definitions/RedrivePolicy"
         },
         "VisibilityTimeout": {
             "type": "integer",

@@ -1,5 +1,6 @@
 {
     "$id": "aws.ec2.vpc.v1.json",
+    "typeName": "AWS::EC2::VPC",
     "properties": {
         "Ipv6CidrBlocks": {
             "type": "array",
