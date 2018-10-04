@@ -1,0 +1,17 @@
+{
+    "$id": "aws.iam.managedpolicy.v1.json",
+    "typeName": "AWS::IAM::ManagedPolicy",
+    "definitions": {
+        
+    },
+    "properties": {
+        
+    },
+    "readOnly": [
+        
+    ],
+    "required": [
+        
+    ],
+    "additionalProperties": false
+}

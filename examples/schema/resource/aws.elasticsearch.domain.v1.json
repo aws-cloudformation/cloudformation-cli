@@ -1,0 +1,135 @@
+{
+    "$id": "aws.elasticsearch.domain.v1.json",
+    "typeName": "AWS::ElasticSearch::Domain",
+    "definitions": {
+        "EncryptionAtRestOptions": {
+            "type": "object",
+            "properties": {
+                "Enabled": {
+                    "type": "boolean"
+                },
+                "KmsKeyId": {
+                    "$ref": "aws.kms.key.v1.json#/properties/Id"
+                }
+            },
+            "additionalProperties": false
+        },
+        "EBSOptions": {
+            "type": "object",
+            "properties": {
+                "Iops": {
+                    "type": "integer"
+                },
+                "EBSEnabled": {
+                    "type": "boolean"
+                },
+                "VolumeSize": {
+                    "type": "integer"
+                },
+                "VolumeType": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false
+        },
+    
+        "ElasticsearchClusterConfig": {
+            "type": "object",
+            "properties": {
+                "DedicatedMasterCount": {
+                    "type": "integer"
+                },
+                "DedicatedMasterEnabled": {
+                    "type": "boolean"
+                },
+                "DedicatedMasterType": {
+                    "type": "string"
+                },
+                "InstanceCount": {
+                    "type": "integer"
+                },
+                "InstanceType": {
+                    "type": "string"
+                },
+                "ZoneAwarenessEnabled": {
+                    "type": "boolean"
+                }
+            },
+            "additionalProperties": false
+        },
+        "SnapshotOptions": {
+            "type": "object",
+            "properties": {
+                "AutomatedSnapshotStartHour": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 23
+                }
+            },
+            "additionalProperties": false
+        },
+        "VPCOptions": {
+            "type": "object",
+            "properties": {
+                "SubnetIds": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "aws.ec2.subnet.v1.json#/properties/SubnetId" 
+                    }
+                },
+                "SecurityGroupIds": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "aws.ec2.securitygroup.v1.json#/properties/SecurityGroupId" 
+                    }
+                }
+            },
+            "additionalProperties": false
+        }
+    },
+    "properties": {
+        "Arn": {
+            "$ref": "../aws.common.types.v1.json#/properties/Arn"
+        },
+        "DomainEndpoint": {
+            "type": "string"  
+        },
+        "AccessPolicies": {
+            "type": "object"  
+        },
+        "AdvancedOptions": {
+            "type": "object",
+            "additionalProperties": {
+                "type": "string"
+            }
+        },
+        "DomainName": {
+            "type": "string",
+            "pattern": "[a-z][a-z0-9-]+",
+            "minLength": 3,
+            "maxLength": 28
+        },
+        "EBSOptions": {
+            "$ref": "#/definitions/EBSOptions"  
+        },
+        "ElasticsearchClusterConfig": {
+            "$ref": "#/definitions/ElasticsearchClusterConfig"  
+        },
+        "ElasticsearchVersion": {
+            "type": "string"  
+        },
+        "EncryptionAtRestOptions": {
+            "$ref": "#/definitions/EncryptionAtRestOptions"  
+        },
+        "SnapshotOptions": {
+            "$ref": "#/definitions/SnapshotOptions"  
+        },
+        "VPCOptions": {
+            "$ref": "#/definitions/VPCOptions"  
+        }
+    },
+    "readOnly": [
+        "Arn", "DomainEndpoint"
+    ],
+    "additionalProperties": false
+}

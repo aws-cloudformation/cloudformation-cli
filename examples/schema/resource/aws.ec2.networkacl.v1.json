@@ -1,0 +1,19 @@
+{
+    "$id": "aws.ec2.networkacl.v1.json",
+    "typeName": "AWS::EC2::NetworkAcl",
+    "properties": {
+        "Tags": {
+            "type": "array",
+            "items": {
+                "$ref": "../aws.common.types.v1.json#/properties/Tags"
+            }
+        },
+        "VpcId": {
+            "type": "string"
+        }
+    },
+    "required": [
+        "VpcId"
+    ],
+    "additionalProperties": false
+}

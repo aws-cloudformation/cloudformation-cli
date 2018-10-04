@@ -1,0 +1,63 @@
+{
+    "$id": "aws.kinesis.stream.v1.json",
+    "typeName": "AWS::Kinesis::Stream",
+    "definitions": {
+        "StreamEncryption": {
+            "type": "object",
+            "properties": {
+                "EncryptionType": {
+                    "type": "string",
+                    "enum": [
+                        "KMS",
+                        "kms"
+                    ]
+                },
+                "KeyId": {
+                    "oneOf": [
+                        { "$ref": "aws.kms.key.v1.json#/properties/Arn" },
+                        { "$ref": "aws.kms.key.v1.json#/properties/Id" },
+                        { "$ref": "aws.kms.alias.v1.json#/properties/Arn" },
+                        { "$ref": "aws.kms.alias.v1.json#/properties/AliasName" },
+                        { "enum": [ "alias/aws/kinesis" ] }
+                    ]
+                }
+            },
+            "required": [
+                "EncryptionType",
+                "KeyId"
+            ]
+        }
+    },
+    "properties": {
+        "Arn": { "$ref": "../aws.common.types.v1.json#/definitions/Arn" },
+        "Name": {
+            "type": "string",
+            "pattern": "[a-zA-Z0-9_.-]+",
+            "minLength": 1,
+            "maxLength": 128
+        },
+        "ShardCount": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100000
+        },
+        "RetentionPeriodHours": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 168
+        },
+        "StreamEncryption": {
+            "$ref": "#/definitions/StreamEncryption"
+        },
+        "Tags": {
+            "$ref": "../aws.common.types.v1.json#/definitions/Tags"
+        }
+    },
+    "additionalProperties": false,
+    "required": [
+        "ShardCount"
+    ],
+    "readOnly": [
+        "Arn"
+    ]
+}

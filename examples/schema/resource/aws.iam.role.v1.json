@@ -1,0 +1,64 @@
+{
+    "$id": "aws.iam.role.v1.json",
+    "typeName": "AWS::IAM::Role",
+    "definitions": {
+        "Policy": {
+            "type": "object",
+            "properties": {
+                "PolicyDocument": {
+                    "type": "object"
+                },
+                "PolicyName": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false
+        }
+    },
+    "properties": {
+        "Arn": {
+            "$ref": "../aws.common.types.v1.json#/definitions/Arn"
+        },
+        "RoleId": {
+            "type": "string"
+        },
+        "RoleName": {
+            "type": "string",
+            "pattern": "[a-zA-Z_+=,.@-]+",
+            "minLength": 1,
+            "maxLength": 64
+        },
+        "AssumeRolePolicyDocument": {
+            "type": "object"
+        },
+        "MaxSessionDuration": {
+            "type": "integer",
+            "minimum": 3600,
+            "maximum": 43200
+        },
+        "ManagedPolicyArns": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            }
+        },
+        "Path": {
+            "type": "string",
+            "default": "/"
+        },
+        "Policies": {
+            "type": "array",
+            "items": {
+                "$ref": "#/definitions/Policy"
+            }
+        }
+    },
+    "readOnly": [
+        "Arn",
+        "RoleId"
+    ],
+    "required": [
+        "AssumeRolePolicyDocument"
+    ],
+    "additionalProperties": false
+}

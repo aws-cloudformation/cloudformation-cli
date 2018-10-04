@@ -1,0 +1,54 @@
+{
+    "$id": "aws.ec2.vpc.v1.json",
+    "typeName": "AWS::EC2::VPC",
+    "properties": {
+        "Ipv6CidrBlocks": {
+            "type": "array",
+            "items": {
+                "$ref": "../common.types.v1.json#/definitions/IpV6CidrBlock"
+            }
+        },
+        "Id": {
+            "type": "string",
+            "pattern": "^vpc-[a-z0-9]+$"
+        },
+        "DefaultNetworkAcl": {
+            "$ref": "aws.ec2.networkacl.v1.json#/properties/Id"
+        },
+        "DefaultSecurityGroup": {
+            "$ref": "aws.ec2.securitygroup.v1.json#/properties/Id"
+        },
+        "CidrBlockAssociations": {
+            "type": "array",
+            "items": {
+                "$ref": "../common.types.v1.json#/definitions/CidrBlock"
+            }
+        },
+        "CidrBlock": {
+            "$ref": "../common.types.v1.json#/definitions/CidrBlock"
+        },
+        "EnableDnsHostnames": {
+            "type": "boolean"  
+        },
+        "EnableDnsSupport": {
+            "type": "boolean"  
+        },
+        "InstanceTenancy": {
+            "type": "string",
+            "enum": [
+                "default", "dedicated", "host"
+            ],
+            "default": "default"
+        },
+        "Tags": {
+            "$ref": "../aws.common.types.v1.json#/definitions/Tags"
+        }
+    },
+    "readOnly": [
+        "Id", "Ipv6CidrBlocks", "DefaultNetworkAcl", "DefaultSecurityGroup", "CidrBlockAssociations"
+    ],
+    "required": [
+        "CidrBlock"
+    ],
+    "additionalProperties": false
+}

@@ -1,0 +1,28 @@
+{
+    "$id": "aws.kms.alias.v1.json",
+    "typeName": "AWS::KMS::Alias",
+    "properties": {
+        "Arn": {
+            "$ref": "../aws.common.types.v1.json#/definitions/Arn"
+        },
+        "AliasName": {
+            "type": "string",
+            "pattern": "^[a-zA-Z0-9:/_-]+$",
+            "minLength": 1,
+            "maxLength": 256
+        },
+        "TargetKeyId": {
+            "oneOf": [
+                { "$ref": "aws.kms.key.v1.json#/properties/Arn" },
+                { "$ref": "aws.kms.key.v1.json#/properties/Id" }
+            ]
+        }
+    },
+    "readOnly": [
+        "Arn"
+    ],
+    "required": [
+        "TargetKeyId"
+    ],
+    "additionalProperties": false
+}

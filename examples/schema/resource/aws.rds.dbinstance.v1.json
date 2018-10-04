@@ -1,0 +1,413 @@
+{
+    "$id": "aws.rds.dbinstance.v1.json",
+    "typeName": "AWS::RDS::DbInstance",
+    "definitions": {},
+    "properties": {
+        "AllocatedStorage": {
+            "type": "string"
+        },
+        "AllowMajorVersionUpgrade": {
+            "type": "boolean"
+        },
+        "AutoMinorVersionUpgrade": {
+            "type": "boolean",
+            "default": "true"
+        },
+        "AvailabilityZone": {
+            "$ref": "../aws.common.types.v1.json#/definitions/AvailabilityZone"
+        },
+        "BackupRetentionPeriod": {
+            "type": "string"
+        },
+        "CharacterSetName": {
+            "type": "string"
+        },
+        "CopyTagsToSnapshot": {
+            "type": "boolean"
+        },
+        "DBClusterIdentifier": {
+            "type": "string"
+        },
+        "DBInstanceClass": {
+            "type": "string"
+        },
+        "DBInstanceIdentifier": {
+            "type": "string"
+        },
+        "DBName": {
+            "type": "string"
+        },
+        "DBParameterGroupName": {
+            "type": "string"
+        },
+        "DBSecurityGroups": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            }
+        },
+        "DBSnapshotIdentifier": {
+            "type": "string"
+        },
+        "DBSubnetGroupName": {
+            "type": "string"
+        },
+        "Domain": {
+            "type": "string"
+        },
+        "DomainIAMRoleName": {
+            "type": "string"
+        },
+        "Engine": {
+            "type": "string"
+        },
+        "EngineVersion": {
+            "type": "string"
+        },
+        "Iops": {
+            "type": "integer",
+            "minimum": 1000
+        },
+        "KmsKeyId": {
+            "type": "string"
+        },
+        "LicenseModel": {
+            "type": "string"
+        },
+        "MasterUserPassword": {
+            "type": "string"
+        },
+        "MasterUsername": {
+            "type": "string"
+        },
+        "MonitoringInterval": {
+            "type": "integer",
+            "enum": [
+                0,
+                1,
+                5,
+                10,
+                15,
+                30,
+                60
+            ]
+        },
+        "MonitoringRoleArn": {
+            "type": "string"
+        },
+        "MultiAZ": {
+            "type": "boolean"
+        },
+        "OptionGroupName": {
+            "type": "string"
+        },
+        "Port": {
+            "type": "string"
+        },
+        "PreferredBackupWindow": {
+            "type": "string"
+        },
+        "PreferredMaintenanceWindow": {
+            "type": "string"
+        },
+        "PubliclyAccessible": {
+            "type": "boolean"
+        },
+        "SourceDBInstanceIdentifier": {
+            "type": "string"
+        },
+        "SourceRegion": {
+            "type": "string"
+        },
+        "StorageEncrypted": {
+            "type": "boolean"
+        },
+        "StorageType": {
+            "type": "string",
+            "enum": [
+                "standard",
+                "gp2",
+                "io1"
+            ]
+        },
+        "Tags": {
+            "$ref": "../aws.common.types.v1.json#/properties/Tags"
+        },
+        "Timezone": {
+            "type": "string"
+        },
+        "VPCSecurityGroups": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            }
+        }
+    },
+    "additionalProperties": false,
+    "required": [
+        "DBInstanceClass"
+    ],
+    "allOf": [
+        {
+            "if": {
+                "not": {
+                    "properties": {
+                        "MultiAZ": {
+                            "enum": [
+                                true
+                            ]
+                        }
+                    }
+                }
+            },
+            "then": {
+                "description": "Can't set the \"AvailabilityZone\" parameter if the \"MultiAZ\" is set to true",
+                "not": {
+                    "required": [
+                        "AvailabilityZone"
+                    ]
+                }
+            }
+        },
+        {
+            "if": {
+                "anyOf": [
+                    {
+                        "required": [
+                            "DBSnapshotIdentifier"
+                        ]
+                    },
+                    {
+                        "required": [
+                            "SourceDBInstanceIdentifier"
+                        ]
+                    }
+                ]
+            },
+            "then": {
+                "description": "If you specify the \"DBSnapshotIdentifier\" or \"SourceDBInstanceIdentifier\" property, don't specify \"CharacterSetName\", \"MasterUsername\" or \"MasterUserPassword\". The value is inherited from the snapshot or source DB instance.",
+                "allOf": [
+                    {
+                        "not": {
+                            "required": [
+                                "CharacterSetName"
+                            ]
+                        }
+                    },
+                    {
+                        "not": {
+                            "required": [
+                                "MasterUsername"
+                            ]
+                        }
+                    },
+                    {
+                        "not": {
+                            "required": [
+                                "MasterUserPassword"
+                            ]
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "if": {
+                "properties": {
+                    "Engine": {
+                        "enum": [
+                            "aurora"
+                        ]
+                    }
+                }
+            },
+            "then": {
+                "description": "If you specify aurora as the database engine, you must alson specify the DBClusterIdentifier property.",
+                "required": [
+                    "DBClusterIdentifier"
+                ]
+            }
+        },
+        {
+            "if": {
+                "required": [
+                    "DBClusterIdentifier"
+                ]
+            },
+            "then": {
+                "description": "If you specify \"DBClusterIdentifier\", specify aurora for the \"Engine\" property and don't specify any of the following properties: AllocatedStorage, BackupRetentionPeriod, CharacterSetName, DBName, DBSecurityGroups, MasterUsername, MasterUserPassword, OptionGroupName, PreferredBackupWindow, PreferredMaintenanceWindow, Port, SourceDBInstanceIdentifier, StorageType, or VPCSecurityGroups.",
+                "allOf": [
+                    {
+                        "properties": {
+                            "Engine": {
+                                "enum": [
+                                    "aurora"
+                                ]
+                            }
+                        }
+                    },
+                    {
+                        "not": {
+                            "anyOf": [
+                                {
+                                    "required": [
+                                        "AllocatedStorage"
+                                    ]
+                                },
+                                {
+                                    "required": [
+                                        "BackupRetentionPeriod"
+                                    ]
+                                },
+                                {
+                                    "required": [
+                                        "CharacterSetName"
+                                    ]
+                                },
+                                {
+                                    "required": [
+                                        "DBName"
+                                    ]
+                                },
+                                {
+                                    "required": [
+                                        "DBSecurityGroups"
+                                    ]
+                                },
+                                {
+                                    "required": [
+                                        "MasterUsername"
+                                    ]
+                                },
+                                {
+                                    "required": [
+                                        "MasterUserPassword"
+                                    ]
+                                },
+                                {
+                                    "required": [
+                                        "OptionGroupName"
+                                    ]
+                                },
+                                {
+                                    "required": [
+                                        "PreferredBackupWindow"
+                                    ]
+                                },
+                                {
+                                    "required": [
+                                        "PreferredMaintenanceWindow"
+                                    ]
+                                },
+                                {
+                                    "required": [
+                                        "Port"
+                                    ]
+                                },
+                                {
+                                    "required": [
+                                        "SourceDBInstanceIdentifier"
+                                    ]
+                                },
+                                {
+                                    "required": [
+                                        "StorageType"
+                                    ]
+                                },
+                                {
+                                    "required": [
+                                        "VPCSecurityGroups"
+                                    ]
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "if": {
+                "required": [
+                    "MonitoringRoleArn"
+                ]
+            },
+            "then": {
+                "description": "If you specify the \"MonitoringRoleArn\" property, specify a value other than 0 for \"MonitoringInterval.\"",
+                "not": {
+                    "properties": {
+                        "MonitoringInterval": {
+                            "enum": [
+                                0
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "if": {
+                "not": {
+                    "properties": {
+                        "MonitoringInterval": {
+                            "enum": [
+                                0
+                            ]
+                        }
+                    }
+                }
+            },
+            "then": {
+                "description": "If you specify a value other than 0 for the \"MonitoringInterval\" property, specify a value for \"MonitoringRoleArn\"",
+                "required": [
+                    "MonitoringRoleArn"
+                ]
+            }
+        },
+        {
+            "if": {
+                "anyOf": [
+                    {
+                        "required": [
+                            "DBSnapshotIdentifier"
+                        ]
+                    },
+                    {
+                        "required": [
+                            "DBClusterIdentifier"
+                        ]
+                    },
+                    {
+                        "required": [
+                            "SourceDBInstanceIdentifier"
+                        ]
+                    }
+                ]
+            },
+            "then": {
+                "description": "If you specify the DBClusterIdentifier, DBSnapshotIdentifier, or SourceDBInstanceIdentifier property, don't specify \"StorageEncrypted\" property.",
+                "not": {
+                    "required": [
+                        "StorageEncrypted"
+                    ]
+                }
+            }
+        },
+        {
+            "if": {
+                "properties": {
+                    "StorageType": {
+                        "enum": [
+                            "io1"
+                        ]
+                    }
+                }
+            },
+            "then": {
+                "description": "If you specify io1 for the StorageType property, you must specify \"Iops\" property.",
+                "required": [
+                    "Iops"
+                ]
+            }
+        }
+    ]
+}
