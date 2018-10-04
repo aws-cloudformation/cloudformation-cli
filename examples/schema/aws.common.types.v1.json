@@ -1,0 +1,47 @@
+{
+    "$id": "aws.common.types.v1.json",
+    "definitions": {
+        "Arn": {
+            "type": "string",
+            "pattern": "^arn:aws(-(cn|gov))?:[a-z-]+:(([a-z]+-)+[0-9])?:([0-9]{12})?:[^.]+$"
+        },
+        "Tags": {
+            "type": "array",
+            "insertionOrder": false,
+            "uniqueItems": true,
+            "items": {
+                "$ref": "#/definitions/Tag"
+            }
+        },
+        "Tag": {
+            "type": "object",
+            "properties": {
+                "Key": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 127,
+                    "pattern": "^(?!aws:.*)[a-z0-9\\s\\_\\.\\/\\=\\+\\-]+$"
+                },
+                "Value": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 255,
+                    "pattern": "^(?!aws:.*)[a-z0-9\\s\\_\\.\\/\\=\\+\\-]+$"
+                }
+            },
+            "additionalProperties": false
+        },
+        "AvailabilityZone": {
+            "type": "string",
+            "pattern": "^([a-z]+-)+[a-z]+-[0-9][a-z]$"
+        },
+        "InstanceType": {
+            "type": "string",
+            "pattern": "^[0-9a-z-]+\\.[0-9a-z]+$"
+        },
+        "AccountId": {
+            "type": "string",
+            "pattern": "^[0-9]{12}$"
+        }
+    }
+}
