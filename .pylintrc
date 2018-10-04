@@ -6,9 +6,12 @@ persistent=yes
 
 [MESSAGES CONTROL]
 
-# bad-continuation clashes with black
-# duplicate-code finds dupes between tests and plugins and is annoying to override
-disable=missing-docstring,fixme,bad-continuation,duplicate-code
+disable=
+    missing-docstring,          # not everything needs a docstring
+    fixme,                      # work in progress
+    bad-continuation,           # clashes with black
+    duplicate-code,             # finds dupes between tests and plugins
+    too-few-public-methods,     # triggers when inheriting
 
 [BASIC]
 
