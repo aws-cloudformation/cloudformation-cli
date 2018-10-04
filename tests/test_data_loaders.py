@@ -44,6 +44,15 @@ def test_load_resource_spec_example_spec_is_valid():
             assert load_resource_spec(f)
 
 
+def test_load_resource_spec_example_spec_is_invalid():
+    basedir = Path(__file__).parent.parent  # tests/test_data_loaders.py
+    exampledir = basedir / "tests" / "data" / "schema" / "invalid"
+    for example in exampledir.glob("*.json"):
+        with example.open("r", encoding="utf-8") as f:
+            with pytest.raises(jsonschema.exceptions.ValidationError):
+                load_resource_spec(f)
+
+
 def yaml_s(obj):
     return StringIO(yaml.dump(obj))
 

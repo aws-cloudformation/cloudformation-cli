@@ -52,13 +52,17 @@
                         "enum": { "$ref": "http://json-schema.org/draft-07/schema#/properties/enum" },
                         "type": { "$ref": "http://json-schema.org/draft-07/schema#/properties/type" },
                         "format": { "$ref": "http://json-schema.org/draft-07/schema#/properties/format" },
-                        "contentMediaType": { "$ref": "http://json-schema.org/draft-07/schema#/properties/contentMediaType" },
-                        "contentEncoding": { "$ref": "http://json-schema.org/draft-07/schema#/properties/contentEncoding" },
                         "allOf": { "$ref": "http://json-schema.org/draft-07/schema#/properties/allOf" },
                         "anyOf": { "$ref": "http://json-schema.org/draft-07/schema#/properties/anyOf" },
                         "oneOf": { "$ref": "http://json-schema.org/draft-07/schema#/properties/oneOf" }
                     },
-                    "additionalProperties": false
+                    "anyOf": [
+                        { "required": [ "$ref" ] },
+                        { "required": [ "type" ] },
+                        { "required": [ "oneOf" ] },
+                        { "required": [ "anyOf" ] },
+                        { "required": [ "allOf" ] }
+                    ]
                 }
             ]
         }
@@ -82,7 +86,11 @@
         },
         "properties": {
             "type": "object",
-            "additionalProperties": { "$ref": "#/definitions/properties" }
+            "patternProperties": {
+                "^[A-Za-z0-9]{1,64}$": { "$ref": "#/definitions/properties" }
+            },
+            "additionalProperties": false,
+            "minProperties": 1
         },
         "readOnly": {
             "description": "A list of properties that are able to be found in a Read request but unable to be specified by the customer",

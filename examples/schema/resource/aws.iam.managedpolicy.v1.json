@@ -1,17 +1,47 @@
 {
     "$id": "aws.iam.managedpolicy.v1.json",
     "typeName": "AWS::IAM::ManagedPolicy",
-    "definitions": {
-        
-    },
     "properties": {
-        
+        "ARN": {
+            "type": "string",
+            "pattern": "^arn:aws(-(cn|gov))?:iam::[0-9]{12}:policy/[a-z0-9-]+$"
+        },
+        "Description": {
+            "type": "string"
+        },
+        "Groups": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            }
+        },
+        "Path": {
+            "type": "string"
+        },
+        "PolicyDocument": {
+            "type": "object"
+        },
+        "Roles": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            }
+        },
+        "Users": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            }
+        },
+        "ManagedPolicyName": {
+            "type": "string"
+        }
     },
     "readOnly": [
-        
+        "ARN"
     ],
     "required": [
-        
+        "PolicyDocument"
     ],
     "additionalProperties": false
 }
