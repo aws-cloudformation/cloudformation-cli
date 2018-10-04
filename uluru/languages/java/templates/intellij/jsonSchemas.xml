@@ -6,8 +6,8 @@
         <entry key="resource_provider_schema">
           <value>
             <SchemaInfo>
-              <option name="name" value="resource_provider_schema" />
-              <option name="relativePathToSchema" value="./resource_provider_schema.json"/>
+              <option name="name" value="provider_definition_schema" />
+              <option name="relativePathToSchema" value="./provider.definition.schema.json"/>
               <option name="schemaVersion" value="JSON schema version 6" />
               <option name="patterns">
                 <list>
