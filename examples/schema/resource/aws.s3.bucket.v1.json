@@ -1,6 +1,6 @@
 {
     "$id": "aws.s3.bucket.v1.json",
-    "resourceType": "AWS::S3::Bucket",
+    "typeName": "AWS::S3::Bucket",
     "definitions": {
         "AccelerateConfiguration": {
             "type": "object",
@@ -210,9 +210,6 @@
                 "AllowedMethods",
                 "AllowedOrigins"
             ]
-        },
-        "S3BucketName": {
-            "type": "string"
         },
         "CorsConfiguration": {
             "type": "object",
@@ -879,57 +876,72 @@
     },
     "properties": {
         "AccelerateConfiguration": {
+            "description": "Configuration for the transfer acceleration state.",
             "$ref": "#/definitions/AccelerateConfiguration"
         },
         "AccessControl": {
+            "description": "A canned access control list (ACL) that grants predefined permissions to the bucket.",
             "type": "string"
         },
         "AnalyticsConfigurations": {
             "type": "array",
+            "description": "The configuration and any analyses for the analytics filter of an Amazon S3 bucket.",
             "items": {
                 "$ref": "#/definitions/AnalyticsConfiguration"
             }
         },
         "BucketEncryption": {
+            "description": "Specifies default encryption for a bucket using server-side encryption with either Amazon S3-managed keys (SSE-S3) or AWS KMS-managed keys (SSE-KMS).",
             "$ref": "#/definitions/BucketEncryption"
         },
         "BucketName": {
-            "$ref": "#/definitions/S3BucketName"
+            "type": "string",
+            "description": "A name for the bucket. If you don't specify a name, AWS CloudFormation generates a unique physical ID and uses that ID for the bucket name. "
         },
         "CorsConfiguration": {
+            "description": "Rules that define cross-origin resource sharing of objects in this bucket.",
             "$ref": "#/definitions/CorsConfiguration"
         },
         "InventoryConfigurations": {
             "type": "array",
+            "description": "The inventory configuration for an Amazon S3 bucket.",
             "items": {
                 "$ref": "#/definitions/InventoryConfiguration"
             }
         },
         "LifecycleConfiguration": {
+            "description": "Rules that define how Amazon S3 manages objects during their lifetime.",
             "$ref": "#/definitions/LifecycleConfiguration"
         },
         "LoggingConfiguration": {
+            "description": "Settings that define where logs are stored.",
             "$ref": "#/definitions/LoggingConfiguration"
         },
         "MetricsConfigurations": {
             "type": "array",
+            "description": "Settings that define a metrics configuration for the CloudWatch request metrics from the bucket.",
             "items": {
                 "$ref": "#/definitions/MetricsConfiguration"
             }
         },
         "NotificationConfiguration": {
+            "description": "Configuration that defines how Amazon S3 handles bucket notifications.",
             "$ref": "#/definitions/NotificationConfiguration"
         },
         "ReplicationConfiguration": {
+            "description": "Configuration for replicating objects in an S3 bucket.",
             "$ref": "#/definitions/ReplicationConfiguration"
         },
         "Tags": {
+            "description": "An arbitrary set of tags (key-value pairs) for this S3 bucket.",
             "$ref": "../aws.common.types.v1.json#/properties/Tags"
         },
         "VersioningConfiguration": {
+            "description": "Enables multiple variants of all objects in this bucket.",
             "$ref": "#/definitions/VersioningConfiguration"
         },
         "WebsiteConfiguration": {
+            "description": "Information used to configure the bucket as a static website.",
             "$ref": "#/definitions/WebsiteConfiguration"
         }
     },
