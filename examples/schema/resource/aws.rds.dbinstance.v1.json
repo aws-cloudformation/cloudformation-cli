@@ -1,86 +1,113 @@
 {
     "$id": "aws.rds.dbinstance.v1.json",
+    "typeName": "AWS::RDS::DBInstance",
+    "description": "The AWS::RDS::DBInstance type creates an Amazon Relational Database Service (Amazon RDS) DB instance.",
     "definitions": {},
     "properties": {
         "AllocatedStorage": {
-            "type": "string"
+            "type": "string",
+            "description": "The allocated storage size, specified in gigabytes (GB)."
         },
         "AllowMajorVersionUpgrade": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "If you update the EngineVersion property to a version that's different from the DB instance's current major version, set this property to true."
         },
         "AutoMinorVersionUpgrade": {
             "type": "boolean",
+            "description": "Indicates that minor engine upgrades are applied automatically to the DB instance during the maintenance window.",
             "default": "true"
         },
         "AvailabilityZone": {
+            "description": "The name of the Availability Zone where the DB instance is located.",
             "$ref": "../aws.common.types.v1.json#/definitions/AvailabilityZone"
         },
         "BackupRetentionPeriod": {
-            "type": "string"
+            "type": "string",
+            "description": "The number of days during which automatic DB snapshots are retained."
         },
         "CharacterSetName": {
-            "type": "string"
+            "type": "string",
+            "description": "For supported engines, specifies the character set to associate with the DB instance."
         },
         "CopyTagsToSnapshot": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Indicates whether to copy all of the user-defined tags from the DB instance to snapshots of the DB instance."
         },
         "DBClusterIdentifier": {
-            "type": "string"
+            "type": "string",
+            "description": "The name of an existing DB cluster that this instance is associated with."
         },
         "DBInstanceClass": {
-            "type": "string"
+            "type": "string",
+            "description": "The name of the compute and memory capacity classes of the DB instance."
         },
         "DBInstanceIdentifier": {
-            "type": "string"
+            "type": "string",
+            "description": "A name for the DB instance."
         },
         "DBName": {
-            "type": "string"
+            "type": "string",
+            "description": "The name of the DB instance that was provided at the time of creation, if one was specified. This same name is returned for the life of the DB instance."
         },
         "DBParameterGroupName": {
-            "type": "string"
+            "type": "string",
+            "description": "The name of an existing DB parameter group or a reference to an AWS::RDS::DBParameterGroup resource created in the template."
         },
         "DBSecurityGroups": {
             "type": "array",
+            "description": "A list of the DB security groups to assign to the DB instance.",
             "items": {
                 "type": "string"
             }
         },
         "DBSnapshotIdentifier": {
-            "type": "string"
+            "type": "string",
+            "description": "The name or Amazon Resource Name (ARN) of the DB snapshot that's used to restore the DB instance."
         },
         "DBSubnetGroupName": {
-            "type": "string"
+            "type": "string",
+            "description": "A DB subnet group to associate with the DB instance."
         },
         "Domain": {
-            "type": "string"
+            "type": "string",
+            "description": "For an Amazon RDS DB instance that's running Microsoft SQL Server, the Active Directory directory ID to create the instance in. Amazon RDS uses Windows Authentication to authenticate users that connect to the DB instance."
         },
         "DomainIAMRoleName": {
-            "type": "string"
+            "type": "string",
+            "description": "The name of an IAM role that Amazon RDS uses when calling the AWS Directory Service APIs."
         },
         "Engine": {
-            "type": "string"
+            "type": "string",
+            "description": "The database engine that the DB instance uses. This property is optional when you specify the DBSnapshotIdentifier property to create DB instances."
         },
         "EngineVersion": {
-            "type": "string"
+            "type": "string",
+            "description": "The version number of the database engine that the DB instance uses."
         },
         "Iops": {
             "type": "integer",
+            "description": "The number of I/O operations per second (IOPS) that the database provisions.",
             "minimum": 1000
         },
         "KmsKeyId": {
-            "type": "string"
+            "type": "string",
+            "description": "The ARN of the AWS Key Management Service (AWS KMS) master key that's used to encrypt the DB instance, such as arn:aws:kms:us-east-1:012345678910:key/abcd1234-a123-456a-a12b-a123b4cd56ef."
         },
         "LicenseModel": {
-            "type": "string"
-        },
-        "MasterUserPassword": {
-            "type": "string"
+            "type": "string",
+            "description": "The license model of the DB instance."
         },
         "MasterUsername": {
-            "type": "string"
+            "type": "string",
+            "description": "The master user name for the DB instance."
+        },
+        "MasterUserPassword": {
+            "type": "string",
+            "description": "The master password for the DB instance."
         },
         "MonitoringInterval": {
             "type": "integer",
+            "description": "The interval, in seconds, between points when Amazon RDS collects enhanced monitoring metrics for the DB instance.",
             "enum": [
                 0,
                 1,
@@ -92,37 +119,48 @@
             ]
         },
         "MonitoringRoleArn": {
-            "type": "string"
+            "type": "string",
+            "description": "The ARN of the AWS Identity and Access Management (IAM) role that permits Amazon RDS to send enhanced monitoring metrics to Amazon CloudWatch."
         },
         "MultiAZ": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Specifies if the database instance is a multiple Availability Zone deployment."
         },
         "OptionGroupName": {
-            "type": "string"
+            "type": "string",
+            "description": "The option group that this DB instance is associated with."
         },
         "Port": {
-            "type": "string"
+            "type": "string",
+            "description": "The port for the instance."
         },
         "PreferredBackupWindow": {
-            "type": "string"
+            "type": "string",
+            "description": "The daily time range during which automated backups are performed if automated backups are enabled, as determined by the BackupRetentionPeriod property."
         },
         "PreferredMaintenanceWindow": {
-            "type": "string"
+            "type": "string",
+            "description": "The weekly time range (in UTC) during which system maintenance can occur."
         },
         "PubliclyAccessible": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Indicates whether the DB instance is an internet-facing instance."
         },
         "SourceDBInstanceIdentifier": {
-            "type": "string"
+            "type": "string",
+            "description": "If you want to create a read replica DB instance, specify the ID of the source DB instance."
         },
         "SourceRegion": {
-            "type": "string"
+            "type": "string",
+            "description": "The ID of the region that contains the source DB instance for the read replica."
         },
         "StorageEncrypted": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Indicates whether the DB instance is encrypted."
         },
         "StorageType": {
             "type": "string",
+            "description": "The storage type associated with this DB instance.",
             "enum": [
                 "standard",
                 "gp2",
@@ -130,13 +168,16 @@
             ]
         },
         "Tags": {
+            "description": "An arbitrary set of tags (key–value pairs) for this DB instance.",
             "$ref": "../aws.common.types.v1.json#/definitions/Tags"
         },
         "Timezone": {
-            "type": "string"
+            "type": "string",
+            "description": "The time zone of the DB instance, which you can specify to match the time zone of your applications."
         },
         "VPCSecurityGroups": {
             "type": "array",
+            "description": "A list of the VPC security group IDs to assign to the DB instance.",
             "items": {
                 "type": "string"
             }
