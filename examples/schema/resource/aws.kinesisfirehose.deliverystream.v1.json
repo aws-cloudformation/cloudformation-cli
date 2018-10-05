@@ -1,7 +1,6 @@
 {
     "$id": "aws.kinesisfirehose.deliverystream.v1.json",
     "typeName": "AWS::KinesisFirehose::DeliveryStream",
-    "type": "object",
     "definitions": {
         "KinesisStreamSourceConfiguration": {
             "type": "object",
@@ -435,59 +434,5 @@
     "additionalProperties": false,
     "readOnly": [
         "Arn"
-    ],
-    "allof": [
-        {
-            "oneOf": [
-                {
-                    "required": [
-                        "ElasticsearchDestinationConfiguration"
-                    ]
-                },
-                {
-                    "required": [
-                        "ExtendedS3DestinationConfiguration"
-                    ]
-                },
-                {
-                    "required": [
-                        "SplunkDestinationConfiguration"
-                    ]
-                },
-                {
-                    "required": [
-                        "RedshiftDestinationConfiguration"
-                    ]
-                },
-                {
-                    "required": [
-                        "S3DestinationConfiguration"
-                    ]
-                }
-            ]
-        },
-        {
-            "oneOf": [
-                {
-                    "required": [
-                        "RediretAllRequestsTo"
-                    ]
-                },
-                {
-                    "anyOf": [
-                        {
-                            "required": [
-                                "ErrorDocument"
-                            ]
-                        },
-                        {
-                            "required": [
-                                "RoutingRules"
-                            ]
-                        }
-                    ]
-                }
-            ]
-        }
     ]
 }

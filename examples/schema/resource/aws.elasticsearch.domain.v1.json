@@ -32,7 +32,6 @@
             },
             "additionalProperties": false
         },
-    
         "ElasticsearchClusterConfig": {
             "type": "object",
             "properties": {
@@ -99,8 +98,8 @@
         },
         "AdvancedOptions": {
             "type": "object",
-            "additionalProperties": {
-                "type": "string"
+            "patternProperties": {
+                "^[A-Za-z0-9.-_]+$": { "type": [ "string", "boolean", "number", "integer" ] }
             }
         },
         "DomainName": {

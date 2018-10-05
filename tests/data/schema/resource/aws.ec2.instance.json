@@ -1,0 +1,8 @@
+{
+    "Affinity": "default",
+    "NetworkInterfaces": [
+        {
+            "DeleteOnTermination": false
+        }
+    ]
+}

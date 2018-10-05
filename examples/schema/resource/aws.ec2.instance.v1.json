@@ -26,41 +26,40 @@
             },
             "additionalProperties": false
         },
-        "NoDevice": {
-            "$comment": "TODO: type definition unclear, needs to be figured out."
-        },
         "BlockDeviceMapping": {
             "type": "object",
             "properties": {
                 "DeviceName": {
+                    "description": "The name of the device within Amazon EC2. For more information, see Device Naming on Linux Instances in the Amazon EC2 User Guide for Linux Instances.",
                     "type": "string"
                 },
-                "Ebs": {
-                    "$ref": "#/definitions/Ebs"
-                },
                 "NoDevice": {
-                    "$ref": "#/definitions/NoDevice"
-                },
-                "VirtualName": {
-                    "type": "string",
-                    "pattern": "^(ephemeral)[0-9]+"
+                    "description": "This property can be used to unmap a defined device.",
+                    "type": "boolean"
                 }
             },
             "additionalProperties": false,
-            "description": "Only one of \"Ebs\" and \"VirtualName\" can be specified",
             "oneOf": [
                 {
-                    "required": [
-                        "DeviceName",
-                        "Ebs"
-                    ]
+                    "properties": {
+                        "Ebs": {
+                            "$ref": "#/definitions/Ebs"
+                        }
+                    }
                 },
                 {
-                    "required": [
-                        "DeviceName",
-                        "VirtualName"
-                    ]
+                    "properties": {
+                        "VirtualName": {
+                            "$comment": "Only one of \"Ebs\" and \"VirtualName\" can be specified",
+                            "description": "The name of the virtual device. The name must be in the form ephemeralX where X is a number starting from zero (0); for example, ephemeral0.",
+                            "type": "string",
+                            "pattern": "^(ephemeral)[0-9]+"
+                        }
+                    }
                 }
+            ],
+            "required": [
+                "DeviceName"
             ]
         },
         "CreditSpecification": {
@@ -123,13 +122,10 @@
                 "AssociatePublicIpAddress": {
                     "type": "boolean"
                 },
-                "DeleteOnTermination": {
+                "DelelteOnTermination": {
                     "type": "boolean"
                 },
                 "Description": {
-                    "type": "string"
-                },
-                "DeviceIndex": {
                     "type": "string"
                 },
                 "GroupSet": {
@@ -147,9 +143,6 @@
                         "$ref": "#/definitions/InstanceIpv6Address"
                     }
                 },
-                "NetworkInterfaceId": {
-                    "type": "string"
-                },
                 "PrivateIpAddress": {
                     "$ref": "../common.types.v1.json#/definitions/Ipv4Address"
                 },
@@ -161,25 +154,29 @@
                 },
                 "SecondaryPrivateIpAddressCount": {
                     "type": "integer"
-                },
-                "SubnetId": {
-                    "$ref": "./aws.ec2.subnet.v1.json#/properties/Id"
                 }
             },
             "additionalProperties": false,
-            "description": "One of \"SubnetId\", \"NetworkInterfaceId\" must be specified.",
             "oneOf": [
                 {
-                    "required": [
-                        "DeviceIndex",
-                        "NetworkInterfaceId"
-                    ]
+                    "properties": {
+                        "DeviceIndex": {
+                            "type": "string"
+                        },
+                        "NetworkInterfaceId": {
+                            "type": "string"
+                        }
+                    }
                 },
                 {
-                    "required": [
-                        "DeviceIndex",
-                        "SubnetId"
-                    ]
+                    "properties": {
+                        "DeviceIndex": {
+                            "type": "string"
+                        },
+                        "SubnetId": {
+                            "$ref": "./aws.ec2.subnet.v1.json#/properties/Id"
+                        }
+                    }
                 }
             ]
         },
