@@ -1,0 +1,67 @@
+{
+    "$id": "aws.sqs.queue.v1.json",
+    "properties": {
+        "ContentBasedDeduplication": {
+            "type": "boolean"
+        },
+        "DelaySeconds": {
+            "type": "integer",
+            "default": 0,
+            "minimum": 0,
+            "maximum": 900
+        },
+        "FifoQueue": {
+            "type": "boolean",
+            "const": true
+        },
+        "KmsDataKeyReusePeriodSeconds": {
+            "type": "integer",
+            "default": 300,
+            "minimum": 60,
+            "maximum": 86400
+        },
+        "KmsMasterKeyId": {
+            "type": "string"
+        },
+        "MaximumMessageSize": {
+            "type": "integer",
+            "default": 262144,
+            "minimum": 1024,
+            "maximum": 262144
+        },
+        "MessageRetentionPeriod": {
+            "type": "integer",
+            "default": 345600,
+            "minimum": 60,
+            "maximum": 1209600
+        },
+        "QueueName": {
+            "type": "string"
+        },
+        "ReceiveMessageWaitTimeSeconds": {
+            "type": "integer",
+            "default": 0,
+            "minimum": 0,
+            "maximum": 20
+        },
+        "RedrivePolicy": {
+            "type": "object",
+            "properties": {
+                "deadLetterTargetArn": {
+                    "$ref": "../aws.common.types.v1.json#/definitions/Arn"
+                },
+                "maxReceiveCount": {
+                    "type": "integer"
+                }
+            },
+            "additionalProperties": false
+        },
+        "VisibilityTimeout": {
+            "type": "integer",
+            "default": 30,
+            "minimum": 0,
+            "maximum": 43200
+        }
+    },
+    "additionalProperties": false
+}
