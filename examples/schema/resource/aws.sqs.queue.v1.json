@@ -1,6 +1,6 @@
 {
     "$id": "aws.sqs.queue.v1.json",
-    "typeName": "AWS::SQS::QUEUE",
+    "typeName": "AWS::SQS::Queue",
     "properties": {
         "ContentBasedDeduplication": {
             "type": "boolean",
