@@ -15,9 +15,10 @@ flake8-comprehensions>=1.4.1
 flake8-debugger>=3.1.0
 flake8-isort>=2.5
 flake8-pep3101>=1.2.1
-aws-sam-cli>=0.6
 pylint>=2.1.1
 bandit>=1.5.0
+aws-sam-cli>=0.6
+boto3>=1.9
 
 # testing tools
 coverage>=4.5.1
