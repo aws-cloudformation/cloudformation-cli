@@ -55,8 +55,8 @@ def event_listener(request):
 
 
 class CallbackServer(WSGIServer):
-    def __init__(self, host="127.0.0.1", port=0, ssl_context=None):
-        super().__init__(host, port, self, ssl_context=ssl_context)
+    def __init__(self, host="127.0.0.1", port=0):
+        super().__init__(host, port, self, ssl_context=None)
         self.events = deque()
 
     @Request.application
@@ -80,20 +80,24 @@ def wait_for_terminal_event(listener, timeout_in_seconds=60):
     return False, events
 
 
-def test_simple_create(event_listener):
+def prepare_and_send_request(server, operation):
+    _, port = server.server_address
     transport_local = transport("lambda", "http://127.0.0.1:3001")
-    _, port = event_listener.server_address
     url = "http://host.docker.internal:{}".format(port)
     token = str(uuid4())
     request = {
         "requestContext": {
             "resourceType": "Dev::Test::Resource",
-            "operation": "Create",
+            "operation": operation,
             "clientRequestToken": token,
             "callbackURL": url,
         }
     }
     transport_local(request)
-    is_terminated, events = wait_for_terminal_event(event_listener)
+    return wait_for_terminal_event(server)
+
+
+def test_simple_create(event_listener):
+    is_terminated, events = prepare_and_send_request(event_listener, "Create")
     assert is_terminated
     assert events[0]["status"] == "COMPLETE"
