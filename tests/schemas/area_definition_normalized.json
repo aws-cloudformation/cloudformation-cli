@@ -1,0 +1,155 @@
+{
+    "#": {
+        "resourceType": "AWS::Geography::AreaDescription",
+        "type": "object",
+        "definitions": {
+            "Location": {
+                "type": "object",
+                "properties": {
+                    "Country": {
+                        "type": "string"
+                    },
+                    "Boundary": {
+                        "$ref": "#/definitions/Boundary"
+                    }
+                }
+            },
+            "Coordinate": {
+                "type": "object",
+                "properties": {
+                    "Latitude": {
+                        "type": "number"
+                    },
+                    "Longitude": {
+                        "type": "number"
+                    }
+                }
+            },
+            "Boundary": {
+                "type": "object",
+                "properties": {
+                    "Box": {
+                        "$ref": "#/definitions/Boundary/~0properties/Box"
+                    },
+                    "OtherPoints": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/definitions/Coordinate"
+                        },
+                        "uniqueItems": true
+                    }
+                }
+            },
+            "AreaId": {
+                "type": "string"
+            }
+        },
+        "properties": {
+            "AreaName": {
+                "type": "string"
+            },
+            "AreaId": {
+                "type": "string"
+            },
+            "Location": {
+                "$ref": "#/definitions/Location"
+            },
+            "City": {
+                "$ref": "#/~0properties/City"
+            }
+        }
+    },
+    "#/definitions/Location": {
+        "type": "object",
+        "properties": {
+            "Country": {
+                "type": "string"
+            },
+            "Boundary": {
+                "$ref": "#/definitions/Boundary"
+            }
+        }
+    },
+    "#/definitions/Boundary": {
+        "type": "object",
+        "properties": {
+            "Box": {
+                "$ref": "#/definitions/Boundary/~0properties/Box"
+            },
+            "OtherPoints": {
+                "type": "array",
+                "items": {
+                    "$ref": "#/definitions/Coordinate"
+                },
+                "uniqueItems": true
+            }
+        }
+    },
+    "#/definitions/Boundary/~0properties/Box": {
+        "type": "object",
+        "properties": {
+            "North": {
+                "$ref": "#/definitions/Coordinate"
+            },
+            "South": {
+                "$ref": "#/definitions/Coordinate"
+            },
+            "East": {
+                "$ref": "#/definitions/Coordinate"
+            },
+            "West": {
+                "$ref": "#/definitions/Coordinate"
+            }
+        }
+    },
+    "#/definitions/Coordinate": {
+        "type": "object",
+        "properties": {
+            "Latitude": {
+                "type": "number"
+            },
+            "Longitude": {
+                "type": "number"
+            }
+        }
+    },
+    "#/~0properties/City": {
+        "type": "object",
+        "properties": {
+            "CityName": {
+                "type": "string"
+            },
+            "Neighborhoods": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "patternProperties": {
+                        "[A-Za-z0-9]{1,64}": {
+                            "$ref": "#/~0properties/City/~0properties/Neighborhoods/~0items/~0patternProperties/~0%5BA-Za-z0-9%5D%7B1%2C64%7D"
+                        }
+                    },
+                    "insertionOrder": true
+                }
+            }
+        }
+    },
+    "#/~0properties/City/~0properties/Neighborhoods/~0items/~0patternProperties/~0%5BA-Za-z0-9%5D%7B1%2C64%7D": {
+        "type": "object",
+        "properties": {
+            "Street": {
+                "type": "string"
+            },
+            "Charter": {
+                "type": "object"
+            },
+            "Houses": {
+                "type": "object",
+                "patternProperties": {
+                    "[A-Za-z0-9]{1,64}": {
+                        "type": "number"
+                    }
+                }
+            }
+        }
+    }
+}

@@ -1,6 +1,7 @@
 """ Given a normalized schema, this class returns a map of class_names to
 a set of property names|property types in Java
 """
+from uluru.jsonutils.pointer import fragment_decode
 
 
 class JavaPojoResolver:
@@ -31,30 +32,31 @@ class JavaPojoResolver:
         return ref_to_class_map
 
     def _get_class_name_from_ref(self, ref_path, ref_to_class_map):
-        # get last element that doesn't have a ~
-        class_name = next(part for part in ref_path.split("/")[::-1] if "~" not in part)
+        """Given a json schema ref, returns the java class name.
 
-        # TODO: not sure how else we would resolve duplicate class names
-        while True:
-            if class_name not in ref_to_class_map.values():
-                break
+        # should never get a StopIteration, as there will always be a property name
+        """
+        ref_parts = fragment_decode(ref_path, output=list)
+        ref_parts[::-1]
+        # get last element that doesn't have a ~
+        class_name = next(part for part in ref_parts[::-1] if "~" not in part)
+
+        # TODO: resolve duplicate class names using subfolders
+        while class_name in ref_to_class_map.values():
             class_name += "_"
         return class_name
 
     def _java_property_type(self, property_schema):
-        if isinstance(property_schema, bool):
-            # True represents a JSON type
-            return "Object"
-
+        # provider definition schema validates that schema cannot be a boolean
         try:
             ref_path = property_schema["$ref"]
-            return self._ref_to_class_map[ref_path]
         except KeyError:
-            # we are not dealing with a ref, move on
-            pass
+            pass  # we are not dealing with a ref, move on
+        else:
+            return self._ref_to_class_map[ref_path]
 
-        # assumption: type is required
-        json_type = property_schema["type"]
+        # assumption: $ref or type is required
+        json_type = property_schema.get("type", "object")
 
         if json_type == "array":
             return self._java_array_type(property_schema)
@@ -73,33 +75,31 @@ class JavaPojoResolver:
 
     def _java_array_type(self, property_schema):
         array_class_name = self._array_class_name(property_schema)
-        if "items" in property_schema:
-            array_items_class_name = self._java_property_type(property_schema["items"])
-        else:
+        try:
+            items = property_schema["items"]
+        except KeyError:
             array_items_class_name = "Object"
+        else:
+            array_items_class_name = self._java_property_type(items)
 
         return "{}<{}>".format(array_class_name, array_items_class_name)
 
     def _java_object_type(self, property_schema):
         # since all inline objects have been resolved, won't see "properties" here
-        if "additionalProperties" in property_schema:
-            additional_properties_class_name = self._java_property_type(
-                property_schema["additionalProperties"]
+        try:
+            pattern_properties = list(property_schema["patternProperties"].items())
+        except KeyError:
+            return "Map<String, Object>"  # no pattern properties == object type
+        else:
+            if len(pattern_properties) != 1:
+                return "Map<String, Object>"  # bad schema definition
+            pattern_properties_class_name = self._java_property_type(
+                pattern_properties[0][1]
             )
-            return "Map<String, {}>".format(additional_properties_class_name)
-
-        return "Map<String, Object>"  # plain old object type
+            return "Map<String, {}>".format(pattern_properties_class_name)
 
     def _array_class_name(self, property_schema):
-        try:
-            insertion_order = property_schema["insertionOrder"]
-        except KeyError:
-            insertion_order = False
-        try:
-            unique_items = property_schema["uniqueItems"]
-        except KeyError:
-            unique_items = False
+        insertion_order = property_schema.get("insertionOrder", False)
+        unique_items = property_schema.get("uniqueItems", False)
 
-        if insertion_order or not unique_items:
-            return "List"
-        return "Set"
+        return "List" if insertion_order or not unique_items else "Set"

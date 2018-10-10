@@ -1,39 +1,16 @@
 # fixture and parameter have the same name
 # pylint: disable=redefined-outer-name
 import pytest
+import pkg_resources
+import yaml
 
 from ..pojo_resolver import JavaPojoResolver
 
 
 @pytest.fixture
 def normalized_schema():
-    return {
-        "#/definitions/Location": {
-            "type": "object",
-            "properties": {
-                "Country": {"type": "string"},
-                "StateNumber": {"type": "integer"},
-            },
-        },
-        "#/properties/Coordinate/~items": {
-            "type": "object",
-            "properties": {"Lat": {"type": "number"}, "Long": {"type": "number"}},
-        },
-        "#": {
-            "type": "object",
-            "properties": {
-                "State": {"$ref": "#/definitions/Location"},
-                "Coordinates": {
-                    "type": "array",
-                    "items": {"$ref": "#/properties/Coordinate/~items"},
-                },
-                "SurroundingStates": {
-                    "type": "object",
-                    "additionalProperties": {"$ref": "#/definitions/Location"},
-                },
-            },
-        },
-    }
+    resource = pkg_resources.resource_stream(__name__, "normalized_schema.json")
+    return yaml.safe_load(resource)
 
 
 @pytest.fixture
@@ -64,7 +41,7 @@ def test_resolver(normalized_schema):
 
     expected_ref_map = {
         "#": "AreaDescription",
-        "#/properties/Coordinate/~items": "Coordinate",
+        "#/properties/Coordinate/~0items": "Coordinate",
         "#/definitions/Location": "Location",
     }
     assert resolver._ref_to_class_map == expected_ref_map
@@ -77,8 +54,6 @@ def test_resolver(normalized_schema):
 
 def test_java_property_type(empty_resolver, ref_to_class_map):
     items = [
-        (True, "Object"),
-        (False, "Object"),
         ({"type": "string"}, "String"),
         ({"type": "integer"}, "Integer"),
         ({"type": "boolean"}, "Boolean"),
@@ -116,6 +91,8 @@ def test_object_property_type(empty_resolver):
         (get_object("integer"), "Map<String, Integer>"),
         (get_object("boolean"), "Map<String, Boolean>"),
         (get_object("number"), "Map<String, Float>"),
+        ({"patternProperties": {}}, "Map<String, Object>"),
+        ({"patternProperties": {"a-z": {}, "A-Z": {}}}, "Map<String, Object>"),
     ]
     for (property_schema, result) in items:
         assert result == empty_resolver._java_object_type(
@@ -124,7 +101,7 @@ def test_object_property_type(empty_resolver):
 
 
 def get_object(schema_type):
-    return {"type": "object", "additionalProperties": {"type": schema_type}}
+    return {"type": "object", "patternProperties": {"[A-Z]+": {"type": schema_type}}}
 
 
 def test_array_class_name(empty_resolver):
@@ -144,13 +121,37 @@ def test_array_class_name(empty_resolver):
 def test_ref_to_class(empty_resolver, ref_to_class_map):
     items = [
         ("#/definitions/SubObject", "SubObject"),
-        ("#/~properties/SubObject/~items", "SubObject"),
-        ("#/~properties/SubObject/~items/~additionalProperties", "SubObject"),
+        ("#/~0properties/SubObject/~0items", "SubObject"),
+        ("#/~0properties/SubObject/~0items/~0patternProperties/~a%20z", "SubObject"),
         ("#/properties/Id", "Id_"),
         ("#/definitions/prop/Test", "Test__"),
-        ("#/definitions/prop/Test/~items", "Test__"),
+        ("#/definitions/prop/Test/~0items", "Test__"),
     ]
     for (ref_path, result) in items:
         assert result == empty_resolver._get_class_name_from_ref(
             ref_path, ref_to_class_map
         ), "Failed ref: {}".format(ref_path)
+
+    failures = [
+        "#",
+        "#/~properties",
+        "#/~properties/~items",
+    ]
+    for test_case in failures:
+        try:
+            empty_resolver._get_class_name_from_ref(test_case, {})
+            pytest.fail("{} should raise a StopIteration".format(test_case))
+        except StopIteration:
+            pass    
+
+    try:
+        empty_resolver._get_class_name_from_ref("", {})
+        pytest.fail("{} should raise a ValueError".format(test_case))
+    except ValueError:
+        pass    
+    try:
+        empty_resolver._get_class_name_from_ref(None, {})
+        pytest.fail("{} should raise an AttributeError".format(test_case))
+    except AttributeError:
+        pass    
+    

@@ -1,0 +1,29 @@
+{
+    "#/definitions/Location": {
+        "type": "object",
+        "properties": {
+            "Country": {"type": "string"},
+            "StateNumber": {"type": "integer"}
+        }
+    },
+    "#/properties/Coordinate/~0items": {
+        "type": "object",
+        "properties": {"Lat": {"type": "number"}, "Long": {"type": "number"}}
+    },
+    "#": {
+        "type": "object",
+        "properties": {
+            "State": {"$ref": "#/definitions/Location"},
+            "Coordinates": {
+                "type": "array",
+                "items": {"$ref": "#/properties/Coordinate/~0items"}
+            },
+            "SurroundingStates": {
+                "type": "object",
+                "patternProperties": {
+                    "[A-Za-z0-9]{1,64}": {"$ref": "#/definitions/Location"}
+                }
+            }
+        }
+    }
+}

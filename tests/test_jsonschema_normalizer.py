@@ -16,9 +16,10 @@ def test_provider_schema():
 
 @pytest.fixture
 def normalized_schema():
-    from .schemas.area_definition_normalized import NORMALIZED_SCHEMA
-
-    return NORMALIZED_SCHEMA
+    resource = pkg_resources.resource_stream(
+        __name__, "schemas/area_definition_normalized.json"
+    )
+    return yaml.safe_load(resource)
 
 
 @pytest.fixture
@@ -43,21 +44,27 @@ def test_collapse_primitive_type(normalizer):
     ]
     for schema in items:
         assert schema == normalizer._collapse_and_resolve_subschema(
-            "#/~properties/Test", schema
+            "#/~0properties/Test", schema
         )
 
 
 def test_ref_type_to_primitive(normalizer):
-    schema_path = "#/~properties/AreaId"
+    schema_path = "#/~0properties/AreaId"
     expected_schema = {"type": "string"}
     collapsed_schema = normalizer._collapse_ref_type(schema_path)
 
     assert expected_schema == collapsed_schema
     assert not normalizer._schema_map.keys()
 
+def test_property_path_already_processed(normalizer):
+    normalizer._schema_map = {"#/~0properties/City": {}}
+    assert len(normalizer._schema_map.keys()) == 1
+    result = normalizer._collapse_and_resolve_subschema("#/properties/City", {"type": "object", "properties": {"test": {}}})
+    # assert result == {"$ref": "#/properties/City"}
+    assert len(normalizer._schema_map.keys()) == 1
 
 def test_collapse_ref_type(normalizer, normalized_schema):
-    schema_path = "#/definitions/Boundary/~properties/Box/~properties/North"
+    schema_path = "#/definitions/Boundary/~0properties/Box/~0properties/North"
     expected_collapsed_schema = {"$ref": "#/definitions/Coordinate"}
     coordinate_path = "#/definitions/Coordinate"
 
@@ -69,8 +76,8 @@ def test_collapse_ref_type(normalizer, normalized_schema):
 
 
 def test_collapse_ref_type_nested(normalizer, normalized_schema):
-    schema_path = "#/definitions/Boundary/~properties/Box"
-    expected_collapsed_schema = {"$ref": "#/definitions/Boundary/~properties/Box"}
+    schema_path = "#/definitions/Boundary/~0properties/Box"
+    expected_collapsed_schema = {"$ref": "#/definitions/Boundary/~0properties/Box"}
     coordinate_path = "#/definitions/Coordinate"
 
     collapsed_schema = normalizer._collapse_ref_type(schema_path)
@@ -85,28 +92,29 @@ def test_collapse_ref_type_nested(normalizer, normalized_schema):
 
 
 def test_circular_reference():
-    from .schemas.circular_reference_normalized import CIRCULAR_REFERENCE_SCHEMA
+    resource = pkg_resources.resource_stream(
+        __name__, "schemas/circular_reference_normalized.json"
+    )
+    schema_normalized = yaml.safe_load(resource)
 
     resource = pkg_resources.resource_stream(
         __name__, "schemas/circular_reference.json"
     )
     schema = yaml.safe_load(resource)
     resolved_schema = JsonSchemaNormalizer(schema).collapse_and_resolve_schema()
-    assert resolved_schema == CIRCULAR_REFERENCE_SCHEMA
+    assert resolved_schema == schema_normalized
 
 
 def test_collapse_array_type(normalizer, normalized_schema):
-    property_key = "#/~properties/City/~properties/Neighborhoods"
+    property_key = "#/~0properties/City/~0properties/Neighborhoods"
     unresolved_schema = normalizer._find_subschema_by_ref(property_key)
     resolved_schema = normalizer._collapse_array_type(property_key, unresolved_schema)
-    new_key = (
-        "#/~properties/City/~properties/Neighborhoods/~items/~additionalProperties"
-    )
+    new_key = "#/~0properties/City/~0properties/Neighborhoods/~0items/~0patternProperties/~0%5BA-Za-z0-9%5D%7B1%2C64%7D"  # noqa: B950 pylint:disable=line-too-long
     expected_schema = {
         "type": "array",
         "items": {
             "type": "object",
-            "additionalProperties": {"$ref": new_key},
+            "patternProperties": {"[A-Za-z0-9]{1,64}": {"$ref": new_key}},
             "insertionOrder": True,
         },
     }
@@ -128,7 +136,7 @@ def test_find_schema_from_ref(normalizer, test_provider_schema):
 
     expected_street_schema = {"type": "string"}
     street_schema = normalizer._find_subschema_by_ref(
-        "#/~properties/City/~properties/Neighborhoods/~items/~additionalProperties/~properties/Street"  # noqa: B950 pylint:disable=line-too-long
+        "#/~0properties/City/~0properties/Neighborhoods/~0items/~0patternProperties/~0%5BA-Za-z0-9%5D%7B1%2C64%7D/~0properties/Street"  # noqa: B950 pylint:disable=line-too-long
     )
     assert street_schema == expected_street_schema
 

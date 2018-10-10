@@ -69,17 +69,23 @@
                     "type": "array",
                     "items": {
                         "type": "object",
-                        "additionalProperties": {
-                            "type": "object",
-                            "properties": {
-                                "Street": {
-                                    "type": "string"
-                                },
-                                "Charter": true,
-                                "Houses": {
-                                    "type": "object",
-                                    "additionalProperties": {
-                                        "type": "number"
+                        "patternProperties": {
+                            "[A-Za-z0-9]{1,64}": {
+                                "type": "object",
+                                "properties": {
+                                    "Street": {
+                                        "type": "string"
+                                    },
+                                    "Charter": {
+                                        "type": "object"
+                                    },
+                                    "Houses": {
+                                        "type": "object",
+                                        "patternProperties": {
+                                            "[A-Za-z0-9]{1,64}": {
+                                                "type": "number"
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -89,6 +95,5 @@
                 }
             }
         }
-    },
-    "additionalProperties": false
+    }
 }
