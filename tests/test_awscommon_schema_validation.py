@@ -14,8 +14,7 @@ def schema():
     basedir = Path(__file__).parent.parent
     awscommonschema = basedir / "examples" / "schema" / "aws.common.types.v1.json"
     with awscommonschema.open("r", encoding="utf-8") as f:
-        resource_schema = json.load(f)
-    return resource_schema
+        return json.load(f)
 
 
 def test_arn_correct(schema):

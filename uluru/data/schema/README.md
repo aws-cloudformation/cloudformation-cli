@@ -16,3 +16,4 @@ We have taken an opinion on certain aspects of the core JSON Schema and introduc
 * **`$schema`**: an `$schema` property is not valid for a resource property
 * **`propertyNames`**: use of `propertyNames` implies a set of properties without a defined shape and is disallowed. To constrain property names, use `patternProperties` statements with defined shapes
 * **`if`, `then`, `else`, `not`**: these imperative constructs can lead to confusion both in authoring a resource definition, and for customers authoring a resource description against your schema. Also this construct is not widely supported by validation tools and is disallowed here.
+
