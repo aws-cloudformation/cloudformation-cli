@@ -6,7 +6,7 @@
             "StateNumber": {"type": "integer"}
         }
     },
-    "#/properties/Coordinate/~0items": {
+    "#/properties/Coordinate/items": {
         "type": "object",
         "properties": {"Lat": {"type": "number"}, "Long": {"type": "number"}}
     },
@@ -16,7 +16,7 @@
             "State": {"$ref": "#/definitions/Location"},
             "Coordinates": {
                 "type": "array",
-                "items": {"$ref": "#/properties/Coordinate/~0items"}
+                "items": {"$ref": "#/properties/Coordinate/items"}
             },
             "SurroundingStates": {
                 "type": "object",

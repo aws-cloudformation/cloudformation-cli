@@ -5,7 +5,7 @@ import pkg_resources
 import pytest
 import yaml
 
-from uluru.json_schema_normalizer import JsonSchemaNormalizer
+from uluru.json_schema_normalizer import JsonSchemaNormalizer, NormalizationError
 
 
 @pytest.fixture
@@ -44,27 +44,31 @@ def test_collapse_primitive_type(normalizer):
     ]
     for schema in items:
         assert schema == normalizer._collapse_and_resolve_subschema(
-            "#/~0properties/Test", schema
+            "#/properties/Test", schema
         )
 
 
 def test_ref_type_to_primitive(normalizer):
-    schema_path = "#/~0properties/AreaId"
+    schema_path = "#/properties/AreaId"
     expected_schema = {"type": "string"}
     collapsed_schema = normalizer._collapse_ref_type(schema_path)
 
     assert expected_schema == collapsed_schema
     assert not normalizer._schema_map.keys()
 
+
 def test_property_path_already_processed(normalizer):
-    normalizer._schema_map = {"#/~0properties/City": {}}
+    normalizer._schema_map = {"#/properties/City": {}}
     assert len(normalizer._schema_map.keys()) == 1
-    result = normalizer._collapse_and_resolve_subschema("#/properties/City", {"type": "object", "properties": {"test": {}}})
-    # assert result == {"$ref": "#/properties/City"}
+    result = normalizer._collapse_and_resolve_subschema(
+        "#/properties/City", {"type": "object", "properties": {"test": {}}}
+    )
+    assert result == {"$ref": "#/properties/City"}
     assert len(normalizer._schema_map.keys()) == 1
 
+
 def test_collapse_ref_type(normalizer, normalized_schema):
-    schema_path = "#/definitions/Boundary/~0properties/Box/~0properties/North"
+    schema_path = "#/definitions/Boundary/properties/Box/properties/North"
     expected_collapsed_schema = {"$ref": "#/definitions/Coordinate"}
     coordinate_path = "#/definitions/Coordinate"
 
@@ -76,8 +80,8 @@ def test_collapse_ref_type(normalizer, normalized_schema):
 
 
 def test_collapse_ref_type_nested(normalizer, normalized_schema):
-    schema_path = "#/definitions/Boundary/~0properties/Box"
-    expected_collapsed_schema = {"$ref": "#/definitions/Boundary/~0properties/Box"}
+    schema_path = "#/definitions/Boundary/properties/Box"
+    expected_collapsed_schema = {"$ref": "#/definitions/Boundary/properties/Box"}
     coordinate_path = "#/definitions/Coordinate"
 
     collapsed_schema = normalizer._collapse_ref_type(schema_path)
@@ -106,10 +110,10 @@ def test_circular_reference():
 
 
 def test_collapse_array_type(normalizer, normalized_schema):
-    property_key = "#/~0properties/City/~0properties/Neighborhoods"
+    property_key = "#/properties/City/properties/Neighborhoods"
     unresolved_schema = normalizer._find_subschema_by_ref(property_key)
     resolved_schema = normalizer._collapse_array_type(property_key, unresolved_schema)
-    new_key = "#/~0properties/City/~0properties/Neighborhoods/~0items/~0patternProperties/~0%5BA-Za-z0-9%5D%7B1%2C64%7D"  # noqa: B950 pylint:disable=line-too-long
+    new_key = "#/properties/City/properties/Neighborhoods/items/patternProperties/%5BA-Za-z0-9%5D%7B1%2C64%7D"  # noqa: B950 pylint:disable=line-too-long
     expected_schema = {
         "type": "array",
         "items": {
@@ -136,8 +140,14 @@ def test_find_schema_from_ref(normalizer, test_provider_schema):
 
     expected_street_schema = {"type": "string"}
     street_schema = normalizer._find_subschema_by_ref(
-        "#/~0properties/City/~0properties/Neighborhoods/~0items/~0patternProperties/~0%5BA-Za-z0-9%5D%7B1%2C64%7D/~0properties/Street"  # noqa: B950 pylint:disable=line-too-long
+        "#/properties/City/properties/Neighborhoods/items/patternProperties/%5BA-Za-z0-9%5D%7B1%2C64%7D/properties/Street"  # noqa: B950 pylint:disable=line-too-long
     )
     assert street_schema == expected_street_schema
 
     assert normalizer._find_subschema_by_ref("#") == test_provider_schema
+
+    try:
+        normalizer._find_subschema_by_ref("#/this/is/not/a/path")
+        pytest.fail("A KeyError should be raised.")
+    except NormalizationError as e:
+        assert str(e) == "Invalid ref: #/this/is/not/a/path"

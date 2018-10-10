@@ -4,6 +4,10 @@ a set of property names|property types in Java
 from uluru.jsonutils.pointer import fragment_decode
 
 
+class PojoResolverError(Exception):
+    pass
+
+
 class JavaPojoResolver:
     MODULE_NAME = __name__
 
@@ -32,14 +36,9 @@ class JavaPojoResolver:
         return ref_to_class_map
 
     def _get_class_name_from_ref(self, ref_path, ref_to_class_map):
-        """Given a json schema ref, returns the java class name.
-
-        # should never get a StopIteration, as there will always be a property name
+        """Given a json schema ref, returns the best guess at a java class name.
         """
-        ref_parts = fragment_decode(ref_path, output=list)
-        ref_parts[::-1]
-        # get last element that doesn't have a ~
-        class_name = next(part for part in ref_parts[::-1] if "~" not in part)
+        class_name = base_class_from_ref(ref_path)
 
         # TODO: resolve duplicate class names using subfolders
         while class_name in ref_to_class_map.values():
@@ -103,3 +102,48 @@ class JavaPojoResolver:
         unique_items = property_schema.get("uniqueItems", False)
 
         return "List" if insertion_order or not unique_items else "Set"
+
+
+def base_class_from_ref(ref_path):
+    """This method uses determines the class_name from a ref_path
+
+    It uses json schema heuristics to properly determine the class name
+
+    >>> base_class_from_ref('#/definitions/SubObject')
+    'SubObject'
+    >>> base_class_from_ref('#/properties/SubObject/items')
+    'SubObject'
+    >>> base_class_from_ref('#/properties/SubObject/items/patternProperties/pattern')
+    'SubObject'
+    >>> base_class_from_ref('#/properties/items')
+    'items'
+    >>> base_class_from_ref('#/properties/patternProperties')
+    'patternProperties'
+    >>> base_class_from_ref('#/properties/properties')
+    'properties'
+    >>> base_class_from_ref('#/definitions')
+    'definitions'
+    >>> base_class_from_ref('#/definitions/properties')
+    'properties'
+    >>> base_class_from_ref('#')
+    Traceback (most recent call last):
+    ...
+    java.pojo_resolver.PojoResolverError: Could not create a valid class from #
+    >>> base_class_from_ref('/foo')
+    Traceback (most recent call last):
+    ...
+    ValueError: Expected prefix '#', but was ''
+    """
+    parent_keywords = ["properties", "definitions", "#"]
+    schema_keywords = ["items", "patternProperties", "properties"]
+
+    ref_parts = fragment_decode(ref_path, output=list)[::-1]
+    ref_parts_with_root = ref_parts + ["#"]
+    for idx, elem in enumerate(ref_parts):
+        parent = ref_parts_with_root[idx + 1]
+        if parent in parent_keywords or (
+            elem not in schema_keywords and parent != "patternProperties"
+        ):
+            return elem
+
+    raise PojoResolverError("Could not create a valid class from {}".format(ref_path))

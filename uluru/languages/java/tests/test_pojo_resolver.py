@@ -1,7 +1,7 @@
 # fixture and parameter have the same name
 # pylint: disable=redefined-outer-name
-import pytest
 import pkg_resources
+import pytest
 import yaml
 
 from ..pojo_resolver import JavaPojoResolver
@@ -41,7 +41,7 @@ def test_resolver(normalized_schema):
 
     expected_ref_map = {
         "#": "AreaDescription",
-        "#/properties/Coordinate/~0items": "Coordinate",
+        "#/properties/Coordinate/items": "Coordinate",
         "#/definitions/Location": "Location",
     }
     assert resolver._ref_to_class_map == expected_ref_map
@@ -120,38 +120,11 @@ def test_array_class_name(empty_resolver):
 
 def test_ref_to_class(empty_resolver, ref_to_class_map):
     items = [
-        ("#/definitions/SubObject", "SubObject"),
-        ("#/~0properties/SubObject/~0items", "SubObject"),
-        ("#/~0properties/SubObject/~0items/~0patternProperties/~a%20z", "SubObject"),
         ("#/properties/Id", "Id_"),
         ("#/definitions/prop/Test", "Test__"),
-        ("#/definitions/prop/Test/~0items", "Test__"),
+        ("#/definitions/prop/Test/items", "Test__"),
     ]
     for (ref_path, result) in items:
         assert result == empty_resolver._get_class_name_from_ref(
             ref_path, ref_to_class_map
         ), "Failed ref: {}".format(ref_path)
-
-    failures = [
-        "#",
-        "#/~properties",
-        "#/~properties/~items",
-    ]
-    for test_case in failures:
-        try:
-            empty_resolver._get_class_name_from_ref(test_case, {})
-            pytest.fail("{} should raise a StopIteration".format(test_case))
-        except StopIteration:
-            pass    
-
-    try:
-        empty_resolver._get_class_name_from_ref("", {})
-        pytest.fail("{} should raise a ValueError".format(test_case))
-    except ValueError:
-        pass    
-    try:
-        empty_resolver._get_class_name_from_ref(None, {})
-        pytest.fail("{} should raise an AttributeError".format(test_case))
-    except AttributeError:
-        pass    
-    

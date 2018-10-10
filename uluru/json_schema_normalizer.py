@@ -9,10 +9,13 @@ from .jsonutils.pointer import fragment_decode, fragment_encode
 LOG = logging.getLogger(__name__)
 
 
+class NormalizationError(Exception):
+    pass
+
+
 class JsonSchemaNormalizer:
-    """The schema_map will map json_schema paths
-    to a fully resolved schema.  It uses "~" in the path to denote
-    json_schema keywords, rather than an actual property.
+    """The schema_map contains a mapping from json_schema paths
+    to a fully normalized subschema.
     """
 
     MODULE_NAME = __name__
@@ -29,7 +32,7 @@ class JsonSchemaNormalizer:
     # resolve refs and fully collapse each schema
     # pylint: disable=too-many-return-statements
     def _collapse_and_resolve_subschema(self, property_path, sub_schema):
-        """Given a subschema, this method will normalize it and all of its subschemas
+        """Given a subschema, this method will normalize it and all of its subschemas.
 
         :param str property_path: the json schema ref path to the sub_schema
         :param dict sub_schema: the unresolved schema
@@ -71,7 +74,7 @@ class JsonSchemaNormalizer:
             pass
         else:
             sub_schema["items"] = self._collapse_and_resolve_subschema(
-                fragment_encode(["~items"], key), items_schema
+                fragment_encode(["items"], key), items_schema
             )
         return sub_schema
 
@@ -88,7 +91,7 @@ class JsonSchemaNormalizer:
             new_properties = {}
             for prop_name, prop_schema in properties.items():
                 new_properties[prop_name] = self._collapse_and_resolve_subschema(
-                    fragment_encode(["~properties", prop_name], key), prop_schema
+                    fragment_encode(["properties", prop_name], key), prop_schema
                 )
 
             # replace properties with resolved properties
@@ -104,8 +107,7 @@ class JsonSchemaNormalizer:
             new_pattern_properties = {}
             for pattern, prop_schema in pattern_properties.items():
                 new_pattern_properties[pattern] = self._collapse_and_resolve_subschema(
-                    fragment_encode(["~patternProperties", "~{}".format(pattern)], key),
-                    prop_schema,
+                    fragment_encode(["patternProperties", pattern], key), prop_schema
                 )
             sub_schema["patternProperties"] = new_pattern_properties
 
@@ -122,7 +124,7 @@ class JsonSchemaNormalizer:
         for key in path_components:
             try:
                 # remove our jsonschema markers when traversing schema
-                sub_schema = sub_schema[key.replace("~", "")]
+                sub_schema = sub_schema[key]
             except KeyError:
-                raise "Invalid ref: {}".format(ref_path)
+                raise NormalizationError("Invalid ref: {}".format(ref_path))
         return sub_schema

@@ -29,7 +29,7 @@
                 "type": "object",
                 "properties": {
                     "Box": {
-                        "$ref": "#/definitions/Boundary/~0properties/Box"
+                        "$ref": "#/definitions/Boundary/properties/Box"
                     },
                     "OtherPoints": {
                         "type": "array",
@@ -55,7 +55,7 @@
                 "$ref": "#/definitions/Location"
             },
             "City": {
-                "$ref": "#/~0properties/City"
+                "$ref": "#/properties/City"
             }
         }
     },
@@ -74,7 +74,7 @@
         "type": "object",
         "properties": {
             "Box": {
-                "$ref": "#/definitions/Boundary/~0properties/Box"
+                "$ref": "#/definitions/Boundary/properties/Box"
             },
             "OtherPoints": {
                 "type": "array",
@@ -85,7 +85,7 @@
             }
         }
     },
-    "#/definitions/Boundary/~0properties/Box": {
+    "#/definitions/Boundary/properties/Box": {
         "type": "object",
         "properties": {
             "North": {
@@ -113,7 +113,7 @@
             }
         }
     },
-    "#/~0properties/City": {
+    "#/properties/City": {
         "type": "object",
         "properties": {
             "CityName": {
@@ -125,7 +125,7 @@
                     "type": "object",
                     "patternProperties": {
                         "[A-Za-z0-9]{1,64}": {
-                            "$ref": "#/~0properties/City/~0properties/Neighborhoods/~0items/~0patternProperties/~0%5BA-Za-z0-9%5D%7B1%2C64%7D"
+                            "$ref": "#/properties/City/properties/Neighborhoods/items/patternProperties/%5BA-Za-z0-9%5D%7B1%2C64%7D"
                         }
                     },
                     "insertionOrder": true
@@ -133,7 +133,7 @@
             }
         }
     },
-    "#/~0properties/City/~0properties/Neighborhoods/~0items/~0patternProperties/~0%5BA-Za-z0-9%5D%7B1%2C64%7D": {
+    "#/properties/City/properties/Neighborhoods/items/patternProperties/%5BA-Za-z0-9%5D%7B1%2C64%7D": {
         "type": "object",
         "properties": {
             "Street": {
