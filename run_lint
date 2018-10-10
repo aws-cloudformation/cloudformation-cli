@@ -1,4 +1,5 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
+import sys
 from subprocess import CalledProcessError, check_call
 
 import yaml
@@ -16,8 +17,9 @@ def main():
             check_call(cmd, shell=True)
         except CalledProcessError:
             print("FAIL:", cmd)
-            return
+            return 1
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

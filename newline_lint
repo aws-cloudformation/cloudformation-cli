@@ -1,0 +1,71 @@
+#!/usr/bin/env python3
+import argparse
+import sys
+from os import SEEK_END
+from os.path import dirname, join
+from subprocess import STDOUT, check_output
+
+BASE_PATH = dirname(__file__).encode("utf-8")
+NEWLINE = b"\n"
+
+
+def last_char_is_newline(path):
+    with open(path, "rb") as f:
+        # skip to the end of the file
+        try:
+            f.seek(-1, SEEK_END)
+        except OSError:
+            # is this a file any content?
+            if f.read():
+                raise
+            return True
+        else:
+            return f.read(1) == NEWLINE
+
+
+def check(path):
+    return last_char_is_newline(path)
+
+
+def rewrite(path):
+    if not last_char_is_newline(path):
+        with open(path, "ab") as f:
+            f.write(NEWLINE)
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--check",
+        action="store_true",
+        help="Don't write the files back, just return the status.",
+    )
+    args = parser.parse_args()
+
+    tree = check_output(
+        ["git", "ls-tree", "--full-tree", "--name-only", "-r", "-z", "HEAD"],
+        stderr=STDOUT,
+    )
+    # note: filenames and content are kept as bytes where possible
+    # to avoid having to deal with the filesystem's and files' encoding
+    return_code = 0
+    for filename in tree.split(b"\0"):
+        if not filename:  # list is terminated with the delimiter causing an empty item
+            continue
+
+        path = join(BASE_PATH, filename)
+        if args.check:
+            if not check(path):
+                # can't use print if we want to keep the filename in bytes
+                sys.stdout.buffer.write(b"no newline at eof: ")
+                sys.stdout.buffer.write(filename)
+                sys.stdout.buffer.write(b"\n")
+                return_code = 1
+        else:
+            rewrite(path)
+
+    return return_code
+
+
+if __name__ == "__main__":
+    sys.exit(main())
