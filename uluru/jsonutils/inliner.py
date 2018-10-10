@@ -87,9 +87,12 @@ class RefInliner(RefResolver):
                 if base != rename:
                     continue
                 # convert the parts into one flattened reference
-                key = "/".join(parts)
-                local_defs[key] = traverse(document, to_ref)
-                LOG.debug("  %s#%s", base, key)
+                if parts:
+                    key = "/".join(parts)
+                    local_defs[key] = traverse(document, to_ref)
+                    LOG.debug("  %s#%s", base, key)
+                else:
+                    local_defs.update(document)
         self.schema["definitions"] = global_defs
 
     def inline(self):

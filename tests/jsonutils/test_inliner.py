@@ -141,3 +141,24 @@ def test_refinliner_remote_refs_on_filesystem_are_inlined(tmpdir):
     assert schema["definitions"]["schema0"]["nested/bar"] == target
     assert schema["properties"]["foo"]["$ref"] == "#/definitions/schema0/nested~1bar"
     assert len(inliner.ref_graph) == 1
+
+
+def test_refinliner_existing_keys_are_not_overwritten(httpserver):
+    httpserver.serve_content(json.dumps({"type": "string"}))
+    local = {
+        "type": "object",
+        "definitions": {"schema0": {}},
+        "properties": {"foo": {"$ref": httpserver.url + "#"}},
+    }
+    inliner = make_inliner(local)
+    schema = inliner.inline()
+    assert schema["definitions"]["schema0"] == {}
+    assert schema["definitions"]["schema1"]["type"] == "string"
+
+
+def test_refinliner_rename_comment_is_added(httpserver):
+    httpserver.serve_content(json.dumps({"type": "string"}))
+    local = {"$ref": httpserver.url + "#"}
+    inliner = make_inliner(local)
+    schema = inliner.inline()
+    assert schema["definitions"]["schema0"]["$comment"] == httpserver.url
