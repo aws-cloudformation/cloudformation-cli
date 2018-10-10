@@ -1,0 +1,11 @@
+{
+    "Affinity": "default",
+
+    "NetworkInterfaces": [
+        {
+            "DeleteOnTermination": false,
+            "DeviceIndex": "test",
+            "NetworkInterfaceId": "test"
+        }
+    ]
+}

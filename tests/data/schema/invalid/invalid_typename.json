@@ -1,0 +1,8 @@
+{
+    "typeName": "a:b:c",
+    "properties": {
+        "property1": {
+            "type": "integer"
+        }
+    }
+}
