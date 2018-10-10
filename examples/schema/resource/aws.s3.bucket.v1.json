@@ -924,7 +924,7 @@
             "$ref": "#/definitions/ReplicationConfiguration"
         },
         "Tags": {
-            "$ref": "../aws.common.types.v1.json#/properties/Tags"
+            "$ref": "../aws.common.types.v1.json#/definitions/Tags"
         },
         "VersioningConfiguration": {
             "$ref": "#/definitions/VersioningConfiguration"

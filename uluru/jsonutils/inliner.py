@@ -79,7 +79,7 @@ class RefInliner(RefResolver):
             if rename is BASE:  # no need to process the local file
                 continue
             LOG.debug("Inlining definitions from '%s' (%s)", rename, base_uri)
-            global_defs[rename] = local_defs = {}
+            global_defs[rename] = local_defs = {"$comment": base_uri}
             document = self.store[base_uri]
             for to_ref in self.ref_graph.values():
                 base, *parts = to_ref
@@ -90,21 +90,6 @@ class RefInliner(RefResolver):
                 key = "/".join(parts)
                 local_defs[key] = traverse(document, to_ref)
                 LOG.debug("  %s#%s", base, key)
-
-        if "renames" in global_defs:
-            # this should be quite rare
-            LOG.warning(
-                "Can't output renames to definitions, would overwrite existing key"
-            )
-        else:
-            renames = {
-                rename: base_uri
-                for base_uri, rename in self.renamer.items()
-                if rename is not BASE
-            }
-            if renames:  # can be empty
-                global_defs["renames"] = renames
-
         self.schema["definitions"] = global_defs
 
     def inline(self):
