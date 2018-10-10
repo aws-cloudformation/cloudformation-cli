@@ -12,6 +12,7 @@ disable=
     bad-continuation,           # clashes with black
     duplicate-code,             # finds dupes between tests and plugins
     too-few-public-methods,     # triggers when inheriting
+    redefined-outer-name,       # problematic with pytest fixtures
 
 [BASIC]
 

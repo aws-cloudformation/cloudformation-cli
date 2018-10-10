@@ -2,4 +2,4 @@
 branch = True
 
 [report]
-fail_under = 76
+fail_under = 71
