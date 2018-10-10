@@ -1,0 +1,15 @@
+{
+    "typeName": "AWS::Valid::TypeName",
+    "definitions": {
+        "definition1": {
+            "type": "integer"
+        }
+    },
+    "properties": {
+        "property1": {
+            "type": "integer"
+        }
+    },
+    "unsupportedKey": 1
+}
+

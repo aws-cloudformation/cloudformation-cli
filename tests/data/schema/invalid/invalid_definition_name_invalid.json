@@ -1,0 +1,14 @@
+{
+    "typeName": "AWS::Valid::TypeName",
+    "definitions": {
+        "name.has.invalid.characters$": {
+            "type": "integer"
+        }
+    },
+    "properties": {
+        "property1": {
+            "type": "integer"
+        }
+    }
+}
+

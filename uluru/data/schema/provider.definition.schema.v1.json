@@ -7,60 +7,143 @@
         "schemaArray": {
             "type": "array",
             "minItems": 1,
-            "items": { "$ref": "#" }
+            "items": { "$ref": "#/definitions/properties" }
         },
-        "nonNegativeInteger": {
-            "type": "integer",
-            "minimum": 0
-        },
-        "nonNegativeIntegerDefault0": {
+        "properties": {
             "allOf": [
-                { "$ref": "#/definitions/nonNegativeInteger" },
-                { "default": 0 }
+                { "type": "object" },
+                {
+                    "$comment": "The following subset of draft-07 property references is supported for resource definitions. Nested properties are disallowed and should be specified as a $ref to a definitions block.",
+                    "properties": {
+                        "insertionOrder": {
+                            "description": "When set to true, this flag indicates that the order of insertion of the array will be honored, and that changing the order of the array would indicate a diff",
+                            "type": "boolean",
+                            "default": false
+                        },
+                        "readOnly": {
+                            "description": "A list of properties that are able to be found in a Read request but unable to be specified by the customer",
+                            "$ref": "http://json-schema.org/draft-07/schema#/definitions/stringArray"
+                        },
+                        "writeOnly": {
+                            "description": "A list of properties (typically sensitive) that are able to be specified by the customer but unable to be returned in a Read request",
+                            "$ref": "http://json-schema.org/draft-07/schema#/definitions/stringArray"
+                        },
+                        "$ref": { "$ref": "http://json-schema.org/draft-07/schema#/properties/$ref" },
+                        "$comment": { "$ref": "http://json-schema.org/draft-07/schema#/properties/$comment" },
+                        "$title": { "$ref": "http://json-schema.org/draft-07/schema#/properties/title" },
+                        "description": { "$ref": "http://json-schema.org/draft-07/schema#/properties/description" },
+                        "examples": { "$ref": "http://json-schema.org/draft-07/schema#/properties/examples" },
+                        "default": { "$ref": "http://json-schema.org/draft-07/schema#/properties/default" },
+                        "multipleOf": { "$ref": "http://json-schema.org/draft-07/schema#/properties/multipleOf" },
+                        "maximum": { "$ref": "http://json-schema.org/draft-07/schema#/properties/maximum" },
+                        "exclusiveMaximum": { "$ref": "http://json-schema.org/draft-07/schema#/properties/exclusiveMaximum" },
+                        "minimum": { "$ref": "http://json-schema.org/draft-07/schema#/properties/minimum" },
+                        "exclusiveMinimum": { "$ref": "http://json-schema.org/draft-07/schema#/properties/exclusiveMinimum" },
+                        "maxLength": { "$ref": "http://json-schema.org/draft-07/schema#/properties/maxLength" },
+                        "minLength": { "$ref": "http://json-schema.org/draft-07/schema#/properties/minLength" },
+                        "pattern": { "$ref": "http://json-schema.org/draft-07/schema#/properties/pattern" },
+                        "additionalItems": { "$ref": "http://json-schema.org/draft-07/schema#/properties/additionalItems" },
+                        "items": {
+                            "$comment": "Redefined to capture our schemaArray override.",
+                            "anyOf": [
+                                { "$ref": "#/definitions/properties" },
+                                { "$ref": "#/definitions/schemaArray" }
+                            ],
+                            "default": true
+                        },
+                        "maxItems": { "$ref": "http://json-schema.org/draft-07/schema#/properties/maxItems" },
+                        "minItems": { "$ref": "http://json-schema.org/draft-07/schema#/properties/minItems" },
+                        "uniqueItems": { "$ref": "http://json-schema.org/draft-07/schema#/properties/uniqueItems" },
+                        "contains": { "$ref": "http://json-schema.org/draft-07/schema#/properties/contains" },
+                        "maxProperties": { "$ref": "http://json-schema.org/draft-07/schema#/properties/maxProperties" },
+                        "minProperties": { "$ref": "http://json-schema.org/draft-07/schema#/properties/minProperties" },
+                        "required": { "$ref": "http://json-schema.org/draft-07/schema#/properties/required" },
+                        "properties": {
+                            "type": "object",
+                            "patternProperties": {
+                                "^[A-Za-z0-9]{1,64}$": { "$ref": "#/definitions/properties" }
+                            },
+                            "additionalProperties": false,
+                            "minProperties": 1
+                        },
+                        "additionalProperties": {
+                            "$comment": "All properties of a resource must be expressed in the schema - arbitrary inputs are not allowed",
+                            "type": "boolean",
+                            "const": false
+                        },
+                        "patternProperties": {
+                            "$comment": "patternProperties allow providers to introduce a specification for key-value pairs, or Map inputs.",
+                            "type": "object",
+                            "propertyNames": { "format": "regex" }
+                        },
+                        "dependencies": {
+                            "$comment": "Redefined to capture our properties override.",
+                            "type": "object",
+                            "additionalProperties": {
+                                "anyOf": [
+                                    { "$ref": "#/definitions/properties" },
+                                    { "$ref": "http://json-schema.org/draft-07/schema#/definitions/stringArray" }
+                                ]
+                            }
+                        },
+                        "const": { "$ref": "http://json-schema.org/draft-07/schema#/properties/const" },
+                        "enum": { "$ref": "http://json-schema.org/draft-07/schema#/properties/enum" },
+                        "type": { "$ref": "http://json-schema.org/draft-07/schema#/properties/type" },
+                        "format": { "$ref": "http://json-schema.org/draft-07/schema#/properties/format" },
+                        "allOf": { "$ref": "#/definitions/schemaArray" },
+                        "anyOf": { "$ref": "#/definitions/schemaArray" },
+                        "oneOf": { "$ref": "#/definitions/schemaArray" },
+                        "not": { "$ref": "#/definitions/properties" }
+                    },
+                    "additionalProperties": false
+                }
             ]
-        },
-        "simpleTypes": {
-            "enum": [
-                "array",
-                "boolean",
-                "integer",
-                "null",
-                "number",
-                "object",
-                "string"
-            ]
-        },
-        "stringArray": {
-            "type": "array",
-            "items": { "type": "string" },
-            "uniqueItems": true,
-            "default": []
         }
     },
-    "type": ["object", "boolean"],
+    "type": "object",
     "properties": {
-        "$id": {
+        "$id": { "$ref": "http://json-schema.org/draft-07/schema#/properties/$id" },
+        "typeName": {
+            "$comment": "Resource Type Identifier",
+            "examples": [
+                "Organization::Service::Resource",
+                "AWS::EC2::Instance",
+                "Initech::TPS::Report"
+            ],
             "type": "string",
-            "format": "uri-reference"
+            "pattern": "^[a-zA-Z0-9]{2,64}::[a-zA-Z0-9]{2,64}::[a-zA-Z0-9]{2,64}$"
         },
-        "$schema": {
-            "type": "string",
-            "format": "uri"
-        },
-        "$ref": {
-            "type": "string",
-            "format": "uri-reference"
-        },
-        "$comment": {
+        "$comment": { "$ref": "http://json-schema.org/draft-07/schema#/properties/$comment" },
+        "title": { "$ref": "http://json-schema.org/draft-07/schema#/properties/title" },
+        "description": { "$ref": "http://json-schema.org/draft-07/schema#/properties/description" },
+        "sourceUrl": {
+            "$comment": "Source Code Location (e.g; .git URL)",
+            "examples": [
+                "git@github.com:awslabs/aws-cloudformation-rpdk.git"
+            ],
             "type": "string"
         },
-        "title": {
-            "type": "string"
+        "additionalProperties": {
+            "$comment": "All properties of a resource must be expressed in the schema - arbitrary inputs are not allowed",
+            "type": "boolean",
+            "const": false
         },
-        "description": {
-            "type": "string"
+        "properties": {
+            "type": "object",
+            "patternProperties": {
+                "^[A-Za-z0-9]{1,64}$": { "$ref": "#/definitions/properties" }
+            },
+            "additionalProperties": false,
+            "minProperties": 1
         },
-        "default": true,
+        "definitions": {
+            "type": "object",
+            "patternProperties": {
+                "^[A-Za-z0-9]{1,64}$": { "$ref": "#/definitions/properties" }
+            },
+            "additionalProperties": false,
+            "minProperties": 1
+        },
         "readOnly": {
             "description": "A list of properties that are able to be found in a Read request but unable to be specified by the customer",
             "$ref": "http://json-schema.org/draft-07/schema#/definitions/stringArray"
@@ -69,110 +152,14 @@
             "description": "A list of properties (typically sensitive) that are able to be specified by the customer but unable to be returned in a Read request",
             "$ref": "http://json-schema.org/draft-07/schema#/definitions/stringArray"
         },
-        "insertionOrder": {
-            "description": "When set to true, this flag indicates that the order of insertion of the array will be honored, and that changing the order of the array would indicate a diff",
-            "type": "boolean",
-            "default": false
-        },
-        "examples": {
-            "type": "array",
-            "items": true
-        },
-        "multipleOf": {
-            "type": "number",
-            "exclusiveMinimum": 0
-        },
-        "maximum": {
-            "type": "number"
-        },
-        "exclusiveMaximum": {
-            "type": "number"
-        },
-        "minimum": {
-            "type": "number"
-        },
-        "exclusiveMinimum": {
-            "type": "number"
-        },
-        "maxLength": { "$ref": "#/definitions/nonNegativeInteger" },
-        "minLength": { "$ref": "#/definitions/nonNegativeIntegerDefault0" },
-        "pattern": {
-            "type": "string",
-            "format": "regex"
-        },
-        "additionalItems": { "$ref": "#" },
-        "items": {
-            "anyOf": [
-                { "$ref": "#" },
-                { "$ref": "#/definitions/schemaArray" }
-            ],
-            "default": true
-        },
-        "maxItems": { "$ref": "#/definitions/nonNegativeInteger" },
-        "minItems": { "$ref": "#/definitions/nonNegativeIntegerDefault0" },
-        "uniqueItems": {
-            "type": "boolean",
-            "default": false
-        },
-        "contains": { "$ref": "#" },
-        "maxProperties": { "$ref": "#/definitions/nonNegativeInteger" },
-        "minProperties": { "$ref": "#/definitions/nonNegativeIntegerDefault0" },
-        "required": { "$ref": "#/definitions/stringArray" },
-        "additionalProperties": { "$ref": "#" },
-        "definitions": {
-            "type": "object",
-            "additionalProperties": { "$ref": "#" },
-            "default": {}
-        },
-        "properties": {
-            "type": "object",
-            "additionalProperties": { "$ref": "#" },
-            "default": {}
-        },
-        "patternProperties": {
-            "type": "object",
-            "additionalProperties": { "$ref": "#" },
-            "propertyNames": { "format": "regex" },
-            "default": {}
-        },
-        "dependencies": {
-            "type": "object",
-            "additionalProperties": {
-                "anyOf": [
-                    { "$ref": "#" },
-                    { "$ref": "#/definitions/stringArray" }
-                ]
-            }
-        },
-        "propertyNames": { "$ref": "#" },
-        "const": true,
-        "enum": {
-            "type": "array",
-            "items": true,
-            "minItems": 1,
-            "uniqueItems": true
-        },
-        "type": {
-            "anyOf": [
-                { "$ref": "#/definitions/simpleTypes" },
-                {
-                    "type": "array",
-                    "items": { "$ref": "#/definitions/simpleTypes" },
-                    "minItems": 1,
-                    "uniqueItems": true
-                }
-            ]
-        },
-        "format": { "type": "string" },
-        "contentMediaType": { "type": "string" },
-        "contentEncoding": { "type": "string" },
-        "if": { "$ref": "#" },
-        "then": { "$ref": "#" },
-        "else": { "$ref": "#" },
+        "required": { "$ref": "http://json-schema.org/draft-07/schema#/properties/required" },
         "allOf": { "$ref": "#/definitions/schemaArray" },
         "anyOf": { "$ref": "#/definitions/schemaArray" },
-        "oneOf": { "$ref": "#/definitions/schemaArray" },
-        "not": { "$ref": "#" }
+        "oneOf": { "$ref": "#/definitions/schemaArray" }
     },
-    "default": true
+    "required": [
+        "typeName", "properties"
+    ],
+    "additionalProperties": false
 }
+

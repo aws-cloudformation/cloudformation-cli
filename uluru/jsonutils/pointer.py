@@ -7,6 +7,7 @@ from urllib.parse import quote, unquote
 
 def part_encode(part):
     """Encode a part of a JSON pointer.
+
     >>> part_encode("foo")
     'foo'
     >>> part_encode("~foo")
@@ -31,6 +32,7 @@ def part_encode(part):
 
 def part_decode(part):
     """Decode a part of a JSON pointer.
+
     >>> part_decode("foo")
     'foo'
     >>> part_decode("~0foo")
@@ -56,6 +58,7 @@ def part_decode(part):
 def fragment_encode(parts, prefix="#"):
     """Encode all parts of a JSON pointer into the URI fragment
     identifier representation.
+
     >>> fragment_encode([])
     '#'
     >>> fragment_encode([], prefix="")
@@ -72,6 +75,7 @@ def fragment_encode(parts, prefix="#"):
 def fragment_decode(pointer, prefix="#", output=tuple):
     """Decode all segments of a JSON pointer from the URI fragment
     identifier representation.
+
     >>> fragment_decode("#")
     ()
     >>> fragment_decode("#/foo/bar")
