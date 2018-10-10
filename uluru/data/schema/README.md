@@ -7,8 +7,7 @@ The Resource Provider Definition Schema is a _meta-schema_ which extends [draft-
 We have taken an opinion on certain aspects of the core JSON Schema and introduced certain constrains and changes from the core schema. In the context of this project, we are not building arbitrary documents, but rather, defining a very specific shape and semantic for cloud resources. 
 
 * **`readOnly`**: the readOnly field as defined in JSON Schema does not align with our determination that this is actually a restriction with semantic meaning. A property may be readOnly when specified for a particular resource (for example it's `Arn`), but when that same property is _referenced_ (using `$ref` tokens) from a dependency, the dependency must be allowed to specify an input for that property, and as such, it is no longer `readOnly` in that context. 
-* **`writeOnly`**: see above
-* **sub properties**: to simplify definition authoring, we have restricted the use of sub-properties and require that sub-property objects are defined in the `definitions` block of the document 
+* **`writeOnly`**: see above 
 
 ### Constraints
 
