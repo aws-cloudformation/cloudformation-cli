@@ -1,6 +1,6 @@
 {
     "$id": "aws.s3.bucket.v1.json",
-    "resourceType": "AWS::S3::Bucket",
+    "typeName": "AWS::S3::Bucket",
     "definitions": {
         "AccelerateConfiguration": {
             "type": "object",
@@ -109,41 +109,36 @@
         },
         "ServerSideEncryptionByDefault": {
             "type": "object",
-            "properties": {
-                "KMSMasterKeyID": {
-                    "type": "string"
-                },
-                "SSEAlgorithm": {
-                    "type": "string",
-                    "enum": [
-                        "AES256",
-                        "aws:kms"
-                    ]
-                }
-            },
-            "additionalProperties": false,
-            "required": [
-                "SSEAlgorithm"
-            ],
-            "if": {
-                "not": {
+            "oneOf": [
+                {
                     "properties": {
+                        "KMSMasterKeyID": {
+                            "description": "\"KMSMasterKeyID\" can only be used when you set the value of SSEAlgorithm as aws:kms.",
+                            "$ref": "../aws.common.types.v1.json#/definitions/KMSMasterKeyID"
+                        },
                         "SSEAlgorithm": {
+                            "type": "string",
                             "enum": [
                                 "aws:kms"
                             ]
                         }
                     }
+                },
+                {
+                    "properties": {
+                        "SSEAlgorithm": {
+                            "type": "string",
+                            "enum": [
+                                "AES256"
+                            ]
+                        }
+                    }
                 }
-            },
-            "then": {
-                "description": "\"KMSMasterKeyID\" can only be used when you set the value of SSEAlgorithm as aws:kms.",
-                "not": {
-                    "required": [
-                        "KMSMasterKeyID"
-                    ]
-                }
-            }
+            ],
+            "additionalProperties": false,
+            "required": [
+                "SSEAlgorithm"
+            ]
         },
         "ServerSideEncryptionRule": {
             "type": "object",
@@ -796,18 +791,7 @@
             },
             "additionalProperties": false,
             "description": "You must at least one of HttpErrorCodeReturnedEquals and KeyPrefixEquals",
-            "anyof": [
-                {
-                    "required": [
-                        "HttpErrorCodeReturnedEquals"
-                    ]
-                },
-                {
-                    "required": [
-                        "KeyPrefixEquals"
-                    ]
-                }
-            ]
+            "minProperties": 1
         },
         "RoutingRule": {
             "type": "object",
@@ -826,55 +810,35 @@
         },
         "WebsiteConfiguration": {
             "type": "object",
-            "properties": {
-                "ErrorDocument": {
-                    "type": "string"
+            "oneOf": [
+                {
+                    "properties": {
+                        "RedirectAllRequestsTo": {
+                            "$ref": "#/definitions/RedirectAllRequestsTo"
+                        }
+                    },
+                    "required": [
+                       "RedirectAllRequestsTo"
+                    ]
                 },
-                "IndexDocument": {
-                    "type": "string"
-                },
-                "RedirectAllRequestsTo": {
-                    "$ref": "#/definitions/RedirectAllRequestsTo"
-                },
-                "RoutingRules": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/RoutingRule"
+                {
+                    "properties": {
+                        "ErrorDocument": {
+                            "type": "string"
+                        },
+                        "IndexDocument": {
+                            "type": "string"
+                        },
+                        "RoutingRules": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/RoutingRule"
+                            }
+                        }
                     }
                 }
-            },
-            "additionalProperties": false,
-            "if": {
-                "required": [
-                    "RedirectAllRequestsTo"
-                ]
-            },
-            "then": {
-                "descrription": "If you specify RedirectAllRequestsTo, you cannot specify any other property",
-                "allOf": [
-                    {
-                        "not": {
-                            "required": [
-                                "ErrorDocument"
-                            ]
-                        }
-                    },
-                    {
-                        "not": {
-                            "required": [
-                                "IndexDocument"
-                            ]
-                        }
-                    },
-                    {
-                        "not": {
-                            "required": [
-                                "RoutingRules"
-                            ]
-                        }
-                    }
-                ]
-            }
+            ],
+            "additionalProperties": false
         }
     },
     "properties": {
@@ -935,3 +899,4 @@
     },
     "additionalProperties": false
 }
+

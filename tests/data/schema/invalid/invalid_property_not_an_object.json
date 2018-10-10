@@ -1,0 +1,7 @@
+{
+    "typeName": "AWS::Valid::TypeName",
+    "properties": {
+        "property1": 1
+    }
+}
+
