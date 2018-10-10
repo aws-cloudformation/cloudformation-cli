@@ -1,71 +1,70 @@
 {
-    "typeName": "AWS::Geography::AreaDescription",
-    "type": "object",
+    "typeName": "AWS::geography::areaDescription",
     "definitions": {
-        "Location": {
+        "location": {
             "type": "object",
             "properties": {
-                "Country": {
+                "country": {
                     "type": "string"
                 },
-                "Boundary": {
-                    "$ref": "#/definitions/Boundary"
+                "boundary": {
+                    "$ref": "#/definitions/boundary"
                 }
             }
         },
-        "Coordinate": {
+        "coordinate": {
             "type": "object",
             "properties": {
-                "Latitude": {
+                "latitude": {
                     "type": "number"
                 },
-                "Longitude": {
+                "longitude": {
                     "type": "number"
                 }
             }
         },
-        "Boundary": {
+        "boundary": {
             "type": "object",
             "properties": {
-                "Box": {
+                "box": {
                     "type": "object",
                     "properties": {
-                        "North": {"$ref": "#/definitions/Coordinate"},
-                        "South": {"$ref": "#/definitions/Coordinate"},
-                        "East": {"$ref": "#/definitions/Coordinate"},
-                        "West": {"$ref": "#/definitions/Coordinate"}
+                        "north": {"$ref": "#/definitions/coordinate"},
+                        "south": {"$ref": "#/definitions/coordinate"},
+                        "east": {"$ref": "#/definitions/coordinate"},
+                        "west": {"$ref": "#/definitions/coordinate"}
                     }
                 },
-                "OtherPoints": {
+                "otherPoints": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/Coordinate"
+                        "$ref": "#/definitions/coordinate"
                     },
                     "uniqueItems": true
                 }
             }
         },
-        "AreaId": {
+        "areaId": {
             "type": "string"
         }
     },
     "properties": {
-        "AreaName": {
+        "areaName": {
             "type": "string"
         },
-        "AreaId": {
-            "$ref": "#/definitions/AreaId"
+        "areaId": {
+            "$ref": "#/definitions/areaId"
         },
-        "Location": {
-            "$ref": "#/definitions/Location"
+        "location": {
+            "$ref": "#/definitions/location"
         },
-        "City": {
+        "city": {
             "type": "object",
             "properties": {
-                "CityName": {
+                "cityName": {
                     "type": "string"
                 },
-                "Neighborhoods": {
+                "neighborhoods": {
                     "type": "array",
                     "items": {
                         "type": "object",
@@ -73,13 +72,13 @@
                             "[A-Za-z0-9]{1,64}": {
                                 "type": "object",
                                 "properties": {
-                                    "Street": {
+                                    "street": {
                                         "type": "string"
                                     },
-                                    "Charter": {
+                                    "charter": {
                                         "type": "object"
                                     },
-                                    "Houses": {
+                                    "houses": {
                                         "type": "object",
                                         "patternProperties": {
                                             "[A-Za-z0-9]{1,64}": {

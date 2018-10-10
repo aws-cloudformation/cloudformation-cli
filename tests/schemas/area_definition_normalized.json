@@ -1,131 +1,130 @@
 {
     "#": {
-        "typeName": "AWS::Geography::AreaDescription",
-        "type": "object",
+        "typeName": "AWS::geography::areaDescription",
         "definitions": {
-            "Location": {
+            "location": {
                 "type": "object",
                 "properties": {
-                    "Country": {
+                    "country": {
                         "type": "string"
                     },
-                    "Boundary": {
-                        "$ref": "#/definitions/Boundary"
+                    "boundary": {
+                        "$ref": "#/definitions/boundary"
                     }
                 }
             },
-            "Coordinate": {
+            "coordinate": {
                 "type": "object",
                 "properties": {
-                    "Latitude": {
+                    "latitude": {
                         "type": "number"
                     },
-                    "Longitude": {
+                    "longitude": {
                         "type": "number"
                     }
                 }
             },
-            "Boundary": {
+            "boundary": {
                 "type": "object",
                 "properties": {
-                    "Box": {
-                        "$ref": "#/definitions/Boundary/properties/Box"
+                    "box": {
+                        "$ref": "#/definitions/boundary/properties/box"
                     },
-                    "OtherPoints": {
+                    "otherPoints": {
                         "type": "array",
                         "items": {
-                            "$ref": "#/definitions/Coordinate"
+                            "$ref": "#/definitions/coordinate"
                         },
                         "uniqueItems": true
                     }
                 }
             },
-            "AreaId": {
+            "areaId": {
                 "type": "string"
             }
         },
         "properties": {
-            "AreaName": {
+            "areaName": {
                 "type": "string"
             },
-            "AreaId": {
+            "areaId": {
                 "type": "string"
             },
-            "Location": {
-                "$ref": "#/definitions/Location"
+            "location": {
+                "$ref": "#/definitions/location"
             },
-            "City": {
-                "$ref": "#/properties/City"
+            "city": {
+                "$ref": "#/properties/city"
             }
         }
     },
-    "#/definitions/Location": {
+    "#/definitions/location": {
         "type": "object",
         "properties": {
-            "Country": {
+            "country": {
                 "type": "string"
             },
-            "Boundary": {
-                "$ref": "#/definitions/Boundary"
+            "boundary": {
+                "$ref": "#/definitions/boundary"
             }
         }
     },
-    "#/definitions/Boundary": {
+    "#/definitions/boundary": {
         "type": "object",
         "properties": {
-            "Box": {
-                "$ref": "#/definitions/Boundary/properties/Box"
+            "box": {
+                "$ref": "#/definitions/boundary/properties/box"
             },
-            "OtherPoints": {
+            "otherPoints": {
                 "type": "array",
                 "items": {
-                    "$ref": "#/definitions/Coordinate"
+                    "$ref": "#/definitions/coordinate"
                 },
                 "uniqueItems": true
             }
         }
     },
-    "#/definitions/Boundary/properties/Box": {
+    "#/definitions/boundary/properties/box": {
         "type": "object",
         "properties": {
-            "North": {
-                "$ref": "#/definitions/Coordinate"
+            "north": {
+                "$ref": "#/definitions/coordinate"
             },
-            "South": {
-                "$ref": "#/definitions/Coordinate"
+            "south": {
+                "$ref": "#/definitions/coordinate"
             },
-            "East": {
-                "$ref": "#/definitions/Coordinate"
+            "east": {
+                "$ref": "#/definitions/coordinate"
             },
-            "West": {
-                "$ref": "#/definitions/Coordinate"
+            "west": {
+                "$ref": "#/definitions/coordinate"
             }
         }
     },
-    "#/definitions/Coordinate": {
+    "#/definitions/coordinate": {
         "type": "object",
         "properties": {
-            "Latitude": {
+            "latitude": {
                 "type": "number"
             },
-            "Longitude": {
+            "longitude": {
                 "type": "number"
             }
         }
     },
-    "#/properties/City": {
+    "#/properties/city": {
         "type": "object",
         "properties": {
-            "CityName": {
+            "cityName": {
                 "type": "string"
             },
-            "Neighborhoods": {
+            "neighborhoods": {
                 "type": "array",
                 "items": {
                     "type": "object",
                     "patternProperties": {
                         "[A-Za-z0-9]{1,64}": {
-                            "$ref": "#/properties/City/properties/Neighborhoods/items/patternProperties/%5BA-Za-z0-9%5D%7B1%2C64%7D"
+                            "$ref": "#/properties/city/properties/neighborhoods/items/patternProperties/%5BA-Za-z0-9%5D%7B1%2C64%7D"
                         }
                     },
                     "insertionOrder": true
@@ -133,16 +132,16 @@
             }
         }
     },
-    "#/properties/City/properties/Neighborhoods/items/patternProperties/%5BA-Za-z0-9%5D%7B1%2C64%7D": {
+    "#/properties/city/properties/neighborhoods/items/patternProperties/%5BA-Za-z0-9%5D%7B1%2C64%7D": {
         "type": "object",
         "properties": {
-            "Street": {
+            "street": {
                 "type": "string"
             },
-            "Charter": {
+            "charter": {
                 "type": "object"
             },
-            "Houses": {
+            "houses": {
                 "type": "object",
                 "patternProperties": {
                     "[A-Za-z0-9]{1,64}": {

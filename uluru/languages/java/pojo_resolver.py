@@ -1,6 +1,7 @@
 """ Given a normalized schema, this class returns a map of class_names to
 a set of property names|property types in Java
 """
+from uluru.filters import uppercase_first_letter
 from uluru.jsonutils.pointer import fragment_decode
 
 
@@ -26,7 +27,7 @@ class JavaPojoResolver:
         return pojos
 
     def _get_ref_to_class_map(self, resource_type):
-        ref_to_class_map = {"#": resource_type}
+        ref_to_class_map = {"#": uppercase_first_letter(resource_type)}
         for ref_path in self.normalized_schema_map.keys():
             if ref_path == "#":
                 continue
@@ -116,15 +117,15 @@ def base_class_from_ref(ref_path):
     >>> base_class_from_ref('#/properties/SubObject/items/patternProperties/pattern')
     'SubObject'
     >>> base_class_from_ref('#/properties/items')
-    'items'
+    'Items'
     >>> base_class_from_ref('#/properties/patternProperties')
-    'patternProperties'
+    'PatternProperties'
     >>> base_class_from_ref('#/properties/properties')
-    'properties'
+    'Properties'
     >>> base_class_from_ref('#/definitions')
-    'definitions'
+    'Definitions'
     >>> base_class_from_ref('#/definitions/properties')
-    'properties'
+    'Properties'
     >>> base_class_from_ref('#')
     Traceback (most recent call last):
     ...
@@ -144,6 +145,6 @@ def base_class_from_ref(ref_path):
         if parent in parent_keywords or (
             elem not in schema_keywords and parent != "patternProperties"
         ):
-            return elem.rpartition("/")[2]
+            return uppercase_first_letter(elem.rpartition("/")[2])
 
     raise PojoResolverError("Could not create a valid class from {}".format(ref_path))

@@ -123,7 +123,6 @@ class JsonSchemaNormalizer:
         sub_schema = self._full_schema
         for key in path_components:
             try:
-                # remove our jsonschema markers when traversing schema
                 sub_schema = sub_schema[key]
             except KeyError:
                 raise NormalizationError("Invalid ref: {}".format(ref_path))

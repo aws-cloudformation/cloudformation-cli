@@ -1,27 +1,30 @@
 {
-    "#/definitions/Location": {
+    "#/definitions/location": {
         "type": "object",
         "properties": {
-            "Country": {"type": "string"},
-            "StateNumber": {"type": "integer"}
+            "country": {"type": "string"},
+            "stateNumber": {"type": "integer"}
         }
     },
-    "#/properties/Coordinate/items": {
+    "#/properties/coordinate/items": {
         "type": "object",
-        "properties": {"Lat": {"type": "number"}, "Long": {"type": "number"}}
+        "properties": {
+            "lat": {"type": "number"}, 
+            "long": {"type": "number"}
+        }
     },
     "#": {
         "type": "object",
         "properties": {
-            "State": {"$ref": "#/definitions/Location"},
-            "Coordinates": {
+            "state": {"$ref": "#/definitions/location"},
+            "coordinates": {
                 "type": "array",
-                "items": {"$ref": "#/properties/Coordinate/items"}
+                "items": {"$ref": "#/properties/coordinate/items"}
             },
-            "SurroundingStates": {
+            "surroundingStates": {
                 "type": "object",
                 "patternProperties": {
-                    "[A-Za-z0-9]{1,64}": {"$ref": "#/definitions/Location"}
+                    "[A-Za-z0-9]{1,64}": {"$ref": "#/definitions/location"}
                 }
             }
         }

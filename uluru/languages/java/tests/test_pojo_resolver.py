@@ -28,21 +28,21 @@ def ref_to_class_map():
 
 
 def test_resolver(normalized_schema):
-    resolver = JavaPojoResolver(normalized_schema, "AreaDescription")
+    resolver = JavaPojoResolver(normalized_schema, "areaDescription")
     expected_pojos = {
         "AreaDescription": {
-            "State": "Location",
-            "Coordinates": "List<Coordinate>",
-            "SurroundingStates": "Map<String, Location>",
+            "state": "Location",
+            "coordinates": "List<Coordinate>",
+            "surroundingStates": "Map<String, Location>",
         },
-        "Coordinate": {"Lat": "Float", "Long": "Float"},
-        "Location": {"Country": "String", "StateNumber": "Integer"},
+        "Coordinate": {"lat": "Float", "long": "Float"},
+        "Location": {"country": "String", "stateNumber": "Integer"},
     }
 
     expected_ref_map = {
         "#": "AreaDescription",
-        "#/properties/Coordinate/items": "Coordinate",
-        "#/definitions/Location": "Location",
+        "#/properties/coordinate/items": "Coordinate",
+        "#/definitions/location": "Location",
     }
     assert resolver._ref_to_class_map == expected_ref_map
     pojos = resolver.resolve_pojos()

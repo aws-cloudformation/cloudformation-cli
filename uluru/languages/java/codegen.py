@@ -95,7 +95,7 @@ class JavaLanguagePlugin(LanguagePlugin):
         normalized_map = normalizer.collapse_and_resolve_schema()
         LOG.debug("Normalized Schema Map: %s", normalized_map)
 
-        resource_type = resource_type_resource(resource_def["resourceType"])
+        resource_type = resource_type_resource(resource_def["typeName"])
         pojos = JavaPojoResolver(normalized_map, resource_type).resolve_pojos()
         LOG.debug("Pojos: %s", pojos)
 

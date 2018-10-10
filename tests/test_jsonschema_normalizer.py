@@ -49,7 +49,7 @@ def test_collapse_primitive_type(normalizer):
 
 
 def test_ref_type_to_primitive(normalizer):
-    schema_path = "#/properties/AreaId"
+    schema_path = "#/properties/areaId"
     expected_schema = {"type": "string"}
     collapsed_schema = normalizer._collapse_ref_type(schema_path)
 
@@ -68,9 +68,9 @@ def test_property_path_already_processed(normalizer):
 
 
 def test_collapse_ref_type(normalizer, normalized_schema):
-    schema_path = "#/definitions/Boundary/properties/Box/properties/North"
-    expected_collapsed_schema = {"$ref": "#/definitions/Coordinate"}
-    coordinate_path = "#/definitions/Coordinate"
+    schema_path = "#/definitions/boundary/properties/box/properties/north"
+    expected_collapsed_schema = {"$ref": "#/definitions/coordinate"}
+    coordinate_path = "#/definitions/coordinate"
 
     collapsed_schema = normalizer._collapse_ref_type(schema_path)
 
@@ -80,9 +80,9 @@ def test_collapse_ref_type(normalizer, normalized_schema):
 
 
 def test_collapse_ref_type_nested(normalizer, normalized_schema):
-    schema_path = "#/definitions/Boundary/properties/Box"
-    expected_collapsed_schema = {"$ref": "#/definitions/Boundary/properties/Box"}
-    coordinate_path = "#/definitions/Coordinate"
+    schema_path = "#/definitions/boundary/properties/box"
+    expected_collapsed_schema = {"$ref": "#/definitions/boundary/properties/box"}
+    coordinate_path = "#/definitions/coordinate"
 
     collapsed_schema = normalizer._collapse_ref_type(schema_path)
 
@@ -90,7 +90,7 @@ def test_collapse_ref_type_nested(normalizer, normalized_schema):
     assert normalizer._schema_map[schema_path] == normalized_schema[schema_path]
     assert (
         normalizer._schema_map[coordinate_path]
-        == normalized_schema["#/definitions/Coordinate"]
+        == normalized_schema["#/definitions/coordinate"]
     )
     assert len(normalizer._schema_map.keys()) == 2
 
@@ -110,10 +110,10 @@ def test_circular_reference():
 
 
 def test_collapse_array_type(normalizer, normalized_schema):
-    property_key = "#/properties/City/properties/Neighborhoods"
+    property_key = "#/properties/city/properties/neighborhoods"
     unresolved_schema = normalizer._find_subschema_by_ref(property_key)
     resolved_schema = normalizer._collapse_array_type(property_key, unresolved_schema)
-    new_key = "#/properties/City/properties/Neighborhoods/items/patternProperties/%5BA-Za-z0-9%5D%7B1%2C64%7D"  # noqa: B950 pylint:disable=line-too-long
+    new_key = "#/properties/city/properties/neighborhoods/items/patternProperties/%5BA-Za-z0-9%5D%7B1%2C64%7D"  # noqa: B950 pylint:disable=line-too-long
     expected_schema = {
         "type": "array",
         "items": {
@@ -131,16 +131,16 @@ def test_find_schema_from_ref(normalizer, test_provider_schema):
     location_schema_expected = {
         "type": "object",
         "properties": {
-            "Country": {"type": "string"},
-            "Boundary": {"$ref": "#/definitions/Boundary"},
+            "country": {"type": "string"},
+            "boundary": {"$ref": "#/definitions/boundary"},
         },
     }
-    location_schema = normalizer._find_subschema_by_ref("#/definitions/Location")
+    location_schema = normalizer._find_subschema_by_ref("#/definitions/location")
     assert location_schema == location_schema_expected
 
     expected_street_schema = {"type": "string"}
     street_schema = normalizer._find_subschema_by_ref(
-        "#/properties/City/properties/Neighborhoods/items/patternProperties/%5BA-Za-z0-9%5D%7B1%2C64%7D/properties/Street"  # noqa: B950 pylint:disable=line-too-long
+        "#/properties/city/properties/neighborhoods/items/patternProperties/%5BA-Za-z0-9%5D%7B1%2C64%7D/properties/street"  # noqa: B950 pylint:disable=line-too-long
     )
     assert street_schema == expected_street_schema
 

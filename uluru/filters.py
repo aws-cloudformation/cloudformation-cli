@@ -85,6 +85,20 @@ def lowercase_first_letter(string):
 
 
 @register_filter
+def uppercase_first_letter(string):
+    """Converts the first letter of a string to uppercase.
+
+    >>> uppercase_first_letter('createHandler')
+    'CreateHandler'
+    >>> uppercase_first_letter('CreateHandler')
+    'CreateHandler'
+    >>> uppercase_first_letter('')
+    ''
+    """
+    return string[0].upper() + string[1:] if string else ""
+
+
+@register_filter
 def modified_from_action_type(action_type):
     """Returns a boolean (as a string) representing whether the action type of
     the handler modifies the resource. Defaults to false.
