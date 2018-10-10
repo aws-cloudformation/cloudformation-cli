@@ -1,6 +1,6 @@
 {
     "#": {
-        "resourceType": "AWS::Geography::AreaDescription",
+        "typeName": "AWS::Geography::AreaDescription",
         "type": "object",
         "definitions": {
             "Location": {

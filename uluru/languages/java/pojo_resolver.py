@@ -144,6 +144,6 @@ def base_class_from_ref(ref_path):
         if parent in parent_keywords or (
             elem not in schema_keywords and parent != "patternProperties"
         ):
-            return elem
+            return elem.rpartition("/")[2]
 
     raise PojoResolverError("Could not create a valid class from {}".format(ref_path))

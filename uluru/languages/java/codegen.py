@@ -89,12 +89,6 @@ class JavaLanguagePlugin(LanguagePlugin):
 
         self.generate_pojos(resource_def, project_settings, pojos_directory)
 
-        # self.generate_handlers(resource_def, project_settings, handlers_directory)
-
-        # self.generate_unit_tests(resource_def, project_settings, unit_tests_directory)
-
-        # self.generate_integration_tests()
-
     def generate_pojos(self, resource_def, project_settings, output_directory):
         LOG.info("Generating POJOs...")
         normalizer = JsonSchemaNormalizer(resource_def)

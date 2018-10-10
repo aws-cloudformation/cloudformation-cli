@@ -1,6 +1,6 @@
 {
     "#": {
-        "resourceType": "AWS::Circular::Reference",
+        "typeName": "AWS::Circular::Reference",
         "definitions": {
             "TestA": {"$ref": "#/definitions/TestB"},
             "TestB": {
