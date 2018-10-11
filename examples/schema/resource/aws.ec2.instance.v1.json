@@ -26,9 +26,6 @@
             },
             "additionalProperties": false
         },
-        "NoDevice": {
-            "type": "string"
-        },
         "BlockDeviceMapping": {
             "type": "object",
             "properties": {
@@ -39,11 +36,11 @@
                     "$ref": "#/definitions/Ebs"
                 },
                 "NoDevice": {
-                    "$ref": "#/definitions/NoDevice"
+                    "type": "string"
                 },
                 "VirtualName": {
                     "type": "string",
-                    "pattern": "^(ephemeral)[0-9]+"
+                    "pattern": "^(ephemeral)[0-9]+$"
                 }
             },
             "additionalProperties": false,
