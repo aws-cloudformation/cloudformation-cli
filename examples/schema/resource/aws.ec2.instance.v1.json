@@ -27,7 +27,7 @@
             "additionalProperties": false
         },
         "NoDevice": {
-            "$comment": "TODO: type definition unclear, needs to be figured out."
+            "type": "string"
         },
         "BlockDeviceMapping": {
             "type": "object",
