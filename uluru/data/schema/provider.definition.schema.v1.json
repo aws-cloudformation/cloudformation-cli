@@ -166,9 +166,6 @@
                         },
                         "oneOf": {
                             "$ref": "#/definitions/schemaArray"
-                        },
-                        "not": {
-                            "$ref": "#/definitions/properties"
                         }
                     },
                     "additionalProperties": false
@@ -238,6 +235,10 @@
         },
         "writeOnly": {
             "description": "A list of properties (typically sensitive) that are able to be specified by the customer but unable to be returned in a Read request",
+            "$ref": "http://json-schema.org/draft-07/schema#/definitions/stringArray"
+        },
+        "createOnly": {
+            "description": "A list of properties that are only able to be specified by the customer when creating a resource. Conversely, any property *not* in this list can be applied to an Update request.",
             "$ref": "http://json-schema.org/draft-07/schema#/definitions/stringArray"
         },
         "required": {
