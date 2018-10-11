@@ -818,7 +818,7 @@
                         }
                     },
                     "required": [
-                       "RedirectAllRequestsTo"
+                        "RedirectAllRequestsTo"
                     ]
                 },
                 {
@@ -899,4 +899,3 @@
     },
     "additionalProperties": false
 }
-
