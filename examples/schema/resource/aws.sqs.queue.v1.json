@@ -16,7 +16,9 @@
         "FifoQueue": {
             "type": "boolean",
             "description": "If set to true, creates a FIFO queue. If you don't specify this property, Amazon SQS creates a standard queue.",
-            "enum": [true]
+            "enum": [
+                true
+            ]
         },
         "KmsMasterKeyId": {
             "type": "string",
