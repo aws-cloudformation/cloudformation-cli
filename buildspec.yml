@@ -6,6 +6,8 @@ phases:
       - pip install --upgrade --pre jsonschema
   build:
     commands:
+      - ./json_lint --check
+      - ./newline_lint --check
       - isort --check-only --verbose --recursive "setup.py" "run_lint" "json_lint" "newline_lint" "uluru/" "tests/"
       - black --check "setup.py" "run_lint" "json_lint" "newline_lint" "uluru/" "tests/"
       - flake8 "setup.py" "run_lint" "json_lint" "newline_lint" "uluru/" "tests/"
