@@ -104,19 +104,19 @@
         "LaunchTemplateSpecification": {
             "type": "object",
             "properties": {
-              "LaunchTemplateId": {
-                "type": "string"
-              },
-              "LaunchTemplateName": {
-                "type": "string"
-              },
-              "Version": {
-                "type": "string"
-              }
+                "LaunchTemplateId": {
+                    "type": "string"
+                },
+                "LaunchTemplateName": {
+                    "type": "string"
+                },
+                "Version": {
+                    "type": "string"
+                }
             },
             "additionalProperties": false,
             "required": [
-              "Version"
+                "Version"
             ]
         },
         "PrivateIpAddressSpecification": {
