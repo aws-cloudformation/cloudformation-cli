@@ -854,6 +854,13 @@
                 "$ref": "#/definitions/AnalyticsConfiguration"
             }
         },
+        "Arn": {
+            "description": "The Amazon Resource Name (ARN) of the specified bucket.",
+            "$ref": "../aws.common.types.v1.json#/definitions/Arn",
+            "examples": [
+                "arn:aws:s3:::mybucket"
+            ]
+        },
         "BucketEncryption": {
             "description": "Specifies default encryption for a bucket using server-side encryption with either Amazon S3-managed keys (SSE-S3) or AWS KMS-managed keys (SSE-KMS).",
             "$ref": "#/definitions/BucketEncryption"
@@ -865,6 +872,22 @@
         "CorsConfiguration": {
             "description": "Rules that define cross-origin resource sharing of objects in this bucket.",
             "$ref": "#/definitions/CorsConfiguration"
+        },
+        "DomainName": {
+            "description": "The IPv4 DNS name of the specified bucket.",
+            "type": "string",
+            "format": "uri",
+            "examples": [
+                "mystack-mybucket-kdwwxmddtr2g.s3.amazonaws.com"
+            ]
+        },
+        "DualStackDomainName": {
+            "description": "The IPv6 DNS name of the specified bucket. For more information about dual-stack endpoints, see [Using Amazon S3 Dual-Stack Endpoints](https://docs.aws.amazon.com/AmazonS3/latest/dev/dual-stack-endpoints.html).",
+            "type": "string",
+            "format": "uri",
+            "examples": [
+                "mystack-mybucket-kdwwxmddtr2g.s3.dualstack.us-east-2.amazonaws.com"
+            ]
         },
         "InventoryConfigurations": {
             "type": "array",
@@ -907,7 +930,30 @@
         "WebsiteConfiguration": {
             "description": "Information used to configure the bucket as a static website.",
             "$ref": "#/definitions/WebsiteConfiguration"
+        },
+        "WebsiteURL": {
+            "description": "The Amazon S3 website endpoint for the specified bucket.",
+            "type": "string",
+            "format": "uri",
+            "examples": [
+                "Example (IPv4): http://mystack-mybucket-kdwwxmddtr2g.s3-website-us-east-2.amazonaws.com/",
+                "Example (IPv6): http://mystack-mybucket-kdwwxmddtr2g.s3.dualstack.us-east-2.amazonaws.com/"
+            ]
         }
     },
+    "createOnly": [
+        "#/properties/BucketName"
+    ],
+    "readOnly": [
+        "#/properties/Arn",
+        "#/properties/DomainName",
+        "#/properties/DualStackDomainName",
+        "#/properties/WebsiteURL"
+    ],
+    "identifiers": [
+        "#/properties/Arn",
+        "#/properties/BucketName",
+        "#/properties/URL"
+    ],
     "additionalProperties": false
 }

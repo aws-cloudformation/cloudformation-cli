@@ -27,9 +27,50 @@ The _shape_ of your resource defines the properties for that resource and how th
 
 Certain properties of a resource are _semantic_ and have special meaning when used in different contexts. For example, a property of a resource may be `readOnly` when read back for state changes - but can be specified in a settable context when used as the target of a `$ref` from a related resource. Because of this semantic difference in how this property metadata should be interpreted, certain aspects of the resource definition are applied to the parent resource definition, rather than at a property level. Those elements are;
 
+* **`identifiers`**: Each property listed in the `identifiers` section must be able to be used to uniquely identify the resource. These properties can be independently provided as keys to a **READ** or **DELETE** request. These properties are usually also marked as `readOnly` and are only returned from **READ** and **LIST** operations.
 * **`readOnly`**: A `readOnly` property cannot be specified in a **CREATE** or **UPDATE** request, and attempting to do so will produce a runtime error from the handler.
 * **`writeOnly`**: A `writeOnly` property cannot be returned in a **READ** or **LIST** request, and can be used to express things like passwords, secrets or other sensitive data. 
 * **`createOnly`**: A `createOnly` property cannot be specified in an **UPDATE** request, and can only be specified in a **CREATE** request. Another way to think about this - these are properties which are 'write-once', such as the [`Engine`](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-rds-database-instance.html#cfn-rds-dbinstance-engine) property for an [`AWS::RDS::DBInstance`](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-rds-database-instance.html) and if you wish to change such a property on a live resource, you should replace that resource by creating a new instance of the resource and terminating the old one. This is the behaviour CloudFormation follows for all properties documented as _'Update Requires: Replacement'_. An attempt to supply these properties to an **UPDATE** request will produce a runtime error from the handler. 
+
+#### Application
+
+When defining resource semantics like `createOnly`, `identifiers` you are expected to use a `$ref` to a property definition in the same resource document. This is not enforced directly by the meta-schema but is enforced at runtime and can be checked with the RPDK CLI `validate` command.
+
+The following (truncated) example shows some of the semantic definitions for an `AWS::S3::Bucket` resource type;
+
+```
+{
+    "$id": "aws.s3.bucket.v1.json",
+    "typeName": "AWS::S3::Bucket",
+    "definitions": { ... },
+    "properties": {
+        "Arn": {
+            "$ref": "../aws.common.types.v1.json#/definitions/Arn"
+        },
+        "BucketName": {
+            "type": "string"
+        }
+    },
+    "createOnly": [
+        {
+            "$ref": "#/properties/BucketName"
+        }
+    ],
+    "readOnly": [
+        {
+            "$ref": "#/properties/Arn"
+        }
+    ],
+    "identifiers": [
+        {
+            "$ref": "#/properties/Arn"
+        },
+        {
+            "$ref": "#/properties/BucketName"
+        }
+    ]
+}
+```
 
 ## Divergence From JSON Schema
 
