@@ -2,6 +2,13 @@
     "$id": "aws.sqs.queue.v1.json",
     "typeName": "AWS::SQS::Queue",
     "properties": {
+        "Arn": {
+            "description": "The Amazon Resource Name (ARN) of the queue.",
+            "$ref": "../aws.common.types.v1.json#/definitions/Arn",
+            "examples": [
+                "arn:aws:sqs:us-east-2:123456789012:mystack-myqueue-15PG5C2FC1CW8."
+            ]
+        },
         "ContentBasedDeduplication": {
             "type": "boolean",
             "description": "For first-in-first-out (FIFO) queues, specifies whether to enable content-based deduplication."
@@ -73,6 +80,13 @@
             "description": "The tags that you want to attach to this queue.",
             "$ref": "../aws.common.types.v1.json#/properties/Tags"
         },
+        "URL": {
+            "type": "string",
+            "description": "The queue URL.",
+            "examples": [
+                "https://sqs.us-east-2.amazonaws.com/123456789012/aa4-MyQueue-Z5NOSZO2PZE9"
+            ]
+        },
         "VisibilityTimeout": {
             "type": "integer",
             "description": "The length of time during which a message will be unavailable after a message is delivered from the queue.",
@@ -81,5 +95,18 @@
             "maximum": 43200
         }
     },
+    "createOnly": [
+        "#/properties/FifoQueue",
+        "#/properties/QueueName"
+    ],
+    "readOnly": [
+        "#/properties/Arn",
+        "#/properties/URL"
+    ],
+    "identifiers": [
+        "#/properties/Arn",
+        "#/properties/QueueName",
+        "#/properties/URL"
+    ],
     "additionalProperties": false
 }
