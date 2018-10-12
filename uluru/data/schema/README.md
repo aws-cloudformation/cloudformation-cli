@@ -29,6 +29,7 @@ Certain properties of a resource are _semantic_ and have special meaning when us
 
 * **`readOnly`**: A `readOnly` property cannot be specified in a **CREATE** or **UPDATE** request, and attempting to do so will produce a runtime error from the handler.
 * **`writeOnly`**: A `writeOnly` property cannot be returned in a **READ** or **LIST** request, and can be used to express things like passwords, secrets or other sensitive data. 
+* **`createOnly`**: A `createOnly` property cannot be specified in an **UPDATE** request, and can only be specified in a **CREATE** request. Another way to think about this - these are properties which are 'write-once', such as the [`Engine`](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-rds-database-instance.html#cfn-rds-dbinstance-engine) property for an [`AWS::RDS::DBInstance`](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-rds-database-instance.html) and if you wish to change such a property on a live resource, you should replace that resource by creating a new instance of the resource and terminating the old one. This is the behaviour CloudFormation follows for all properties documented as _'Update Requires: Replacement'_. An attempt to supply these properties to an **UPDATE** request will produce a runtime error from the handler. 
 
 ## Divergence From JSON Schema
 
