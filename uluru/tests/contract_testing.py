@@ -4,46 +4,39 @@ from collections import deque
 from pprint import pprint
 from uuid import uuid4
 
-import boto3
 import pytest
-from botocore import UNSIGNED
-from botocore.config import Config
 from pytest_localserver.http import Request, Response, WSGIServer
 
+from .lambda_transport import LocalLambdaTransport
 
-class InvalidTransportTypeError(Exception):
-    pass
+CREATE = "CREATE"
+READ = "READ"
+UPDATE = "UPDATE"
+DELETE = "DELETE"
+LIST = "LIST"
+ALREADY_EXISTS = "AlreadyExists"
+NOT_FOUND = "NotFound"
+IN_PROGRESS = "IN_PROGRESS"
+COMPLETE = "COMPLETE"
+FAILED = "FAILED"
+ACK_TIMEOUT = 3
+
+TEST_RESOURCE = {
+    "Type": "AWS::S3:Bucket",
+    "Resources": {
+        "BucketName": "MyBucket",
+        "BucketEncryption": {
+            "ServerSideEncryptionConfiguration": [
+                {"ServerSideEncryptionByDefault": {"SSEAlgorithm": "AES256"}}
+            ]
+        },
+    },
+}
 
 
-def transport_lambda(endpoint):
-    client = boto3.client(
-        "lambda",
-        endpoint_url=endpoint,
-        use_ssl=False,
-        verify=False,
-        config=Config(
-            signature_version=UNSIGNED,
-            read_timeout=5,
-            retries={"max_attempts": 0},
-            region_name="us-east-1",
-        ),
-    )
-
-    def call(request_payload):
-        response = client.invoke(
-            FunctionName="Handler", Payload=json.dumps(request_payload).encode("utf-8")
-        )
-        return json.load(response["Payload"])
-
-    return call
-
-
-def transport(transport_type, endpoint):
-    if transport_type == "lambda":
-        return transport_lambda(endpoint)
-    raise InvalidTransportTypeError(
-        'Transport Type "{}" is not valid.'.format(transport_type)
-    )
+@pytest.fixture
+def transport():
+    return LocalLambdaTransport("Handler")
 
 
 @pytest.fixture
@@ -66,38 +59,108 @@ class CallbackServer(WSGIServer):
         return Response("", mimetype="application/json")
 
 
-def wait_for_terminal_event(listener, timeout_in_seconds=60):
+def wait_for_specified_events(listener, specified_events, timeout_in_seconds=60):
     events = []
     start_time = time.time()
-    while (time.time() - start_time) < timeout_in_seconds:
+    terminal = False
+    while ((time.time() - start_time) < timeout_in_seconds) and not terminal:
         time.sleep(0.5)
         while listener.events:
             event = listener.events.popleft()
             pprint(event)
             events.append(event)
-            if event.get("status", "") in ("COMPLETE", "FAILED"):
-                return True, events
-    return False, events
+            if event.get("status", "") in specified_events:
+                terminal = True
+    return events
 
 
-def prepare_and_send_request(server, operation):
-    _, port = server.server_address
-    transport_local = transport("lambda", "http://127.0.0.1:3001")
-    url = "http://host.docker.internal:{}".format(port)
-    token = str(uuid4())
+def prepare_request(operation, token, resource=None):
     request = {
+        "clientRequestToken": token,
         "requestContext": {
             "resourceType": "Dev::Test::Resource",
             "operation": operation,
-            "clientRequestToken": token,
-            "callbackURL": url,
-        }
+        },
     }
-    transport_local(request)
-    return wait_for_terminal_event(server)
+    if resource:
+        request["model"] = resource
+    # TODO wrapping & encypting test data
+    return request
 
 
-def test_simple_create(event_listener):
-    is_terminated, events = prepare_and_send_request(event_listener, "Create")
-    assert is_terminated
-    assert events[0]["status"] == "COMPLETE"
+def test_create_ack(event_listener, transport):
+    token = str(uuid4())
+    request = prepare_request(CREATE, token, resource=TEST_RESOURCE)
+    transport.send(request, event_listener.server_address)
+    events = wait_for_specified_events(event_listener, IN_PROGRESS, ACK_TIMEOUT)
+
+    assert IN_PROGRESS == events[0].get("status")
+
+
+def test_update_ack(event_listener):
+    token = str(uuid4())
+    request = prepare_request(UPDATE, token, resource=TEST_RESOURCE)
+    transport.send(request, event_listener.server_address)
+    events = wait_for_specified_events(event_listener, IN_PROGRESS, ACK_TIMEOUT)
+
+    assert IN_PROGRESS == events[0].get("status")
+
+
+def test_delete_ack(event_listener):
+    token = str(uuid4())
+    request = prepare_request(DELETE, token, resource=TEST_RESOURCE)
+    transport.send(request, event_listener.server_address)
+    events = wait_for_specified_events(event_listener, IN_PROGRESS, ACK_TIMEOUT)
+
+    assert IN_PROGRESS == events[0].get("status")
+
+
+def test_create(event_listener, transport):
+    token = str(uuid4())
+    request = prepare_request(CREATE, token, resource=TEST_RESOURCE)
+    transport.send(request, event_listener.server_address)
+    events = wait_for_specified_events(event_listener, (COMPLETE, FAILED))
+
+    assert COMPLETE == events[-1].get("status")
+    assert TEST_RESOURCE == events[-1].get("resources")[0]
+
+
+def test_read(event_listener):
+    token = str(uuid4())
+    request = prepare_request(READ, token)
+    transport.send(request, event_listener.server_address)
+    events = wait_for_specified_events(event_listener, (COMPLETE, FAILED))
+
+    assert COMPLETE == events[-1].get("status")
+    assert NOT_FOUND == events[-1].get("errorCode")
+    assert TEST_RESOURCE == events[-1].get("resources")[0]
+
+
+def test_update(event_listener):
+    token = str(uuid4())
+    request = prepare_request(UPDATE, token, resource=TEST_RESOURCE)
+    transport.send(request, event_listener.server_address)
+    events = wait_for_specified_events(event_listener, (COMPLETE, FAILED))
+
+    assert COMPLETE == events[-1].get("status")
+    assert NOT_FOUND == events[-1].get("errorCode")
+    assert TEST_RESOURCE == events[-1].get("resources")[0]
+
+
+def test_delete(event_listener):
+    token = str(uuid4())
+    request = prepare_request(DELETE, token, resource=TEST_RESOURCE)
+    transport.send(request, event_listener.server_address)
+    events = wait_for_specified_events(event_listener, (COMPLETE, FAILED))
+
+    assert COMPLETE == events[-1].get("status")
+    assert NOT_FOUND == events[-1].get("errorCode")
+    assert TEST_RESOURCE == events[-1].get("resources")[0]
+
+
+def test_list_empty(event_listener):
+    token = str(uuid4())
+    request = prepare_request(LIST, token)
+    response = transport.send(request, event_listener.server_address)
+    assert response["status"] == COMPLETE
+    assert response["resources"] == []
