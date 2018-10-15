@@ -65,10 +65,11 @@ class RefInliner(RefResolver):
             LOG.debug("Rewriting refs in '%s' (%s)", rename, base_uri)
             document = self.store[base_uri]
             for from_ref, to_ref in self.ref_graph.items():
+                base, *parts = from_ref
                 # only process refs in this file
-                if from_ref[0] != rename:
+                if base != rename:
                     continue
-                current = traverse(document, from_ref)
+                current = traverse(document, parts)
                 new_ref = rewrite_ref(to_ref)
                 LOG.debug("  '%s' -> '%s'", current["$ref"], new_ref)
                 current["$ref"] = new_ref
@@ -89,7 +90,7 @@ class RefInliner(RefResolver):
                 # convert the parts into one flattened reference
                 if parts:
                     key = "/".join(parts)
-                    local_defs[key] = traverse(document, to_ref)
+                    local_defs[key] = traverse(document, parts)
                     LOG.debug("  %s#%s", base, key)
                 else:
                     local_defs.update(document)
