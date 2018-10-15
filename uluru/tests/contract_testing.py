@@ -1,7 +1,6 @@
 import json
 import time
 from collections import deque
-from pprint import pprint
 from uuid import uuid4
 
 import pytest
@@ -59,22 +58,23 @@ class CallbackServer(WSGIServer):
         return Response("", mimetype="application/json")
 
 
-def wait_for_specified_events(listener, specified_events, timeout_in_seconds=60):
+def wait_for_specified_event(listener, specified_event, timeout_in_seconds=60):
     events = []
     start_time = time.time()
-    terminal = False
-    while ((time.time() - start_time) < timeout_in_seconds) and not terminal:
+    specified = False
+    while ((time.time() - start_time) < timeout_in_seconds) and not specified:
         time.sleep(0.5)
         while listener.events:
             event = listener.events.popleft()
-            pprint(event)
             events.append(event)
-            if event.get("status", "") in specified_events:
-                terminal = True
+            if event.get("status", "") in (specified_event, FAILED):
+                specified = True
     return events
 
 
-def prepare_request(operation, token, resource=None):
+def prepare_request(operation, token=None, resource=None):
+    if not token:
+        token = str(uuid4())
     request = {
         "clientRequestToken": token,
         "requestContext": {
@@ -85,82 +85,86 @@ def prepare_request(operation, token, resource=None):
     if resource:
         request["model"] = resource
     # TODO wrapping & encypting test data
-    return request
+    return request, token
+
+
+def verify_events_contain_token(events, token):
+    assert all(event["clientRequestToken"] == token for event in events)
 
 
 def test_create_ack(event_listener, transport):
-    token = str(uuid4())
-    request = prepare_request(CREATE, token, resource=TEST_RESOURCE)
-    transport.send(request, event_listener.server_address)
-    events = wait_for_specified_events(event_listener, IN_PROGRESS, ACK_TIMEOUT)
+    request, token = prepare_request(CREATE, resource=TEST_RESOURCE)
+    transport(request, event_listener.server_address)
+    events = wait_for_specified_event(event_listener, IN_PROGRESS, ACK_TIMEOUT)
 
-    assert IN_PROGRESS == events[0].get("status")
-
-
-def test_update_ack(event_listener):
-    token = str(uuid4())
-    request = prepare_request(UPDATE, token, resource=TEST_RESOURCE)
-    transport.send(request, event_listener.server_address)
-    events = wait_for_specified_events(event_listener, IN_PROGRESS, ACK_TIMEOUT)
-
-    assert IN_PROGRESS == events[0].get("status")
+    verify_events_contain_token(events, token)
+    assert events[0]["status"] == IN_PROGRESS
 
 
-def test_delete_ack(event_listener):
-    token = str(uuid4())
-    request = prepare_request(DELETE, token, resource=TEST_RESOURCE)
-    transport.send(request, event_listener.server_address)
-    events = wait_for_specified_events(event_listener, IN_PROGRESS, ACK_TIMEOUT)
+def test_update_ack(event_listener, transport):
+    request, token = prepare_request(UPDATE, resource=TEST_RESOURCE)
+    transport(request, event_listener.server_address)
+    events = wait_for_specified_event(event_listener, IN_PROGRESS, ACK_TIMEOUT)
 
-    assert IN_PROGRESS == events[0].get("status")
+    verify_events_contain_token(events, token)
+    assert events[0]["status"] == IN_PROGRESS
+
+
+def test_delete_ack(event_listener, transport):
+    request, token = prepare_request(DELETE, resource=TEST_RESOURCE)
+    transport(request, event_listener.server_address)
+    events = wait_for_specified_event(event_listener, IN_PROGRESS, ACK_TIMEOUT)
+
+    verify_events_contain_token(events, token)
+    assert events[0]["status"] == IN_PROGRESS
 
 
 def test_create(event_listener, transport):
-    token = str(uuid4())
-    request = prepare_request(CREATE, token, resource=TEST_RESOURCE)
-    transport.send(request, event_listener.server_address)
-    events = wait_for_specified_events(event_listener, (COMPLETE, FAILED))
+    request, token = prepare_request(CREATE, resource=TEST_RESOURCE)
+    transport(request, event_listener.server_address)
+    events = wait_for_specified_event(event_listener, COMPLETE)
+    actual_event = events[-1]
 
-    assert COMPLETE == events[-1].get("status")
-    assert TEST_RESOURCE == events[-1].get("resources")[0]
-
-
-def test_read(event_listener):
-    token = str(uuid4())
-    request = prepare_request(READ, token)
-    transport.send(request, event_listener.server_address)
-    events = wait_for_specified_events(event_listener, (COMPLETE, FAILED))
-
-    assert COMPLETE == events[-1].get("status")
-    assert NOT_FOUND == events[-1].get("errorCode")
-    assert TEST_RESOURCE == events[-1].get("resources")[0]
+    verify_events_contain_token(events, token)
+    assert actual_event["status"] == COMPLETE
+    assert actual_event["resources"][0] == TEST_RESOURCE
 
 
-def test_update(event_listener):
-    token = str(uuid4())
-    request = prepare_request(UPDATE, token, resource=TEST_RESOURCE)
-    transport.send(request, event_listener.server_address)
-    events = wait_for_specified_events(event_listener, (COMPLETE, FAILED))
+def test_read(event_listener, transport):
+    request, token = prepare_request(READ)
+    read_response = transport(request, event_listener.server_address)
 
-    assert COMPLETE == events[-1].get("status")
-    assert NOT_FOUND == events[-1].get("errorCode")
-    assert TEST_RESOURCE == events[-1].get("resources")[0]
+    assert read_response["clientRequestToken"] == token
+    assert read_response["status"] == FAILED
+    assert read_response["errorCode"] == NOT_FOUND
 
 
-def test_delete(event_listener):
-    token = str(uuid4())
-    request = prepare_request(DELETE, token, resource=TEST_RESOURCE)
-    transport.send(request, event_listener.server_address)
-    events = wait_for_specified_events(event_listener, (COMPLETE, FAILED))
+def test_update(event_listener, transport):
+    request, token = prepare_request(UPDATE, resource=TEST_RESOURCE)
+    transport(request, event_listener.server_address)
+    events = wait_for_specified_event(event_listener, COMPLETE)
+    actual_event = events[-1]
 
-    assert COMPLETE == events[-1].get("status")
-    assert NOT_FOUND == events[-1].get("errorCode")
-    assert TEST_RESOURCE == events[-1].get("resources")[0]
+    verify_events_contain_token(events, token)
+    assert actual_event["status"] == FAILED
+    assert actual_event["errorCode"] == NOT_FOUND
 
 
-def test_list_empty(event_listener):
-    token = str(uuid4())
-    request = prepare_request(LIST, token)
-    response = transport.send(request, event_listener.server_address)
-    assert response["status"] == COMPLETE
-    assert response["resources"] == []
+def test_delete(event_listener, transport):
+    request, token = prepare_request(DELETE, resource=TEST_RESOURCE)
+    transport(request, event_listener.server_address)
+    events = wait_for_specified_event(event_listener, COMPLETE)
+    actual_event = events[-1]
+
+    verify_events_contain_token(events, token)
+    assert actual_event["status"] == FAILED
+    assert actual_event["errorCode"] == NOT_FOUND
+
+
+def test_list_empty(event_listener, transport):
+    request, token = prepare_request(LIST)
+    list_response = transport(request, event_listener.server_address)
+
+    assert list_response["clientRequestToken"] == token
+    assert list_response["status"] == COMPLETE
+    assert list_response["resources"] == []
