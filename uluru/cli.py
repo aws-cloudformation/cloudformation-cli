@@ -10,6 +10,7 @@ import yaml
 from .generate import setup_subparser as generate_setup_subparser
 from .init import setup_subparser as init_setup_subparser
 from .project_settings import setup_subparser as project_settings_setup_subparser
+from .test import setup_subparser as test_setup_subparser
 from .validate import setup_subparser as validate_setup_subparser
 
 
@@ -48,7 +49,7 @@ def main():
     validate_setup_subparser(subparsers)
     generate_setup_subparser(subparsers)
     project_settings_setup_subparser(subparsers)
-
+    test_setup_subparser(subparsers)
     args = parser.parse_args()
 
     setup_logging(args.verbose)

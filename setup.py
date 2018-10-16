@@ -44,6 +44,7 @@ setup(
     entry_points={
         "console_scripts": ["uluru-cli = uluru.cli:main"],
         "uluru.languages": ["java = uluru.languages.java:JavaLanguagePlugin"],
+        "pytest11": ["contract_plugin = uluru.tests.plugin_conf"],
     },
     license="Apache License 2.0",
     classifiers=(
