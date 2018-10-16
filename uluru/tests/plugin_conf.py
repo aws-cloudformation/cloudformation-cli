@@ -16,9 +16,7 @@ def pytest_collection_modifyitems(items):
 
 
 def pytest_addoption(parser):
-    parser.addoption(
-        "--transport-type", action="store", help="Select a valid transport type"
-    )
+    parser.addoption("--transport-type", action="store")
     parser.addoption("--endpoint", action="store")
     parser.addoption("--function-name", action="store")
     parser.addoption("--test-resource", action="store")
