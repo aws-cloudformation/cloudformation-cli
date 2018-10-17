@@ -2,6 +2,10 @@ import pytest
 
 
 class ContractPlugin:
+    def __init__(self, transport, test_resource):
+        self._transport = transport
+        self._test_resource = test_resource
+
     def pytest_collection_modifyitems(self, items):
         for item in items:
             if "create" in item.nodeid:
@@ -15,8 +19,10 @@ class ContractPlugin:
             elif "list" in item.nodeid:
                 item.add_marker(pytest.mark.list)
 
-    def pytest_addoption(self, parser):
-        parser.addoption("--transport-type", action="store")
-        parser.addoption("--endpoint", action="store")
-        parser.addoption("--function-name", action="store")
-        parser.addoption("--test-resource", action="store")
+    @pytest.fixture
+    def test_resource(self):
+        return self._test_resource
+
+    @pytest.fixture
+    def transport(self):
+        return self._transport

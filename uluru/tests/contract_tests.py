@@ -6,8 +6,6 @@ from uuid import uuid4
 import pytest
 from pytest_localserver.http import Request, Response, WSGIServer
 
-from .transports import TRANSPORT_REGISTRY
-
 CREATE = "CREATE"
 READ = "READ"
 UPDATE = "UPDATE"
@@ -19,23 +17,6 @@ IN_PROGRESS = "IN_PROGRESS"
 COMPLETE = "COMPLETE"
 FAILED = "FAILED"
 ACK_TIMEOUT = 3
-
-
-@pytest.fixture
-def transport(request):
-    transport_cls = TRANSPORT_REGISTRY[request.config.getoption("--transport-type")]
-    return transport_cls(
-        request.config.getoption("--endpoint"),
-        request.config.getoption("--function-name"),
-    )
-
-
-@pytest.fixture
-def test_resource(request):
-    resource_path = request.config.getoption("--test-resource")
-    with open(resource_path) as json_data:
-        resource = json.load(json_data)
-    return resource
 
 
 @pytest.fixture

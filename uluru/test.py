@@ -1,31 +1,25 @@
 """This sub command tests basic functionality of the
  resource handler given a test resource and an endpoint.
 """
+import json
 import logging
 
 import pytest
 
 from .tests.contract_plugin import ContractPlugin
+from .tests.transports import LocalLambdaTransport
 
 LOG = logging.getLogger(__name__)
 
 
 def local_lambda(args):
+    transport = LocalLambdaTransport(args.endpoint, args.function_name)
+    with open(args.test_resource) as json_data:
+        resource = json.load(json_data)
+    plugin = ContractPlugin(transport, resource)
     pytest.main(
-        [
-            "--pyargs",
-            "uluru.tests.contract_tests",
-            "--transport-type",
-            "LocalLambdaTransport",
-            "--endpoint",
-            args.endpoint,
-            "--function-name",
-            args.function_name,
-            "--test-resource",
-            args.test_resource,
-            "--disable-warnings",
-        ],
-        plugins=[ContractPlugin()],
+        ["--pyargs", "uluru.tests.contract_tests", "-p", "no:warnings"],
+        plugins=[plugin],
     )
 
 
