@@ -2,8 +2,8 @@ version: 0.2
 phases:
   pre_build:
     commands:
-      - pip install --upgrade pip wheel -r requirements.txt .
-      - pip install --upgrade --pre jsonschema
+      - pip install --upgrade pip -r requirements.txt .
+      - pip uninstall uluru-cli -y
   build:
     commands:
       - ./json_lint --check
