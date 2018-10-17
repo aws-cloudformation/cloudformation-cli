@@ -13,6 +13,7 @@ disable=
     duplicate-code,             # finds dupes between tests and plugins
     too-few-public-methods,     # triggers when inheriting
     redefined-outer-name,       # problematic with pytest fixtures
+    no-self-use,                # pytest plugin methods clash with this
 
 [BASIC]
 

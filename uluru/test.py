@@ -5,6 +5,8 @@ import logging
 
 import pytest
 
+from .tests.contract_plugin import ContractPlugin
+
 LOG = logging.getLogger(__name__)
 
 
@@ -22,7 +24,8 @@ def local_lambda(args):
             "--test-resource",
             args.test_resource,
             "--disable-warnings",
-        ]
+        ],
+        plugins=[ContractPlugin()],
     )
 
 
