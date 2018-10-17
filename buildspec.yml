@@ -13,4 +13,4 @@ phases:
       - flake8 "setup.py" "run_lint" "json_lint" "newline_lint" "uluru/" "tests/"
       - pylint "setup.py" "run_lint" "json_lint" "newline_lint" "uluru/" "tests/"
       - bandit -r "uluru/" --exclude "tests"
-      - mkdir -p tmp && cd tmp && pytest --cov="uluru" --doctest-modules "../uluru/" "../tests/"
+      - pytest --cov="uluru/" --doctest-modules "uluru/" "tests/"
