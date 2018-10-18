@@ -1,10 +1,7 @@
-"""This class normalizes the json-schema by replacing inline objects with refs,
-and refs to primitive types with the resolved subschema.
-"""
 # pylint: disable=too-few-public-methods
 import logging
 
-from .jsonutils.pointer import fragment_decode, fragment_encode
+from .pointer import fragment_decode, fragment_encode
 
 LOG = logging.getLogger(__name__)
 
@@ -14,11 +11,17 @@ class NormalizationError(Exception):
 
 
 class JsonSchemaNormalizer:
-    """The schema_map contains a mapping from json_schema paths
-    to a fully normalized subschema.
-    """
+    """This class normalizes the json-schema by replacing inline objects with refs,
+    and refs to primitive types with the resolved subschema. It then adds all normalized
+    subschemas to a map from the fully qualified ref_path to the resolved schema. The
+    goal of normalizing is to be able to create well defined classes (for Java or any
+    other language).
 
-    MODULE_NAME = __name__
+    The normalizer makes certain assumptions while processing.
+    1) Each property and nested property can only be a single type.  Therefore, any use
+    of anyOf, allOf, and oneOf is for validation purposes only.
+    2) additionalProperties and additionalItems is not allowed
+    """
 
     def __init__(self, resource_schema):
         self._schema_map = {}
@@ -29,8 +32,6 @@ class JsonSchemaNormalizer:
 
         return self._schema_map
 
-    # resolve refs and fully collapse each schema
-    # pylint: disable=too-many-return-statements
     def _collapse_and_resolve_subschema(self, property_path, sub_schema):
         """Given a subschema, this method will normalize it and all of its subschemas.
 

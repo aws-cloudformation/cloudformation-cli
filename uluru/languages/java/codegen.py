@@ -7,7 +7,7 @@ from pathlib import Path
 import pkg_resources
 
 from uluru.filters import resource_type_resource
-from uluru.json_schema_normalizer import JsonSchemaNormalizer
+from uluru.jsonutils.json_schema_normalizer import JsonSchemaNormalizer
 from uluru.plugin_base import LanguagePlugin
 
 from .pojo_resolver import JavaPojoResolver

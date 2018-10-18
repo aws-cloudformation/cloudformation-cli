@@ -10,8 +10,6 @@ class PojoResolverError(Exception):
 
 
 class JavaPojoResolver:
-    MODULE_NAME = __name__
-
     def __init__(self, normalized_schema_map, resource_type):
         self.normalized_schema_map = normalized_schema_map
         self._ref_to_class_map = self._get_ref_to_class_map(resource_type)

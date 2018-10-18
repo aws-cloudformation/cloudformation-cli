@@ -5,19 +5,22 @@ import pkg_resources
 import pytest
 import yaml
 
-from uluru.json_schema_normalizer import JsonSchemaNormalizer, NormalizationError
+from uluru.jsonutils.json_schema_normalizer import (
+    JsonSchemaNormalizer,
+    NormalizationError,
+)
 
 
 @pytest.fixture
 def test_provider_schema():
-    resource = pkg_resources.resource_stream(__name__, "schemas/area_definition.json")
+    resource = pkg_resources.resource_stream("tests", "schemas/area_definition.json")
     return yaml.safe_load(resource)
 
 
 @pytest.fixture
 def normalized_schema():
     resource = pkg_resources.resource_stream(
-        __name__, "schemas/area_definition_normalized.json"
+        "tests", "schemas/area_definition_normalized.json"
     )
     return yaml.safe_load(resource)
 
@@ -97,13 +100,11 @@ def test_collapse_ref_type_nested(normalizer, normalized_schema):
 
 def test_circular_reference():
     resource = pkg_resources.resource_stream(
-        __name__, "schemas/circular_reference_normalized.json"
+        "tests", "schemas/circular_reference_normalized.json"
     )
     schema_normalized = yaml.safe_load(resource)
 
-    resource = pkg_resources.resource_stream(
-        __name__, "schemas/circular_reference.json"
-    )
+    resource = pkg_resources.resource_stream("tests", "schemas/circular_reference.json")
     schema = yaml.safe_load(resource)
     resolved_schema = JsonSchemaNormalizer(schema).collapse_and_resolve_schema()
     assert resolved_schema == schema_normalized
@@ -146,8 +147,6 @@ def test_find_schema_from_ref(normalizer, test_provider_schema):
 
     assert normalizer._find_subschema_by_ref("#") == test_provider_schema
 
-    try:
+    with pytest.raises(NormalizationError) as e:
         normalizer._find_subschema_by_ref("#/this/is/not/a/path")
-        pytest.fail("A KeyError should be raised.")
-    except NormalizationError as e:
         assert str(e) == "Invalid ref: #/this/is/not/a/path"
