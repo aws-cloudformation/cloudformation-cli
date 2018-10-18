@@ -50,7 +50,7 @@ def rewrite_ref(ref):
     return fragment_encode(parts)
 
 
-def traverse(document, ref):
+def traverse(document, path_parts):
     """Traverse the document according to the reference.
 
     Since the document is presumed to be the reference's base, the base is
@@ -58,28 +58,28 @@ def traverse(document, ref):
 
     :raises ValueError, LookupError: the reference is invalid for this document
 
-    >>> traverse({"foo": {"bar": [42]}}, (BASE,))
+    >>> traverse({"foo": {"bar": [42]}}, tuple())
     {'foo': {'bar': [42]}}
-    >>> traverse({"foo": {"bar": [42]}}, (BASE, "foo"))
+    >>> traverse({"foo": {"bar": [42]}}, ["foo"])
     {'bar': [42]}
-    >>> traverse({"foo": {"bar": [42]}}, (BASE, "foo", "bar"))
+    >>> traverse({"foo": {"bar": [42]}}, ("foo", "bar"))
     [42]
-    >>> traverse({"foo": {"bar": [42]}}, (BASE, "foo", "bar", "0"))
+    >>> traverse({"foo": {"bar": [42]}}, ("foo", "bar", "0"))
     42
-    >>> traverse({}, (BASE, "foo"))
+    >>> traverse({}, ["foo"])
     Traceback (most recent call last):
     ...
     KeyError: 'foo'
-    >>> traverse([], (BASE, "foo"))
+    >>> traverse([], ["foo"])
     Traceback (most recent call last):
     ...
     ValueError: invalid literal for int() with base 10: 'foo'
-    >>> traverse([], (BASE, 0))
+    >>> traverse([], [0])
     Traceback (most recent call last):
     ...
     IndexError: list index out of range
     """
-    for part in ref[1:]:
+    for part in path_parts:
         if isinstance(document, Sequence):
             part = int(part)
         document = document[part]
