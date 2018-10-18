@@ -1,6 +1,7 @@
 """This sub command tests basic functionality of the
- resource handler given a test resource and an endpoint.
+resource handler given a test resource and an endpoint.
 """
+import argparse
 import json
 import logging
 
@@ -14,38 +15,42 @@ LOG = logging.getLogger(__name__)
 
 def local_lambda(args):
     transport = LocalLambdaTransport(args.endpoint, args.function_name)
-    with open(args.test_resource) as json_data:
-        resource = json.load(json_data)
-    plugin = ContractPlugin(transport, resource)
-    pytest.main(
-        ["--pyargs", "uluru.tests.contract_tests", "-p", "no:warnings"],
-        plugins=[plugin],
-    )
+    resource = json.load(args.resource)
+    pytest_args = [
+        "--pyargs",
+        "uluru.tests.contract_tests",
+        "-p",
+        "no:warnings",
+        "--verbose",
+    ]
+    if args.test_types:
+        pytest_args.extend(["-k", args.test_types])
+    pytest.main(pytest_args, plugins=[ContractPlugin(transport, resource)])
 
 
 def setup_subparser(subparsers):
     # see docstring of this file
     parser = subparsers.add_parser("test", description=__doc__)
-    test_subparsers = parser.add_subparsers(help="local invocation using SAM CLI")
+    test_subparsers = parser.add_subparsers(help="Type of transport to use for testing")
     local_lambda_subparser = test_subparsers.add_parser("local-lambda")
     local_lambda_subparser.set_defaults(command=local_lambda)
 
     local_lambda_subparser.add_argument(
+        "resource", help="Example resource model", type=argparse.FileType("r")
+    )
+
+    local_lambda_subparser.add_argument(
         "--endpoint",
-        dest="endpoint",
         default="http://127.0.0.1:3001",
-        help="The endpoint at which the local lambda service is running",
+        help="The endpoint at which the handler can be invoked",
     )
 
     local_lambda_subparser.add_argument(
         "--function-name",
-        dest="function_name",
         default="Handler",
         help="The logical lambda function name in the SAM template",
     )
 
     local_lambda_subparser.add_argument(
-        "--test-resource",
-        dest="test_resource",
-        help="Example resource model to be used for testing",
+        "--test-types", default=None, help="The type of contract tests to be run."
     )

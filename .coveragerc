@@ -3,4 +3,4 @@ branch = True
 omit = uluru/tests/*
 
 [report]
-fail_under = 75
+fail_under = 74
