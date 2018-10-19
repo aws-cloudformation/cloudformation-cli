@@ -6,8 +6,6 @@ from uuid import uuid4
 import pytest
 from pytest_localserver.http import Request, Response, WSGIServer
 
-from .lambda_transport import LocalLambdaTransport
-
 CREATE = "CREATE"
 READ = "READ"
 UPDATE = "UPDATE"
@@ -19,23 +17,6 @@ IN_PROGRESS = "IN_PROGRESS"
 COMPLETE = "COMPLETE"
 FAILED = "FAILED"
 ACK_TIMEOUT = 3
-
-TEST_RESOURCE = {
-    "Type": "AWS::S3:Bucket",
-    "Resources": {
-        "BucketName": "MyBucket",
-        "BucketEncryption": {
-            "ServerSideEncryptionConfiguration": [
-                {"ServerSideEncryptionByDefault": {"SSEAlgorithm": "AES256"}}
-            ]
-        },
-    },
-}
-
-
-@pytest.fixture
-def transport():
-    return LocalLambdaTransport("Handler")
 
 
 @pytest.fixture
@@ -92,8 +73,8 @@ def verify_events_contain_token(events, token):
     assert all(event["clientRequestToken"] == token for event in events)
 
 
-def test_create_ack(event_listener, transport):
-    request, token = prepare_request(CREATE, resource=TEST_RESOURCE)
+def test_create_ack(event_listener, transport, test_resource):
+    request, token = prepare_request(CREATE, resource=test_resource)
     transport(request, event_listener.server_address)
     events = wait_for_specified_event(event_listener, IN_PROGRESS, ACK_TIMEOUT)
 
@@ -101,8 +82,8 @@ def test_create_ack(event_listener, transport):
     assert events[0]["status"] == IN_PROGRESS
 
 
-def test_update_ack(event_listener, transport):
-    request, token = prepare_request(UPDATE, resource=TEST_RESOURCE)
+def test_update_ack(event_listener, transport, test_resource):
+    request, token = prepare_request(UPDATE, resource=test_resource)
     transport(request, event_listener.server_address)
     events = wait_for_specified_event(event_listener, IN_PROGRESS, ACK_TIMEOUT)
 
@@ -110,8 +91,8 @@ def test_update_ack(event_listener, transport):
     assert events[0]["status"] == IN_PROGRESS
 
 
-def test_delete_ack(event_listener, transport):
-    request, token = prepare_request(DELETE, resource=TEST_RESOURCE)
+def test_delete_ack(event_listener, transport, test_resource):
+    request, token = prepare_request(DELETE, resource=test_resource)
     transport(request, event_listener.server_address)
     events = wait_for_specified_event(event_listener, IN_PROGRESS, ACK_TIMEOUT)
 
@@ -119,15 +100,15 @@ def test_delete_ack(event_listener, transport):
     assert events[0]["status"] == IN_PROGRESS
 
 
-def test_create(event_listener, transport):
-    request, token = prepare_request(CREATE, resource=TEST_RESOURCE)
+def test_create(event_listener, transport, test_resource):
+    request, token = prepare_request(CREATE, resource=test_resource)
     transport(request, event_listener.server_address)
     events = wait_for_specified_event(event_listener, COMPLETE)
     actual_event = events[-1]
 
     verify_events_contain_token(events, token)
     assert actual_event["status"] == COMPLETE
-    assert actual_event["resources"][0] == TEST_RESOURCE
+    assert actual_event["resources"][0] == test_resource
 
 
 def test_read(event_listener, transport):
@@ -139,8 +120,8 @@ def test_read(event_listener, transport):
     assert read_response["errorCode"] == NOT_FOUND
 
 
-def test_update(event_listener, transport):
-    request, token = prepare_request(UPDATE, resource=TEST_RESOURCE)
+def test_update(event_listener, transport, test_resource):
+    request, token = prepare_request(UPDATE, resource=test_resource)
     transport(request, event_listener.server_address)
     events = wait_for_specified_event(event_listener, COMPLETE)
     actual_event = events[-1]
@@ -150,8 +131,8 @@ def test_update(event_listener, transport):
     assert actual_event["errorCode"] == NOT_FOUND
 
 
-def test_delete(event_listener, transport):
-    request, token = prepare_request(DELETE, resource=TEST_RESOURCE)
+def test_delete(event_listener, transport, test_resource):
+    request, token = prepare_request(DELETE, resource=test_resource)
     transport(request, event_listener.server_address)
     events = wait_for_specified_event(event_listener, COMPLETE)
     actual_event = events[-1]

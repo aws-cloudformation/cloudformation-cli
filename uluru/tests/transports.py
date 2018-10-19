@@ -6,10 +6,12 @@ from botocore.config import Config
 
 
 class LocalLambdaTransport:
-    def __init__(self, function_name, endpoint="http://127.0.0.1:3001"):
+    def __init__(self, endpoint, function_name):
+        self.endpoint = endpoint
+        self.function_name = function_name
         self.client = boto3.client(
             "lambda",
-            endpoint_url=endpoint,
+            endpoint_url=self.endpoint,
             use_ssl=False,
             verify=False,
             config=Config(
@@ -19,7 +21,6 @@ class LocalLambdaTransport:
                 region_name="us-east-1",
             ),
         )
-        self.function_name = function_name
 
     def __call__(self, payload, callback_endpoint):
         _, port = callback_endpoint
