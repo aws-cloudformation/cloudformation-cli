@@ -42,10 +42,7 @@ def main():
     )
     args = parser.parse_args()
 
-    tree = check_output(
-        ["git", "ls-tree", "--full-tree", "--name-only", "-r", "-z", "HEAD"],
-        stderr=STDOUT,
-    )
+    tree = check_output(["git", "ls-files", "-z"], stderr=STDOUT)
     # note: filenames and content are kept as bytes where possible
     # to avoid having to deal with the filesystem's and files' encoding
     return_code = 0
