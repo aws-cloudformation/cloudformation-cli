@@ -14,7 +14,7 @@ EXPECTED_PYTEST_ARGS = [
 ]
 
 
-def test_test_subcommand():
+def test_test_command():
     with mock.patch("uluru.test.local_lambda") as mock_lambda_command:
         test_file = tempfile.NamedTemporaryFile()
         main(args_in=["test", "local-lambda", test_file.name])
