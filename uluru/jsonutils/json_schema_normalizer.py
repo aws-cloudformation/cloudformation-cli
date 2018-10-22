@@ -2,6 +2,7 @@
 import logging
 
 from .pointer import fragment_decode, fragment_encode
+from .utils import traverse
 
 LOG = logging.getLogger(__name__)
 
@@ -120,11 +121,8 @@ class JsonSchemaNormalizer:
         :param str ref_path: json schema ref, like "#/definitions/prop"
         :return: the subschema corresponding to the ref
         """
-        path_components = fragment_decode(ref_path)
-        sub_schema = self._full_schema
-        for key in path_components:
-            try:
-                sub_schema = sub_schema[key]
-            except KeyError:
-                raise NormalizationError("Invalid ref: {}".format(ref_path))
-        return sub_schema
+        path_paths = fragment_decode(ref_path)
+        try:
+            return traverse(self._full_schema, path_paths)
+        except (LookupError, ValueError):
+            raise NormalizationError("Invalid ref: {}".format(ref_path))
