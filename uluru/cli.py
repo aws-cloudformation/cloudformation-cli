@@ -53,7 +53,7 @@ def main(args_in=None):
     args = parser.parse_args(args=args_in)
 
     setup_logging(args.verbose)
-    return args.command(args)
+    args.command(args)
 
 
 if __name__ == "__main__":
