@@ -1,6 +1,3 @@
-""" Given a normalized schema, this class returns a map of class_names to
-a set of property names|property types in Java
-"""
 from uluru.filters import uppercase_first_letter
 from uluru.jsonutils.pointer import fragment_decode
 
@@ -10,21 +7,17 @@ class PojoResolverError(Exception):
 
 
 class JavaPojoResolver:
+    """This class takes in a normalized schema map (output of the JsonSchemaNormalizer),
+    and builds a full set of Java classes.
+    """
+
     def __init__(self, normalized_schema_map, resource_type):
         self.normalized_schema_map = normalized_schema_map
         self._ref_to_class_map = self._get_ref_to_class_map(resource_type)
 
-    def resolve_pojos(self):
-        pojos = {}
-        for ref_path, sub_schema in self.normalized_schema_map.items():
-            class_name = self._ref_to_class_map[ref_path]
-            java_property_map = {}
-            for prop_name, prop_schema in sub_schema["properties"].items():
-                java_property_map[prop_name] = self._java_property_type(prop_schema)
-            pojos[class_name] = java_property_map
-        return pojos
-
     def _get_ref_to_class_map(self, resource_type):
+        """Creates a Java class name for each ref_path in the noramlized schema map.
+        """
         ref_to_class_map = {"#": uppercase_first_letter(resource_type)}
         for ref_path in self.normalized_schema_map.keys():
             if ref_path == "#":
@@ -35,7 +28,7 @@ class JavaPojoResolver:
         return ref_to_class_map
 
     def _get_class_name_from_ref(self, ref_path, ref_to_class_map):
-        """Given a json schema ref, returns the best guess at a java class name.
+        """Given a json schema ref, returns the best guess at a Java class name.
         """
         class_name = base_class_from_ref(ref_path)
 
@@ -44,8 +37,26 @@ class JavaPojoResolver:
             class_name += "_"
         return class_name
 
+    def resolve_pojos(self):
+        """Main method of the class that iterates through each schema and creates
+        the Java class map.
+
+        :return: a map where the keys are Java class names, and the values are a map
+        of the defined property names to Java property types.
+        """
+        pojos = {}
+        for ref_path, sub_schema in self.normalized_schema_map.items():
+            class_name = self._ref_to_class_map[ref_path]
+            java_property_map = {}
+            for prop_name, prop_schema in sub_schema["properties"].items():
+                java_property_map[prop_name] = self._java_property_type(prop_schema)
+            pojos[class_name] = java_property_map
+        return pojos
+
     def _java_property_type(self, property_schema):
-        # provider definition schema validates that schema cannot be a boolean
+        """Return the java class for a normalized schema.
+        If the schema is a ref, the class is determined from the ref_to_class_map
+        """
         try:
             ref_path = property_schema["$ref"]
         except KeyError:
@@ -53,7 +64,6 @@ class JavaPojoResolver:
         else:
             return self._ref_to_class_map[ref_path]
 
-        # assumption: $ref or type is required
         json_type = property_schema.get("type", "object")
 
         if json_type == "array":
@@ -72,6 +82,9 @@ class JavaPojoResolver:
         return primitive_types_map[json_type]
 
     def _java_array_type(self, property_schema):
+        """For an array type, we first resolve whether it is a List<T> or Set<T>.
+        T is then determined from the items schema.
+        """
         array_class_name = self._array_class_name(property_schema)
         try:
             items = property_schema["items"]
@@ -83,7 +96,16 @@ class JavaPojoResolver:
         return "{}<{}>".format(array_class_name, array_items_class_name)
 
     def _java_object_type(self, property_schema):
-        # since all inline objects have been resolved, won't see "properties" here
+        """Resolves an array type schema to a Java class.  An object type will
+        always be a Map<String, V>
+        * If patternProperties is defined, V is determined by the schema for the
+        pattern. We do not care about the pattern itself, since that is only used
+        for validation.
+        * The object will never have nested properties, as that was taken care of by
+        normalizing the schema
+        * If there are no patternProperties, it must be an arbitrary JSON type, so V
+        will be an Object.
+        """
         try:
             pattern_properties = list(property_schema["patternProperties"].items())
         except KeyError:
@@ -105,8 +127,7 @@ class JavaPojoResolver:
 
 def base_class_from_ref(ref_path):
     """This method uses determines the class_name from a ref_path
-
-    It uses json schema heuristics to properly determine the class name
+    It uses json-schema heuristics to properly determine the class name
 
     >>> base_class_from_ref('#/definitions/SubObject')
     'SubObject'

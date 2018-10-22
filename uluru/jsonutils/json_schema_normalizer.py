@@ -19,9 +19,13 @@ class JsonSchemaNormalizer:
     other language).
 
     The normalizer makes certain assumptions while processing.
-    1) Each property and nested property can only be a single type.  Therefore, any use
+    1) provider definition schema validates that schema cannot be a boolean
+    2) Each property and nested property can only be a single type.  Therefore, any use
     of anyOf, allOf, and oneOf is for validation purposes only.
-    2) additionalProperties and additionalItems is not allowed
+    3) additionalProperties and additionalItems is not allowed
+    4) properties and patternProperties are mutually exlcusive, as it would not make
+    sense to have an object with some properties defined and others not -- a map of
+    undefined properties would itself be a property of the object.
     """
 
     def __init__(self, resource_schema):
@@ -35,9 +39,11 @@ class JsonSchemaNormalizer:
 
     def _collapse_and_resolve_subschema(self, property_path, sub_schema):
         """Given a subschema, this method will normalize it and all of its subschemas.
+        The property_path is constructed further as the schema is recursively processed.
 
         :param str property_path: the json schema ref path to the sub_schema
         :param dict sub_schema: the unresolved schema
+        :return: a normalized schema
         """
         if property_path in self._schema_map:
             return {"$ref": property_path}
@@ -57,12 +63,13 @@ class JsonSchemaNormalizer:
         if json_type == "object":
             return self._collapse_object_type(property_path, sub_schema)
 
-        # for primitive types, we don't need to process anymore
-        return sub_schema
+        return sub_schema  # for primitive types, we are done processing
 
     def _collapse_ref_type(self, ref_path):
-        # refs to an object will have its own class, so return the ref.
-        # Otherwise, we want to replace the ref with the primitive
+        """This method normalizes a schema ref.
+        * Refs to an object will have its own class, so the ref will be returned as is.
+        * Refs to a primitive will be inlined into the schema, removing the ref.
+        """
         if ref_path in self._schema_map:
             return {"$ref": ref_path}
         ref_schema = self._find_subschema_by_ref(ref_path)
@@ -70,6 +77,9 @@ class JsonSchemaNormalizer:
         return collapsed_schema
 
     def _collapse_array_type(self, key, sub_schema):
+        """Collapses a json-schema array type schema.
+        * If items is defined, its schema needs to be resolved
+        """
         try:
             items_schema = sub_schema["items"]
         except KeyError:
@@ -81,6 +91,11 @@ class JsonSchemaNormalizer:
         return sub_schema
 
     def _collapse_object_type(self, key, sub_schema):
+        """Collapses a json-schema object type schema.
+        * If properties are defined, each property schema needs to be resolved.
+        * If patternProperties are defined, each pattern schema needs to be resolved.
+        * if neither is defined, it is arbitrary JSON equivalent to a primitive
+        """
         try:
             properties = sub_schema["properties"]
         except KeyError:
