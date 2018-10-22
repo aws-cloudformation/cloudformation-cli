@@ -25,7 +25,8 @@ def local_lambda(args):
     ]
     if args.test_types:
         pytest_args.extend(["-k", args.test_types])
-    pytest.main(pytest_args, plugins=[ContractPlugin(transport, resource)])
+    test_plugin = ContractPlugin(transport, resource)
+    pytest.main(pytest_args, plugins=[test_plugin])
 
 
 def setup_subparser(subparsers):
