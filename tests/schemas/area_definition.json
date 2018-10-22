@@ -29,10 +29,18 @@
                 "box": {
                     "type": "object",
                     "properties": {
-                        "north": {"$ref": "#/definitions/coordinate"},
-                        "south": {"$ref": "#/definitions/coordinate"},
-                        "east": {"$ref": "#/definitions/coordinate"},
-                        "west": {"$ref": "#/definitions/coordinate"}
+                        "north": {
+                            "$ref": "#/definitions/coordinate"
+                        },
+                        "south": {
+                            "$ref": "#/definitions/coordinate"
+                        },
+                        "east": {
+                            "$ref": "#/definitions/coordinate"
+                        },
+                        "west": {
+                            "$ref": "#/definitions/coordinate"
+                        }
                     }
                 },
                 "otherPoints": {
