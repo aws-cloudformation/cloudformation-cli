@@ -1,5 +1,6 @@
 [run]
 branch = True
+omit = uluru/tests/*
 
 [report]
 fail_under = 81
