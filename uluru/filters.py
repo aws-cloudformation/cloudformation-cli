@@ -71,21 +71,6 @@ def resource_type_resource(resource_type):
 
 
 @register_filter
-def java_class_name(import_name):
-    """Gets the class name from a Java import. The full import is returned if
-    no period (".") is found.
-
-    >>> java_class_name('com.example.MyClass')
-    'MyClass'
-    >>> java_class_name('com_example_MyClass')
-    'com_example_MyClass'
-    >>> java_class_name('')
-    ''
-    """
-    return import_name.rpartition(".")[2]
-
-
-@register_filter
 def lowercase_first_letter(string):
     """Converts the first letter of a string to lowercase.
 
@@ -96,46 +81,21 @@ def lowercase_first_letter(string):
     >>> lowercase_first_letter('')
     ''
     """
-    if string:
-        return string[0].lower() + string[1:]
-    return ""
+    return string[0].lower() + string[1:] if string else ""
 
 
 @register_filter
-def property_type_json_to_java(schema_type):
-    """Maps JSON schema types to Java types. If the type cannot be mapped, it
-    is returned as is.
+def uppercase_first_letter(string):
+    """Converts the first letter of a string to uppercase.
 
-    >>> property_type_json_to_java('string')
-    'String'
-    >>> property_type_json_to_java('integer')
-    'int'
-    >>> property_type_json_to_java('boolean')
-    'boolean'
-    >>> property_type_json_to_java('number')
-    'float'
-    >>> property_type_json_to_java('array')
-    'List'
-    >>> property_type_json_to_java('foo')
-    'foo'
-    >>> property_type_json_to_java({'$ref': '#/Definitions/StreamEncryption'})
-    'StreamEncryptionModel'
+    >>> uppercase_first_letter('createHandler')
+    'CreateHandler'
+    >>> uppercase_first_letter('CreateHandler')
+    'CreateHandler'
+    >>> uppercase_first_letter('')
+    ''
     """
-    types = {
-        "string": "String",
-        "integer": "int",
-        "boolean": "boolean",
-        "number": "float",
-        "array": "List",
-    }
-    try:
-        return types[schema_type]
-    except TypeError:
-        # this happens for unhashable types, in which case `schema_type`
-        # should be a dictionary
-        return schema_type["$ref"].rpartition("/")[2] + "Model"
-    except KeyError:
-        return schema_type
+    return string[0].upper() + string[1:] if string else ""
 
 
 @register_filter

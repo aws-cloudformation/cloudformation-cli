@@ -1,0 +1,32 @@
+{
+    "#": {
+        "typeName": "AWS::Circular::Reference",
+        "definitions": {
+            "TestA": {
+                "$ref": "#/definitions/TestB"
+            },
+            "TestB": {
+                "type": "object",
+                "properties": {
+                    "SubTestB": {
+                        "$ref": "#/definitions/TestB"
+                    }
+                }
+            }
+        },
+        "properties": {
+            "Test": {
+                "$ref": "#/definitions/TestB"
+            }
+        },
+        "additionalProperties": false
+    },
+    "#/definitions/TestB": {
+        "type": "object",
+        "properties": {
+            "SubTestB": {
+                "$ref": "#/definitions/TestB"
+            }
+        }
+    }
+}
