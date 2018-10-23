@@ -1,6 +1,6 @@
 [run]
 branch = True
-omit = uluru/tests/*
+omit = */tests/*
 
 [report]
-fail_under = 91
+fail_under = 90
