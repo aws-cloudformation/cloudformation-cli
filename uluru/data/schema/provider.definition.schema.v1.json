@@ -128,6 +128,15 @@
                             "additionalProperties": false,
                             "minProperties": 1
                         },
+                        "definitions": {
+                            "type": "object",
+                            "patternProperties": {
+                                "^[A-Za-z0-9]{1,64}$": {
+                                    "$ref": "#/definitions/properties"
+                                }
+                            },
+                            "additionalProperties": false
+                        },
                         "additionalProperties": {
                             "$comment": "All properties of a resource must be expressed in the schema - arbitrary inputs are not allowed",
                             "type": "boolean",
