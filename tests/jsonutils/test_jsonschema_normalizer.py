@@ -11,18 +11,19 @@ from rpdk.jsonutils.jsonschema_normalizer import (
 )
 
 
+def load_test_yaml(name):
+    resource = pkg_resources.resource_stream(__name__, "data/" + name)
+    return yaml.safe_load(resource)
+
+
 @pytest.fixture
 def test_provider_schema():
-    resource = pkg_resources.resource_stream("tests", "schemas/area_definition.json")
-    return yaml.safe_load(resource)
+    return load_test_yaml("area_definition.json")
 
 
 @pytest.fixture
 def normalized_schema():
-    resource = pkg_resources.resource_stream(
-        "tests", "schemas/area_definition_normalized.json"
-    )
-    return yaml.safe_load(resource)
+    return load_test_yaml("area_definition_normalized.json")
 
 
 @pytest.fixture
@@ -99,13 +100,8 @@ def test_collapse_ref_type_nested(normalizer, normalized_schema):
 
 
 def test_circular_reference():
-    resource = pkg_resources.resource_stream(
-        "tests", "schemas/circular_reference_normalized.json"
-    )
-    schema_normalized = yaml.safe_load(resource)
-
-    resource = pkg_resources.resource_stream("tests", "schemas/circular_reference.json")
-    schema = yaml.safe_load(resource)
+    schema_normalized = load_test_yaml("circular_reference_normalized.json")
+    schema = load_test_yaml("circular_reference.json")
     resolved_schema = JsonSchemaNormalizer(schema).collapse_and_resolve_schema()
     assert resolved_schema == schema_normalized
 
