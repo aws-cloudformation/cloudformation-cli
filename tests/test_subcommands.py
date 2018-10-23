@@ -17,7 +17,7 @@ EXPECTED_PYTEST_ARGS = [
 def test_test_command():
     with mock.patch("uluru.test.local_lambda", autospec=True) as mock_lambda_command:
         test_file = tempfile.NamedTemporaryFile()
-        main(args_in=["test", "local-lambda", test_file.name])
+        main(args_in=["test", "local-lambda", test_file.name, test_file.name])
 
     mock_lambda_command.assert_called_once()
     args, _ = mock_lambda_command.call_args
@@ -34,6 +34,7 @@ def test_local_lambda_command():
             endpoint="http://127.0.0.1:3001",
             function_name="Handler",
             resource=test_file,
+            definition=test_file,
             subparser_name="test",
             test_types=None,
         )
@@ -52,6 +53,7 @@ def test_local_lambda_with_test_type():
             endpoint="http://127.0.0.1:3001",
             function_name="Handler",
             resource=test_file,
+            definition=test_file,
             subparser_name="test",
             test_types="TEST_TYPE",
         )
