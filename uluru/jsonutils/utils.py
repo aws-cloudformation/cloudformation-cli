@@ -26,27 +26,21 @@ def rewrite_ref(ref):
     are simply encoded into a pointer.
 
     If the reference is outside of the base document, a unique pointer inside
-    the base document must be constructed:
-
-    1. the remote parts are flattened into a single, unique part
-       (i.e.``/foo/bar`` becomes ``foo~1bar``)
-    2. the unique part is namespaced under the remote base name inside the
-       definitions section
-
-    The resulting pointer is therefore ``#/definitions/<schema>/<flattened_part>``.
+    the base document is made by namespacing the reference under the remote base
+    name inside the definitions section.
 
     >>> rewrite_ref((BASE, "foo", "bar"))
     '#/foo/bar'
     >>> rewrite_ref((BASE,))
     '#'
     >>> rewrite_ref(("remote", "foo", "bar"))
-    '#/definitions/remote/foo~1bar'
+    '#/definitions/remote/foo/bar'
     >>> rewrite_ref(("remote",))
-    '#/definitions/remote/'
+    '#/definitions/remote'
     """
     base, *parts = ref
     if base is not BASE:
-        parts = ["definitions", base, "/".join(parts)]
+        parts = ["definitions", base] + parts
     return fragment_encode(parts)
 
 

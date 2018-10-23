@@ -1,7 +1,9 @@
 # pylint: disable=protected-access
 import json
+from pathlib import Path
 from unittest.mock import patch
 
+from uluru.data_loaders import load_resource_spec, make_resource_validator
 from uluru.jsonutils.inliner import RefInliner
 
 BASE_URI = "http://localhost/"
@@ -90,8 +92,8 @@ def test_refinliner_remote_refs_simple_are_walked_and_inlined(httpserver):
     ref = httpserver.url + "#/nested/bar"
     inliner = make_inliner({"type": "object", "properties": {"foo": {"$ref": ref}}})
     schema = inliner.inline()
-    assert schema["definitions"]["schema0"]["nested/bar"] == target
-    assert schema["properties"]["foo"]["$ref"] == "#/definitions/schema0/nested~1bar"
+    assert schema["definitions"]["schema0"]["nested"]["bar"] == target
+    assert schema["properties"]["foo"]["$ref"] == "#/definitions/schema0/nested/bar"
     assert len(inliner.ref_graph) == 1
 
 
@@ -121,8 +123,8 @@ def test_refinliner_remote_refs_circular_are_walked_and_inlined(httpserver):
         {"type": "object", "properties": {"foo": {"$ref": ref_local}}}
     )
     schema = inliner.inline()
-    assert schema["definitions"]["schema0"]["nested/bar"]["$ref"] == ref_a
-    assert schema["properties"]["foo"]["$ref"] == "#/definitions/schema0/nested~1bar"
+    assert schema["definitions"]["schema0"]["nested"]["bar"]["$ref"] == ref_a
+    assert schema["properties"]["foo"]["$ref"] == "#/definitions/schema0/nested/bar"
     assert len(inliner.ref_graph) == 2
 
 
@@ -138,8 +140,8 @@ def test_refinliner_remote_refs_on_filesystem_are_inlined(tmpdir):
         {"type": "object", "properties": {"foo": {"$ref": ref}}}, base_uri=base_uri
     )
     schema = inliner.inline()
-    assert schema["definitions"]["schema0"]["nested/bar"] == target
-    assert schema["properties"]["foo"]["$ref"] == "#/definitions/schema0/nested~1bar"
+    assert schema["definitions"]["schema0"]["nested"]["bar"] == target
+    assert schema["properties"]["foo"]["$ref"] == "#/definitions/schema0/nested/bar"
     assert len(inliner.ref_graph) == 1
 
 
@@ -162,3 +164,15 @@ def test_refinliner_rename_comment_is_added(httpserver):
     inliner = make_inliner(local)
     schema = inliner.inline()
     assert schema["definitions"]["schema0"]["$comment"] == httpserver.url
+
+
+def test_refinliner_produces_valid_schemas():
+    validator = make_resource_validator()
+    basedir = Path(__file__).parent.parent.parent  # tests/jsonutils/test_inliner.py
+    exampledir = basedir / "examples" / "schema" / "resource"
+    for example in exampledir.glob("*.json"):
+        with example.open("r", encoding="utf-8") as f:
+            schema = load_resource_spec(f)
+        inliner = RefInliner(example.as_uri(), schema)
+        inlined = inliner.inline()
+        validator.validate(inlined)

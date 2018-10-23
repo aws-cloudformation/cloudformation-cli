@@ -81,19 +81,11 @@ class RefInliner(RefResolver):
                 continue
             LOG.debug("Inlining definitions from '%s' (%s)", rename, base_uri)
             global_defs[rename] = local_defs = {"$comment": base_uri}
-            document = self.store[base_uri]
-            for to_ref in self.ref_graph.values():
-                base, *parts = to_ref
-                # only process refs in this file
-                if base != rename:
-                    continue
-                # convert the parts into one flattened reference
-                if parts:
-                    key = "/".join(parts)
-                    local_defs[key] = traverse(document, parts)
-                    LOG.debug("  %s#%s", base, key)
-                else:
-                    local_defs.update(document)
+            local_defs.update(self.store[base_uri])
+            # sub schemas can have IDs, but since we have re-written all refs,
+            # this isn't something we want
+            local_defs.pop("$id", None)
+            local_defs.pop("$schema", None)
         self.schema["definitions"] = global_defs
 
     def inline(self):
