@@ -29,7 +29,7 @@ def setup_logging(verbosity=0):
     dictConfig(logging_config)
 
 
-def main():
+def main(args_in=None):
     # see docstring of this file
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -50,7 +50,7 @@ def main():
     generate_setup_subparser(subparsers)
     project_settings_setup_subparser(subparsers)
     test_setup_subparser(subparsers)
-    args = parser.parse_args()
+    args = parser.parse_args(args=args_in)
 
     setup_logging(args.verbose)
     args.command(args)
