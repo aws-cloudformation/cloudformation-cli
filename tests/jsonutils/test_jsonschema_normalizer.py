@@ -57,17 +57,17 @@ def test_ref_type_to_primitive(normalizer):
     collapsed_schema = normalizer._collapse_ref_type(schema_path)
 
     assert expected_schema == collapsed_schema
-    assert not normalizer._schema_map.keys()
+    assert not normalizer._schema_map
 
 
 def test_property_path_already_processed(normalizer):
     normalizer._schema_map = {"#/properties/City": {}}
-    assert len(normalizer._schema_map.keys()) == 1
+    assert len(normalizer._schema_map) == 1
     result = normalizer._collapse_and_resolve_subschema(
         "#/properties/City", {"type": "object", "properties": {"test": {}}}
     )
     assert result == {"$ref": "#/properties/City"}
-    assert len(normalizer._schema_map.keys()) == 1
+    assert len(normalizer._schema_map) == 1
 
 
 def test_collapse_ref_type(normalizer, normalized_schema):
@@ -79,7 +79,7 @@ def test_collapse_ref_type(normalizer, normalized_schema):
 
     assert expected_collapsed_schema == collapsed_schema
     assert normalizer._schema_map[coordinate_path] == normalized_schema[coordinate_path]
-    assert len(normalizer._schema_map.keys()) == 1
+    assert len(normalizer._schema_map) == 1
 
 
 def test_collapse_ref_type_nested(normalizer, normalized_schema):
@@ -95,7 +95,7 @@ def test_collapse_ref_type_nested(normalizer, normalized_schema):
         normalizer._schema_map[coordinate_path]
         == normalized_schema["#/definitions/coordinate"]
     )
-    assert len(normalizer._schema_map.keys()) == 2
+    assert len(normalizer._schema_map) == 2
 
 
 def test_circular_reference():
@@ -125,7 +125,7 @@ def test_collapse_array_type(normalizer, normalized_schema):
     }
     assert resolved_schema == expected_schema
     assert normalizer._schema_map[new_key] == normalized_schema[new_key]
-    assert len(normalizer._schema_map.keys()) == 1
+    assert len(normalizer._schema_map) == 1
 
 
 def test_find_schema_from_ref(normalizer, test_provider_schema):
