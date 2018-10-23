@@ -143,6 +143,7 @@ def test_find_schema_from_ref(normalizer, test_provider_schema):
 
     assert normalizer._find_subschema_by_ref("#") == test_provider_schema
 
-    with pytest.raises(NormalizationError) as e:
-        normalizer._find_subschema_by_ref("#/this/is/not/a/path")
-        assert str(e) == "Invalid ref: #/this/is/not/a/path"
+    ref = "#/this/is/not/a/path"
+    with pytest.raises(NormalizationError) as excinfo:
+        normalizer._find_subschema_by_ref(ref)
+    assert ref in str(excinfo.value)
