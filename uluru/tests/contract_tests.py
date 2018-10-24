@@ -1,3 +1,5 @@
+# fixture and parameter have the same name
+# pylint: disable=redefined-outer-name
 import json
 import time
 from collections import deque
