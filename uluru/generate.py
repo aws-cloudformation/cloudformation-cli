@@ -26,6 +26,8 @@ def generate(args):
     LOG.info("Generating code...")
     plugin.generate(resource_def, project_settings)
 
+    LOG.info("Generation complete.")
+
 
 def setup_subparser(subparsers):
     # see docstring of this file
