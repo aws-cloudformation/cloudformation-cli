@@ -114,24 +114,34 @@ class JavaLanguagePlugin(LanguagePlugin):
             directory.mkdir(parents=True, exist_ok=True)
             LOG.debug("Created directory %s", directory)
 
-        self.generate_pojos(resource_def, project_settings, pojos_directory)
+        java_pojo_resolver = self.build_pojo_resolver(resource_def)
+
+        self.generate_pojos(
+            java_pojo_resolver, resource_def, project_settings, pojos_directory
+        )
         self.generate_package(
             resource_def, project_settings, "messages", messages_directory
         )
         self.generate_package(
             resource_def, project_settings, "interfaces", interfaces_directory
         )
-        self.generate_handlers(resource_def, project_settings, handlers_directory)
+        self.generate_handlers(
+            java_pojo_resolver, resource_def, project_settings, handlers_directory
+        )
         self.generate_unit_tests(resource_def, project_settings, unit_tests_directory)
 
-    def generate_pojos(self, resource_def, project_settings, output_directory):
-        LOG.info("Generating POJOs...")
+    def build_pojo_resolver(self, resource_def):
         normalizer = JsonSchemaNormalizer(resource_def)
         normalized_map = normalizer.collapse_and_resolve_schema()
         LOG.debug("Normalized Schema Map: %s", normalized_map)
+        return JavaPojoResolver(
+            normalized_map, resource_type_resource(resource_def["typeName"])
+        )
 
-        resource_type = resource_type_resource(resource_def["typeName"])
-        pojos = JavaPojoResolver(normalized_map, resource_type).resolve_pojos()
+    def generate_pojos(self, pojo_resolver, project_settings, output_directory):
+        LOG.info("Generating POJOs...")
+
+        pojos = pojo_resolver.resolve_pojos()
         LOG.debug("Pojos: %s", pojos)
 
         # writes a jinja subclass to the templates folder and adds the subresource
@@ -166,10 +176,12 @@ class JavaLanguagePlugin(LanguagePlugin):
                 f.write(template.render(**project_settings))
             LOG.debug("Created Package file %s", output_filepath)
 
-    def generate_handlers(self, resource_def, project_settings, output_directory):
+    def generate_handlers(
+        self, pojo_resolver, resource_def, project_settings, output_directory
+    ):
         LOG.info("Generating Handlers...")
 
-        resource_type = resource_type_resource(resource_def["typeName"])
+        resource_type = pojo_resolver.normalized_resource_type_name()
         operations = ["Create", "Read", "Update", "Delete", "List"]
 
         # writes a jinja subclass to the templates folder and adds the handlers

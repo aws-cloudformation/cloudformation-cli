@@ -13,12 +13,13 @@ class JavaPojoResolver:
 
     def __init__(self, normalized_schema_map, resource_type):
         self.normalized_schema_map = normalized_schema_map
+        self._normalized_resource_type_name = uppercase_first_letter(resource_type)
         self._ref_to_class_map = self._get_ref_to_class_map(resource_type)
 
     def _get_ref_to_class_map(self, resource_type):
         """Creates a Java class name for each ref_path in the noramlized schema map.
         """
-        ref_to_class_map = {"#": uppercase_first_letter(resource_type)}
+        ref_to_class_map = {"#": self.normalized_resource_type_name()}
         for ref_path in self.normalized_schema_map.keys():
             if ref_path == "#":
                 continue
@@ -36,6 +37,9 @@ class JavaPojoResolver:
         while class_name in ref_to_class_map.values():
             class_name += "_"
         return class_name
+
+    def normalized_resource_type_name(self):
+        return self._normalized_resource_type_name
 
     def resolve_pojos(self):
         """Main method of the class that iterates through each schema and creates
