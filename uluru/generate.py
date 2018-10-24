@@ -21,6 +21,9 @@ def generate(args):
     project_settings = load_project_settings(plugin, args.project_settings_file)
     project_settings["output_directory"] = args.output_directory
 
+    LOG.info("Initializing plugin...")
+    plugin.init(project_settings)
+
     LOG.info("Loading the resource provider definition...")
     resource_def = load_resource_spec(args.resource_def_file)
     LOG.info("Generating code...")
