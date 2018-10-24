@@ -70,9 +70,8 @@ class JavaLanguagePlugin(LanguagePlugin):
 
     def generate(self, resource_def, project_settings):
         LOG.info("Setting up package directories...")
-        output_directory = Path(project_settings["output_directory"]).resolve(
-            strict=True
-        )
+        output_directory = Path(project_settings["output_directory"])
+        output_directory.mkdir(exist_ok=True)
 
         package_components = project_settings["packageName"].split(".")
         src_main_dir = output_directory.joinpath("generated-src", *package_components)
