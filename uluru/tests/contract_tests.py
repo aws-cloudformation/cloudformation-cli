@@ -82,7 +82,7 @@ def verify_events_contain_token(events, token):
     assert all(event["clientRequestToken"] == token for event in events)
 
 
-def cleanup_resource(listener, transport, resource, definition):
+def delete_resource(listener, transport, resource, definition):
     id_key, id_value = get_identifier_property(definition, resource)
     delete_request, _token = prepare_request(
         DELETE, definition["typeName"], resource={id_key: id_value}
@@ -129,6 +129,7 @@ def test_create_ack(event_listener, transport, resource_def):
     request, token = prepare_request(CREATE, resource_def["typeName"])
     transport(request, event_listener.server_address)
     events = wait_for_specified_event(event_listener, IN_PROGRESS, ACK_TIMEOUT)
+
     verify_events_contain_token(events, token)
     assert events[0]["status"] == IN_PROGRESS
 
@@ -168,7 +169,7 @@ def test_create(event_listener, transport, test_resource, resource_def):
     assert last_event["status"] == COMPLETE
     compare_requested_model(test_resource, created_resource, resource_def)
 
-    cleanup_resource(event_listener, transport, created_resource, resource_def)
+    delete_resource(event_listener, transport, created_resource, resource_def)
 
 
 def test_read_not_found(event_listener, transport, test_resource, resource_def):
@@ -245,7 +246,7 @@ def test_create_create(event_listener, transport, test_resource, resource_def):
         verify_events_contain_token(second_create_events, second_token)
         assert FAILED == second_create_events[-1].get("status")
         assert ALREADY_EXISTS == second_create_events[-1].get("errorCode")
-        cleanup_resource(event_listener, transport, created_resource, resource_def)
+        delete_resource(event_listener, transport, created_resource, resource_def)
 
 
 def test_create_read(event_listener, transport, test_resource, resource_def):
@@ -270,7 +271,7 @@ def test_create_read(event_listener, transport, test_resource, resource_def):
     assert read_token == read_response["clientRequestToken"]
     assert created_resource == read_response["resources"][0]
 
-    cleanup_resource(event_listener, transport, created_resource, resource_def)
+    delete_resource(event_listener, transport, created_resource, resource_def)
 
 
 def test_create_delete(event_listener, transport, test_resource, resource_def):
@@ -323,7 +324,7 @@ def test_delete_create(event_listener, transport, test_resource, resource_def):
         verify_events_contain_token(events, token)
         assert COMPLETE == last_event["status"]
 
-        cleanup_resource(event_listener, transport, created_resource, resource_def)
+        delete_resource(event_listener, transport, created_resource, resource_def)
 
 
 def test_delete_read(event_listener, transport, test_resource, resource_def):

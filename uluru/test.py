@@ -17,7 +17,6 @@ def local_lambda(args):
     transport = LocalLambdaTransport(args.endpoint, args.function_name)
     resource = json.load(args.resource)
     resource_def = json.load(args.definition)
-
     pytest_args = [
         "--pyargs",
         "uluru.tests.contract_tests",
@@ -38,29 +37,24 @@ def setup_subparser(subparsers):
     test_subparsers = parser.add_subparsers(help="Type of transport to use for testing")
     local_lambda_subparser = test_subparsers.add_parser("local-lambda")
     local_lambda_subparser.set_defaults(command=local_lambda)
-
     local_lambda_subparser.add_argument(
         "resource", help="Example resource model", type=argparse.FileType("r")
     )
-
     local_lambda_subparser.add_argument(
         "definition",
         help="The definition of the resource that the handler provisions ",
         type=argparse.FileType("r"),
     )
-
     local_lambda_subparser.add_argument(
         "--endpoint",
         default="http://127.0.0.1:3001",
         help="The endpoint at which the handler can be invoked",
     )
-
     local_lambda_subparser.add_argument(
         "--function-name",
         default="Handler",
         help="The logical lambda function name in the SAM template",
     )
-
     local_lambda_subparser.add_argument(
         "--test-types", default=None, help="The type of contract tests to be run."
     )
