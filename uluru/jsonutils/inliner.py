@@ -16,6 +16,9 @@ class RefInliner(RefResolver):
         self.schema = schema
         self.ref_graph = {}
 
+        # our meta-schema should catch this, but better to be explicit
+        if "remote" in self.schema:
+            raise ValueError("Schema already contains remote schemas.")
 
         self.renamer = RefRenamer(renames={base_uri: BASE})
         super().__init__(base_uri=base_uri, referrer=self.schema, cache_remote=True)
@@ -68,18 +71,15 @@ class RefInliner(RefResolver):
                 current["$ref"] = new_ref
 
     def _inline_defs(self):
-        global_defs = self.schema.get("definitions", {})
+        global_defs = {}
         for base_uri, rename in self.renamer.items():
             if rename is BASE:  # no need to process the local file
                 continue
             LOG.debug("Inlining definitions from '%s' (%s)", rename, base_uri)
             global_defs[rename] = local_defs = {"$comment": base_uri}
             local_defs.update(self.store[base_uri])
-            # sub schemas can have IDs, but since we have re-written all refs,
-            # this isn't something we want
-            local_defs.pop("$id", None)
-            local_defs.pop("$schema", None)
-        self.schema["definitions"] = global_defs
+        if global_defs:
+            self.schema["remote"] = global_defs
 
     def inline(self):
         self._walk_schema()

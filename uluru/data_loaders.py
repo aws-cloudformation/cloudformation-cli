@@ -54,6 +54,16 @@ def load_resource_spec(resource_spec_file):
         )
         raise
 
+    # TODO: more general validation framework
+    if "remote" in resource_spec:
+        raise ValidationError(
+            message="Property 'remote' is reserved for CloudFormation use",
+            validator="cloudFormation",
+            validator_value=False,
+            instance=resource_spec,
+            schema=resource_spec,
+        )
+
     return resource_spec
 
 
