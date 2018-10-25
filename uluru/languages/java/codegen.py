@@ -75,7 +75,9 @@ class JavaLanguagePlugin(LanguagePlugin):
         output_directory = Path(project_settings["output_directory"])
 
         package_components = project_settings["packageName"].split(".")
-        generated_src_main_dir = output_directory.joinpath("generated-src", *package_components)
+        generated_src_main_dir = output_directory.joinpath(
+            "generated-src", *package_components
+        )
         src_main_dir = output_directory.joinpath("src", *package_components)
         generated_tst_main_dir = output_directory.joinpath("tst", *package_components)
 
@@ -165,7 +167,9 @@ class JavaLanguagePlugin(LanguagePlugin):
         # writes a jinja subclass to the templates folder and adds the handlers
         for operation in operations:
             base_handler_file = "Base{}Handler.java".format(operation)
-            base_template = self.env.get_template("handlers/{}".format(base_handler_file))
+            base_template = self.env.get_template(
+                "handlers/{}".format(base_handler_file)
+            )
             base_output_filepath = Path(output_directory) / base_handler_file
             with base_output_filepath.open("w", encoding="utf-8") as f:
                 f.write(
@@ -191,8 +195,9 @@ class JavaLanguagePlugin(LanguagePlugin):
                 with output_filepath.open("w", encoding="utf-8") as f:
                     f.write(
                         stub_template.render(
-                            operation=operation, pojo_name=resource_type,
-                            **project_settings
+                            operation=operation,
+                            pojo_name=resource_type,
+                            **project_settings,
                         )
                     )
                 LOG.debug("Created Handler file %s", output_filepath)
