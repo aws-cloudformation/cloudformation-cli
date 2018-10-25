@@ -72,17 +72,6 @@ class JavaLanguagePlugin(LanguagePlugin):
         with output_pom.open("w", encoding="utf-8") as f:
             f.write(pom_template.render(project_settings))
 
-    def remove_files(self, dir):
-        if not (Path(dir).exists()):
-            return
-
-        for p in Path(dir).iterdir():
-            if p.is_dir():
-                self.remove_files(p)
-            else:
-                p.unlink()
-        Path(dir).rmdir()
-
     def generate(self, resource_def, project_settings):
         LOG.info("Starting code generation...")
         output_directory = Path(project_settings["output_directory"])
@@ -93,8 +82,8 @@ class JavaLanguagePlugin(LanguagePlugin):
         tst_main_dir = output_directory.joinpath("tst", *package_components)
 
         # eradicate any content from a prior codegen run
-        self.remove_files(src_main_dir)
-        self.remove_files(tst_main_dir)
+        shutil.rmtree(src_main_dir)
+        shutil.rmtree(tst_main_dir)
 
         pojos_directory = src_main_dir / "models"
         handlers_directory = src_main_dir / "handlers"
@@ -114,20 +103,12 @@ class JavaLanguagePlugin(LanguagePlugin):
             directory.mkdir(parents=True, exist_ok=True)
             LOG.debug("Created directory %s", directory)
 
-        java_pojo_resolver = self.build_pojo_resolver(resource_def)
+        self._java_pojo_resolver = self.build_pojo_resolver(resource_def)
 
-        self.generate_pojos(
-            java_pojo_resolver, resource_def, project_settings, pojos_directory
-        )
-        self.generate_package(
-            resource_def, project_settings, "messages", messages_directory
-        )
-        self.generate_package(
-            resource_def, project_settings, "interfaces", interfaces_directory
-        )
-        self.generate_handlers(
-            java_pojo_resolver, resource_def, project_settings, handlers_directory
-        )
+        self.generate_pojos(project_settings, pojos_directory)
+        self.generate_package(project_settings, "messages", messages_directory)
+        self.generate_package(project_settings, "interfaces", interfaces_directory)
+        self.generate_handlers(project_settings, handlers_directory)
         self.generate_unit_tests(resource_def, project_settings, unit_tests_directory)
 
     def build_pojo_resolver(self, resource_def):
@@ -138,10 +119,10 @@ class JavaLanguagePlugin(LanguagePlugin):
             normalized_map, resource_type_resource(resource_def["typeName"])
         )
 
-    def generate_pojos(self, pojo_resolver, project_settings, output_directory):
+    def generate_pojos(self, project_settings, output_directory):
         LOG.info("Generating POJOs...")
 
-        pojos = pojo_resolver.resolve_pojos()
+        pojos = self._java_pojo_resolver.resolve_pojos()
         LOG.debug("Pojos: %s", pojos)
 
         # writes a jinja subclass to the templates folder and adds the subresource
@@ -159,9 +140,7 @@ class JavaLanguagePlugin(LanguagePlugin):
                 )
             LOG.debug("Created POJO file %s", output_filepath)
 
-    def generate_package(
-        self, resource_def, project_settings, input_directory, output_directory
-    ):
+    def generate_package(self, project_settings, input_directory, output_directory):
         LOG.info("Generating Package Code...")
 
         # writes a jinja subclass to the templates folder and adds the handlers
@@ -176,12 +155,10 @@ class JavaLanguagePlugin(LanguagePlugin):
                 f.write(template.render(**project_settings))
             LOG.debug("Created Package file %s", output_filepath)
 
-    def generate_handlers(
-        self, pojo_resolver, resource_def, project_settings, output_directory
-    ):
+    def generate_handlers(self, project_settings, output_directory):
         LOG.info("Generating Handlers...")
 
-        resource_type = pojo_resolver.normalized_resource_type_name()
+        resource_type = self._java_pojo_resolver.normalized_resource_type_name()
         operations = ["Create", "Read", "Update", "Delete", "List"]
 
         # writes a jinja subclass to the templates folder and adds the handlers
