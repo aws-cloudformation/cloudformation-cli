@@ -6,15 +6,11 @@ from .pointer import fragment_decode
 
 
 class RefRenamer:
-    def __init__(self, renames=None, banned=None):
+    def __init__(self, renames=None):
         self.renames = renames if renames else {}
-        if not banned:
-            banned = set()
         # this generator never completes
         self.names = (
-            name
-            for name in ("schema{}".format(i) for i in count())
-            if name not in banned
+            name for name in ("schema{}".format(i) for i in count())
         )  # pragma: no cover
 
     def items(self):

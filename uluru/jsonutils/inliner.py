@@ -16,15 +16,8 @@ class RefInliner(RefResolver):
         self.schema = schema
         self.ref_graph = {}
 
-        try:
-            existing_keys = set(self.schema["definitions"].keys())
-        except (TypeError, KeyError, AttributeError):
-            # TypeError: schema is not a dict/Mapping
-            # KeyError: schema has no definitions
-            # AttributeError: definitions is not a dict/Mapping
-            existing_keys = set()
 
-        self.renamer = RefRenamer(renames={base_uri: BASE}, banned=existing_keys)
+        self.renamer = RefRenamer(renames={base_uri: BASE})
         super().__init__(base_uri=base_uri, referrer=self.schema, cache_remote=True)
 
     def _walk_schema(self):
