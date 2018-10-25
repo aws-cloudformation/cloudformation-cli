@@ -10,7 +10,7 @@ handlers:
     stream: ext://sys.stdout
 # tweak specific loggers here (e.g. other libraries)
 # loggers:
-#   uluru:
+#   rpdk:
 #     level: DEBUG
 #     handlers: [console]
 #     propagate: no

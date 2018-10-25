@@ -1,8 +1,8 @@
 include README.rst
 include LICENSE
 
-graft uluru
-prune uluru/languages/*/tests
+graft src
+prune src/rpdk/languages/*/tests
 
 # last rule wins, put excludes last
 global-exclude __pycache__ *.py[co] .DS_Store

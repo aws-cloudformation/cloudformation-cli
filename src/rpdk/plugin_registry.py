@@ -2,7 +2,7 @@ import pkg_resources
 
 PLUGIN_REGISTRY = {
     entry_point.name: entry_point.load()()
-    for entry_point in pkg_resources.iter_entry_points("uluru.languages")
+    for entry_point in pkg_resources.iter_entry_points("rpdk.languages")
 }
 
 

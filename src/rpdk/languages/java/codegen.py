@@ -6,9 +6,9 @@ from pathlib import Path
 
 import pkg_resources
 
-from uluru.filters import resource_type_resource
-from uluru.jsonutils.json_schema_normalizer import JsonSchemaNormalizer
-from uluru.plugin_base import LanguagePlugin
+from rpdk.filters import resource_type_resource
+from rpdk.jsonutils.json_schema_normalizer import JsonSchemaNormalizer
+from rpdk.plugin_base import LanguagePlugin
 
 from .pojo_resolver import JavaPojoResolver
 
@@ -45,7 +45,7 @@ class JavaLanguagePlugin(LanguagePlugin):
         intellij_conf_dir.mkdir(exist_ok=True)
 
         resource_schema_stream = pkg_resources.resource_stream(
-            "uluru", "data/schema/provider.definition.schema.v1.json"
+            "rpdk", "data/schema/provider.definition.schema.v1.json"
         )
         resource_schema_out = (
             project_settings["output_directory"] / "provider.definition.schema.v1.json"

@@ -19,7 +19,7 @@ def local_lambda(args):
     resource_file = json.load(args.resource_file)
     pytest_args = [
         "--pyargs",
-        "uluru.tests.contract_tests",
+        "rpdk.tests.contract_tests",
         "-p",
         "no:warnings",
         "--verbose",

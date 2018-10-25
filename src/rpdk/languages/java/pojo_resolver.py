@@ -1,5 +1,5 @@
-from uluru.filters import uppercase_first_letter
-from uluru.jsonutils.pointer import fragment_decode
+from rpdk.filters import uppercase_first_letter
+from rpdk.jsonutils.pointer import fragment_decode
 
 
 class PojoResolverError(Exception):

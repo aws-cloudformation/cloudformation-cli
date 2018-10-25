@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 from jsonschema.exceptions import ValidationError
 
-from uluru.data_loaders import make_validator
+from rpdk.data_loaders import make_validator
 
 
 @pytest.fixture

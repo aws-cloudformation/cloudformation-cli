@@ -12,8 +12,8 @@ import pytest
 import yaml
 from pytest_localserver.http import Request, Response, WSGIServer
 
-from uluru.data_loaders import load_project_settings, load_resource_spec, make_validator
-from uluru.plugin_base import LanguagePlugin
+from rpdk.data_loaders import load_project_settings, load_resource_spec, make_validator
+from rpdk.plugin_base import LanguagePlugin
 
 
 def yaml_s(obj):
