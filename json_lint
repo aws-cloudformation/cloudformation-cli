@@ -38,16 +38,19 @@ def main():
     return_code = 0
     for filename in tree.split(b"\0"):
         if filename.endswith(b".json"):
-            path = join(BASE_PATH, filename)
-            if args.check:
-                if not check_json(path):
-                    # can't use print if we want to keep the filename in bytes
-                    sys.stdout.buffer.write(b"would reformat: ")
-                    sys.stdout.buffer.write(filename)
-                    sys.stdout.buffer.write(b"\n")
-                    return_code = 1
-            else:
-                rewrite_json(path)
+            try:
+                path = join(BASE_PATH, filename)
+                if args.check:
+                    if not check_json(path):
+                        # can't use print if we want to keep the filename in bytes
+                        sys.stdout.buffer.write(b"would reformat: ")
+                        sys.stdout.buffer.write(filename)
+                        sys.stdout.buffer.write(b"\n")
+                        return_code = 1
+                else:
+                    rewrite_json(path)
+            except FileNotFoundError:
+                pass
 
     return return_code
 
