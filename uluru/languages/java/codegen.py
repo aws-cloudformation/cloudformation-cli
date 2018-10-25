@@ -32,8 +32,6 @@ class JavaLanguagePlugin(LanguagePlugin):
 
     def init(self, project_settings):
         LOG.info("Setting up package directories...")
-        output_directory = Path(project_settings["output_directory"])
-        output_directory.mkdir(exist_ok=True)
 
         project_settings["buildSystem"] = "maven"
         project_settings["output_directory"] = Path(
@@ -75,15 +73,14 @@ class JavaLanguagePlugin(LanguagePlugin):
     def generate(self, resource_def, project_settings):
         LOG.info("Starting code generation...")
         output_directory = Path(project_settings["output_directory"])
-        output_directory.mkdir(exist_ok=True)
 
         package_components = project_settings["packageName"].split(".")
         src_main_dir = output_directory.joinpath("generated-src", *package_components)
         tst_main_dir = output_directory.joinpath("tst", *package_components)
 
         # eradicate any content from a prior codegen run
-        shutil.rmtree(src_main_dir)
-        shutil.rmtree(tst_main_dir)
+        shutil.rmtree(src_main_dir, ignore_errors=True)
+        shutil.rmtree(tst_main_dir, ignore_errors=True)
 
         pojos_directory = src_main_dir / "models"
         handlers_directory = src_main_dir / "handlers"
@@ -158,7 +155,7 @@ class JavaLanguagePlugin(LanguagePlugin):
     def generate_handlers(self, project_settings, output_directory):
         LOG.info("Generating Handlers...")
 
-        resource_type = self._java_pojo_resolver.normalized_resource_type_name()
+        resource_type = self._java_pojo_resolver.normalized_resource_type_name
         operations = ["Create", "Read", "Update", "Delete", "List"]
 
         # writes a jinja subclass to the templates folder and adds the handlers

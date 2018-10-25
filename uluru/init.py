@@ -3,6 +3,8 @@
 import argparse
 import logging
 import os
+import shutil
+from pathlib import Path
 
 from .data_loaders import load_project_settings
 from .plugin_registry import PLUGIN_REGISTRY, add_language_argument
@@ -18,6 +20,11 @@ def init(args):
     project_settings["output_directory"] = args.output_directory
 
     LOG.info("Initializing project files...")
+    sample_schema_path = Path("examples/schema/resource/initech.tps.report.v1.json")
+    output_path = Path(args.output_directory)
+    output_path.mkdir(exist_ok=True)
+    shutil.copy(sample_schema_path, args.output_directory)
+
     plugin.init(project_settings)
 
 
