@@ -114,7 +114,7 @@
                     "properties": {
                         "KMSMasterKeyID": {
                             "description": "\"KMSMasterKeyID\" can only be used when you set the value of SSEAlgorithm as aws:kms.",
-                            "$ref": "../aws.common.types.v1.json#/definitions/KMSMasterKeyID"
+                            "type": "string"
                         },
                         "SSEAlgorithm": {
                             "type": "string",
@@ -294,7 +294,7 @@
                     "type": "string"
                 },
                 "TransitionDate": {
-                    "$ref": "../common.types.v1.json#/definitions/iso-8601-utc"
+                    "$ref": "../common.types.v1.json#/definitions/iso8601UTC"
                 },
                 "TransitionInDays": {
                     "type": "integer"
@@ -324,7 +324,7 @@
                     "$ref": "#/definitions/AbortIncompleteMultipartUpload"
                 },
                 "ExpirationDate": {
-                    "$ref": "../common.types.v1.json#/definitions/iso-8601-utc"
+                    "$ref": "../common.types.v1.json#/definitions/iso8601UTC"
                 },
                 "ExpirationInDays": {
                     "type": "integer"
@@ -432,7 +432,8 @@
             "type": "object",
             "properties": {
                 "DestinationBucketName": {
-                    "$ref": "#/definitions/S3BucketName"
+                    "type": "string",
+                    "description": "The name of an Amazon S3 bucket where Amazon S3 store server access log files. You can store log files in any bucket that you own. By default, logs are stored in the bucket where the LoggingConfiguration property is defined."
                 },
                 "LogFilePrefix": {
                     "type": "string"

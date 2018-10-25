@@ -78,7 +78,7 @@
         },
         "Tags": {
             "description": "The tags that you want to attach to this queue.",
-            "$ref": "../aws.common.types.v1.json#/properties/Tags"
+            "$ref": "../aws.common.types.v1.json#/definitions/Tags"
         },
         "URL": {
             "type": "string",

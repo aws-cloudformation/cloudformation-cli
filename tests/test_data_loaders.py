@@ -16,6 +16,10 @@ from uluru.data_loaders import load_project_settings, load_resource_spec, make_v
 from uluru.plugin_base import LanguagePlugin
 
 
+def yaml_s(obj):
+    return StringIO(yaml.dump(obj))
+
+
 def test_load_resource_spec_not_yaml():
     with pytest.raises(yaml.YAMLError):
         load_resource_spec(StringIO("}"))
@@ -28,12 +32,12 @@ def test_load_resource_spec_empty_is_invalid():
 
 def test_load_resource_spec_boolean_is_invalid():
     with pytest.raises(jsonschema.exceptions.ValidationError):
-        load_resource_spec(StringIO("true"))
+        load_resource_spec(yaml_s(True))
 
 
 def test_load_resource_spec_empty_object_is_invalid():
     with pytest.raises(jsonschema.exceptions.ValidationError):
-        load_resource_spec(StringIO("{}"))
+        load_resource_spec(yaml_s({}))
 
 
 def test_load_resource_spec_example_spec_is_valid():
@@ -53,8 +57,15 @@ def test_load_resource_spec_example_spec_is_invalid():
                 load_resource_spec(f)
 
 
-def yaml_s(obj):
-    return StringIO(yaml.dump(obj))
+def test_load_resource_spec_remote_key_is_invalid():
+    schema = {
+        "typeName": "AWS::FOO::BAR",
+        "properties": {"foo": {"type": "string"}},
+        "remote": {},
+    }
+    with pytest.raises(jsonschema.exceptions.ValidationError) as excinfo:
+        load_resource_spec(yaml_s(schema))
+    assert "remote" in excinfo.value.message
 
 
 @pytest.fixture
@@ -107,9 +118,9 @@ def test_make_validator_handlers_time_out():
         return Response("true", mimetype="application/json")
 
     with wsgi_serve(application) as server:
-        with pytest.raises(jsonschema.exceptions.RefResolutionError) as e:
+        with pytest.raises(jsonschema.exceptions.RefResolutionError) as excinfo:
             validator = make_validator(
                 {"$ref": server.url}, base_uri="http://localhost/", timeout=0.5
             )
             validator.validate(True)
-        assert "Read timed out" in str(e)
+    assert "Read timed out" in str(excinfo.value)

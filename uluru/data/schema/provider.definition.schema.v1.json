@@ -237,6 +237,29 @@
             "additionalProperties": false,
             "minProperties": 1
         },
+        "remote": {
+            "description": "Reserved for CloudFormation use. A namespace to inline remote schemas.",
+            "type": "object",
+            "patternProperties": {
+                "^schema[0-9]+$": {
+                    "description": "Reserved for CloudFormation use. A inlined remote schema.",
+                    "type": "object",
+                    "properties": {
+                        "$comment": {
+                            "$ref": "http://json-schema.org/draft-07/schema#/properties/$comment"
+                        },
+                        "properties": {
+                            "$ref": "#/properties/properties"
+                        },
+                        "definitions": {
+                            "$ref": "#/properties/definitions"
+                        }
+                    },
+                    "additionalProperties": true
+                }
+            },
+            "additionalProperties": false
+        },
         "readOnly": {
             "description": "A list of JSON pointers to properties that are able to be found in a Read request but unable to be specified by the customer",
             "$ref": "#/definitions/jsonPointerArray"
