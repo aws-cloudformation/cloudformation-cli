@@ -16,15 +16,24 @@ EXPECTED_PYTEST_ARGS = [
 
 def test_test_command():
     with mock.patch("uluru.test.local_lambda", autospec=True) as mock_lambda_command:
-        test_file = tempfile.NamedTemporaryFile()
-        main(args_in=["test", "local-lambda", test_file.name, test_file.name])
+        test_resource_file = tempfile.NamedTemporaryFile()
+        test_resource_def_file = tempfile.NamedTemporaryFile()
+        main(
+            args_in=[
+                "test",
+                "local-lambda",
+                test_resource_file.name,
+                test_resource_def_file.name,
+            ]
+        )
 
     mock_lambda_command.assert_called_once()
     args, _ = mock_lambda_command.call_args
     argparse_namespace = args[0]
     assert argparse_namespace.endpoint == "http://127.0.0.1:3001"
     assert argparse_namespace.function_name == "Handler"
-    assert argparse_namespace.resource.name == test_file.name
+    assert argparse_namespace.resource_file.name == test_resource_file.name
+    assert argparse_namespace.resource_def_file.name == test_resource_def_file.name
     assert argparse_namespace.subparser_name == "test"
 
 
@@ -33,8 +42,8 @@ def test_local_lambda_command():
         arg_namespace = argparse.Namespace(
             endpoint="http://127.0.0.1:3001",
             function_name="Handler",
-            resource=test_file,
-            definition=test_file,
+            resource_file=test_file,
+            resource_def_file=test_file,
             subparser_name="test",
             test_types=None,
         )
@@ -52,8 +61,8 @@ def test_local_lambda_with_test_type():
         arg_namespace = argparse.Namespace(
             endpoint="http://127.0.0.1:3001",
             function_name="Handler",
-            resource=test_file,
-            definition=test_file,
+            resource_file=test_file,
+            resource_def_file=test_file,
             subparser_name="test",
             test_types="TEST_TYPE",
         )
