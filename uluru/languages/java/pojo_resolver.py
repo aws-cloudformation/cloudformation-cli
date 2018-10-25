@@ -19,7 +19,7 @@ class JavaPojoResolver:
     def _get_ref_to_class_map(self, resource_type):
         """Creates a Java class name for each ref_path in the noramlized schema map.
         """
-        ref_to_class_map = {"#": self.normalized_resource_type_name()}
+        ref_to_class_map = {"#": self.normalized_resource_type_name}
         for ref_path in self.normalized_schema_map.keys():
             if ref_path == "#":
                 continue
@@ -38,6 +38,7 @@ class JavaPojoResolver:
             class_name += "_"
         return class_name
 
+    @property
     def normalized_resource_type_name(self):
         return self._normalized_resource_type_name
 
