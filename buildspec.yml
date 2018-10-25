@@ -8,9 +8,9 @@ phases:
     commands:
       - ./json_lint --check
       - ./newline_lint --check
-      - isort --check-only --verbose --recursive "setup.py" "run_lint" "json_lint" "newline_lint" "src/" "tests/"
-      - black --check "setup.py" "run_lint" "json_lint" "newline_lint" "src/" "tests/"
-      - flake8 "setup.py" "run_lint" "json_lint" "newline_lint" "src/" "tests/"
+      - isort --check-only --verbose --recursive "."
+      - black --check "."
+      - flake8 "."
       - pylint "setup.py" "run_lint" "json_lint" "newline_lint" "src/" "tests/"
       - bandit -r "src/" --exclude "tests"
       - pytest --cov="src/" --doctest-modules "src/" "tests/"
