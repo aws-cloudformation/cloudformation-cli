@@ -23,6 +23,7 @@ class JavaLanguagePlugin(LanguagePlugin):
         self.env = self._setup_jinja_env(
             trim_blocks=True, lstrip_blocks=True, keep_trailing_newline=True
         )
+        self._java_pojo_resolver = None
 
     def project_settings_defaults(self):
         return super().project_settings_defaults()
@@ -105,20 +106,19 @@ class JavaLanguagePlugin(LanguagePlugin):
             directory.mkdir(parents=True, exist_ok=True)
             LOG.debug("Created directory %s", directory)
 
-        self._java_pojo_resolver = self.build_pojo_resolver(resource_def)
+        self.build_pojo_resolver(resource_def)
 
         self.generate_pojos(project_settings, pojos_directory)
         self.generate_package(project_settings, "messages", messages_directory)
         self.generate_package(project_settings, "interfaces", interfaces_directory)
         self.generate_base_handlers(project_settings, base_handlers_directory)
         self.generate_stub_handlers(project_settings, stub_handlers_directory)
-        self.generate_unit_tests(resource_def, project_settings, unit_tests_directory)
 
     def build_pojo_resolver(self, resource_def):
         normalizer = JsonSchemaNormalizer(resource_def)
         normalized_map = normalizer.collapse_and_resolve_schema()
         LOG.debug("Normalized Schema Map: %s", normalized_map)
-        return JavaPojoResolver(
+        self._java_pojo_resolver = JavaPojoResolver(
             normalized_map, resource_type_resource(resource_def["typeName"])
         )
 
@@ -147,11 +147,11 @@ class JavaLanguagePlugin(LanguagePlugin):
         LOG.info("Generating Package Code...")
 
         # writes a jinja subclass to the templates folder and adds the handlers
-        for p in self.env.list_templates(
+        for path in self.env.list_templates(
             filter_func=lambda x: x.startswith(input_directory)
         ):
-            template = self.env.get_template(p)
-            output_filepath = Path(output_directory) / p.replace(
+            template = self.env.get_template(path)
+            output_filepath = Path(output_directory) / path.replace(
                 "{}/".format(input_directory), ""
             )
             with output_filepath.open("w", encoding="utf-8") as f:
@@ -191,7 +191,7 @@ class JavaLanguagePlugin(LanguagePlugin):
             stub_template = self.env.get_template("handlers/StubHandler.java")
             output_filepath = Path(output_directory) / stub_handler_file
             # we do not overwrite the handler implementations
-            if not (Path(output_filepath).exists()):
+            if not output_filepath.exists():
                 with output_filepath.open("w", encoding="utf-8") as f:
                     f.write(
                         stub_template.render(
@@ -201,6 +201,3 @@ class JavaLanguagePlugin(LanguagePlugin):
                         )
                     )
                 LOG.debug("Created Handler file %s", output_filepath)
-
-    def generate_unit_tests(self, resource_def, project_settings, output_directory):
-        LOG.info("Generating Unit Tests...")

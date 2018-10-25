@@ -14,9 +14,9 @@ class JavaPojoResolver:
     def __init__(self, normalized_schema_map, resource_type):
         self.normalized_schema_map = normalized_schema_map
         self._normalized_resource_type_name = uppercase_first_letter(resource_type)
-        self._ref_to_class_map = self._get_ref_to_class_map(resource_type)
+        self._ref_to_class_map = self._get_ref_to_class_map()
 
-    def _get_ref_to_class_map(self, resource_type):
+    def _get_ref_to_class_map(self):
         """Creates a Java class name for each ref_path in the noramlized schema map.
         """
         ref_to_class_map = {"#": self.normalized_resource_type_name}
@@ -28,7 +28,8 @@ class JavaPojoResolver:
             )
         return ref_to_class_map
 
-    def _get_class_name_from_ref(self, ref_path, ref_to_class_map):
+    @staticmethod
+    def _get_class_name_from_ref(ref_path, ref_to_class_map):
         """Given a json schema ref, returns the best guess at a Java class name.
         """
         class_name = base_class_from_ref(ref_path)
@@ -123,7 +124,8 @@ class JavaPojoResolver:
             )
             return "Map<String, {}>".format(pattern_properties_class_name)
 
-    def _array_class_name(self, property_schema):
+    @staticmethod
+    def _array_class_name(property_schema):
         insertion_order = property_schema.get("insertionOrder", False)
         unique_items = property_schema.get("uniqueItems", False)
 
