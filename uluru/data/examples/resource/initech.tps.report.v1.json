@@ -1,0 +1,78 @@
+{
+    "$id": "initech.tps.report.v1.json",
+    "typeName": "Initech::TPS::Report",
+    "description": "An example resource schema demonstrating some basic constructs and validation rules.",
+    "sourceUrl": "git@github.com:awslabs/aws-cloudformation-rpdk.git",
+    "definitions": {
+        "InitechDateFormat": {
+            "$comment": "Use the `definitions` block to provide shared resource property schemas",
+            "type": "string",
+            "format": "date-time"
+        }
+    },
+    "properties": {
+        "TPSCode": {
+            "description": "A TPS Code is automatically generated on creation and assigned as the unique identifier.",
+            "type": "string",
+            "pattern": "^[A-Z]{3,5}[0-9]{8}-[0-9]{4}$"
+        },
+        "Title": {
+            "description": "The title of the TPS report is a mandatory element.",
+            "type": "string",
+            "minLength": 20,
+            "maxLength": 250
+        },
+        "CoverSheetIncluded": {
+            "description": "Required for all TPS Reports submitted after 2/19/1999",
+            "type": "boolean"
+        },
+        "DueDate": {
+            "$ref": "#/definitions/InitechDateFormat"
+        },
+        "ApprovalDate": {
+            "$ref": "#/definitions/InitechDateFormat"
+        },
+        "Memo": {
+            "type": "string"
+        },
+        "SecondCopyOfMemo": {
+            "description": "In case you didn't get the first one.",
+            "type": "string"
+        },
+        "TestCode": {
+            "anyOf": [
+                {
+                    "type": "string",
+                    "enum": [
+                        "NOT_STARTED",
+                        "CANCELLED"
+                    ]
+                },
+                {
+                    "type": "integer",
+                    "enum": [
+                        123,
+                        456,
+                        789
+                    ]
+                }
+            ]
+        },
+        "Authors": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            }
+        }
+    },
+    "required": [
+        "#/properties/Title",
+        "#/properties/DueDate"
+    ],
+    "readOnly": [
+        "#/properties/tps_code"
+    ],
+    "identifiers": [
+        "#/properties/tps_code"
+    ]
+}
