@@ -120,7 +120,7 @@ def compare_requested_model(requested_model, returned_model, resource_def):
     write_only_properties = {
         fragment_decode(prop)[-1] for prop in resource_def.get("writeOnly", ())
     }
-    comparable_properties = set(requested_model.keys()) - set(write_only_properties)
+    comparable_properties = set(requested_model.keys()) - write_only_properties
     for key in comparable_properties:
         assert returned_model[key] == requested_model[key]
 
@@ -228,7 +228,7 @@ def test_create_create(event_listener, transport, test_resource, resource_def):
     try:
         encoded_id = non_read_only_identifiers.pop()
     except KeyError:
-        return
+        pytest.skip("No writeable identifiers")
     id_key = fragment_decode(encoded_id)[-1]
     request, token = prepare_request(
         CREATE, resource_def["typeName"], resource=test_resource
@@ -315,7 +315,7 @@ def test_delete_create(event_listener, transport, test_resource, resource_def):
     try:
         encoded_id = non_read_only_identifiers.pop()
     except KeyError:
-        return
+        pytest.skip("No writeable identifiers")
     id_key = fragment_decode(encoded_id)[-1]
     deleted_resource = create_and_delete_resource(
         event_listener, transport, test_resource, resource_def
