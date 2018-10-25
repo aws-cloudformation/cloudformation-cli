@@ -6,6 +6,8 @@ import os
 import shutil
 from pathlib import Path
 
+import pkg_resources
+
 from .data_loaders import load_project_settings
 from .plugin_registry import PLUGIN_REGISTRY, add_language_argument
 
@@ -20,10 +22,15 @@ def init(args):
     project_settings["output_directory"] = args.output_directory
 
     LOG.info("Initializing project files...")
-    sample_schema_path = Path("examples/schema/resource/initech.tps.report.v1.json")
     output_path = Path(args.output_directory)
     output_path.mkdir(exist_ok=True)
-    shutil.copy(sample_schema_path, args.output_directory)
+
+    sample_schema_stream = pkg_resources.resource_stream(
+        __name__, "data/examples/resource/initech.tps.report.v1.json"
+    )
+    sample_schema_out = output_path / "initech.tps.report.v1.json"
+    with sample_schema_out.open("wb") as f:
+        shutil.copyfileobj(sample_schema_stream, f)
 
     plugin.init(project_settings)
 
