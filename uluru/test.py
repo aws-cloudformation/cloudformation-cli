@@ -15,8 +15,8 @@ LOG = logging.getLogger(__name__)
 
 def local_lambda(args):
     transport = LocalLambdaTransport(args.endpoint, args.function_name)
-    resource = json.load(args.resource)
-    resource_def = json.load(args.definition)
+    resource_def_file = json.load(args.resource_def_file)
+    resource_file = json.load(args.resource_file)
     pytest_args = [
         "--pyargs",
         "uluru.tests.contract_tests",
@@ -27,7 +27,8 @@ def local_lambda(args):
     if args.test_types:
         pytest_args.extend(["-k", args.test_types])
     pytest.main(
-        pytest_args, plugins=[ContractPlugin(transport, resource, resource_def)]
+        pytest_args,
+        plugins=[ContractPlugin(transport, resource_file, resource_def_file)],
     )
 
 
@@ -38,11 +39,11 @@ def setup_subparser(subparsers):
     local_lambda_subparser = test_subparsers.add_parser("local-lambda")
     local_lambda_subparser.set_defaults(command=local_lambda)
     local_lambda_subparser.add_argument(
-        "resource", help="Example resource model", type=argparse.FileType("r")
+        "resource_file", help="Example resource model", type=argparse.FileType("r")
     )
     local_lambda_subparser.add_argument(
-        "definition",
-        help="The definition of the resource that the handler provisions ",
+        "resource_def_file",
+        help="The definition of the resource that the handler provisions",
         type=argparse.FileType("r"),
     )
     local_lambda_subparser.add_argument(
