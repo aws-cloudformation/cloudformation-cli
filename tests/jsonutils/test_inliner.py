@@ -1,7 +1,11 @@
 # pylint: disable=protected-access
 import json
+from pathlib import Path
 from unittest.mock import patch
 
+import pytest
+
+from uluru.data_loaders import load_resource_spec, make_resource_validator
 from uluru.jsonutils.inliner import RefInliner
 
 BASE_URI = "http://localhost/"
@@ -16,7 +20,7 @@ def make_inliner(schema, base_uri=BASE_URI):
 
 
 def test_refinliner_values_are_not_walked():
-    inliner = make_inliner(None)
+    inliner = make_inliner({})
     walk_fn = inliner._walk
     # replace the walk function so it throws an error if it's called
     with patch.object(inliner, "_walk", autospec=True) as mock:
@@ -37,13 +41,6 @@ def test_refinliner_arrays_are_walked():
     inliner = make_inliner(local)
     inliner._walk_schema()
     assert len(inliner.ref_graph) == 1
-
-
-def test_refinliner_always_adds_definitions():
-    local = {"type": "object", "properties": {"foo": {"type": "string"}}}
-    inliner = make_inliner(local)
-    schema = inliner.inline()
-    assert "definitions" in schema
 
 
 def test_refinliner_local_refs_simple_are_walked_and_unchanged():
@@ -90,24 +87,9 @@ def test_refinliner_remote_refs_simple_are_walked_and_inlined(httpserver):
     ref = httpserver.url + "#/nested/bar"
     inliner = make_inliner({"type": "object", "properties": {"foo": {"$ref": ref}}})
     schema = inliner.inline()
-    assert schema["definitions"]["schema0"]["nested/bar"] == target
-    assert schema["properties"]["foo"]["$ref"] == "#/definitions/schema0/nested~1bar"
+    assert schema["remote"]["schema0"]["nested"]["bar"] == target
+    assert schema["properties"]["foo"]["$ref"] == "#/definitions/schema0/nested/bar"
     assert len(inliner.ref_graph) == 1
-
-
-def test_refinliner_existing_renames_isnt_overwritten(httpserver):
-    target = {"type": "string"}
-    httpserver.serve_content(json.dumps({"bar": target}))
-    ref = httpserver.url + "#/bar"
-    inliner = make_inliner(
-        {
-            "type": "object",
-            "definitions": {"renames": None},
-            "properties": {"foo": {"$ref": ref}},
-        }
-    )
-    schema = inliner.inline()
-    assert schema["definitions"]["renames"] is None
 
 
 def test_refinliner_remote_refs_circular_are_walked_and_inlined(httpserver):
@@ -121,8 +103,8 @@ def test_refinliner_remote_refs_circular_are_walked_and_inlined(httpserver):
         {"type": "object", "properties": {"foo": {"$ref": ref_local}}}
     )
     schema = inliner.inline()
-    assert schema["definitions"]["schema0"]["nested/bar"]["$ref"] == ref_a
-    assert schema["properties"]["foo"]["$ref"] == "#/definitions/schema0/nested~1bar"
+    assert schema["remote"]["schema0"]["nested"]["bar"]["$ref"] == ref_a
+    assert schema["properties"]["foo"]["$ref"] == "#/definitions/schema0/nested/bar"
     assert len(inliner.ref_graph) == 2
 
 
@@ -138,22 +120,9 @@ def test_refinliner_remote_refs_on_filesystem_are_inlined(tmpdir):
         {"type": "object", "properties": {"foo": {"$ref": ref}}}, base_uri=base_uri
     )
     schema = inliner.inline()
-    assert schema["definitions"]["schema0"]["nested/bar"] == target
-    assert schema["properties"]["foo"]["$ref"] == "#/definitions/schema0/nested~1bar"
+    assert schema["remote"]["schema0"]["nested"]["bar"] == target
+    assert schema["properties"]["foo"]["$ref"] == "#/definitions/schema0/nested/bar"
     assert len(inliner.ref_graph) == 1
-
-
-def test_refinliner_existing_keys_are_not_overwritten(httpserver):
-    httpserver.serve_content(json.dumps({"type": "string"}))
-    local = {
-        "type": "object",
-        "definitions": {"schema0": {}},
-        "properties": {"foo": {"$ref": httpserver.url + "#"}},
-    }
-    inliner = make_inliner(local)
-    schema = inliner.inline()
-    assert schema["definitions"]["schema0"] == {}
-    assert schema["definitions"]["schema1"]["type"] == "string"
 
 
 def test_refinliner_rename_comment_is_added(httpserver):
@@ -161,4 +130,21 @@ def test_refinliner_rename_comment_is_added(httpserver):
     local = {"$ref": httpserver.url + "#"}
     inliner = make_inliner(local)
     schema = inliner.inline()
-    assert schema["definitions"]["schema0"]["$comment"] == httpserver.url
+    assert schema["remote"]["schema0"]["$comment"] == httpserver.url
+
+
+def test_refinliner_exiting_remote_key_is_invalid():
+    with pytest.raises(ValueError):
+        RefInliner("", {"remote": {}})
+
+
+def test_refinliner_produces_valid_schemas():
+    validator = make_resource_validator()
+    basedir = Path(__file__).parent.parent.parent  # tests/jsonutils/test_inliner.py
+    exampledir = basedir / "examples" / "schema" / "resource"
+    for example in exampledir.glob("*.json"):
+        with example.open("r", encoding="utf-8") as f:
+            schema = load_resource_spec(f)
+        inliner = RefInliner(example.as_uri(), schema)
+        inlined = inliner.inline()
+        validator.validate(inlined)

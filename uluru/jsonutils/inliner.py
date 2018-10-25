@@ -16,15 +16,11 @@ class RefInliner(RefResolver):
         self.schema = schema
         self.ref_graph = {}
 
-        try:
-            existing_keys = set(self.schema["definitions"].keys())
-        except (TypeError, KeyError, AttributeError):
-            # TypeError: schema is not a dict/Mapping
-            # KeyError: schema has no definitions
-            # AttributeError: definitions is not a dict/Mapping
-            existing_keys = set()
+        # our meta-schema should catch this, but better to be explicit
+        if "remote" in self.schema:
+            raise ValueError("Schema already contains remote schemas.")
 
-        self.renamer = RefRenamer(renames={base_uri: BASE}, banned=existing_keys)
+        self.renamer = RefRenamer(renames={base_uri: BASE})
         super().__init__(base_uri=base_uri, referrer=self.schema, cache_remote=True)
 
     def _walk_schema(self):
@@ -75,26 +71,15 @@ class RefInliner(RefResolver):
                 current["$ref"] = new_ref
 
     def _inline_defs(self):
-        global_defs = self.schema.get("definitions", {})
+        global_defs = {}
         for base_uri, rename in self.renamer.items():
             if rename is BASE:  # no need to process the local file
                 continue
             LOG.debug("Inlining definitions from '%s' (%s)", rename, base_uri)
             global_defs[rename] = local_defs = {"$comment": base_uri}
-            document = self.store[base_uri]
-            for to_ref in self.ref_graph.values():
-                base, *parts = to_ref
-                # only process refs in this file
-                if base != rename:
-                    continue
-                # convert the parts into one flattened reference
-                if parts:
-                    key = "/".join(parts)
-                    local_defs[key] = traverse(document, parts)
-                    LOG.debug("  %s#%s", base, key)
-                else:
-                    local_defs.update(document)
-        self.schema["definitions"] = global_defs
+            local_defs.update(self.store[base_uri])
+        if global_defs:
+            self.schema["remote"] = global_defs
 
     def inline(self):
         self._walk_schema()

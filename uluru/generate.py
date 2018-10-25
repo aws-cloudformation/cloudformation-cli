@@ -7,6 +7,7 @@ customize the code generation.
 import argparse
 import logging
 import os
+from pathlib import Path
 
 from .data_loaders import load_project_settings, load_resource_spec
 from .plugin_registry import PLUGIN_REGISTRY, add_language_argument
@@ -20,11 +21,15 @@ def generate(args):
     LOG.info("Loading the project settings...")
     project_settings = load_project_settings(plugin, args.project_settings_file)
     project_settings["output_directory"] = args.output_directory
+    output_path = Path(args.output_directory)
+    output_path.mkdir(exist_ok=True)
 
     LOG.info("Loading the resource provider definition...")
     resource_def = load_resource_spec(args.resource_def_file)
     LOG.info("Generating code...")
     plugin.generate(resource_def, project_settings)
+
+    LOG.info("Generation complete.")
 
 
 def setup_subparser(subparsers):

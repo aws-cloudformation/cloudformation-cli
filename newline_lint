@@ -51,15 +51,18 @@ def main():
             continue
 
         path = join(BASE_PATH, filename)
-        if args.check:
-            if not check(path):
-                # can't use print if we want to keep the filename in bytes
-                sys.stdout.buffer.write(b"no newline at eof: ")
-                sys.stdout.buffer.write(filename)
-                sys.stdout.buffer.write(b"\n")
-                return_code = 1
-        else:
-            rewrite(path)
+        try:
+            if args.check:
+                if not check(path):
+                    # can't use print if we want to keep the filename in bytes
+                    sys.stdout.buffer.write(b"no newline at eof: ")
+                    sys.stdout.buffer.write(filename)
+                    sys.stdout.buffer.write(b"\n")
+                    return_code = 1
+            else:
+                rewrite(path)
+        except FileNotFoundError:
+            pass
 
     return return_code
 

@@ -28,6 +28,14 @@ def make_validator(schema, base_uri=None, timeout=TIMEOUT_IN_SECONDS):
     return Draft7Validator(schema, resolver=resolver)
 
 
+def make_resource_validator(base_uri=None, timeout=TIMEOUT_IN_SECONDS):
+    with pkg_resources.resource_stream(
+        __name__, "data/schema/provider.definition.schema.v1.json"
+    ) as f:
+        schema = json.load(f)
+    return make_validator(schema, base_uri=base_uri, timeout=timeout)
+
+
 def load_resource_spec(resource_spec_file):
     """Load a resource provider definition from a file, and validate it."""
     try:
@@ -37,12 +45,7 @@ def load_resource_spec(resource_spec_file):
         raise
         # TODO: error handling, decode errors have 'msg', 'doc', 'pos'
 
-    with pkg_resources.resource_stream(
-        __name__, "data/schema/provider.definition.schema.v1.json"
-    ) as f:
-        resource_spec_schema = json.load(f)
-
-    validator = make_validator(resource_spec_schema)
+    validator = make_resource_validator()
     try:
         validator.validate(resource_spec)
     except ValidationError as e:
@@ -50,6 +53,16 @@ def load_resource_spec(resource_spec_file):
             "The resource provider definition is invalid: %s", e.message  # noqa: B306
         )
         raise
+
+    # TODO: more general validation framework
+    if "remote" in resource_spec:
+        raise ValidationError(
+            message="Property 'remote' is reserved for CloudFormation use",
+            validator="cloudFormation",
+            validator_value=False,
+            instance=resource_spec,
+            schema=resource_spec,
+        )
 
     return resource_spec
 

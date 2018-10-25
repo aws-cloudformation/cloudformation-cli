@@ -31,6 +31,8 @@ class JavaLanguagePlugin(LanguagePlugin):
         return super().project_settings_schema()
 
     def init(self, project_settings):
+        LOG.info("Setting up package directories...")
+
         project_settings["buildSystem"] = "maven"
         project_settings["output_directory"] = Path(
             project_settings["output_directory"]
@@ -69,34 +71,61 @@ class JavaLanguagePlugin(LanguagePlugin):
             f.write(pom_template.render(project_settings))
 
     def generate(self, resource_def, project_settings):
-        LOG.info("Setting up package directories...")
-        output_directory = Path(project_settings["output_directory"]).resolve(
-            strict=True
-        )
+        LOG.info("Starting code generation...")
+        output_directory = Path(project_settings["output_directory"])
 
         package_components = project_settings["packageName"].split(".")
-        src_main_dir = output_directory.joinpath("generated-src", *package_components)
-        tst_main_dir = output_directory.joinpath("tst", *package_components)
+        generated_src_main_dir = output_directory.joinpath(
+            "generated-src", *package_components
+        )
+        src_main_dir = output_directory.joinpath("src", *package_components)
+        generated_tst_main_dir = output_directory.joinpath("tst", *package_components)
 
-        pojos_directory = src_main_dir / "models"
-        handlers_directory = tst_main_dir / "handlers"
+        # eradicate any content from a prior codegen run
+        shutil.rmtree(generated_src_main_dir, ignore_errors=True)
+        shutil.rmtree(generated_tst_main_dir, ignore_errors=True)
 
-        unit_tests_directory = tst_main_dir / "handlers"
+        pojos_directory = generated_src_main_dir / "models"
+        base_handlers_directory = generated_src_main_dir / "handlers"
+        stub_handlers_directory = src_main_dir / "handlers"
+        unit_tests_directory = generated_tst_main_dir
 
-        for directory in (pojos_directory, handlers_directory, unit_tests_directory):
+        # package files
+        interfaces_directory = generated_src_main_dir / "interfaces"
+        messages_directory = generated_src_main_dir / "messages"
+
+        for directory in (
+            pojos_directory,
+            interfaces_directory,
+            messages_directory,
+            base_handlers_directory,
+            stub_handlers_directory,
+            unit_tests_directory,
+        ):
             directory.mkdir(parents=True, exist_ok=True)
             LOG.debug("Created directory %s", directory)
 
-        self.generate_pojos(resource_def, project_settings, pojos_directory)
+        self._java_pojo_resolver = self.build_pojo_resolver(resource_def)
 
-    def generate_pojos(self, resource_def, project_settings, output_directory):
-        LOG.info("Generating POJOs...")
+        self.generate_pojos(project_settings, pojos_directory)
+        self.generate_package(project_settings, "messages", messages_directory)
+        self.generate_package(project_settings, "interfaces", interfaces_directory)
+        self.generate_base_handlers(project_settings, base_handlers_directory)
+        self.generate_stub_handlers(project_settings, stub_handlers_directory)
+        self.generate_unit_tests(resource_def, project_settings, unit_tests_directory)
+
+    def build_pojo_resolver(self, resource_def):
         normalizer = JsonSchemaNormalizer(resource_def)
         normalized_map = normalizer.collapse_and_resolve_schema()
         LOG.debug("Normalized Schema Map: %s", normalized_map)
+        return JavaPojoResolver(
+            normalized_map, resource_type_resource(resource_def["typeName"])
+        )
 
-        resource_type = resource_type_resource(resource_def["typeName"])
-        pojos = JavaPojoResolver(normalized_map, resource_type).resolve_pojos()
+    def generate_pojos(self, project_settings, output_directory):
+        LOG.info("Generating POJOs...")
+
+        pojos = self._java_pojo_resolver.resolve_pojos()
         LOG.debug("Pojos: %s", pojos)
 
         # writes a jinja subclass to the templates folder and adds the subresource
@@ -113,3 +142,65 @@ class JavaLanguagePlugin(LanguagePlugin):
                     )
                 )
             LOG.debug("Created POJO file %s", output_filepath)
+
+    def generate_package(self, project_settings, input_directory, output_directory):
+        LOG.info("Generating Package Code...")
+
+        # writes a jinja subclass to the templates folder and adds the handlers
+        for p in self.env.list_templates(
+            filter_func=lambda x: x.startswith(input_directory)
+        ):
+            template = self.env.get_template(p)
+            output_filepath = Path(output_directory) / p.replace(
+                "{}/".format(input_directory), ""
+            )
+            with output_filepath.open("w", encoding="utf-8") as f:
+                f.write(template.render(**project_settings))
+            LOG.debug("Created Package file %s", output_filepath)
+
+    def generate_base_handlers(self, project_settings, output_directory):
+        LOG.info("Generating Base Handlers...")
+
+        resource_type = self._java_pojo_resolver.normalized_resource_type_name
+        operations = ["Create", "Read", "Update", "Delete", "List"]
+
+        # writes a jinja subclass to the templates folder and adds the handlers
+        for operation in operations:
+            base_handler_file = "Base{}Handler.java".format(operation)
+            base_template = self.env.get_template(
+                "handlers/{}".format(base_handler_file)
+            )
+            base_output_filepath = Path(output_directory) / base_handler_file
+            with base_output_filepath.open("w", encoding="utf-8") as f:
+                f.write(
+                    base_template.render(
+                        operation=operation, pojo_name=resource_type, **project_settings
+                    )
+                )
+            LOG.debug("Created BaseHandler file %s", base_output_filepath)
+
+    def generate_stub_handlers(self, project_settings, output_directory):
+        LOG.info("Generating Handlers...")
+
+        resource_type = self._java_pojo_resolver.normalized_resource_type_name
+        operations = ["Create", "Read", "Update", "Delete", "List"]
+
+        # writes a jinja subclass to the templates folder and adds the handlers
+        for operation in operations:
+            stub_handler_file = "{}Handler.java".format(operation)
+            stub_template = self.env.get_template("handlers/StubHandler.java")
+            output_filepath = Path(output_directory) / stub_handler_file
+            # we do not overwrite the handler implementations
+            if not (Path(output_filepath).exists()):
+                with output_filepath.open("w", encoding="utf-8") as f:
+                    f.write(
+                        stub_template.render(
+                            operation=operation,
+                            pojo_name=resource_type,
+                            **project_settings,
+                        )
+                    )
+                LOG.debug("Created Handler file %s", output_filepath)
+
+    def generate_unit_tests(self, resource_def, project_settings, output_directory):
+        LOG.info("Generating Unit Tests...")
