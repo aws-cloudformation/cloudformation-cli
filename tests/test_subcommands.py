@@ -7,7 +7,7 @@ from rpdk.test import local_lambda
 
 EXPECTED_PYTEST_ARGS = [
     "--pyargs",
-    "rpdk.tests.contract_tests",
+    "rpdk.contract.contract_tests",
     "-p",
     "no:warnings",
     "--verbose",
