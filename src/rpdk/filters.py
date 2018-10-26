@@ -36,7 +36,7 @@ def resource_type_namespace(resource_type):
     """Gets the namespace from a resource type.
 
     :exc:`ValueError` is raised if the resource type is invalid, see
-    :function:`parse_resource_type`.
+    :func:`parse_resource_type`.
 
     >>> resource_type_namespace('AWS::ECS::Instance')
     'AWS'
@@ -49,7 +49,7 @@ def resource_type_service(resource_type):
     """Gets the service name from a resource type.
 
     :exc:`ValueError` is raised if the resource type is invalid, see
-    :function:`parse_resource_type`.
+    :func:`parse_resource_type`.
 
     >>> resource_type_service('AWS::ECS::Instance')
     'ECS'
@@ -62,7 +62,7 @@ def resource_type_resource(resource_type):
     """Gets the resource name from a resource type.
 
     :exc:`ValueError` is raised if the resource type is invalid, see
-    :function:`parse_resource_type`.
+    :func:`parse_resource_type`.
 
     >>> resource_type_resource('AWS::ECS::Instance')
     'Instance'

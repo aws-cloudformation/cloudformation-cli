@@ -15,6 +15,7 @@ class BaseRefPlaceholder:
         return "<BASE>"
 
 
+#: The sentinel instance representing a reference inside the base document.
 BASE = BaseRefPlaceholder()
 
 
@@ -22,7 +23,7 @@ def rewrite_ref(ref):
     """Rewrite a reference to be inside of the base document. A relative JSON
     pointer is returned (in URI fragment identifier representation).
 
-    If the reference is already inside the base document (:ref:`BASE`), the parts
+    If the reference is already inside the base document (:const:`BASE`), the parts
     are simply encoded into a pointer.
 
     If the reference is outside of the base document, a unique pointer inside
