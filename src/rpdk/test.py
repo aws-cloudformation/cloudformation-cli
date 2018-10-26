@@ -35,6 +35,10 @@ def local_lambda(args):
 def setup_subparser(subparsers):
     # see docstring of this file
     parser = subparsers.add_parser("test", description=__doc__)
+    # need to set this, so the help of this specific subparser is printed,
+    # not the parent's help
+    parser.set_defaults(command=lambda args: parser.print_help())
+
     test_subparsers = parser.add_subparsers(help="Type of transport to use for testing")
     local_lambda_subparser = test_subparsers.add_parser("local-lambda")
     local_lambda_subparser.set_defaults(command=local_lambda)

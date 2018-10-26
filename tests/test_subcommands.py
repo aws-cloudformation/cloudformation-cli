@@ -14,6 +14,12 @@ EXPECTED_PYTEST_ARGS = [
 ]
 
 
+def test_test_command_help():
+    with mock.patch("rpdk.test.local_lambda", autospec=True) as mock_lambda_command:
+        main(args_in=["test"])
+    mock_lambda_command.assert_not_called()
+
+
 def test_test_command():
     with mock.patch("rpdk.test.local_lambda", autospec=True) as mock_lambda_command:
         test_resource_file = tempfile.NamedTemporaryFile()
