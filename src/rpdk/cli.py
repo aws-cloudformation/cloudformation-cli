@@ -15,6 +15,7 @@ from .validate import setup_subparser as validate_setup_subparser
 
 
 def setup_logging(verbosity=0):
+    """Configure logging with a variable verbosity level (0, 1, 2)."""
     if verbosity > 1:
         level = logging.DEBUG
     elif verbosity > 0:
@@ -30,6 +31,7 @@ def setup_logging(verbosity=0):
 
 
 def main(args_in=None):
+    """The entry point for the CLI."""
     # see docstring of this file
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
