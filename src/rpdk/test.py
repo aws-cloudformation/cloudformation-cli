@@ -7,8 +7,8 @@ import logging
 
 import pytest
 
-from .tests.contract_plugin import ContractPlugin
-from .tests.transports import LocalLambdaTransport
+from .contract.contract_plugin import ContractPlugin
+from .contract.transports import LocalLambdaTransport
 
 LOG = logging.getLogger(__name__)
 
@@ -19,7 +19,7 @@ def local_lambda(args):
     resource_file = json.load(args.resource_file)
     pytest_args = [
         "--pyargs",
-        "uluru.tests.contract_tests",
+        "rpdk.contract.contract_tests",
         "-p",
         "no:warnings",
         "--verbose",

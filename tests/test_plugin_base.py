@@ -5,8 +5,8 @@ from unittest.mock import patch
 import pytest
 import yaml
 
-from uluru.filters import FILTER_REGISTRY
-from uluru.plugin_base import LanguagePlugin
+from rpdk.filters import FILTER_REGISTRY
+from rpdk.plugin_base import LanguagePlugin
 
 
 class TestLanguagePlugin(LanguagePlugin):

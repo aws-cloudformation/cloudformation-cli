@@ -5,8 +5,8 @@ from unittest.mock import patch
 
 import pytest
 
-from uluru.data_loaders import load_resource_spec, make_resource_validator
-from uluru.jsonutils.inliner import RefInliner
+from rpdk.data_loaders import load_resource_spec, make_resource_validator
+from rpdk.jsonutils.inliner import RefInliner
 
 BASE_URI = "http://localhost/"
 

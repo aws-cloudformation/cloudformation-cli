@@ -1,5 +1,5 @@
 # fixture and parameter have the same name
-# pylint: disable=redefined-outer-name
+# pylint: disable=redefined-outer-name,protected-access
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
@@ -40,10 +40,10 @@ def test_java_language_plugin_generate(plugin):
 def test_initialize_maven(plugin, project_settings):
     plugin._initialize_maven(project_settings)
     pom_tree = ET.parse(str(project_settings["output_directory"] / "pom.xml"))
-    ns = {"maven": "http://maven.apache.org/POM/4.0.0"}
-    package_name_prefix = pom_tree.find("maven:groupId", ns)
+    namespace = {"maven": "http://maven.apache.org/POM/4.0.0"}
+    package_name_prefix = pom_tree.find("maven:groupId", namespace)
     assert package_name_prefix.text == "com.example.provider"
-    package_name = pom_tree.find("maven:artifactId", ns)
+    package_name = pom_tree.find("maven:artifactId", namespace)
     assert package_name.text == "com-example-provider"
 
 

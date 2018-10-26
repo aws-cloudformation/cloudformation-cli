@@ -1,5 +1,5 @@
 # fixture and parameter have the same name
-# pylint: disable=redefined-outer-name
+# pylint: disable=redefined-outer-name,protected-access
 import pkg_resources
 import pytest
 import yaml

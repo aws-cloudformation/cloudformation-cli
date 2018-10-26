@@ -1,16 +1,16 @@
 ## Provider Definition Schema
 
-This document describes the [Resource Provider Definition Schema](https://github.com/awslabs/aws-cloudformation-rpdk/blob/handlers/uluru/data/schema/provider.definition.schema.v1.json) which is a _meta-schema_ that extends [draft-07](https://json-schema.org/draft-07/json-schema-release-notes.html) of [JSON Schema](https://json-schema.org/) to define a validating document against which resource schemas can be authored.
+This document describes the [Resource Provider Definition Schema](https://github.com/awslabs/aws-cloudformation-rpdk/blob/master/src/rpdk/data/schema/provider.definition.schema.v1.json) which is a _meta-schema_ that extends [draft-07](https://json-schema.org/draft-07/json-schema-release-notes.html) of [JSON Schema](https://json-schema.org/) to define a validating document against which resource schemas can be authored.
 
 ## Examples
 
-Numerous [examples](https://github.com/awslabs/aws-cloudformation-rpdk/tree/handlers/examples/schema/resource) exist in this repository to help you understand various shape and semantic definition models you can apply to your own resource definitions.  
+Numerous [examples](https://github.com/awslabs/aws-cloudformation-rpdk/tree/handlers/examples/schema/resource) exist in this repository to help you understand various shape and semantic definition models you can apply to your own resource definitions.
 
 ## Defining Resources
 
 ### Overview
 
-The _meta-schema_ which controls and validates your resource type definition is called the [Resource Provider Definition Schema](https://github.com/awslabs/aws-cloudformation-rpdk/blob/handlers/uluru/data/schema/provider.definition.schema.v1.json). It is fully compliant with [draft-07](https://json-schema.org/draft-07/json-schema-release-notes.html) of [JSON Schema](https://json-schema.org/) and many IDEs including [IntelliJ](https://www.jetbrains.com/idea/), [PyCharm](https://www.jetbrains.com/pycharm/) and [Visual Studio Code](https://code.visualstudio.com/) come with built-in or plugin-based support for code-completion and syntax validation while editing documents for JSON Schema compliance. Comprehensive [documentation](https://json-schema.org/understanding-json-schema/reference/) for JSON Schema exists and can answer many questions around correct usage.
+The _meta-schema_ which controls and validates your resource type definition is called the [Resource Provider Definition Schema](https://github.com/awslabs/aws-cloudformation-rpdk/blob/master/src/rpdk/data/schema/provider.definition.schema.v1.json). It is fully compliant with [draft-07](https://json-schema.org/draft-07/json-schema-release-notes.html) of [JSON Schema](https://json-schema.org/) and many IDEs including [IntelliJ](https://www.jetbrains.com/idea/), [PyCharm](https://www.jetbrains.com/pycharm/) and [Visual Studio Code](https://code.visualstudio.com/) come with built-in or plugin-based support for code-completion and syntax validation while editing documents for JSON Schema compliance. Comprehensive [documentation](https://json-schema.org/understanding-json-schema/reference/) for JSON Schema exists and can answer many questions around correct usage.
 
 To get started, you will author a _specification_ for your resource type in a JSON document, which must be compliant with this _meta-schema_. To make authoring resource _specifications_ simpler, we have constrained the scope of the full JSON Schema standard to apply opinions around how certain validations can be expressed and encourage consistent modelling for all resource schemas. These opinions are codified in the _meta-schema_ and described in this document.
 
@@ -29,8 +29,8 @@ Certain properties of a resource are _semantic_ and have special meaning when us
 
 * **`identifiers`**: Each property listed in the `identifiers` section must be able to be used to uniquely identify the resource. These properties can be independently provided as keys to a **READ** or **DELETE** request. These properties are usually also marked as `readOnly` and are only returned from **READ** and **LIST** operations.
 * **`readOnly`**: A `readOnly` property cannot be specified in a **CREATE** or **UPDATE** request, and attempting to do so will produce a runtime error from the handler.
-* **`writeOnly`**: A `writeOnly` property cannot be returned in a **READ** or **LIST** request, and can be used to express things like passwords, secrets or other sensitive data. 
-* **`createOnly`**: A `createOnly` property cannot be specified in an **UPDATE** request, and can only be specified in a **CREATE** request. Another way to think about this - these are properties which are 'write-once', such as the [`Engine`](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-rds-database-instance.html#cfn-rds-dbinstance-engine) property for an [`AWS::RDS::DBInstance`](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-rds-database-instance.html) and if you wish to change such a property on a live resource, you should replace that resource by creating a new instance of the resource and terminating the old one. This is the behaviour CloudFormation follows for all properties documented as _'Update Requires: Replacement'_. An attempt to supply these properties to an **UPDATE** request will produce a runtime error from the handler. 
+* **`writeOnly`**: A `writeOnly` property cannot be returned in a **READ** or **LIST** request, and can be used to express things like passwords, secrets or other sensitive data.
+* **`createOnly`**: A `createOnly` property cannot be specified in an **UPDATE** request, and can only be specified in a **CREATE** request. Another way to think about this - these are properties which are 'write-once', such as the [`Engine`](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-rds-database-instance.html#cfn-rds-dbinstance-engine) property for an [`AWS::RDS::DBInstance`](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-rds-database-instance.html) and if you wish to change such a property on a live resource, you should replace that resource by creating a new instance of the resource and terminating the old one. This is the behaviour CloudFormation follows for all properties documented as _'Update Requires: Replacement'_. An attempt to supply these properties to an **UPDATE** request will produce a runtime error from the handler.
 
 #### Application
 
@@ -76,10 +76,10 @@ The following (truncated) example shows some of the semantic definitions for an 
 
 ### Changes
 
-We have taken an opinion on certain aspects of the core JSON Schema and introduced certain constrains and changes from the core schema. In the context of this project, we are not building arbitrary documents, but rather, defining a very specific shape and semantic for cloud resources. 
+We have taken an opinion on certain aspects of the core JSON Schema and introduced certain constrains and changes from the core schema. In the context of this project, we are not building arbitrary documents, but rather, defining a very specific shape and semantic for cloud resources.
 
-* **`readOnly`**: the readOnly field as defined in JSON Schema does not align with our determination that this is actually a restriction with semantic meaning. A property may be readOnly when specified for a particular resource (for example it's `Arn`), but when that same property is _referenced_ (using `$ref` tokens) from a dependency, the dependency must be allowed to specify an input for that property, and as such, it is no longer `readOnly` in that context. 
-* **`writeOnly`**: see above 
+* **`readOnly`**: the readOnly field as defined in JSON Schema does not align with our determination that this is actually a restriction with semantic meaning. A property may be readOnly when specified for a particular resource (for example it's `Arn`), but when that same property is _referenced_ (using `$ref` tokens) from a dependency, the dependency must be allowed to specify an input for that property, and as such, it is no longer `readOnly` in that context.
+* **`writeOnly`**: see above
 
 ### Constraints
 

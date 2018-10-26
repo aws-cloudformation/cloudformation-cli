@@ -2,12 +2,12 @@ import argparse
 import tempfile
 from unittest import mock
 
-from uluru.cli import main
-from uluru.test import local_lambda
+from rpdk.cli import main
+from rpdk.test import local_lambda
 
 EXPECTED_PYTEST_ARGS = [
     "--pyargs",
-    "uluru.tests.contract_tests",
+    "rpdk.contract.contract_tests",
     "-p",
     "no:warnings",
     "--verbose",
@@ -15,7 +15,7 @@ EXPECTED_PYTEST_ARGS = [
 
 
 def test_test_command():
-    with mock.patch("uluru.test.local_lambda", autospec=True) as mock_lambda_command:
+    with mock.patch("rpdk.test.local_lambda", autospec=True) as mock_lambda_command:
         test_resource_file = tempfile.NamedTemporaryFile()
         test_resource_def_file = tempfile.NamedTemporaryFile()
         main(

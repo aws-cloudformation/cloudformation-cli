@@ -22,13 +22,16 @@ def find_version(*file_paths):
 
 
 setup(
-    name="uluru-cli",
-    version=find_version("uluru", "__init__.py"),
+    name="aws-cloudformation-rpdk",
+    version=find_version("src", "rpdk", "__init__.py"),
     description=__doc__,
     long_description=read("README.rst"),
     author="Amazon Web Services",
     url="https://aws.amazon.com/cloudformation/",
-    packages=find_packages(exclude=["tests", "*.tests"]),
+    packages=find_packages(
+        where="src", exclude=["*.tests", "*.tests.*", "tests.*", "tests"]
+    ),
+    package_dir={"": "src"},
     # package_data -> use MANIFEST.in instead
     include_package_data=True,
     zip_safe=True,
@@ -42,8 +45,8 @@ setup(
         "requests>=2.19",  # fmt: off
     ],
     entry_points={
-        "console_scripts": ["uluru-cli = uluru.cli:main"],
-        "uluru.languages": ["java = uluru.languages.java:JavaLanguagePlugin"],
+        "console_scripts": ["uluru-cli = rpdk.cli:main"],
+        "rpdk.languages": ["java = rpdk.languages.java:JavaLanguagePlugin"],
     },
     license="Apache License 2.0",
     classifiers=(

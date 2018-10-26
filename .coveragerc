@@ -1,6 +1,6 @@
 [run]
 branch = True
-omit = */tests/*
+omit = */tests/*,**/contract_tests.py
 
 [report]
 fail_under = 83

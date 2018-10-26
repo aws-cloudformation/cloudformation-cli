@@ -5,7 +5,7 @@ import pkg_resources
 import pytest
 import yaml
 
-from uluru.jsonutils.json_schema_normalizer import (
+from rpdk.jsonutils.json_schema_normalizer import (
     JsonSchemaNormalizer,
     NormalizationError,
 )

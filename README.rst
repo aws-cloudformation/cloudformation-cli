@@ -77,7 +77,7 @@ have the following entry point:
 .. code-block:: python
 
     entry_points={
-        "uluru.languages": ["groovy = uluru-groovy:GroovyLanguagePlugin"],
+        "rpdk.languages": ["groovy = rpdk-groovy:GroovyLanguagePlugin"],
     },
 
 Plugins must provide the same interface as ``LanguagePlugin`` (in
@@ -96,9 +96,8 @@ tool.)
 
     virtualenv -p python3 env
     source env/bin/activate
-    pip install --upgrade --pre jsonschema
-    pip install -r requirements.txt
     pip install -e .
+    pip install -r requirements.txt
 
 Before committing code, please execute the ``run_lint`` script. This performs
 several steps for your convenience:
