@@ -16,7 +16,9 @@ UPDATE = "UPDATE"
 DELETE = "DELETE"
 LIST = "LIST"
 ALREADY_EXISTS = "AlreadyExists"
+NOT_UPDATABLE = "NotUpdatable"
 NOT_FOUND = "NotFound"
+NO_OP = "NoOperationToPerform"
 IN_PROGRESS = "IN_PROGRESS"
 COMPLETE = "COMPLETE"
 FAILED = "FAILED"
@@ -44,8 +46,8 @@ class CallbackServer(WSGIServer):
 
 
 def get_identifier_property(resource_def, resource_model):
-    id_reference = fragment_decode(resource_def["identifiers"][1])
-    return id_reference[-1], resource_model[id_reference[-1]]
+    id_reference = fragment_decode(resource_def["identifiers"][0])
+    return id_reference[-1], resource_model["properties"][id_reference[-1]]
 
 
 def wait_for_specified_event(listener, specified_event, timeout_in_seconds=60):
@@ -62,7 +64,9 @@ def wait_for_specified_event(listener, specified_event, timeout_in_seconds=60):
     return events
 
 
-def prepare_request(operation, resource_type, token=None, resource=None):
+def prepare_request(
+    operation, resource_type, token=None, resource=None, previous_resource=None
+):
     if not token:
         token = str(uuid4())
     request = {
@@ -74,7 +78,11 @@ def prepare_request(operation, resource_type, token=None, resource=None):
         "requestData": {},
     }
     if resource:
-        request["requestData"]["resourceProperties"] = resource
+        request["requestData"]["resourceProperties"] = resource["properties"]
+    if previous_resource:
+        request["requestData"]["previousResourceProperties"] = previous_resource[
+            "properties"
+        ]
     return request, token
 
 
@@ -82,37 +90,46 @@ def verify_events_contain_token(events, token):
     assert all(event["clientRequestToken"] == token for event in events)
 
 
-def delete_resource(listener, transport, resource, resource_def):
+def create_resource(event_listener, transport, resource):
+    request, token = prepare_request(CREATE, resource["type"], resource=resource)
+    transport(request, event_listener.server_address)
+    events = wait_for_specified_event(event_listener, COMPLETE)
+    verify_events_contain_token(events, token)
+    return events[-1]
+
+
+def read_resource(event_listener, transport, resource, resource_def):
     id_key, id_value = get_identifier_property(resource_def, resource)
-    delete_request, _token = prepare_request(
-        DELETE, resource_def["typeName"], resource={id_key: id_value}
+    read_resource = {"type": resource["type"]}
+    read_resource["properties"] = {id_key: id_value}
+    request, token = prepare_request(
+        READ, resource_def["typeName"], resource=read_resource
     )
-    transport(delete_request, listener.server_address)
-    delete_events = wait_for_specified_event(listener, COMPLETE)
-    assert delete_events[-1]["status"] == COMPLETE
+    read_response = transport(request, event_listener.server_address)
+    print(read_response)
+    assert read_response["clientRequestToken"] == token
+    return read_response
 
 
-def create_and_delete_resource(listener, transport, resource, resource_def):
-    create_request, token = prepare_request(
-        CREATE, resource_def["typeName"], resource=resource
+def update_resource(event_listener, transport, resource, updated_resource):
+    request, token = prepare_request(
+        UPDATE, resource["type"], resource=updated_resource, previous_resource=resource
     )
-    transport(create_request, listener.server_address)
-    create_events = wait_for_specified_event(listener, COMPLETE)
-    last_event = create_events[-1]
+    transport(request, event_listener.server_address)
+    events = wait_for_specified_event(event_listener, COMPLETE)
+    verify_events_contain_token(events, token)
+    return events[-1]
 
-    verify_events_contain_token(create_events, token)
-    assert last_event["status"] == COMPLETE
+
+def delete_resource(event_listener, transport, resource, resource_def):
     id_key, id_value = get_identifier_property(resource_def, resource)
-
-    delete_request, token = prepare_request(
-        DELETE, resource_def["typeName"], resource={id_key: id_value}
+    request, token = prepare_request(
+        DELETE, resource["type"], resource={"properties": {id_key: id_value}}
     )
-    transport(delete_request, listener.server_address)
-    delete_events = wait_for_specified_event(listener, COMPLETE)
-
-    verify_events_contain_token(delete_events, token)
-    assert delete_events[-1]["status"] == COMPLETE
-    return last_event["resources"][0]
+    transport(request, event_listener.server_address)
+    events = wait_for_specified_event(event_listener, COMPLETE)
+    verify_events_contain_token(events, token)
+    return events[-1]
 
 
 def compare_requested_model(requested_model, returned_model, resource_def):
@@ -120,9 +137,25 @@ def compare_requested_model(requested_model, returned_model, resource_def):
     write_only_properties = {
         fragment_decode(prop)[-1] for prop in resource_def.get("writeOnly", ())
     }
-    comparable_properties = set(requested_model.keys()) - write_only_properties
+    comparable_properties = (
+        set(requested_model["properties"].keys()) - write_only_properties
+    )
     for key in comparable_properties:
-        assert returned_model[key] == requested_model[key]
+        assert returned_model["properties"][key] == requested_model["properties"][key]
+
+
+def check_for_writable_identifiers(test_resource, resource_def):
+    # Need to have non readOnly identifiers for this test to be worthwhile,
+    # because otherwise tests involving creates after deletes/creates
+    # with the same properties is simply creating another resource
+    encoded_writable_identifiers = set(resource_def["identifiers"]) - set(
+        resource_def["readOnly"]
+    )
+    writable_identifiers = {
+        fragment_decode(identifier)[-1] for identifier in encoded_writable_identifiers
+    }
+    if not set(test_resource["properties"].keys() & writable_identifiers):
+        pytest.skip("No writable identifiers")
 
 
 def test_create_ack(event_listener, transport, resource_def):
@@ -134,10 +167,8 @@ def test_create_ack(event_listener, transport, resource_def):
     assert events[0]["status"] == IN_PROGRESS
 
 
-def test_update_ack(event_listener, transport, test_resource, resource_def):
-    request, token = prepare_request(
-        UPDATE, resource_def["typeName"], resource=test_resource
-    )
+def test_update_ack(event_listener, transport, resource_def):
+    request, token = prepare_request(UPDATE, resource_def["typeName"])
     transport(request, event_listener.server_address)
     events = wait_for_specified_event(event_listener, IN_PROGRESS, ACK_TIMEOUT)
 
@@ -156,57 +187,32 @@ def test_delete_ack(event_listener, transport, test_resource, resource_def):
     assert events[0]["status"] == IN_PROGRESS
 
 
-def test_create(event_listener, transport, test_resource, resource_def):
-    request, token = prepare_request(
-        CREATE, resource_def["typeName"], resource=test_resource
-    )
-    transport(request, event_listener.server_address)
-    events = wait_for_specified_event(event_listener, COMPLETE)
-    last_event = events[-1]
-    created_resource = last_event["resources"][0]
-
-    verify_events_contain_token(events, token)
-    assert last_event["status"] == COMPLETE
-    compare_requested_model(test_resource, created_resource, resource_def)
-
-    delete_resource(event_listener, transport, created_resource, resource_def)
-
-
 def test_read_not_found(event_listener, transport, test_resource, resource_def):
-    request, token = prepare_request(
-        READ, resource_def["typeName"], resource=test_resource
+    read_response = read_resource(
+        event_listener, transport, test_resource, resource_def
     )
-    read_response = transport(request, event_listener.server_address)
 
-    assert read_response["clientRequestToken"] == token
     assert read_response["status"] == FAILED
     assert read_response["errorCode"] == NOT_FOUND
 
 
-def test_update_not_found(event_listener, transport, test_resource, resource_def):
-    request, token = prepare_request(
-        UPDATE, resource_def["typeName"], resource=test_resource
+def test_update_not_found(
+    event_listener, transport, test_resource, test_updated_resource
+):
+    update_terminal_event = update_resource(
+        event_listener, transport, test_resource, test_updated_resource
     )
-    transport(request, event_listener.server_address)
-    events = wait_for_specified_event(event_listener, COMPLETE)
-    last_event = events[-1]
 
-    verify_events_contain_token(events, token)
-    assert last_event["status"] == FAILED
-    assert last_event["errorCode"] == NOT_FOUND
+    assert update_terminal_event["status"] == FAILED
+    assert update_terminal_event["errorCode"] == NOT_FOUND
 
 
 def test_delete_not_found(event_listener, transport, test_resource, resource_def):
-    request, token = prepare_request(
-        DELETE, resource_def["typeName"], resource=test_resource
+    delete_terminal_event = delete_resource(
+        event_listener, transport, test_resource, resource_def
     )
-    transport(request, event_listener.server_address)
-    events = wait_for_specified_event(event_listener, COMPLETE)
-    last_event = events[-1]
-
-    verify_events_contain_token(events, token)
-    assert last_event["status"] == FAILED
-    assert last_event["errorCode"] == NOT_FOUND
+    assert delete_terminal_event["status"] == FAILED
+    assert delete_terminal_event["errorCode"] == NOT_FOUND
 
 
 def test_list_empty(event_listener, transport, resource_def):
@@ -219,152 +225,239 @@ def test_list_empty(event_listener, transport, resource_def):
 
 
 def test_create_create(event_listener, transport, test_resource, resource_def):
-    # Need to have non readOnly identifiers for this test to be worthwhile,
-    # because otherwise creating two resources
-    # with the same properties is simply creating two resources
-    non_read_only_identifiers = set(resource_def["identifiers"]) - set(
-        resource_def["readOnly"]
-    )
-    try:
-        encoded_id = non_read_only_identifiers.pop()
-    except KeyError:
-        pytest.skip("No writeable identifiers")
-    id_key = fragment_decode(encoded_id)[-1]
-    request, token = prepare_request(
-        CREATE, resource_def["typeName"], resource=test_resource
-    )
-    transport(request, event_listener.server_address)
-    create_events = wait_for_specified_event(event_listener, COMPLETE)
-    last_event = create_events[-1]
-    created_resource = last_event["resources"][0]
+    check_for_writable_identifiers(test_resource, resource_def)
 
-    verify_events_contain_token(create_events, token)
-    assert last_event["status"] == COMPLETE
+    create_terminal_event = create_resource(event_listener, transport, test_resource)
+    created_resource = create_terminal_event["resources"][0]
+    assert create_terminal_event["status"] == COMPLETE
     compare_requested_model(test_resource, created_resource, resource_def)
 
-    test_resource[id_key] = created_resource[id_key]
-    second_request, second_token = prepare_request(
-        CREATE, resource_def["typeName"], resource=test_resource
+    second_create_terminal_event = create_resource(
+        event_listener, transport, test_resource
     )
-    transport(second_request, event_listener.server_address)
-    second_create_events = wait_for_specified_event(event_listener, COMPLETE)
-    last_event = second_create_events[-1]
-    verify_events_contain_token(second_create_events, second_token)
-    assert last_event["status"] == FAILED
-    assert last_event["errorCode"] == ALREADY_EXISTS
-    delete_resource(event_listener, transport, created_resource, resource_def)
+    assert second_create_terminal_event["status"] == FAILED
+    assert second_create_terminal_event["errorCode"] == ALREADY_EXISTS
+
+    delete_terminal_event = delete_resource(
+        event_listener, transport, created_resource, resource_def
+    )
+    assert delete_terminal_event["status"] == COMPLETE
 
 
 def test_create_read(event_listener, transport, test_resource, resource_def):
-    request, token = prepare_request(
-        CREATE, resource_def["typeName"], resource=test_resource
-    )
-    transport(request, event_listener.server_address)
-    create_events = wait_for_specified_event(event_listener, COMPLETE)
-    last_event = create_events[-1]
-    created_resource = last_event["resources"][0]
-
-    verify_events_contain_token(create_events, token)
-    assert last_event["status"] == COMPLETE
+    create_terminal_event = create_resource(event_listener, transport, test_resource)
+    created_resource = create_terminal_event["resources"][0]
+    assert create_terminal_event["status"] == COMPLETE
     compare_requested_model(test_resource, created_resource, resource_def)
 
-    id_key, id_value = get_identifier_property(resource_def, created_resource)
-    read_request, read_token = prepare_request(
-        READ, resource_def["typeName"], resource={id_key: id_value}
+    read_response = read_resource(
+        event_listener, transport, created_resource, resource_def
     )
-    read_response = transport(read_request, event_listener.server_address)
-
     assert read_response["status"] == COMPLETE
-    assert read_response["clientRequestToken"] == read_token
     assert read_response["resources"][0] == created_resource
 
-    delete_resource(event_listener, transport, created_resource, resource_def)
+    delete_terminal_event = delete_resource(
+        event_listener, transport, created_resource, resource_def
+    )
+    assert delete_terminal_event["status"] == COMPLETE
 
 
 def test_create_delete(event_listener, transport, test_resource, resource_def):
-    request, token = prepare_request(
-        CREATE, resource_def["typeName"], resource=test_resource
-    )
-    transport(request, event_listener.server_address)
-    create_events = wait_for_specified_event(event_listener, COMPLETE)
-    last_event = create_events[-1]
-    created_resource = last_event["resources"][0]
-
-    verify_events_contain_token(create_events, token)
-    assert last_event["status"] == COMPLETE
+    create_terminal_event = create_resource(event_listener, transport, test_resource)
+    created_resource = create_terminal_event["resources"][0]
+    assert create_terminal_event["status"] == COMPLETE
     compare_requested_model(test_resource, created_resource, resource_def)
 
-    id_key, id_value = get_identifier_property(resource_def, created_resource)
-    delete_request, delete_token = prepare_request(
-        DELETE, resource_def["typeName"], resource={id_key: id_value}
+    delete_terminal_event = delete_resource(
+        event_listener, transport, created_resource, resource_def
     )
-    transport(delete_request, event_listener.server_address)
-    delete_events = wait_for_specified_event(event_listener, COMPLETE)
-
-    verify_events_contain_token(delete_events, delete_token)
-    assert delete_events[-1]["status"] == COMPLETE
+    assert delete_terminal_event["status"] == COMPLETE
 
 
-def test_delete_create(event_listener, transport, test_resource, resource_def):
-    # Need to have non readOnly identifiers for this test to be worthwhile,
-    # because otherwise creating after deleting resources
-    # with the same properties is simply creating a new resource
-    non_read_only_identifiers = set(resource_def["identifiers"]) - set(
-        resource_def["readOnly"]
-    )
-    try:
-        encoded_id = non_read_only_identifiers.pop()
-    except KeyError:
-        pytest.skip("No writeable identifiers")
-    id_key = fragment_decode(encoded_id)[-1]
-    deleted_resource = create_and_delete_resource(
-        event_listener, transport, test_resource, resource_def
-    )
-    test_resource[id_key] = deleted_resource[id_key]
-    request, token = prepare_request(
-        CREATE, resource_def["typeName"], resource=test_resource
-    )
-    transport(request, event_listener.server_address)
-    events = wait_for_specified_event(event_listener, COMPLETE)
-    last_event = events[-1]
-    created_resource = last_event["resources"][0]
-
+def test_create_update_noop(event_listener, transport, test_resource, resource_def):
+    create_terminal_event = create_resource(event_listener, transport, test_resource)
+    created_resource = create_terminal_event["resources"][0]
+    assert create_terminal_event["status"] == COMPLETE
     compare_requested_model(test_resource, created_resource, resource_def)
-    verify_events_contain_token(events, token)
-    assert last_event["status"] == COMPLETE
 
+    update_terminal_event = update_resource(
+        event_listener, transport, test_resource, test_resource
+    )
+    assert update_terminal_event["status"] == FAILED
+    assert update_terminal_event["errorCode"] == NO_OP
     delete_resource(event_listener, transport, created_resource, resource_def)
 
 
+def test_create_update(
+    event_listener, transport, test_resource, test_updated_resource, resource_def
+):
+    create_terminal_event = create_resource(event_listener, transport, test_resource)
+    created_resource = create_terminal_event["resources"][0]
+    assert create_terminal_event["status"] == COMPLETE
+    compare_requested_model(test_resource, created_resource, resource_def)
+
+    update_terminal_event = update_resource(
+        event_listener, transport, test_resource, test_updated_resource
+    )
+    updated_resource = update_terminal_event["resources"][0]
+    assert update_terminal_event["status"] == COMPLETE
+    compare_requested_model(test_updated_resource, updated_resource, resource_def)
+
+    delete_terminal_event = delete_resource(
+        event_listener, transport, updated_resource, resource_def
+    )
+    assert delete_terminal_event["status"] == COMPLETE
+
+
+def test_update_create(
+    event_listener, transport, test_resource, test_updated_resource, resource_def
+):
+    check_for_writable_identifiers(test_resource, resource_def)
+    create_terminal_event = create_resource(event_listener, transport, test_resource)
+    created_resource = create_terminal_event["resources"][0]
+    assert create_terminal_event["status"] == COMPLETE
+    compare_requested_model(test_resource, created_resource, resource_def)
+
+    update_terminal_event = update_resource(
+        event_listener, transport, test_resource, test_updated_resource
+    )
+    updated_resource = update_terminal_event["resources"][0]
+    assert update_terminal_event["status"] == COMPLETE
+    compare_requested_model(test_updated_resource, updated_resource, resource_def)
+
+    second_create_terminal_event = create_resource(
+        event_listener, transport, test_resource
+    )
+    assert second_create_terminal_event["status"] == FAILED
+    assert second_create_terminal_event["errorCode"] == ALREADY_EXISTS
+
+
+def test_update_read(
+    event_listener, transport, test_resource, test_updated_resource, resource_def
+):
+    create_terminal_event = create_resource(event_listener, transport, test_resource)
+    created_resource = create_terminal_event["resources"][0]
+    assert create_terminal_event["status"] == COMPLETE
+    compare_requested_model(test_resource, created_resource, resource_def)
+
+    update_terminal_event = update_resource(
+        event_listener, transport, test_resource, test_updated_resource
+    )
+    updated_resource = update_terminal_event["resources"][0]
+    assert update_terminal_event["status"] == COMPLETE
+    compare_requested_model(test_updated_resource, updated_resource, resource_def)
+
+    read_response = read_resource(
+        event_listener, transport, updated_resource, resource_def
+    )
+    read_response_resource = read_response["resources"][0]
+    assert read_response["status"] == COMPLETE
+    assert read_response_resource == updated_resource
+
+    delete_terminal_event = delete_resource(
+        event_listener, transport, updated_resource, resource_def
+    )
+    assert delete_terminal_event["status"] == COMPLETE
+
+
+def test_update_update(
+    event_listener, transport, test_resource, test_updated_resource, resource_def
+):
+    create_terminal_event = create_resource(event_listener, transport, test_resource)
+    created_resource = create_terminal_event["resources"][0]
+    assert create_terminal_event["status"] == COMPLETE
+    compare_requested_model(test_resource, created_resource, resource_def)
+
+    update_terminal_event = update_resource(
+        event_listener, transport, test_resource, test_updated_resource
+    )
+    updated_resource = update_terminal_event["resources"][0]
+    assert update_terminal_event["status"] == COMPLETE
+    compare_requested_model(test_updated_resource, updated_resource, resource_def)
+
+    second_update_terminal_event = update_resource(
+        event_listener, transport, test_updated_resource, test_resource
+    )
+    second_updated_resource = second_update_terminal_event["resources"][0]
+    assert update_terminal_event["status"] == COMPLETE
+    compare_requested_model(test_resource, second_updated_resource, resource_def)
+
+    delete_terminal_event = delete_resource(
+        event_listener, transport, updated_resource, resource_def
+    )
+    assert delete_terminal_event["status"] == COMPLETE
+
+
+def test_delete_create(event_listener, transport, test_resource, resource_def):
+    check_for_writable_identifiers(test_resource, resource_def)
+    create_terminal_event = create_resource(event_listener, transport, test_resource)
+    created_resource = create_terminal_event["resources"][0]
+    assert create_terminal_event["status"] == COMPLETE
+    compare_requested_model(test_resource, created_resource, resource_def)
+    delete_terminal_event = delete_resource(
+        event_listener, transport, created_resource, resource_def
+    )
+    assert delete_terminal_event["status"] == COMPLETE
+
+    create_terminal_event = create_resource(event_listener, transport, test_resource)
+    created_resource = create_terminal_event["resources"][0]
+    assert create_terminal_event["status"] == COMPLETE
+
+    delete_terminal_event = delete_resource(
+        event_listener, transport, created_resource, resource_def
+    )
+    assert delete_terminal_event["status"] == COMPLETE
+
+
 def test_delete_read(event_listener, transport, test_resource, resource_def):
-    deleted_resource = create_and_delete_resource(
-        event_listener, transport, test_resource, resource_def
+    create_terminal_event = create_resource(event_listener, transport, test_resource)
+    created_resource = create_terminal_event["resources"][0]
+    assert create_terminal_event["status"] == COMPLETE
+    compare_requested_model(test_resource, created_resource, resource_def)
+    delete_terminal_event = delete_resource(
+        event_listener, transport, created_resource, resource_def
     )
-    id_key, id_value = get_identifier_property(resource_def, deleted_resource)
+    assert delete_terminal_event["status"] == COMPLETE
 
-    request, token = prepare_request(
-        READ, resource_def["typeName"], resource={id_key: id_value}
+    read_response = read_resource(
+        event_listener, transport, created_resource, resource_def
     )
-    read_response = transport(request, event_listener.server_address)
-
-    assert read_response["clientRequestToken"] == token
     assert read_response["status"] == FAILED
     assert read_response["errorCode"] == NOT_FOUND
 
 
+def test_delete_update(
+    event_listener, transport, test_resource, test_updated_resource, resource_def
+):
+    create_terminal_event = create_resource(event_listener, transport, test_resource)
+    created_resource = create_terminal_event["resources"][0]
+    assert create_terminal_event["status"] == COMPLETE
+    compare_requested_model(test_resource, created_resource, resource_def)
+    delete_terminal_event = delete_resource(
+        event_listener, transport, created_resource, resource_def
+    )
+    assert delete_terminal_event["status"] == COMPLETE
+
+    update_terminal_event = update_resource(
+        event_listener, transport, test_resource, test_updated_resource
+    )
+    assert update_terminal_event["status"] == FAILED
+    assert update_terminal_event["errorCode"] == NOT_FOUND
+
+
 def test_delete_delete(event_listener, transport, test_resource, resource_def):
-    deleted_resource = create_and_delete_resource(
-        event_listener, transport, test_resource, resource_def
+    create_terminal_event = create_resource(event_listener, transport, test_resource)
+    created_resource = create_terminal_event["resources"][0]
+    assert create_terminal_event["status"] == COMPLETE
+    compare_requested_model(test_resource, created_resource, resource_def)
+    delete_terminal_event = delete_resource(
+        event_listener, transport, created_resource, resource_def
     )
-    id_key, id_value = get_identifier_property(resource_def, deleted_resource)
+    assert delete_terminal_event["status"] == COMPLETE
 
-    request, token = prepare_request(
-        DELETE, resource_def["typeName"], resource={id_key: id_value}
+    compare_requested_model(test_resource, created_resource, resource_def)
+    second_delete_terminal_event = delete_resource(
+        event_listener, transport, created_resource, resource_def
     )
-    transport(request, event_listener.server_address)
-    events = wait_for_specified_event(event_listener, COMPLETE)
-    last_event = events[-1]
-
-    verify_events_contain_token(events, token)
-    assert last_event["status"] == FAILED
-    assert last_event["errorCode"] == NOT_FOUND
+    assert second_delete_terminal_event["status"] == FAILED
+    assert second_delete_terminal_event["errorCode"] == NOT_FOUND
