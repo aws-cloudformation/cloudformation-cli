@@ -37,12 +37,14 @@ def test_test_command_local_lambda_help(capsys):
 def test_test_command_args():
     with patch("rpdk.test.local_lambda", autospec=True) as mock_lambda_command:
         test_resource_file = tempfile.NamedTemporaryFile()
+        test_updated_resource_file = tempfile.NamedTemporaryFile()
         test_resource_def_file = tempfile.NamedTemporaryFile()
         main(
             args_in=[
                 "test",
                 "local-lambda",
                 test_resource_file.name,
+                test_updated_resource_file.name,
                 test_resource_def_file.name,
             ]
         )
@@ -53,6 +55,9 @@ def test_test_command_args():
     assert argparse_namespace.endpoint == "http://127.0.0.1:3001"
     assert argparse_namespace.function_name == "Handler"
     assert argparse_namespace.resource_file.name == test_resource_file.name
+    assert (
+        argparse_namespace.updated_resource_file.name == test_updated_resource_file.name
+    )
     assert argparse_namespace.resource_def_file.name == test_resource_def_file.name
     assert argparse_namespace.subparser_name == "test"
 
@@ -63,6 +68,7 @@ def test_local_lambda_command():
             endpoint="http://127.0.0.1:3001",
             function_name="Handler",
             resource_file=test_file,
+            updated_resource_file=test_file,
             resource_def_file=test_file,
             subparser_name="test",
             test_types=None,
@@ -82,6 +88,7 @@ def test_local_lambda_with_test_type():
             endpoint="http://127.0.0.1:3001",
             function_name="Handler",
             resource_file=test_file,
+            updated_resource_file=test_file,
             resource_def_file=test_file,
             subparser_name="test",
             test_types="TEST_TYPE",

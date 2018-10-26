@@ -17,6 +17,7 @@ def local_lambda(args):
     transport = LocalLambdaTransport(args.endpoint, args.function_name)
     resource_def_file = json.load(args.resource_def_file)
     resource_file = json.load(args.resource_file)
+    updated_resource_file = json.load(args.updated_resource_file)
     pytest_args = [
         "--pyargs",
         "rpdk.contract.contract_tests",
@@ -28,7 +29,11 @@ def local_lambda(args):
         pytest_args.extend(["-k", args.test_types])
     pytest.main(
         pytest_args,
-        plugins=[ContractPlugin(transport, resource_file, resource_def_file)],
+        plugins=[
+            ContractPlugin(
+                transport, resource_file, updated_resource_file, resource_def_file
+            )
+        ],
     )
 
 
@@ -46,10 +51,16 @@ def setup_subparser(subparsers, parents):
         "resource_file", help="Example resource model", type=TextFileType("r")
     )
     local_lambda_subparser.add_argument(
+        "updated_resource_file",
+        help="Additional resource model to be used in update specific tests",
+        type=argparse.FileType("r"),
+    )
+    local_lambda_subparser.add_argument(
         "resource_def_file",
         help="The definition of the resource that the handler provisions",
         type=TextFileType("r"),
     )
+
     local_lambda_subparser.add_argument(
         "--endpoint",
         default="http://127.0.0.1:3001",
