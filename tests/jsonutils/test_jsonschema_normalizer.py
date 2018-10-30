@@ -31,43 +31,47 @@ def normalizer(test_provider_schema):
     return JsonSchemaNormalizer(test_provider_schema)
 
 
+PRIMITIVE_TYPES = [
+    {"type": "string"},
+    {"type": "integer"},
+    {"type": "number"},
+    {"type": "object"},
+    {"type": "array"},
+    {"type": "boolean"},
+]
+
+
 def test_normalizer(normalizer, normalized_schema):
     normalized_schema_map = normalizer.collapse_and_resolve_schema()
 
     assert normalized_schema == normalized_schema_map
 
 
-def test_collapse_primitive_type(normalizer):
-    items = [
-        {"type": "string"},
-        {"type": "integer"},
-        {"type": "number"},
-        {"type": "object"},
-        {"type": "array"},
-        {"type": "boolean"},
-    ]
-    for schema in items:
-        assert schema == normalizer._collapse_and_resolve_subschema(
-            "#/properties/Test", schema
-        )
+@pytest.mark.parametrize("primitive_type", PRIMITIVE_TYPES)
+def test_walk_primitive_type(primitive_type):
+    normalizer = JsonSchemaNormalizer({})
+    result = normalizer._walk("", primitive_type)
 
-
-def test_ref_type_to_primitive(normalizer):
-    schema_path = "#/properties/areaId"
-    expected_schema = {"type": "string"}
-    collapsed_schema = normalizer._collapse_ref_type(schema_path)
-
-    assert expected_schema == collapsed_schema
+    assert result == primitive_type
     assert not normalizer._schema_map
 
 
-def test_property_path_already_processed(normalizer):
-    normalizer._schema_map = {"#/properties/City": {}}
-    assert len(normalizer._schema_map) == 1
-    result = normalizer._collapse_and_resolve_subschema(
-        "#/properties/City", {"type": "object", "properties": {"test": {}}}
-    )
-    assert result == {"$ref": "#/properties/City"}
+@pytest.mark.parametrize("primitive_type", PRIMITIVE_TYPES)
+def test_walk_ref_to_primitive_type(primitive_type):
+    normalizer = JsonSchemaNormalizer({"definitions": primitive_type})
+    result = normalizer._walk("", {"$ref": "#/definitions"})
+
+    assert result == primitive_type
+    assert not normalizer._schema_map
+
+
+def test_walk_path_already_processed():
+    normalizer = JsonSchemaNormalizer({})
+    ref = "#/properties/City"
+    normalizer._schema_map = {ref: None}
+    result = normalizer._walk(ref, None)
+
+    assert result == {"$ref": ref}
     assert len(normalizer._schema_map) == 1
 
 
