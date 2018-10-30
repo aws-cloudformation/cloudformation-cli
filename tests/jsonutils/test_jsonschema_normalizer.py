@@ -5,7 +5,7 @@ import pkg_resources
 import pytest
 import yaml
 
-from rpdk.jsonutils.json_schema_normalizer import (
+from rpdk.jsonutils.jsonschema_normalizer import (
     JsonSchemaNormalizer,
     NormalizationError,
 )
