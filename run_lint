@@ -1,25 +1,13 @@
-#!/usr/bin/env python3
-import sys
-from subprocess import CalledProcessError, check_call
+#!/bin/bash
+set -xeuo pipefail
+IFS=$'\n\t'
 
-import yaml
-
-
-def main():
-    with open("buildspec.yml", "r", encoding="utf-8") as f:
-        buildspec = yaml.safe_load(f)
-
-    for cmd in buildspec["phases"]["build"]["commands"]:
-        print(">>>", cmd, "<<<")
-        try:
-            # this may not work if the commands rely on things in the shell's
-            # environment between calls
-            check_call(cmd, shell=True)
-        except CalledProcessError:
-            print("FAIL:", cmd)
-            return 1
-    return 0
-
-
-if __name__ == "__main__":
-    sys.exit(main())
+declare -a files=("setup.py" "json_lint" "newline_lint" "src/" "tests/")
+./json_lint --check
+./newline_lint --check
+isort --check-only --verbose --recursive "${files[@]}"
+black --check "${files[@]}"
+flake8 "${files[@]}"
+pylint "${files[@]}"
+bandit -r "src/" --exclude "tests"
+pytest --cov="src/" --doctest-modules "src/" "tests/"
