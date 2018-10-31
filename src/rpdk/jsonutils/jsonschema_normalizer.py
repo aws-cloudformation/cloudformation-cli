@@ -105,7 +105,7 @@ class JsonSchemaNormalizer:
             )
             raise ConstraintError(msg, key)
 
-        # if "properties" are defined, each resolve each property
+        # if "properties" are defined, resolve each property
         try:
             properties = sub_schema["properties"]
         except KeyError:
@@ -126,7 +126,7 @@ class JsonSchemaNormalizer:
             self._schema_map[key] = sub_schema
             return {"$ref": key}
 
-        # if "patternProperties" are defined, each resolve each property
+        # if "patternProperties" are defined, resolve each property
         try:
             pattern_properties = sub_schema["patternProperties"]
         except KeyError:
