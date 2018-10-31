@@ -170,6 +170,7 @@
                         "additionalProperties": {
                             "$comment": "All properties of a resource must be expressed in the schema - arbitrary inputs are not allowed",
                             "type": "boolean",
+                            "default": false,
                             "const": false
                         },
                         "patternProperties": {
@@ -215,7 +216,43 @@
                             "$ref": "#/definitions/schemaArray"
                         }
                     },
-                    "additionalProperties": false
+                    "additionalProperties": false,
+                    "dependencies": {
+                        "enum": {
+                            "$comment": "Enforce that properties are strongly typed when allOf, anyOf, oneOf, enum, or const is specified.",
+                            "required": [
+                                "type"
+                            ]
+                        },
+                        "const": {
+                            "required": [
+                                "type"
+                            ]
+                        },
+                        "oneOf": {
+                            "required": [
+                                "type"
+                            ]
+                        },
+                        "anyOf": {
+                            "required": [
+                                "type"
+                            ]
+                        },
+                        "allOf": {
+                            "required": [
+                                "type"
+                            ]
+                        },
+                        "properties": {
+                            "$comment": "patternProperties is not allowed when properties is specified.",
+                            "not": {
+                                "required": [
+                                    "patternProperties"
+                                ]
+                            }
+                        }
+                    }
                 }
             ]
         }

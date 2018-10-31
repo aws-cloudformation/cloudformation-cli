@@ -7,7 +7,7 @@ from pathlib import Path
 import pkg_resources
 
 from rpdk.filters import resource_type_resource
-from rpdk.jsonutils.json_schema_normalizer import JsonSchemaNormalizer
+from rpdk.jsonutils.jsonschema_normalizer import JsonSchemaNormalizer
 from rpdk.plugin_base import LanguagePlugin
 
 from .pojo_resolver import JavaPojoResolver
