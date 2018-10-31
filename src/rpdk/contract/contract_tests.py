@@ -106,7 +106,6 @@ def read_resource(event_listener, transport, resource, resource_def):
         READ, resource_def["typeName"], resource=read_resource
     )
     read_response = transport(request, event_listener.server_address)
-    print(read_response)
     assert read_response["clientRequestToken"] == token
     return read_response
 
@@ -176,10 +175,8 @@ def test_update_ack(event_listener, transport, resource_def):
     assert events[0]["status"] == IN_PROGRESS
 
 
-def test_delete_ack(event_listener, transport, test_resource, resource_def):
-    request, token = prepare_request(
-        DELETE, resource_def["typeName"], resource=test_resource
-    )
+def test_delete_ack(event_listener, transport, resource_def):
+    request, token = prepare_request(DELETE, resource_def["typeName"])
     transport(request, event_listener.server_address)
     events = wait_for_specified_event(event_listener, IN_PROGRESS, ACK_TIMEOUT)
 
