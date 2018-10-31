@@ -6,6 +6,7 @@ import pytest
 import yaml
 
 from rpdk.jsonutils.jsonschema_normalizer import (
+    ConstraintError,
     JsonSchemaNormalizer,
     NormalizationError,
 )
@@ -39,6 +40,7 @@ PRIMITIVE_TYPES = [
     {"type": "array"},
     {"type": "boolean"},
 ]
+UNIQUE_KEY = "OWSAZD"
 
 
 def test_normalizer(normalizer, normalized_schema):
@@ -151,3 +153,44 @@ def test_find_schema_from_ref(normalizer, test_provider_schema):
     with pytest.raises(NormalizationError) as excinfo:
         normalizer._find_subschema_by_ref(ref)
     assert ref in str(excinfo.value)
+
+
+def test_contraint_array_additional_items_valid():
+    normalizer = JsonSchemaNormalizer({})
+    schema = {}
+    result = normalizer._collapse_array_type(UNIQUE_KEY, schema)
+    assert result == schema
+
+
+def test_contraint_array_additional_items_invalid():
+    normalizer = JsonSchemaNormalizer({})
+    schema = {"additionalItems": {"type": "string"}}
+    with pytest.raises(ConstraintError) as excinfo:
+        normalizer._collapse_array_type(UNIQUE_KEY, schema)
+    assert UNIQUE_KEY in str(excinfo.value)
+
+
+def test_contraint_object_additional_properties_valid():
+    normalizer = JsonSchemaNormalizer({})
+    schema = {}
+    result = normalizer._collapse_object_type(UNIQUE_KEY, schema)
+    assert result == schema
+
+
+def test_contraint_object_additional_properties_invalid():
+    normalizer = JsonSchemaNormalizer({})
+    schema = {"additionalProperties": {"type": "string"}}
+    with pytest.raises(ConstraintError) as excinfo:
+        normalizer._collapse_object_type(UNIQUE_KEY, schema)
+    assert UNIQUE_KEY in str(excinfo.value)
+
+
+def test_contraint_object_properties_and_pattern_properties():
+    normalizer = JsonSchemaNormalizer({})
+    schema = {
+        "properties": {"foo": {"type": "string"}},
+        "patternProperties": {"type": "string"},
+    }
+    with pytest.raises(ConstraintError) as excinfo:
+        normalizer._collapse_object_type(UNIQUE_KEY, schema)
+    assert UNIQUE_KEY in str(excinfo.value)
