@@ -48,7 +48,15 @@ def test_load_resource_spec_example_spec_is_valid():
             assert load_resource_spec(f)
 
 
-def test_load_resource_spec_example_spec_is_invalid():
+def test_load_resource_spec_valid_snippets():
+    basedir = Path(__file__).parent.parent  # tests/test_data_loaders.py
+    exampledir = basedir / "tests" / "data" / "schema" / "valid"
+    for example in exampledir.glob("*.json"):
+        with example.open("r", encoding="utf-8") as f:
+            assert load_resource_spec(f)
+
+
+def test_load_resource_spec_invalid_snippets():
     basedir = Path(__file__).parent.parent  # tests/test_data_loaders.py
     exampledir = basedir / "tests" / "data" / "schema" / "invalid"
     for example in exampledir.glob("*.json"):

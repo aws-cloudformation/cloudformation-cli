@@ -1,0 +1,13 @@
+{
+    "typeName": "AWS::Valid::TypeName",
+    "properties": {
+        "property1": {
+            "type": "object",
+            "properties": {
+                "property1": {
+                    "type": "integer"
+                }
+            }
+        }
+    }
+}

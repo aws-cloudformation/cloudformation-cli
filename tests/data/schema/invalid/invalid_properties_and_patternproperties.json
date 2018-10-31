@@ -1,0 +1,22 @@
+{
+    "typeName": "AWS::Valid::TypeName",
+    "definitions": {
+        "invalid": {
+            "properties": {
+                "test": {
+                    "type": "string"
+                }
+            },
+            "patternProperties": {
+                "[a-z]+": {
+                    "type": "string"
+                }
+            }
+        }
+    },
+    "properties": {
+        "property1": {
+            "type": "string"
+        }
+    }
+}
