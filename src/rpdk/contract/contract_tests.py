@@ -282,7 +282,11 @@ def test_create_update_noop(event_listener, transport, test_resource, resource_d
     )
     assert update_terminal_event["status"] == FAILED
     assert update_terminal_event["errorCode"] == NO_OP
-    delete_resource(event_listener, transport, created_resource, resource_def)
+
+    delete_terminal_event = delete_resource(
+        event_listener, transport, created_resource, resource_def
+    )
+    assert delete_terminal_event["status"] == COMPLETE
 
 
 def test_create_update(
@@ -301,7 +305,7 @@ def test_create_update(
     compare_requested_model(test_updated_resource, updated_resource, resource_def)
 
     delete_terminal_event = delete_resource(
-        event_listener, transport, updated_resource, resource_def
+        event_listener, transport, created_resource, resource_def
     )
     assert delete_terminal_event["status"] == COMPLETE
 
@@ -327,6 +331,11 @@ def test_update_create(
     )
     assert second_create_terminal_event["status"] == FAILED
     assert second_create_terminal_event["errorCode"] == ALREADY_EXISTS
+
+    delete_terminal_event = delete_resource(
+        event_listener, transport, created_resource, resource_def
+    )
+    assert delete_terminal_event["status"] == COMPLETE
 
 
 def test_update_read(
