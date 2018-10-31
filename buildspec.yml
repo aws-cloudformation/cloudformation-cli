@@ -6,12 +6,13 @@ phases:
       - pip install --upgrade --pre jsonschema
   build:
     commands:
-      - declare -a files=("setup.py" "run_lint" "json_lint" "newline_lint" "src/" "tests/")
+      - set "setup.py" "run_lint" "json_lint" "newline_lint" "src/" "tests/"
+      - printf '<%s>\n' "$@"
       - ./json_lint --check
       - ./newline_lint --check
-      - isort --check-only --verbose --recursive "${files[@]}"
-      - black --check "${files[@]}"
-      - flake8 "${files[@]}"
-      - pylint "${files[@]}"
+      - isort --check-only --verbose --recursive "$@"
+      - black --check "$@"
+      - flake8 "$@"
+      - pylint "$@"
       - bandit -r "src/" --exclude "tests"
       - pytest --cov="src/" --doctest-modules "src/" "tests/"
