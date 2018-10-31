@@ -6,6 +6,7 @@ phases:
       - pip install --upgrade --pre jsonschema
   build:
     commands:
+      - echo "$SHELL"
       - set "setup.py" "run_lint" "json_lint" "newline_lint" "src/" "tests/"
       - printf '<%s>\n' "$@"
       - ./json_lint --check
