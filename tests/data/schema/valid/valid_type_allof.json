@@ -1,0 +1,16 @@
+{
+    "typeName": "AWS::Valid::TypeName",
+    "properties": {
+        "property1": {
+            "type": "number",
+            "allOf": [
+                {
+                    "type": "integer"
+                },
+                {
+                    "type": "string"
+                }
+            ]
+        }
+    }
+}

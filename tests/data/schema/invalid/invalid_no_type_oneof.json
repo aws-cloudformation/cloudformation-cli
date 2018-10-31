@@ -1,0 +1,15 @@
+{
+    "typeName": "AWS::Valid::TypeName",
+    "properties": {
+        "property1": {
+            "oneOf": [
+                {
+                    "type": "integer"
+                },
+                {
+                    "type": "string"
+                }
+            ]
+        }
+    }
+}
