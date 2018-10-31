@@ -1,29 +1,23 @@
 # fixture and parameter have the same name
 # pylint: disable=redefined-outer-name
 # pylint: disable=protected-access
-import pkg_resources
 import pytest
-import yaml
 
+from rpdk.data_loaders import resource_json
 from rpdk.jsonutils.jsonschema_normalizer import (
     JsonSchemaNormalizer,
     NormalizationError,
 )
 
 
-def load_test_yaml(name):
-    resource = pkg_resources.resource_stream(__name__, "data/" + name)
-    return yaml.safe_load(resource)
-
-
 @pytest.fixture
 def test_provider_schema():
-    return load_test_yaml("area_definition.json")
+    return resource_json(__name__, "data/area_definition.json")
 
 
 @pytest.fixture
 def normalized_schema():
-    return load_test_yaml("area_definition_normalized.json")
+    return resource_json(__name__, "data/area_definition_normalized.json")
 
 
 @pytest.fixture
@@ -104,8 +98,10 @@ def test_collapse_ref_type_nested(normalizer, normalized_schema):
 
 
 def test_circular_reference():
-    schema_normalized = load_test_yaml("circular_reference_normalized.json")
-    schema = load_test_yaml("circular_reference.json")
+    schema_normalized = resource_json(
+        __name__, "data/circular_reference_normalized.json"
+    )
+    schema = resource_json(__name__, "data/circular_reference.json")
     resolved_schema = JsonSchemaNormalizer(schema).collapse_and_resolve_schema()
     assert resolved_schema == schema_normalized
 
