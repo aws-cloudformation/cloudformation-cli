@@ -33,11 +33,11 @@ class JsonSchemaNormalizer:
         self._full_schema = resource_schema
 
     def collapse_and_resolve_schema(self):
-        self._collapse_and_resolve_subschema("#", self._full_schema)
+        self._walk("#", self._full_schema)
 
         return self._schema_map
 
-    def _collapse_and_resolve_subschema(self, property_path, sub_schema):
+    def _walk(self, property_path, sub_schema):
         """Given a subschema, this method will normalize it and all of its subschemas.
         The property_path is constructed further as the schema is recursively processed.
 
@@ -73,7 +73,7 @@ class JsonSchemaNormalizer:
         if ref_path in self._schema_map:
             return {"$ref": ref_path}
         ref_schema = self._find_subschema_by_ref(ref_path)
-        collapsed_schema = self._collapse_and_resolve_subschema(ref_path, ref_schema)
+        collapsed_schema = self._walk(ref_path, ref_schema)
         return collapsed_schema
 
     def _collapse_array_type(self, key, sub_schema):
@@ -85,7 +85,7 @@ class JsonSchemaNormalizer:
         except KeyError:
             pass
         else:
-            sub_schema["items"] = self._collapse_and_resolve_subschema(
+            sub_schema["items"] = self._walk(
                 fragment_encode(["items"], key), items_schema
             )
         return sub_schema
@@ -107,7 +107,7 @@ class JsonSchemaNormalizer:
             # resolve each property schema
             new_properties = {}
             for prop_name, prop_schema in properties.items():
-                new_properties[prop_name] = self._collapse_and_resolve_subschema(
+                new_properties[prop_name] = self._walk(
                     fragment_encode(["properties", prop_name], key), prop_schema
                 )
 
@@ -123,7 +123,7 @@ class JsonSchemaNormalizer:
         else:
             new_pattern_properties = {}
             for pattern, prop_schema in pattern_properties.items():
-                new_pattern_properties[pattern] = self._collapse_and_resolve_subschema(
+                new_pattern_properties[pattern] = self._walk(
                     fragment_encode(["patternProperties", pattern], key), prop_schema
                 )
             sub_schema["patternProperties"] = new_pattern_properties

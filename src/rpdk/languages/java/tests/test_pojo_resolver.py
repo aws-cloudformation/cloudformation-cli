@@ -6,6 +6,12 @@ import yaml
 
 from ..pojo_resolver import JavaPojoResolver
 
+REF_TO_CLASS_MAP = {
+    "#/definitions/Id": "Id",
+    "#/definitions/Test": "Test",
+    "#/definitions/Test/Test": "Test_",
+}
+
 
 @pytest.fixture
 def normalized_schema():
@@ -16,15 +22,6 @@ def normalized_schema():
 @pytest.fixture
 def empty_resolver():
     return JavaPojoResolver({}, "Object")
-
-
-@pytest.fixture
-def ref_to_class_map():
-    return {
-        "#/definitions/Id": "Id",
-        "#/definitions/Test": "Test",
-        "#/definitions/Test/Test": "Test_",
-    }
 
 
 def test_resolver(normalized_schema):
@@ -52,7 +49,7 @@ def test_resolver(normalized_schema):
     assert pojos["Location"] == expected_pojos["Location"]
 
 
-def test_java_property_type(empty_resolver, ref_to_class_map):
+def test_java_property_type(empty_resolver):
     items = [
         ({"type": "string"}, "String"),
         ({"type": "integer"}, "Integer"),
@@ -62,7 +59,7 @@ def test_java_property_type(empty_resolver, ref_to_class_map):
         ({"$ref": "#/definitions/Test"}, "Test"),
         ({"$ref": "#/definitions/Test/Test"}, "Test_"),
     ]
-    empty_resolver._ref_to_class_map = ref_to_class_map
+    empty_resolver._ref_to_class_map = REF_TO_CLASS_MAP
     for (property_schema, result) in items:
         assert result == empty_resolver._java_property_type(
             property_schema
@@ -118,7 +115,7 @@ def test_array_class_name(empty_resolver):
         ), "Failed schema: {}".format(property_schema)
 
 
-def test_ref_to_class(empty_resolver, ref_to_class_map):
+def test_ref_to_class(empty_resolver):
     items = [
         ("#/properties/Id", "Id_"),
         ("#/definitions/prop/Test", "Test__"),
@@ -126,5 +123,5 @@ def test_ref_to_class(empty_resolver, ref_to_class_map):
     ]
     for (ref_path, result) in items:
         assert result == empty_resolver._get_class_name_from_ref(
-            ref_path, ref_to_class_map
+            ref_path, REF_TO_CLASS_MAP
         ), "Failed ref: {}".format(ref_path)
