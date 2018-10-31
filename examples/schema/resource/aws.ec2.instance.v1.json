@@ -6,15 +6,7 @@
             "type": "object",
             "properties": {
                 "DeleteOnTermination": {
-                    "type": "boolean",
-                    "anyOf": [
-                        {
-                            "pattern": "abc"
-                        },
-                        {
-                            "pattern": "bcd"
-                        }
-                    ]
+                    "type": "boolean"
                 },
                 "Encrypted": {
                     "type": "boolean"
