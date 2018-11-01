@@ -1,4 +1,3 @@
-# pylint: disable=no-self-use
 import json
 from collections import deque
 
@@ -30,7 +29,7 @@ class ContractPlugin:
         return self._resource_def
 
     @pytest.fixture
-    def event_listener(self, request):
+    def event_listener(self, request):  # pylint: disable=no-self-use
         server = ContractPlugin.CallbackServer()
         server.start()
         request.addfinalizer(server.stop)
