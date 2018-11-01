@@ -1,4 +1,9 @@
+# pylint: disable=no-self-use
+import json
+from collections import deque
+
 import pytest
+from pytest_localserver.http import Request, Response, WSGIServer
 
 
 class ContractPlugin:
@@ -23,3 +28,21 @@ class ContractPlugin:
     @pytest.fixture
     def resource_def(self):
         return self._resource_def
+
+    @pytest.fixture
+    def event_listener(self, request):
+        server = ContractPlugin.CallbackServer()
+        server.start()
+        request.addfinalizer(server.stop)
+        return server
+
+    class CallbackServer(WSGIServer):
+        def __init__(self, host="127.0.0.1", port=0):
+            super().__init__(host, port, self, ssl_context=None)
+            self.events = deque()
+
+        @Request.application
+        def __call__(self, request):
+            assert request.headers.get("content-type") == "application/json"  # nosec
+            self.events.append(json.loads(request.data))
+            return Response("", mimetype="application/json")
