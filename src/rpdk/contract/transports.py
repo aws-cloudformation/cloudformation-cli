@@ -26,7 +26,6 @@ class LocalLambdaTransport:
         _, port = callback_endpoint
         url = "http://host.docker.internal:{}".format(port)
         payload["requestContext"]["callbackURL"] = url
-        response = self.client.invoke(
-            FunctionName=self.function_name, Payload=json.dumps(payload).encode("utf-8")
-        )
+        encoded = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+        response = self.client.invoke(FunctionName=self.function_name, Payload=encoded)
         return json.load(response["Payload"])

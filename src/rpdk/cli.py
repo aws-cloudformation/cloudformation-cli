@@ -12,7 +12,7 @@ from .test import setup_subparser as test_setup_subparser
 from .validate import setup_subparser as validate_setup_subparser
 
 
-def setup_logging(verbosity=0):
+def setup_logging(verbosity):
     """Configure logging with a variable verbosity level (0, 1, 2)."""
     if verbosity > 1:
         level = logging.DEBUG
@@ -57,7 +57,3 @@ def main(args_in=None):
 
     setup_logging(args.verbose)
     args.command(args)
-
-
-if __name__ == "__main__":
-    main()
