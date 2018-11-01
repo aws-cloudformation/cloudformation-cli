@@ -1,0 +1,62 @@
+{
+    "typeName": "AWS::Test::AllOf",
+    "definitions": {
+        "Id": {
+            "type": "string",
+            "pattern": "[A-Z]{4,10}"
+        }
+    },
+    "properties": {
+        "Foo": {
+            "type": "string",
+            "oneOf": [
+                {
+                    "pattern": "[a-z]+"
+                },
+                {
+                    "maxLength": 50
+                }
+            ]
+        },
+        "Bar": {
+            "oneOf": [
+                {
+                    "properties": {
+                        "A": {
+                            "type": "integer"
+                        },
+                        "B": {
+                            "type": "string",
+                            "enum": [
+                                "BBB"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "properties": {
+                        "A": {
+                            "type": "integer",
+                            "enum": [
+                                0
+                            ]
+                        },
+                        "C": {
+                            "type": "array",
+                            "items": {
+                                "allOf": [
+                                    {
+                                        "$ref": "#/definitions/Id"
+                                    },
+                                    {
+                                        "minLength": 7
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                }
+            ]
+        }
+    }
+}

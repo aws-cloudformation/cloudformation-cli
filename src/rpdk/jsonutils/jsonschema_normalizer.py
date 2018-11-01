@@ -2,7 +2,7 @@
 import logging
 
 from .pointer import fragment_decode, fragment_encode
-from .utils import traverse
+from .utils import schema_merge, traverse
 
 LOG = logging.getLogger(__name__)
 
@@ -93,6 +93,9 @@ class JsonSchemaNormalizer:
         return sub_schema
 
     def _collapse_object_type(self, key, sub_schema):
+        # we only care about allOf, anyOf, oneOf for object types
+        sub_schema = self._squash_array_keys(key, sub_schema)
+
         # if "additionalProperties" is truthy (e.g. a non-empty object), then fail
         if sub_schema.get("additionalProperties"):
             raise ConstraintError("Object at '{path}' has 'additionalProperties'", key)
@@ -105,7 +108,6 @@ class JsonSchemaNormalizer:
             )
             raise ConstraintError(msg, key)
 
-        # if "properties" are defined, resolve each property
         try:
             properties = sub_schema["properties"]
         except KeyError:
@@ -139,6 +141,26 @@ class JsonSchemaNormalizer:
                 )
             sub_schema["patternProperties"] = new_pattern_properties
 
+        return sub_schema
+
+    def _squash_array_keys(self, key, sub_schema):
+        """This method iterates through allOf, anyOf, and oneOf schemas and
+        merges them all into sub_schema"""
+
+        for arr_key in ("allOf", "anyOf", "oneOf"):
+            try:
+                schema_array = sub_schema.pop(arr_key)
+            except KeyError:
+                pass
+            else:
+                for i, nested_schema in enumerate(schema_array):
+                    ref_path = fragment_encode([arr_key, i], key)
+                    walked_schema = self._walk(ref_path, nested_schema)
+
+                    # we no longer need the refkey since the properties will be squashed
+                    resolved_schema = self._schema_map.pop(ref_path, walked_schema)
+
+                    schema_merge(sub_schema, resolved_schema)
         return sub_schema
 
     def _find_subschema_by_ref(self, ref_path):
