@@ -1,5 +1,7 @@
 import json
 import logging
+import shutil
+from io import TextIOWrapper
 
 import pkg_resources
 import requests
@@ -11,6 +13,38 @@ LOG = logging.getLogger(__name__)
 
 
 TIMEOUT_IN_SECONDS = 10
+
+
+def resource_stream(package_name, resource_name, encoding="utf-8"):
+    """Load a package resource as a decoded file-like object.
+
+    By default, package resources are loaded as binary files, which isn't a
+    use-case for us.
+
+    Decoding errors raise :exc:`ValueError`. :term:`universal newlines`
+    are enabled. Can be used in a ``with`` statement.
+    """
+    f = pkg_resources.resource_stream(package_name, resource_name)
+    return TextIOWrapper(f, encoding=encoding)
+
+
+def resource_json(package_name, resource_name):
+    """Load a JSON package resource and return the parsed object."""
+    with resource_stream(package_name, resource_name) as f:
+        return json.load(f)
+
+
+def resource_yaml(package_name, resource_name):
+    """Load a YAML package resource and return the parsed object."""
+    with resource_stream(package_name, resource_name) as f:
+        return yaml.safe_load(f)
+
+
+def copy_resource(package_name, resource_name, out_path):
+    with pkg_resources.resource_stream(
+        package_name, resource_name
+    ) as fsrc, out_path.open("wb") as fdst:
+        shutil.copyfileobj(fsrc, fdst)
 
 
 def make_validator(schema, base_uri=None, timeout=TIMEOUT_IN_SECONDS):
@@ -29,10 +63,7 @@ def make_validator(schema, base_uri=None, timeout=TIMEOUT_IN_SECONDS):
 
 
 def make_resource_validator(base_uri=None, timeout=TIMEOUT_IN_SECONDS):
-    with pkg_resources.resource_stream(
-        __name__, "data/schema/provider.definition.schema.v1.json"
-    ) as f:
-        schema = json.load(f)
+    schema = resource_json(__name__, "data/schema/provider.definition.schema.v1.json")
     return make_validator(schema, base_uri=base_uri, timeout=timeout)
 
 

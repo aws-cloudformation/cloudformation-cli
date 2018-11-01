@@ -2,17 +2,23 @@
 # pylint: disable=redefined-outer-name
 import json
 from contextlib import contextmanager
-from io import StringIO
+from io import BytesIO, StringIO
 from pathlib import Path
-from unittest.mock import create_autospec
+from unittest.mock import create_autospec, patch
 
 import jsonschema
-import pkg_resources
 import pytest
 import yaml
 from pytest_localserver.http import Request, Response, WSGIServer
 
-from rpdk.data_loaders import load_project_settings, load_resource_spec, make_validator
+from rpdk.data_loaders import (
+    load_project_settings,
+    load_resource_spec,
+    make_validator,
+    resource_json,
+    resource_stream,
+    resource_yaml,
+)
 from rpdk.plugin_base import LanguagePlugin
 
 
@@ -71,11 +77,11 @@ def test_load_resource_spec_remote_key_is_invalid():
 @pytest.fixture
 def plugin():
     mock_plugin = create_autospec(LanguagePlugin)
-    mock_plugin.project_settings_defaults.return_value = pkg_resources.resource_stream(
+    mock_plugin.project_settings_defaults.return_value = resource_stream(
         __name__, "data/project_defaults.yaml"
     )
-    mock_plugin.project_settings_schema.return_value = json.load(
-        pkg_resources.resource_stream(__name__, "data/project_schema.json")
+    mock_plugin.project_settings_schema.return_value = resource_json(
+        __name__, "data/project_schema.json"
     )
     return mock_plugin
 
@@ -124,3 +130,60 @@ def test_make_validator_handlers_time_out():
             )
             validator.validate(True)
     assert "Read timed out" in str(excinfo.value)
+
+
+def mock_pkg_resource_stream(bytes_in, func=resource_stream):
+    resource_name = "data/test.utf-8"
+    target = "rpdk.data_loaders.pkg_resources.resource_stream"
+    with patch(target, autospec=True, return_value=BytesIO(bytes_in)) as mock_stream:
+        f = func(__name__, resource_name)
+    mock_stream.assert_called_once_with(__name__, resource_name)
+    return f
+
+
+def test_resource_stream_decoding_valid():
+    emoji_santa = "🎅"
+    f = mock_pkg_resource_stream(emoji_santa.encode("utf-8"))
+    assert f.read() == emoji_santa
+
+
+def test_resource_stream_decoding_invalid():
+    # Lonely continuation byte is invalid
+    # https://www.cl.cam.ac.uk/~mgk25/ucs/examples/UTF-8-test.txt
+    singley_continuation_byte = b"\x80"
+    f = mock_pkg_resource_stream(singley_continuation_byte)
+
+    # stream is lazily decoded
+    with pytest.raises(UnicodeDecodeError) as excinfo:
+        f.read()
+    assert excinfo.value.encoding == "utf-8"
+    assert excinfo.value.object == singley_continuation_byte
+
+
+def test_resource_stream_universal_newlines():
+    f = mock_pkg_resource_stream(b"Windows\r\n")
+    assert f.read() == "Windows\n"
+
+
+def test_resource_stream_with_statement():
+    string = "Hello, World"
+    with mock_pkg_resource_stream(string.encode("utf-8")) as f:
+        assert f.read() == string
+
+    with pytest.raises(ValueError) as excinfo:
+        f.read()
+    assert "I/O operation on closed file" in str(excinfo.value)
+
+
+def test_resource_json():
+    obj = {"foo": "bar"}
+    encoded = json.dumps(obj).encode("utf-8")
+    result = mock_pkg_resource_stream(encoded, func=resource_json)
+    assert result == obj
+
+
+def test_resource_yaml():
+    obj = {"foo": "bar"}
+    encoded = yaml.dump(obj).encode("utf-8")
+    result = mock_pkg_resource_stream(encoded, func=resource_yaml)
+    assert result == obj
