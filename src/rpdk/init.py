@@ -30,9 +30,9 @@ def init(args):
     plugin.init(project_settings)
 
 
-def setup_subparser(subparsers):
+def setup_subparser(subparsers, parents):
     # see docstring of this file
-    parser = subparsers.add_parser("init", description=__doc__)
+    parser = subparsers.add_parser("init", description=__doc__, parents=parents)
     parser.set_defaults(command=init)
     parser.add_argument(
         "--output-directory",

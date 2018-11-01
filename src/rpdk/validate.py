@@ -19,8 +19,8 @@ def validate(args):
         LOG.info("Validation succeeded.")
 
 
-def setup_subparser(subparsers):
-    parser = subparsers.add_parser("validate", description=__doc__)
+def setup_subparser(subparsers, parents):
+    parser = subparsers.add_parser("validate", description=__doc__, parents=parents)
     parser.set_defaults(command=validate)
     parser.add_argument(
         "resource_spec_file",
