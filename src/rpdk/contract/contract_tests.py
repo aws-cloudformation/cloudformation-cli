@@ -184,15 +184,6 @@ def test_delete_ack(event_listener, transport, resource_def):
     assert events[0]["status"] == IN_PROGRESS
 
 
-def test_read_not_found(event_listener, transport, test_resource, resource_def):
-    read_response = read_resource(
-        event_listener, transport, test_resource, resource_def
-    )
-
-    assert read_response["status"] == FAILED
-    assert read_response["errorCode"] == NOT_FOUND
-
-
 def test_update_not_found(
     event_listener, transport, test_resource, test_updated_resource
 ):
@@ -202,14 +193,6 @@ def test_update_not_found(
 
     assert update_terminal_event["status"] == FAILED
     assert update_terminal_event["errorCode"] == NOT_FOUND
-
-
-def test_delete_not_found(event_listener, transport, test_resource, resource_def):
-    delete_terminal_event = delete_resource(
-        event_listener, transport, test_resource, resource_def
-    )
-    assert delete_terminal_event["status"] == FAILED
-    assert delete_terminal_event["errorCode"] == NOT_FOUND
 
 
 def test_list_empty(event_listener, transport, resource_def):
