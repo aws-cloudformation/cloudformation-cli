@@ -66,6 +66,12 @@ are used.
         --project-settings examples/java_project.yaml \
         --output-directory projects/resource-provider/
 
+Encoding
+--------
+
+This tool expects input files to be UTF-8 encoded (without a byte order mark (BOM)), and will
+output UTF-8 encoded files (without a BOM).
+
 Plugin system
 -------------
 
