@@ -32,9 +32,9 @@ def local_lambda(args):
     )
 
 
-def setup_subparser(subparsers):
+def setup_subparser(subparsers, parents):
     # see docstring of this file
-    parser = subparsers.add_parser("test", description=__doc__)
+    parser = subparsers.add_parser("test", description=__doc__, parents=parents)
     # need to set this, so the help of this specific subparser is printed,
     # not the parent's help
     parser.set_defaults(command=lambda args: parser.print_help())

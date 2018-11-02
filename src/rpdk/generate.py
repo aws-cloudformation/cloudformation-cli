@@ -32,9 +32,9 @@ def generate(args):
     LOG.info("Generation complete.")
 
 
-def setup_subparser(subparsers):
+def setup_subparser(subparsers, parents):
     # see docstring of this file
-    parser = subparsers.add_parser("generate", description=__doc__)
+    parser = subparsers.add_parser("generate", description=__doc__, parents=parents)
     parser.set_defaults(command=generate)
     parser.add_argument(
         "resource_def_file",

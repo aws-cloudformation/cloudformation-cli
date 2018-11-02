@@ -15,9 +15,11 @@ def project_settings(args):
     args.output.write(settings)
 
 
-def setup_subparser(subparsers):
+def setup_subparser(subparsers, parents):
     # see docstring of this file
-    parser = subparsers.add_parser("project-settings", description=__doc__)
+    parser = subparsers.add_parser(
+        "project-settings", description=__doc__, parents=parents
+    )
     parser.set_defaults(command=project_settings)
     add_language_argument(parser)
     parser.add_argument(
