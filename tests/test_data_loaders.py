@@ -21,6 +21,10 @@ from rpdk.data_loaders import (
 )
 from rpdk.plugin_base import LanguagePlugin
 
+# Lonely continuation byte is invalid
+# https://www.cl.cam.ac.uk/~mgk25/ucs/examples/UTF-8-test.txt
+INVALID_UTF8 = b"\x80"
+
 
 def yaml_s(obj):
     return StringIO(yaml.dump(obj))
@@ -148,16 +152,13 @@ def test_resource_stream_decoding_valid():
 
 
 def test_resource_stream_decoding_invalid():
-    # Lonely continuation byte is invalid
-    # https://www.cl.cam.ac.uk/~mgk25/ucs/examples/UTF-8-test.txt
-    singley_continuation_byte = b"\x80"
-    f = mock_pkg_resource_stream(singley_continuation_byte)
+    f = mock_pkg_resource_stream(INVALID_UTF8)
 
     # stream is lazily decoded
     with pytest.raises(UnicodeDecodeError) as excinfo:
         f.read()
     assert excinfo.value.encoding == "utf-8"
-    assert excinfo.value.object == singley_continuation_byte
+    assert excinfo.value.object == INVALID_UTF8
 
 
 def test_resource_stream_universal_newlines():

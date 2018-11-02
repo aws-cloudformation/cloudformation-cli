@@ -1,12 +1,12 @@
 """This sub command tests basic functionality of the
 resource handler given a test resource and an endpoint.
 """
-import argparse
 import json
 import logging
 
 import pytest
 
+from .argutils import TextFileType
 from .contract.contract_plugin import ContractPlugin
 from .contract.transports import LocalLambdaTransport
 
@@ -43,12 +43,12 @@ def setup_subparser(subparsers):
     local_lambda_subparser = test_subparsers.add_parser("local-lambda")
     local_lambda_subparser.set_defaults(command=local_lambda)
     local_lambda_subparser.add_argument(
-        "resource_file", help="Example resource model", type=argparse.FileType("r")
+        "resource_file", help="Example resource model", type=TextFileType("r")
     )
     local_lambda_subparser.add_argument(
         "resource_def_file",
         help="The definition of the resource that the handler provisions",
-        type=argparse.FileType("r"),
+        type=TextFileType("r"),
     )
     local_lambda_subparser.add_argument(
         "--endpoint",
