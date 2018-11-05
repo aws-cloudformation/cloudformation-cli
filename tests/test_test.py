@@ -1,4 +1,5 @@
 import argparse
+import os
 import tempfile
 from unittest.mock import patch
 
@@ -78,8 +79,9 @@ def test_local_lambda_command():
         ) as mock_pytest:
             local_lambda(arg_namespace)
     mock_pytest.assert_called_once()
-    args, _ = mock_pytest.call_args
-    assert args[0] == EXPECTED_PYTEST_ARGS
+    args = mock_pytest.call_args[0][0]
+    assert args[0:-1] == EXPECTED_PYTEST_ARGS
+    assert not os.path.exists(args[-1])
 
 
 def test_local_lambda_with_test_type():
@@ -98,5 +100,6 @@ def test_local_lambda_with_test_type():
         ) as mock_pytest:
             local_lambda(arg_namespace)
     mock_pytest.assert_called_once()
-    args, _ = mock_pytest.call_args
-    assert args[0] == EXPECTED_PYTEST_ARGS + ["-k", "TEST_TYPE"]
+    args = mock_pytest.call_args[0][0]
+    assert args[0:-1] == EXPECTED_PYTEST_ARGS + ["-k", "TEST_TYPE"]
+    assert not os.path.exists(args[-1])

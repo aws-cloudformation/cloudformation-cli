@@ -3,6 +3,8 @@ resource handler given a test resource and an endpoint.
 """
 import json
 import logging
+from pathlib import Path
+from tempfile import TemporaryDirectory
 
 import pytest
 
@@ -18,6 +20,7 @@ def local_lambda(args):
     resource_def_file = json.load(args.resource_def_file)
     resource_file = json.load(args.resource_file)
     updated_resource_file = json.load(args.updated_resource_file)
+
     pytest_args = [
         "--pyargs",
         "rpdk.contract.contract_tests",
@@ -27,14 +30,19 @@ def local_lambda(args):
     ]
     if args.test_types:
         pytest_args.extend(["-k", args.test_types])
-    pytest.main(
-        pytest_args,
-        plugins=[
-            ContractPlugin(
-                transport, resource_file, updated_resource_file, resource_def_file
-            )
-        ],
-    )
+
+    with TemporaryDirectory() as temp_test_dir:
+        with open(Path(temp_test_dir) / "pytest.ini", "w+") as test_config:
+            test_config.write("[pytest]\npython_files = contract_*.py")
+        pytest_args.append(temp_test_dir)
+        pytest.main(
+            pytest_args,
+            plugins=[
+                ContractPlugin(
+                    transport, resource_file, updated_resource_file, resource_def_file
+                )
+            ],
+        )
 
 
 def setup_subparser(subparsers, parents):
