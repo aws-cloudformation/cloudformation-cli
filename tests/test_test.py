@@ -1,6 +1,6 @@
 import argparse
 import tempfile
-from unittest import mock
+from unittest.mock import patch
 
 import pytest
 
@@ -18,7 +18,7 @@ EXPECTED_PYTEST_ARGS = [
 
 def test_test_command_help(capsys):
     # also mock other transports here
-    with mock.patch("rpdk.test.local_lambda", autospec=True) as mock_local_lambda:
+    with patch("rpdk.test.local_lambda", autospec=True) as mock_local_lambda:
         main(args_in=["test"])
     out, _ = capsys.readouterr()
     assert "--help" in out
@@ -26,7 +26,7 @@ def test_test_command_help(capsys):
 
 
 def test_test_command_local_lambda_help(capsys):
-    with mock.patch("rpdk.test.local_lambda", autospec=True) as mock_local_lambda:
+    with patch("rpdk.test.local_lambda", autospec=True) as mock_local_lambda:
         with pytest.raises(SystemExit):
             main(args_in=["test", "local-lambda"])
     _, err = capsys.readouterr()
@@ -35,7 +35,7 @@ def test_test_command_local_lambda_help(capsys):
 
 
 def test_test_command_args():
-    with mock.patch("rpdk.test.local_lambda", autospec=True) as mock_lambda_command:
+    with patch("rpdk.test.local_lambda", autospec=True) as mock_lambda_command:
         test_resource_file = tempfile.NamedTemporaryFile()
         test_resource_def_file = tempfile.NamedTemporaryFile()
         main(
@@ -67,7 +67,7 @@ def test_local_lambda_command():
             subparser_name="test",
             test_types=None,
         )
-        with mock.patch("json.load", return_value={}, autospec=True), mock.patch(
+        with patch("json.load", return_value={}, autospec=True), patch(
             "pytest.main"
         ) as mock_pytest:
             local_lambda(arg_namespace)
@@ -86,7 +86,7 @@ def test_local_lambda_with_test_type():
             subparser_name="test",
             test_types="TEST_TYPE",
         )
-        with mock.patch("json.load", return_value={}, autospec=True), mock.patch(
+        with patch("json.load", return_value={}, autospec=True), patch(
             "pytest.main", autospec=True
         ) as mock_pytest:
             local_lambda(arg_namespace)
