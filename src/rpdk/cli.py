@@ -12,7 +12,7 @@ from .test import setup_subparser as test_setup_subparser
 from .validate import setup_subparser as validate_setup_subparser
 
 
-def setup_logging(verbosity=0):
+def setup_logging(verbosity):
     """Configure logging with a variable verbosity level (0, 1, 2)."""
     if verbosity > 1:
         level = logging.DEBUG
@@ -30,29 +30,30 @@ def main(args_in=None):
     """The entry point for the CLI."""
     # see docstring of this file
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument(
+    # the default command just prints the help message
+    # subparsers should set their own default commands
+    # also need to set verbose here because now it only gets set if a
+    # subcommand is run (which is okay, the help doesn't need it)
+    parser.set_defaults(command=lambda args: parser.print_help(), verbose=0)
+
+    base_subparser = argparse.ArgumentParser(add_help=False)
+    # shared arguments
+    base_subparser.add_argument(
         "-v",
         "--verbose",
         action="count",
         default=0,
         help="Increase the output verbosity. Can be specified multiple times.",
     )
-
-    # the default command just prints the help message
-    # subparsers should set their own default commands
-    parser.set_defaults(command=lambda args: parser.print_help())
+    parents = [base_subparser]
 
     subparsers = parser.add_subparsers(dest="subparser_name")
-    init_setup_subparser(subparsers)
-    validate_setup_subparser(subparsers)
-    generate_setup_subparser(subparsers)
-    project_settings_setup_subparser(subparsers)
-    test_setup_subparser(subparsers)
+    init_setup_subparser(subparsers, parents)
+    validate_setup_subparser(subparsers, parents)
+    generate_setup_subparser(subparsers, parents)
+    project_settings_setup_subparser(subparsers, parents)
+    test_setup_subparser(subparsers, parents)
     args = parser.parse_args(args=args_in)
 
     setup_logging(args.verbose)
     args.command(args)
-
-
-if __name__ == "__main__":
-    main()

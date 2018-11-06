@@ -1,10 +1,10 @@
 """This sub command generates IDE and build files for a given language.
 """
-import argparse
 import logging
 import os
 from pathlib import Path
 
+from .argutils import TextFileType
 from .data_loaders import copy_resource, load_project_settings
 from .plugin_registry import PLUGIN_REGISTRY, add_language_argument
 
@@ -30,9 +30,9 @@ def init(args):
     plugin.init(project_settings)
 
 
-def setup_subparser(subparsers):
+def setup_subparser(subparsers, parents):
     # see docstring of this file
-    parser = subparsers.add_parser("init", description=__doc__)
+    parser = subparsers.add_parser("init", description=__doc__, parents=parents)
     parser.set_defaults(command=init)
     parser.add_argument(
         "--output-directory",
@@ -43,7 +43,7 @@ def setup_subparser(subparsers):
     add_language_argument(parser)
     parser.add_argument(
         "--project-settings",
-        type=argparse.FileType("r"),
+        type=TextFileType("r"),
         default=None,
         dest="project_settings_file",
         help=(

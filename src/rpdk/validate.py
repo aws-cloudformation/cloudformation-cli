@@ -1,9 +1,9 @@
 """This sub command validates a resource provider definition."""
-import argparse
 import logging
 
 from jsonschema.exceptions import ValidationError
 
+from .argutils import TextFileType
 from .data_loaders import load_resource_spec
 
 LOG = logging.getLogger(__name__)
@@ -19,11 +19,11 @@ def validate(args):
         LOG.info("Validation succeeded.")
 
 
-def setup_subparser(subparsers):
-    parser = subparsers.add_parser("validate", description=__doc__)
+def setup_subparser(subparsers, parents):
+    parser = subparsers.add_parser("validate", description=__doc__, parents=parents)
     parser.set_defaults(command=validate)
     parser.add_argument(
         "resource_spec_file",
-        type=argparse.FileType("r"),
+        type=TextFileType("r"),
         help="The resource specification to use for generating the code.",
     )

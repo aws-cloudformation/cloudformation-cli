@@ -3,4 +3,4 @@ branch = True
 omit = */tests/*,**/contract_tests.py
 
 [report]
-fail_under = 84
+fail_under = 87
