@@ -104,12 +104,12 @@ def schema_merge(target, src):
     >>> schema_merge('', {})
     Traceback (most recent call last):
     ...
-    TypeError: target and src must be dictionaries
+    TypeError: Both schemas must be dictionaries
     >>>
     >>> schema_merge({}, 1)
     Traceback (most recent call last):
     ...
-    TypeError: target and src must be dictionaries
+    TypeError: Both schemas must be dictionaries
     >>>
     """
     if not (isinstance(target, Mapping) and isinstance(src, Mapping)):
