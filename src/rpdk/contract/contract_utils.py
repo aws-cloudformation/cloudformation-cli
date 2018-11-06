@@ -85,7 +85,7 @@ def read_resource(event_listener, transport, resource, resource_def):
         READ, resource_def["typeName"], resource=id_resource
     )
     read_response = transport(request, event_listener.server_address)
-    assert read_response["clientRequestToken"] == token  # nosec
+    verify_events_contain_token([read_response], token)
     return read_response
 
 

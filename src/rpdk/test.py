@@ -61,7 +61,7 @@ def setup_subparser(subparsers, parents):
     local_lambda_subparser.add_argument(
         "updated_resource_file",
         help="Additional resource model to be used in update specific tests",
-        type=argparse.FileType("r"),
+        type=TextFileType("r"),
     )
     local_lambda_subparser.add_argument(
         "resource_def_file",
