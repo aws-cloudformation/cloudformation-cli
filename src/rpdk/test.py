@@ -36,7 +36,7 @@ def invoke_pytest(transport, args):
     updated_resource = json.load(args.updated_resource_file)
 
     with temporary_ini_file() as path:
-        pytest_args = ["--pyargs", "rpdk.contract.suite", "-c", path]
+        pytest_args = ["--pyargs", "rpdk.contract.suite", "-c", path, "--no-print-logs"]
         if args.test_types:
             pytest_args.extend(["-k", args.test_types])
         if args.collect_only:

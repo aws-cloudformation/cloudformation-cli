@@ -10,7 +10,13 @@ from rpdk.cli import main
 from rpdk.test import invoke_pytest, local_lambda, setup_subparser, temporary_ini_file
 
 RANDOM_INI = "pytest_SOYPKR.ini"
-EXPECTED_PYTEST_ARGS = ["--pyargs", "rpdk.contract.suite", "-c", RANDOM_INI]
+EXPECTED_PYTEST_ARGS = [
+    "--pyargs",
+    "rpdk.contract.suite",
+    "-c",
+    RANDOM_INI,
+    "--no-print-logs",
+]
 
 
 @contextmanager
