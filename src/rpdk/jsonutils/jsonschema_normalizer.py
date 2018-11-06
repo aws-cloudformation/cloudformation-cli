@@ -94,7 +94,7 @@ class JsonSchemaNormalizer:
 
     def _collapse_object_type(self, key, sub_schema):
         # we only care about allOf, anyOf, oneOf for object types
-        sub_schema = self._squash_array_keys(key, sub_schema)
+        sub_schema = self._flatten_combiners(key, sub_schema)
 
         # if "additionalProperties" is truthy (e.g. a non-empty object), then fail
         if sub_schema.get("additionalProperties"):
@@ -143,24 +143,23 @@ class JsonSchemaNormalizer:
 
         return sub_schema
 
-    def _squash_array_keys(self, key, sub_schema):
+    def _flatten_combiners(self, key, sub_schema):
         """This method iterates through allOf, anyOf, and oneOf schemas and
-        merges them all into sub_schema"""
+        merges them all into the surrounding sub_schema"""
 
         for arr_key in ("allOf", "anyOf", "oneOf"):
             try:
                 schema_array = sub_schema.pop(arr_key)
             except KeyError:
-                pass
-            else:
-                for i, nested_schema in enumerate(schema_array):
-                    ref_path = fragment_encode([arr_key, i], key)
-                    walked_schema = self._walk(ref_path, nested_schema)
+                continue
+            for i, nested_schema in enumerate(schema_array):
+                ref_path = fragment_encode([arr_key, i], key)
+                walked_schema = self._walk(ref_path, nested_schema)
 
-                    # we no longer need the refkey since the properties will be squashed
-                    resolved_schema = self._schema_map.pop(ref_path, walked_schema)
+                # we no longer need the refkey since the properties will be squashed
+                resolved_schema = self._schema_map.pop(ref_path, walked_schema)
 
-                    schema_merge(sub_schema, resolved_schema)
+                schema_merge(sub_schema, resolved_schema)
         return sub_schema
 
     def _find_subschema_by_ref(self, ref_path):

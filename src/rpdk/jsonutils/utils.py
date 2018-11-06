@@ -81,12 +81,12 @@ def traverse(document, path_parts):
     return document
 
 
-def schema_merge(src, dest):
-    """Merges the dest schema into the src schema in place.
+def schema_merge(target, src):
+    """Merges the src schema into the target schema in place.
 
-    If there are duplicate keys, dest will overwrite src.
+    If there are duplicate keys, src will overwrite target.
 
-    :raises: TypeError: either schema is not of type dict
+    :raises TypeError: either schema is not of type dict
 
     >>> schema_merge({}, {})
     {}
@@ -104,25 +104,25 @@ def schema_merge(src, dest):
     >>> schema_merge('', {})
     Traceback (most recent call last):
     ...
-    TypeError: src and dest must be dictionaries
+    TypeError: target and src must be dictionaries
     >>>
     >>> schema_merge({}, 1)
     Traceback (most recent call last):
     ...
-    TypeError: src and dest must be dictionaries
+    TypeError: target and src must be dictionaries
     >>>
     """
-    if not isinstance(src, Mapping) or not isinstance(dest, Mapping):
-        raise TypeError("src and dest must be dictionaries")
-    for key, dest_schema in dest.items():
+    if not (isinstance(target, Mapping) and isinstance(src, Mapping)):
+        raise TypeError("Both schemas must be dictionaries")
+    for key, src_schema in src.items():
         try:
-            src_schema = src[key]
+            target_schema = target[key]
         except KeyError:
-            src[key] = dest_schema
+            target[key] = src_schema
         else:
             try:
-                src[key] = schema_merge(src_schema, dest_schema)
+                target[key] = schema_merge(target_schema, src_schema)
             except TypeError:
-                # TODO: add validation before overwriting keys
-                src[key] = dest_schema
-    return src
+                # TODO: add validation for type and $ref before overwriting keys
+                target[key] = src_schema
+    return target

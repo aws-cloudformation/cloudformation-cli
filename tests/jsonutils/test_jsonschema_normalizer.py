@@ -151,111 +151,69 @@ def test_find_schema_from_ref(normalizer, test_provider_schema):
     assert ref in str(excinfo.value)
 
 
-def test_schema_with_allof():
-    schema = resource_json(__name__, "data/test_schema_allof.json")
-    expected_normalized_schema = resource_json(
-        __name__, "data/test_schema_allof_normalized.json"
-    )
-    normalizer = JsonSchemaNormalizer(schema)
-    normalized_schema = normalizer.collapse_and_resolve_schema()
-    assert normalized_schema == expected_normalized_schema
+@pytest.mark.parametrize("combiner", ["oneOf", "anyOf", "allOf"])
+def test_flatten_combiners_single_level(combiner):
+    test_schema = {"a": None, combiner: [{"b": None}, {"c": None}, {"d": None}]}
+    normalizer = JsonSchemaNormalizer({})
+    flattened = normalizer._flatten_combiners("", test_schema)
+    assert flattened == {"a": None, "b": None, "c": None, "d": None}
 
 
-def test_walk_oneof_becomes_invalid():
+def test_flatten_multiple_combiners():
     test_schema = {
-        "properties": {"Foo": {"type": "string"}},
-        "anyOf": [{"patternProperties": {"Test": {"type": "string"}}}],
+        "a": None,
+        "oneOf": [{"b": None}],
+        "anyOf": [{"c": None}],
+        "allOf": [{"d": None}],
     }
     normalizer = JsonSchemaNormalizer({})
-    test_key = "#/properties/Foo"
-    with pytest.raises(ConstraintError) as excinfo:
-        normalizer._walk(test_key, test_schema)
-    assert "mutually exclusive" in str(excinfo.value)
+    flattened = normalizer._flatten_combiners("", test_schema)
+    assert flattened == {"a": None, "b": None, "c": None, "d": None}
+
+
+def test_flatten_combiners_nested():
+    test_schema = {"a": {"Foo": None}, "oneOf": [{"a": {"Bar": None}}]}
+    normalizer = JsonSchemaNormalizer({})
+    flattened = normalizer._flatten_combiners("", test_schema)
+    assert flattened == {"a": {"Foo": None, "Bar": None}}
+
+
+def test_flatten_combiners_overwrites():
+    test_schema = {"a": None, "oneOf": [{"a": "Foo"}]}
+    normalizer = JsonSchemaNormalizer({})
+    flattened = normalizer._flatten_combiners("", test_schema)
+    assert flattened == {"a": "Foo"}
 
 
 def test_overwrite_ref():
-    expected_schema = {"properties": {"Test": {"$ref": "#/definitions/Other"}}}
     test_schema = {
         "properties": {"Test": {"$ref": "#/definitions/Id"}},
         "anyOf": [{"properties": {"Test": {"$ref": "#/definitions/Other"}}}],
     }
-    test_key = "#/properties/Foo"
     normalizer = JsonSchemaNormalizer({})
     normalizer._schema_map = {"#/definitions/Other": {}}
-    squashed_schema = normalizer._squash_array_keys(test_key, test_schema)
-    assert expected_schema == squashed_schema
+    flattened = normalizer._flatten_combiners("", test_schema)
+    assert flattened == {"properties": {"Test": {"$ref": "#/definitions/Other"}}}
     assert len(normalizer._schema_map) == 1
 
 
 def test_overwrite_type():
-    expected_schema = {"properties": {"Test": {"type": "integer"}}}
     test_schema = {
         "properties": {"Test": {"type": "object"}},
         "anyOf": [{"properties": {"Test": {"type": "integer"}}}],
     }
-    validate_squash_array_key(test_schema, expected_schema)
-
-
-def test_squash_array_keys_pattern_properties():
-    expected_schema = {
-        "patternProperties": {"test": {"type": "object", "$ref": "#/definitions"}},
-        "required": ["Foo"],
-    }
-    test_schema = {
-        "patternProperties": {"test": {"$ref": "#/definitions"}},
-        "anyOf": [
-            {"patternProperties": {"test": {"type": "object"}}},
-            {"required": ["Foo"]},
-        ],
-    }
-    validate_squash_array_key(test_schema, expected_schema)
-
-
-def test_squash_array_keys_objects():
-    expected_schema = {
-        "type": "object",
-        "properties": {
-            "Baz": {"type": "array"},
-            "Foo": {"type": "string", "pattern": "[a-z]+"},
-            "Bar": {"type": "number"},
-        },
-    }
-    test_schemas = [
-        {
-            "type": "object",
-            "properties": {"Baz": {"type": "array"}},
-            "allOf": [{"properties": {"Foo": {"type": "string"}}}],
-            "oneOf": [{"properties": {"Foo": {"type": "string", "pattern": "[a-z]+"}}}],
-            "anyOf": [{"properties": {"Bar": {"type": "number"}}}],
-        }
-    ]
-    for arr_key in ("anyOf", "oneOf", "allOf"):
-        test_schemas.append(
-            {
-                "type": "object",
-                "properties": {"Baz": {"type": "array"}},
-                arr_key: [
-                    {"properties": {"Foo": {"type": "string"}}},
-                    {
-                        "properties": {
-                            "Foo": {"type": "string", "pattern": "[a-z]+"},
-                            "Bar": {"type": "number"},
-                        }
-                    },
-                ],
-            }
-        )
-
-    for test_schema in test_schemas:
-        validate_squash_array_key(test_schema, expected_schema)
-
-
-def validate_squash_array_key(test_schema, expected_schema):
-    test_key = "#/properties/Foo"
     normalizer = JsonSchemaNormalizer({})
-    squashed_schema = normalizer._squash_array_keys(test_key, test_schema)
-    assert expected_schema == squashed_schema
+    flattened = normalizer._flatten_combiners("", test_schema)
+    assert flattened == {"properties": {"Test": {"type": "integer"}}}
     assert not normalizer._schema_map
+
+
+def test_walk_anyof_becomes_invalid():
+    test_schema = {"properties": {}, "anyOf": [{"patternProperties": {}}]}
+    normalizer = JsonSchemaNormalizer({})
+    with pytest.raises(ConstraintError) as excinfo:
+        normalizer._walk("", test_schema)
+    assert "mutually exclusive" in str(excinfo.value)
 
 
 def test_contraint_array_additional_items_valid():
