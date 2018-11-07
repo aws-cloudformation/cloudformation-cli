@@ -1,9 +1,10 @@
 import argparse
 import tempfile
 from contextlib import contextmanager
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import pytest
+from botocore.exceptions import ClientError, EndpointConnectionError
 
 from rpdk.cli import main
 from rpdk.test import local_lambda, temporary_ini_file
@@ -78,7 +79,12 @@ def test_local_lambda_command():
         mock_init = patch(
             "rpdk.test.temporary_ini_file", side_effect=mock_temporary_ini_file
         )
-        with mock_json, mock_init, patch("pytest.main") as mock_pytest:
+        mock_transport_call = patch(
+            "rpdk.contract.transports.LocalLambdaTransport.__call__"
+        )
+        with mock_json, mock_init, mock_transport_call, patch(
+            "pytest.main"
+        ) as mock_pytest:
             local_lambda(arg_namespace)
     mock_pytest.assert_called_once()
     args, kwargs = mock_pytest.call_args
@@ -102,13 +108,46 @@ def test_local_lambda_with_test_type():
         mock_init = patch(
             "rpdk.test.temporary_ini_file", side_effect=mock_temporary_ini_file
         )
-        with mock_json, mock_init, patch("pytest.main") as mock_pytest:
+        mock_transport_call = patch(
+            "rpdk.contract.transports.LocalLambdaTransport.__call__"
+        )
+        with mock_json, mock_init, mock_transport_call, patch(
+            "pytest.main"
+        ) as mock_pytest:
             local_lambda(arg_namespace)
     mock_pytest.assert_called_once()
     args, kwargs = mock_pytest.call_args
     assert len(args) == 1
     assert args[0] == EXPECTED_PYTEST_ARGS + ["-k", "TEST_TYPE"]
     assert kwargs.keys() == {"plugins"}
+
+
+def test_local_lambda_fail_fast_endpoint():
+    arg_namespace = argparse.Namespace(
+        endpoint="http://127.0.0.1:3001", function_name="Handler"
+    )
+    mock_transport_call = patch(
+        "rpdk.contract.transports.LocalLambdaTransport.__call__",
+        new=Mock(
+            side_effect=EndpointConnectionError(endpoint_url="http://127.0.0.1:3001")
+        ),
+    )
+    with mock_transport_call, patch("pytest.main") as mock_pytest:
+        local_lambda(arg_namespace)
+    mock_pytest.assert_not_called()
+
+
+def test_local_lambda_fail_fast_function_name():
+    arg_namespace = argparse.Namespace(
+        endpoint="http://127.0.0.1:3001", function_name="Handler"
+    )
+    mock_transport_call = Mock(side_effect=ClientError({}, ""))
+    with patch("pytest.main") as mock_pytest, patch(
+        "rpdk.contract.transports.LocalLambdaTransport.__call__",
+        new=mock_transport_call,
+    ):
+        local_lambda(arg_namespace)
+    mock_pytest.assert_not_called()
 
 
 def test_temporary_ini_file():

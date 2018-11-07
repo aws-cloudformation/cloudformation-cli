@@ -8,6 +8,7 @@ from pathlib import Path
 from tempfile import NamedTemporaryFile
 
 import pytest
+from botocore.exceptions import ClientError, EndpointConnectionError
 
 from .argutils import TextFileType
 from .contract.contract_plugin import ContractPlugin
@@ -30,6 +31,26 @@ def temporary_ini_file():
 
 def local_lambda(args):
     transport = LocalLambdaTransport(args.endpoint, args.function_name)
+
+    payload = {"requestContext": {}}
+    try:
+        transport(payload, ("", ""))
+    except EndpointConnectionError:
+        LOG.error(
+            "Local Lambda Service endpoint %s could not be reached."
+            " Verify that the local lambda service from SAM CLI is running",
+            args.endpoint,
+        )
+        return
+    except ClientError:
+        LOG.error(
+            'Function with name "%s" not found running on local lambda service.'
+            " Verify that the function name matches"
+            " the logical name in the SAM Template.",
+            args.function_name,
+        )
+        return
+
     resource_def_file = json.load(args.resource_def_file)
     resource_file = json.load(args.resource_file)
     updated_resource_file = json.load(args.updated_resource_file)
