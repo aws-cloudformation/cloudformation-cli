@@ -171,49 +171,52 @@ def test_flatten_multiple_combiners():
     assert flattened == {"a": None, "b": None, "c": None, "d": None}
 
 
-def test_flatten_combiners_nested():
-    test_schema = {"a": {"Foo": None}, "oneOf": [{"a": {"Bar": None}}]}
+@pytest.mark.parametrize("combiner", ["oneOf", "anyOf", "allOf"])
+def test_flatten_combiners_nested(combiner):
+    test_schema = {"a": {"Foo": None}, combiner: [{"a": {"Bar": None}}]}
     normalizer = JsonSchemaNormalizer({})
     flattened = normalizer._flatten_combiners("", test_schema)
     assert flattened == {"a": {"Foo": None, "Bar": None}}
 
 
-def test_flatten_combiners_overwrites():
-    test_schema = {"a": None, "oneOf": [{"a": "Foo"}]}
+@pytest.mark.parametrize("combiner", ["oneOf", "anyOf", "allOf"])
+def test_flatten_combiners_overwrites(combiner):
+    test_schema = {"a": None, combiner: [{"a": "Foo"}]}
     normalizer = JsonSchemaNormalizer({})
     flattened = normalizer._flatten_combiners("", test_schema)
     assert flattened == {"a": "Foo"}
 
 
-def test_overwrite_ref():
+def test_flatten_combiners_with_reference():
+    # test that a ref to an allOf will work when processed before OR after the allOf
     test_schema = {
-        "properties": {"Test": {"$ref": "#/definitions/Id"}},
-        "anyOf": [{"properties": {"Test": {"$ref": "#/definitions/Other"}}}],
+        "properties": {
+            "p1": {"$ref": "#/properties/p2/allOf/0"},
+            "p2": {
+                "allOf": [
+                    {"properties": {"a2": {"type": "integer"}}},
+                    {"properties": {"a2": {"type": "integer"}}},
+                ]
+            },
+            "p3": {"$ref": "#/properties/p2/allOf/1"},
+        }
     }
-    normalizer = JsonSchemaNormalizer({})
-    normalizer._schema_map = {"#/definitions/Other": {}}
-    flattened = normalizer._flatten_combiners("", test_schema)
-    assert flattened == {"properties": {"Test": {"$ref": "#/definitions/Other"}}}
-    assert len(normalizer._schema_map) == 1
-
-
-def test_overwrite_type():
-    test_schema = {
-        "properties": {"Test": {"type": "object"}},
-        "anyOf": [{"properties": {"Test": {"type": "integer"}}}],
+    expected_schema = {
+        "#": {
+            "properties": {
+                "p1": {"$ref": "#/properties/p2/allOf/0"},
+                "p2": {"$ref": "#/properties/p2"},
+                "p3": {"$ref": "#/properties/p2/allOf/1"},
+            }
+        },
+        "#/properties/p2": {"properties": {"a2": {"type": "integer"}}},
+        "#/properties/p2/allOf/0": {"properties": {"a2": {"type": "integer"}}},
+        "#/properties/p2/allOf/1": {"properties": {"a2": {"type": "integer"}}},
     }
-    normalizer = JsonSchemaNormalizer({})
-    flattened = normalizer._flatten_combiners("", test_schema)
-    assert flattened == {"properties": {"Test": {"type": "integer"}}}
-    assert not normalizer._schema_map
 
-
-def test_walk_anyof_becomes_invalid():
-    test_schema = {"properties": {}, "anyOf": [{"patternProperties": {}}]}
-    normalizer = JsonSchemaNormalizer({})
-    with pytest.raises(ConstraintError) as excinfo:
-        normalizer._walk("", test_schema)
-    assert "mutually exclusive" in str(excinfo.value)
+    normalizer = JsonSchemaNormalizer(test_schema)
+    schema_map = normalizer.collapse_and_resolve_schema()
+    assert schema_map == expected_schema
 
 
 def test_contraint_array_additional_items_valid():

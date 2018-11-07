@@ -1,5 +1,6 @@
 # pylint: disable=too-few-public-methods,raising-format-tuple
 import logging
+from copy import deepcopy
 
 from .pointer import fragment_decode, fragment_encode
 from .utils import schema_merge, traverse
@@ -36,7 +37,7 @@ class JsonSchemaNormalizer:
         self._full_schema = schema
 
     def collapse_and_resolve_schema(self):
-        self._walk("#", self._full_schema)
+        self._walk("#", deepcopy(self._full_schema))
 
         return self._schema_map
 
@@ -108,6 +109,7 @@ class JsonSchemaNormalizer:
             )
             raise ConstraintError(msg, key)
 
+        # if "properties" are defined, resolve each property
         try:
             properties = sub_schema["properties"]
         except KeyError:
@@ -154,10 +156,15 @@ class JsonSchemaNormalizer:
                 continue
             for i, nested_schema in enumerate(schema_array):
                 ref_path = fragment_encode([arr_key, i], key)
+                ref_path_is_used = ref_path in self._schema_map
                 walked_schema = self._walk(ref_path, nested_schema)
 
+                # if no other schema is referencing the ref_path,
                 # we no longer need the refkey since the properties will be squashed
-                resolved_schema = self._schema_map.pop(ref_path, walked_schema)
+                if ref_path_is_used:
+                    resolved_schema = self._schema_map.get(ref_path)
+                else:
+                    resolved_schema = self._schema_map.pop(ref_path, walked_schema)
 
                 schema_merge(sub_schema, resolved_schema)
         return sub_schema
