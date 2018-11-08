@@ -65,7 +65,7 @@ def local_lambda(args):
             LOG.error(
                 "Function with name '%s' not found running on local lambda service. "
                 "Verify that the function name matches "
-                " the logical name in the SAM Template. ",
+                "the logical name in the SAM Template. ",
                 args.function_name,
             )
             return
