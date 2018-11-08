@@ -34,8 +34,7 @@ class ContractPlugin:
 
     @staticmethod
     @pytest.fixture
-    # this fixture can never be covered without raising a warning
-    def event_listener(request):  # pragma: no cover
+    def event_listener(request):
         return start_listener(request)
 
 

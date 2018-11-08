@@ -21,11 +21,11 @@ def test_contract_plugin_fixtures():
         transport, test_resource, test_updated_resource, resource_def
     )
     request = Mock(spec=FixtureRequest)
-    request.addfinalizer = Mock(return_value=None)
-    with patch("rpdk.contract.contract_plugin.CallbackServer", autospec=True) as server:
-        start_listener(request)
-    server.assert_called_once()
-    request.addfinalizer.assert_called_once()
+    with patch(
+        "rpdk.contract.contract_plugin.start_listener", autospec=True
+    ) as mock_listener:
+        plugin.event_listener.__wrapped__(request)
+    mock_listener.assert_called_once_with(request)
 
     assert plugin.transport.__wrapped__(plugin) is transport
     assert plugin.test_resource.__wrapped__(plugin) is test_resource
