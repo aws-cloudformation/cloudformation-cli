@@ -37,7 +37,7 @@ class JsonSchemaNormalizer:
         self._full_schema = schema
 
     def collapse_and_resolve_schema(self):
-        self._walk("#", deepcopy(self._full_schema))
+        self._walk("#", self._full_schema)
 
         return self._schema_map
 
@@ -45,6 +45,9 @@ class JsonSchemaNormalizer:
         # have we already seen this path?
         if property_path in self._schema_map:
             return {"$ref": property_path}
+
+        # work on shallow copy to avoid modifying the schema
+        sub_schema = dict(sub_schema)
 
         # is it a reference?
         try:
