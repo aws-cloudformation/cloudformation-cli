@@ -10,13 +10,13 @@ from pathlib import Path
 
 from .argutils import TextFileType
 from .data_loaders import load_project_settings, load_resource_spec
-from .plugin_registry import PLUGIN_REGISTRY, add_language_argument
+from .plugin_registry import add_language_argument, get_plugin
 
 LOG = logging.getLogger(__name__)
 
 
 def generate(args):
-    plugin = PLUGIN_REGISTRY[args.language]
+    plugin = get_plugin(args.language)
 
     LOG.info("Loading the project settings...")
     project_settings = load_project_settings(plugin, args.project_settings_file)

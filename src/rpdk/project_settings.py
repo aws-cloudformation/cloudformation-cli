@@ -4,11 +4,11 @@ generation for a given language.
 import sys
 
 from .argutils import TextFileType
-from .plugin_registry import PLUGIN_REGISTRY, add_language_argument
+from .plugin_registry import add_language_argument, get_plugin
 
 
 def project_settings(args):
-    plugin = PLUGIN_REGISTRY[args.language]
+    plugin = get_plugin(args.language)
     with plugin.project_settings_defaults() as f:
         settings = f.read().decode("utf-8")
     args.output.write("# Project settings for {}\n".format(args.language))
