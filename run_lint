@@ -9,5 +9,6 @@ isort --check-only --verbose --recursive "${files[@]}"
 black --check "${files[@]}"
 flake8 "${files[@]}"
 pylint "${files[@]}"
-bandit -r "src/" --exclude "tests"
+# have to skip B101, contract tests use it and there's no way to skip for specific files
+bandit -r "src/" --skip "B101" --exclude "tests"
 pytest --cov="src/" --doctest-modules "src/" "tests/"
