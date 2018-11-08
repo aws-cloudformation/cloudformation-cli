@@ -115,9 +115,7 @@ def compare_requested_model(requested_model, returned_model, resource_def):
     write_only_properties = {
         fragment_decode(prop)[-1] for prop in resource_def.get("writeOnly", ())
     }
-    comparable_properties = (
-        set(requested_model["properties"].keys()) - write_only_properties
-    )
+    comparable_properties = requested_model["properties"].keys() - write_only_properties
     for key in comparable_properties:
         assert returned_model["properties"][key] == requested_model["properties"][key]
 
@@ -132,5 +130,5 @@ def check_for_writable_identifiers(test_resource, resource_def):
     writable_identifiers = {
         fragment_decode(identifier)[-1] for identifier in encoded_writable_identifiers
     }
-    if not set(test_resource["properties"].keys() & writable_identifiers):
+    if not test_resource["properties"].keys() & writable_identifiers:
         pytest.skip("No writable identifiers")

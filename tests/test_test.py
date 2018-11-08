@@ -84,7 +84,7 @@ def test_local_lambda_command():
     args, kwargs = mock_pytest.call_args
     assert len(args) == 1
     assert args[0] == EXPECTED_PYTEST_ARGS
-    assert "plugins" in kwargs
+    assert kwargs.keys() == {"plugins"}
 
 
 def test_local_lambda_with_test_type():
@@ -108,7 +108,7 @@ def test_local_lambda_with_test_type():
     args, kwargs = mock_pytest.call_args
     assert len(args) == 1
     assert args[0] == EXPECTED_PYTEST_ARGS + ["-k", "TEST_TYPE"]
-    assert "plugins" in kwargs
+    assert kwargs.keys() == {"plugins"}
 
 
 def test_temporary_ini_file():

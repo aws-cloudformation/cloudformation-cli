@@ -34,11 +34,16 @@ class ContractPlugin:
 
     @staticmethod
     @pytest.fixture
-    def event_listener(request):
-        server = CallbackServer()
-        server.start()
-        request.addfinalizer(server.stop)
-        return server
+    # this fixture can never be covered without raising a warning
+    def event_listener(request):  # pragma: no cover
+        return start_listener(request)
+
+
+def start_listener(request):
+    server = CallbackServer()
+    server.start()
+    request.addfinalizer(server.stop)
+    return server
 
 
 class CallbackServer(threading.Thread):

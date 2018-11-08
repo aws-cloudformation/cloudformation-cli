@@ -4,12 +4,12 @@ import requests
 from _pytest.fixtures import FixtureRequest
 from pytest import fixture
 
-from rpdk.contract.contract_plugin import ContractPlugin
+from rpdk.contract.contract_plugin import ContractPlugin, start_listener
 
 
 @fixture
 def listener(request):
-    return ContractPlugin.event_listener(request)
+    return start_listener(request)
 
 
 def test_contract_plugin_fixtures():
@@ -23,7 +23,7 @@ def test_contract_plugin_fixtures():
     request = Mock(spec=FixtureRequest)
     request.addfinalizer = Mock(return_value=None)
     with patch("rpdk.contract.contract_plugin.CallbackServer", autospec=True) as server:
-        plugin.event_listener(request)
+        start_listener(request)
     server.assert_called_once()
     request.addfinalizer.assert_called_once()
 
