@@ -1,7 +1,6 @@
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
 import requests
-from _pytest.fixtures import FixtureRequest
 from pytest import fixture
 
 from rpdk.contract.contract_plugin import ContractPlugin, start_listener
@@ -20,7 +19,7 @@ def test_contract_plugin_fixtures():
     plugin = ContractPlugin(
         transport, test_resource, test_updated_resource, resource_def
     )
-    request = Mock(spec=FixtureRequest)
+    request = object()
     with patch(
         "rpdk.contract.contract_plugin.start_listener", autospec=True
     ) as mock_listener:
