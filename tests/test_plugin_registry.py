@@ -10,3 +10,4 @@ def test_get_plugin():
     ):
         get_plugin("test")
     plugin.assert_called_once_with()
+    plugin.return_value.assert_called_once_with()
