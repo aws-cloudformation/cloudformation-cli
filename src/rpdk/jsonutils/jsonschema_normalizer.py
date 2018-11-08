@@ -1,6 +1,5 @@
 # pylint: disable=too-few-public-methods,raising-format-tuple
 import logging
-from copy import deepcopy
 
 from .pointer import fragment_decode, fragment_encode
 from .utils import schema_merge, traverse
