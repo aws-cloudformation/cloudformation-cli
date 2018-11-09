@@ -42,5 +42,9 @@ class LanguagePlugin(ABC):
         return env
 
     @abstractmethod
+    def init(self, project_settings):
+        pass
+
+    @abstractmethod
     def generate(self, resource_def, project_settings):
         pass
