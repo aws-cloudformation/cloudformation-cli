@@ -1,19 +1,13 @@
 import argparse
-import tempfile
 from contextlib import contextmanager
+from tempfile import NamedTemporaryFile, TemporaryFile
 from unittest.mock import Mock, patch
 
 import pytest
 from botocore.exceptions import ClientError, EndpointConnectionError
 
 from rpdk.cli import main
-from rpdk.test import (
-    invoke_pytest,
-    local_lambda,
-    pytest_parser,
-    setup_subparser,
-    temporary_ini_file,
-)
+from rpdk.test import invoke_pytest, local_lambda, setup_subparser, temporary_ini_file
 
 RANDOM_INI = "pytest_SOYPKR.ini"
 EXPECTED_PYTEST_ARGS = ["--pyargs", "rpdk.contract.suite", "-c", RANDOM_INI]
@@ -44,9 +38,9 @@ def test_test_command_local_lambda_help(capsys):
 
 def test_test_command_args():
     with patch("rpdk.test.local_lambda", autospec=True) as mock_lambda_command:
-        test_resource_file = tempfile.NamedTemporaryFile()
-        test_updated_resource_file = tempfile.NamedTemporaryFile()
-        test_resource_def_file = tempfile.NamedTemporaryFile()
+        test_resource_file = NamedTemporaryFile()
+        test_updated_resource_file = NamedTemporaryFile()
+        test_resource_def_file = NamedTemporaryFile()
         main(
             args_in=[
                 "test",
@@ -117,7 +111,7 @@ def test_invoke_pytest_with_test_type():
 
 
 def test_local_lambda_command():
-    with tempfile.TemporaryFile() as test_file, patch(
+    with TemporaryFile() as test_file, patch(
         "rpdk.contract.transports.LocalLambdaTransport.__call__"
     ), patch("rpdk.test.invoke_pytest") as mock_invoke_pytest:
         arg_namespace = argparse.Namespace(
@@ -179,16 +173,15 @@ def mock_transport_command(args):
 
 
 def patched_setup_subparser(subparsers, parents):
-    pytest_parent = pytest_parser()
-    test_parsers = setup_subparser(subparsers, parents)
-    mock_parser = test_parsers.add_parser("mock-transport", parents=[pytest_parent])
+    test_parsers, pytest_parents = setup_subparser(subparsers, parents)
+    mock_parser = test_parsers.add_parser("mock-transport", parents=pytest_parents)
     mock_parser.set_defaults(command=mock_transport_command)
 
 
 def test_e2e_test_command(capsys):
     with patch(
         "rpdk.cli.test_setup_subparser", side_effect=patched_setup_subparser
-    ), tempfile.NamedTemporaryFile(mode="w+", encoding="utf8", delete=False) as temp:
+    ), NamedTemporaryFile(mode="w+", encoding="utf8", delete=False) as temp:
         temp.write("{}")
         temp.close()
         main(
