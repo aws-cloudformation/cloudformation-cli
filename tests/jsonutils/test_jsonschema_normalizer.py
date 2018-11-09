@@ -1,10 +1,13 @@
 # fixture and parameter have the same name
 # pylint: disable=redefined-outer-name
 # pylint: disable=protected-access
+import string
+
 import pytest
 
 from rpdk.data_loaders import resource_json
 from rpdk.jsonutils.jsonschema_normalizer import (
+    COMBINERS,
     ConstraintError,
     JsonSchemaNormalizer,
     NormalizationError,
@@ -151,7 +154,7 @@ def test_find_schema_from_ref(normalizer, test_provider_schema):
     assert ref in str(excinfo.value)
 
 
-@pytest.mark.parametrize("combiner", ["oneOf", "anyOf", "allOf"])
+@pytest.mark.parametrize("combiner", COMBINERS)
 def test_flatten_combiners_single_level(combiner):
     test_schema = {"a": None, combiner: [{"b": None}, {"c": None}, {"d": None}]}
     normalizer = JsonSchemaNormalizer({})
@@ -160,18 +163,18 @@ def test_flatten_combiners_single_level(combiner):
 
 
 def test_flatten_multiple_combiners():
-    test_schema = {
-        "a": None,
-        "oneOf": [{"b": None}],
-        "anyOf": [{"c": None}],
-        "allOf": [{"d": None}],
-    }
+    test_schema = {"z": None}
+    expected = test_schema.copy()
+    for letter, combiner in zip(string.ascii_lowercase, COMBINERS):
+        test_schema[combiner] = [{letter: None}]
+        expected[letter] = None
+
     normalizer = JsonSchemaNormalizer({})
     flattened = normalizer._flatten_combiners("", test_schema)
-    assert flattened == {"a": None, "b": None, "c": None, "d": None}
+    assert flattened == expected
 
 
-@pytest.mark.parametrize("combiner", ["oneOf", "anyOf", "allOf"])
+@pytest.mark.parametrize("combiner", COMBINERS)
 def test_flatten_combiners_nested(combiner):
     test_schema = {"a": {"Foo": None}, combiner: [{"a": {"Bar": None}}]}
     normalizer = JsonSchemaNormalizer({})
@@ -179,7 +182,7 @@ def test_flatten_combiners_nested(combiner):
     assert flattened == {"a": {"Foo": None, "Bar": None}}
 
 
-@pytest.mark.parametrize("combiner", ["oneOf", "anyOf", "allOf"])
+@pytest.mark.parametrize("combiner", COMBINERS)
 def test_flatten_combiners_overwrites(combiner):
     test_schema = {"a": None, combiner: [{"a": "Foo"}]}
     normalizer = JsonSchemaNormalizer({})

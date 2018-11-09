@@ -5,6 +5,7 @@ from .pointer import fragment_decode, fragment_encode
 from .utils import schema_merge, traverse
 
 LOG = logging.getLogger(__name__)
+COMBINERS = ("oneOf", "anyOf", "allOf")
 
 
 class NormalizationError(Exception):
@@ -151,7 +152,7 @@ class JsonSchemaNormalizer:
         """This method iterates through allOf, anyOf, and oneOf schemas and
         merges them all into the surrounding sub_schema"""
 
-        for arr_key in ("allOf", "anyOf", "oneOf"):
+        for arr_key in COMBINERS:
             try:
                 schema_array = sub_schema.pop(arr_key)
             except KeyError:
