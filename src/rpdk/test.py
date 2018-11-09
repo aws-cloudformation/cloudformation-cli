@@ -59,16 +59,17 @@ def local_lambda(args):
             "Verify that the local lambda service from SAM CLI is running",
             args.endpoint,
         )
-        return
+        raise SystemExit(1)
     except ClientError as e:
-        if "Function not found" in e.args[0]:
+        msg = str(e)
+        if all(s in msg for s in ("ResourceNotFound", "Invoke", args.function_name)):
             LOG.error(
                 "Function with name '%s' not found running on local lambda service. "
                 "Verify that the function name matches "
                 "the logical name in the SAM Template. ",
                 args.function_name,
             )
-            return
+            raise SystemExit(1)
         raise
     invoke_pytest(transport, args)
 

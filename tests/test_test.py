@@ -136,14 +136,13 @@ def test_local_lambda_fail_fast_endpoint():
         endpoint="http://127.0.0.1:3001", function_name="Handler"
     )
 
+    e = EndpointConnectionError(endpoint_url="http://127.0.0.1:3001")
     mock_transport_call = patch(
-        "rpdk.contract.transports.LocalLambdaTransport.__call__",
-        new=Mock(
-            side_effect=EndpointConnectionError(endpoint_url="http://127.0.0.1:3001")
-        ),
+        "rpdk.contract.transports.LocalLambdaTransport.__call__", side_effect=e
     )
     with mock_transport_call, patch("rpdk.test.invoke_pytest") as mock_pytest:
-        local_lambda(arg_namespace)
+        with pytest.raises(SystemExit):
+            local_lambda(arg_namespace)
     mock_pytest.assert_not_called()
 
 
@@ -151,13 +150,47 @@ def test_local_lambda_fail_fast_function_name():
     arg_namespace = argparse.Namespace(
         endpoint="http://127.0.0.1:3001", function_name="Handler"
     )
-    error_message = {"Error": {"Message": "Function not found"}}
-    mock_transport_call = Mock(side_effect=ClientError(error_message, ""))
+    e = ClientError(
+        {
+            "Error": {
+                "Code": "ResourceNotFound",
+                "Message": (
+                    "Function not found: ",
+                    "arn:aws:lambda:us-west-2:012345678901:function:Handler",
+                ),
+            }
+        },
+        "Invoke",
+    )
     with patch("rpdk.test.invoke_pytest") as mock_pytest, patch(
-        "rpdk.contract.transports.LocalLambdaTransport.__call__",
-        new=mock_transport_call,
+        "rpdk.contract.transports.LocalLambdaTransport.__call__", side_effect=e
     ):
-        local_lambda(arg_namespace)
+        with pytest.raises(SystemExit):
+            local_lambda(arg_namespace)
+    mock_pytest.assert_not_called()
+
+
+def test_local_lambda_fail_fast_reraise():
+    arg_namespace = argparse.Namespace(
+        endpoint="http://127.0.0.1:3001", function_name="Handler"
+    )
+    e = ClientError(
+        {
+            "Error": {
+                "Code": "ResourceNotFound",
+                "Message": (
+                    "Function not found: "
+                    "arn:aws:lambda:us-west-2:012345678901:function:Handle",
+                ),
+            }
+        },
+        "Invoke",
+    )
+    with patch("rpdk.test.invoke_pytest") as mock_pytest, patch(
+        "rpdk.contract.transports.LocalLambdaTransport.__call__", side_effect=e
+    ):
+        with pytest.raises(ClientError):
+            local_lambda(arg_namespace)
     mock_pytest.assert_not_called()
 
 
@@ -181,9 +214,9 @@ def patched_setup_subparser(subparsers, parents):
 def test_e2e_test_command(capsys):
     with patch(
         "rpdk.cli.test_setup_subparser", side_effect=patched_setup_subparser
-    ), NamedTemporaryFile(mode="w+", encoding="utf8", delete=False) as temp:
+    ), NamedTemporaryFile(mode="w", encoding="utf-8") as temp:
         temp.write("{}")
-        temp.close()
+        temp.flush()
         main(
             [
                 "test",
@@ -194,4 +227,5 @@ def test_e2e_test_command(capsys):
                 "--collect-only",
             ]
         )
-    assert "collected" in capsys.readouterr()[0]
+    out, _ = capsys.readouterr()
+    assert "collected" in out
