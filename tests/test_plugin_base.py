@@ -18,6 +18,9 @@ class TestLanguagePlugin(LanguagePlugin):
     def project_settings_schema(self):
         return super().project_settings_schema()
 
+    def init(self, project_settings):
+        return super().init(project_settings)
+
     def generate(self, resource_def, project_settings):
         return super().generate(resource_def, project_settings)
 
@@ -41,6 +44,10 @@ def test_language_plugin_project_settings_defaults(plugin):
 
 def test_language_plugin_project_settings_schema(plugin):
     assert "$schema" in plugin.project_settings_schema()
+
+
+def test_language_plugin_init_no_op(plugin):
+    plugin.init(None)
 
 
 def test_language_plugin_generate_no_op(plugin):
