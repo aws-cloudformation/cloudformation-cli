@@ -73,11 +73,6 @@ def local_lambda(args):
     invoke_pytest(transport, args)
 
 
-# def mocked_transport(args):
-#     transport = Mock()
-#     invoke_pytest(transport, args)
-
-
 def setup_subparser(subparsers, parents):
     # see docstring of this file
     parser = subparsers.add_parser("test", description=__doc__, parents=parents)
