@@ -2,9 +2,10 @@
 import logging
 
 from .pointer import fragment_decode, fragment_encode
-from .utils import traverse
+from .utils import schema_merge, traverse
 
 LOG = logging.getLogger(__name__)
+COMBINERS = ("oneOf", "anyOf", "allOf")
 
 
 class NormalizationError(Exception):
@@ -44,6 +45,9 @@ class JsonSchemaNormalizer:
         # have we already seen this path?
         if property_path in self._schema_map:
             return {"$ref": property_path}
+
+        # work on shallow copy to avoid modifying the schema
+        sub_schema = dict(sub_schema)
 
         # is it a reference?
         try:
@@ -93,6 +97,9 @@ class JsonSchemaNormalizer:
         return sub_schema
 
     def _collapse_object_type(self, key, sub_schema):
+        # we only care about allOf, anyOf, oneOf for object types
+        sub_schema = self._flatten_combiners(key, sub_schema)
+
         # if "additionalProperties" is truthy (e.g. a non-empty object), then fail
         if sub_schema.get("additionalProperties"):
             raise ConstraintError("Object at '{path}' has 'additionalProperties'", key)
@@ -139,6 +146,30 @@ class JsonSchemaNormalizer:
                 )
             sub_schema["patternProperties"] = new_pattern_properties
 
+        return sub_schema
+
+    def _flatten_combiners(self, key, sub_schema):
+        """This method iterates through allOf, anyOf, and oneOf schemas and
+        merges them all into the surrounding sub_schema"""
+
+        for arr_key in COMBINERS:
+            try:
+                schema_array = sub_schema.pop(arr_key)
+            except KeyError:
+                continue
+            for i, nested_schema in enumerate(schema_array):
+                ref_path = fragment_encode([arr_key, i], key)
+                ref_path_is_used = ref_path in self._schema_map
+                walked_schema = self._walk(ref_path, nested_schema)
+
+                # if no other schema is referencing the ref_path,
+                # we no longer need the refkey since the properties will be squashed
+                if ref_path_is_used:
+                    resolved_schema = self._schema_map.get(ref_path)
+                else:
+                    resolved_schema = self._schema_map.pop(ref_path, walked_schema)
+
+                schema_merge(sub_schema, resolved_schema)
         return sub_schema
 
     def _find_subschema_by_ref(self, ref_path):

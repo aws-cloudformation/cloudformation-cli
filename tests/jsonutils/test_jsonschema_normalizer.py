@@ -1,10 +1,13 @@
 # fixture and parameter have the same name
 # pylint: disable=redefined-outer-name
 # pylint: disable=protected-access
+import string
+
 import pytest
 
 from rpdk.data_loaders import resource_json
 from rpdk.jsonutils.jsonschema_normalizer import (
+    COMBINERS,
     ConstraintError,
     JsonSchemaNormalizer,
     NormalizationError,
@@ -149,6 +152,74 @@ def test_find_schema_from_ref(normalizer, test_provider_schema):
     with pytest.raises(NormalizationError) as excinfo:
         normalizer._find_subschema_by_ref(ref)
     assert ref in str(excinfo.value)
+
+
+@pytest.mark.parametrize("combiner", COMBINERS)
+def test_flatten_combiners_single_level(combiner):
+    test_schema = {"a": None, combiner: [{"b": None}, {"c": None}, {"d": None}]}
+    normalizer = JsonSchemaNormalizer({})
+    flattened = normalizer._flatten_combiners("", test_schema)
+    assert flattened == {"a": None, "b": None, "c": None, "d": None}
+
+
+def test_flatten_multiple_combiners():
+    test_schema = {"z": None}
+    expected = test_schema.copy()
+    for letter, combiner in zip(string.ascii_lowercase, COMBINERS):
+        test_schema[combiner] = [{letter: None}]
+        expected[letter] = None
+
+    normalizer = JsonSchemaNormalizer({})
+    flattened = normalizer._flatten_combiners("", test_schema)
+    assert flattened == expected
+
+
+@pytest.mark.parametrize("combiner", COMBINERS)
+def test_flatten_combiners_nested(combiner):
+    test_schema = {"a": {"Foo": None}, combiner: [{"a": {"Bar": None}}]}
+    normalizer = JsonSchemaNormalizer({})
+    flattened = normalizer._flatten_combiners("", test_schema)
+    assert flattened == {"a": {"Foo": None, "Bar": None}}
+
+
+@pytest.mark.parametrize("combiner", COMBINERS)
+def test_flatten_combiners_overwrites(combiner):
+    test_schema = {"a": None, combiner: [{"a": "Foo"}]}
+    normalizer = JsonSchemaNormalizer({})
+    flattened = normalizer._flatten_combiners("", test_schema)
+    assert flattened == {"a": "Foo"}
+
+
+def test_flatten_combiners_with_reference():
+    # test that a ref to an allOf will work when processed before OR after the allOf
+    test_schema = {
+        "properties": {
+            "p1": {"$ref": "#/properties/p2/allOf/0"},
+            "p2": {
+                "allOf": [
+                    {"properties": {"a2": {"type": "integer"}}},
+                    {"properties": {"a2": {"type": "integer"}}},
+                ]
+            },
+            "p3": {"$ref": "#/properties/p2/allOf/1"},
+        }
+    }
+    expected_schema = {
+        "#": {
+            "properties": {
+                "p1": {"$ref": "#/properties/p2/allOf/0"},
+                "p2": {"$ref": "#/properties/p2"},
+                "p3": {"$ref": "#/properties/p2/allOf/1"},
+            }
+        },
+        "#/properties/p2": {"properties": {"a2": {"type": "integer"}}},
+        "#/properties/p2/allOf/0": {"properties": {"a2": {"type": "integer"}}},
+        "#/properties/p2/allOf/1": {"properties": {"a2": {"type": "integer"}}},
+    }
+
+    normalizer = JsonSchemaNormalizer(test_schema)
+    schema_map = normalizer.collapse_and_resolve_schema()
+    assert schema_map == expected_schema
 
 
 def test_contraint_array_additional_items_valid():
