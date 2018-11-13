@@ -6,12 +6,8 @@ import string
 import pytest
 
 from rpdk.data_loaders import resource_json
-from rpdk.jsonutils.jsonschema_normalizer import (
-    COMBINERS,
-    ConstraintError,
-    JsonSchemaNormalizer,
-    NormalizationError,
-)
+from rpdk.jsonutils.jsonschema_normalizer import COMBINERS, JsonSchemaNormalizer
+from rpdk.jsonutils.utils import ConstraintError, NormalizationError
 
 
 @pytest.fixture

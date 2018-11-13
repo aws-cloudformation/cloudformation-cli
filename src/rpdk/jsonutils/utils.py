@@ -3,6 +3,17 @@ from collections.abc import Mapping, Sequence
 from .pointer import fragment_encode
 
 
+class NormalizationError(Exception):
+    pass
+
+
+class ConstraintError(NormalizationError, ValueError):
+    def __init__(self, message, path, *args):
+        self.path = path
+        message = message.format(*args, path=self.path)
+        super().__init__(message)
+
+
 class BaseRefPlaceholder:
     """A sentinel object representing a reference inside the base document."""
 
@@ -81,36 +92,46 @@ def traverse(document, path_parts):
     return document
 
 
-def schema_merge(target, src):
+def schema_merge(target, src, path):
     """Merges the src schema into the target schema in place.
 
     If there are duplicate keys, src will overwrite target.
 
     :raises TypeError: either schema is not of type dict
+    :raises ConstraintError: the schema tries to override "type" or "$ref"
 
-    >>> schema_merge({}, {})
+    >>> schema_merge({}, {}, '')
     {}
-    >>> schema_merge({'foo': 'a'}, {})
+    >>> schema_merge({'foo': 'a'}, {}, '')
     {'foo': 'a'}
-    >>> schema_merge({}, {'foo': 'a'})
+    >>> schema_merge({}, {'foo': 'a'}, '')
     {'foo': 'a'}
-    >>> schema_merge({'foo': 'a'}, {'foo': 'b'})
+    >>> schema_merge({'foo': 'a'}, {'foo': 'b'}, '')
     {'foo': 'b'}
     >>> a = {'foo': {'a': {'aa': 'a', 'bb': 'b'}}, 'bar': 1}
     >>> b = {'foo': {'a': {'aa': 'a', 'cc': 'c'}}}
-    >>> schema_merge(a, b)
+    >>> schema_merge(a, b, '')
     {'foo': {'a': {'aa': 'a', 'bb': 'b', 'cc': 'c'}}, 'bar': 1}
-    >>>
-    >>> schema_merge('', {})
+    >>> a = {'type': {'a': 'aa'}, '$ref': {'a': 'aa'}}
+    >>> b = {'type': {'a': 'bb'}, '$ref': {'a': 'bb'}}
+    >>> schema_merge(a, b, '')
+    {'type': {'a': 'bb'}, '$ref': {'a': 'bb'}}
+    >>> schema_merge({'type': 'a'}, {'type': 'b'}, '#')
+    Traceback (most recent call last):
+    ...
+    rpdk.jsonutils.utils.NormalizationError: Object at path '#' declared multiple values for 'type': found 'a' and 'b'
+    >>> schema_merge({'$ref': 'a'}, {'$ref': 'b'}, '#/foo')
+    Traceback (most recent call last):
+    ...
+    rpdk.jsonutils.utils.NormalizationError: Object at path '#/foo' declared multiple values for '$ref': found 'a' and 'b'
+    >>> schema_merge('', {}, '')
     Traceback (most recent call last):
     ...
     TypeError: Both schemas must be dictionaries
-    >>>
-    >>> schema_merge({}, 1)
+    >>> schema_merge({}, 1, '')
     Traceback (most recent call last):
     ...
     TypeError: Both schemas must be dictionaries
-    >>>
     """
     if not (isinstance(target, Mapping) and isinstance(src, Mapping)):
         raise TypeError("Both schemas must be dictionaries")
@@ -121,8 +142,14 @@ def schema_merge(target, src):
             target[key] = src_schema
         else:
             try:
-                target[key] = schema_merge(target_schema, src_schema)
+                next_path = "/".join((path, key))
+                target[key] = schema_merge(target_schema, src_schema, next_path)
             except TypeError:
-                # TODO: add validation for type and $ref before overwriting keys
+                if key in ("type", "$ref") and target_schema != src_schema:
+                    msg = (
+                        "Object at path '{}' declared multiple values "
+                        "for '{}': found '{}' and '{}'"
+                    ).format(path, key, target_schema, src_schema)
+                    raise NormalizationError(msg)
                 target[key] = src_schema
     return target

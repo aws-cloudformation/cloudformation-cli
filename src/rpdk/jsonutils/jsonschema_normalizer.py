@@ -2,21 +2,10 @@
 import logging
 
 from .pointer import fragment_decode, fragment_encode
-from .utils import schema_merge, traverse
+from .utils import ConstraintError, NormalizationError, schema_merge, traverse
 
 LOG = logging.getLogger(__name__)
 COMBINERS = ("oneOf", "anyOf", "allOf")
-
-
-class NormalizationError(Exception):
-    pass
-
-
-class ConstraintError(NormalizationError, ValueError):
-    def __init__(self, message, path, *args):
-        self.path = path
-        message = message.format(*args, path=self.path)
-        super().__init__(message)
 
 
 class JsonSchemaNormalizer:
@@ -168,8 +157,7 @@ class JsonSchemaNormalizer:
                     resolved_schema = self._schema_map.get(ref_path)
                 else:
                     resolved_schema = self._schema_map.pop(ref_path, walked_schema)
-
-                schema_merge(sub_schema, resolved_schema)
+                schema_merge(sub_schema, resolved_schema, key)
         return sub_schema
 
     def _find_subschema_by_ref(self, ref_path):
