@@ -124,6 +124,10 @@ def schema_merge(target, src, path):
     Traceback (most recent call last):
     ...
     rpdk.jsonutils.utils.NormalizationError: Object at path '#/foo' declared multiple values for '$ref': found 'a' and 'b'
+    >>> schema_merge({'Foo': {'$ref': 'a'}}, {'Foo': {'$ref': 'b'}}, '#')
+    Traceback (most recent call last):
+    ...
+    rpdk.jsonutils.utils.NormalizationError: Object at path '#/Foo' declared multiple values for '$ref': found 'a' and 'b'
     >>> schema_merge('', {}, '')
     Traceback (most recent call last):
     ...
