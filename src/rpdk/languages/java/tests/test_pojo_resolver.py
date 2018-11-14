@@ -19,8 +19,8 @@ def empty_resolver():
 
 
 def test_resolver():
-    normalized_schema = resource_yaml(__name__, "normalized_schema.json")
-    resolver = JavaPojoResolver(normalized_schema, "areaDescription")
+    flattened_schema = resource_yaml(__name__, "flattened_schema.json")
+    resolver = JavaPojoResolver(flattened_schema, "areaDescription")
     expected_pojos = {
         "AreaDescription": {
             "state": "Location",
