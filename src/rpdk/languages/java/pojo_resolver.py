@@ -7,7 +7,7 @@ class PojoResolverError(Exception):
 
 
 class JavaPojoResolver:
-    """This class takes in a normalized schema map (output of the JsonSchemaNormalizer),
+    """This class takes in a normalized schema map (output of the JsonSchemaFlattener),
     and builds a full set of Java classes.
     """
 

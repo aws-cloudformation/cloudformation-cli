@@ -6,7 +6,7 @@ from pathlib import Path
 
 from rpdk.data_loaders import copy_resource
 from rpdk.filters import resource_type_resource
-from rpdk.jsonutils.jsonschema_normalizer import JsonSchemaNormalizer
+from rpdk.jsonutils.jsonschema_flattener import JsonSchemaFlattener
 from rpdk.plugin_base import LanguagePlugin
 
 from .pojo_resolver import JavaPojoResolver
@@ -112,8 +112,8 @@ class JavaLanguagePlugin(LanguagePlugin):
         self.generate_stub_handlers(project_settings, stub_handlers_directory)
 
     def build_pojo_resolver(self, resource_def):
-        normalizer = JsonSchemaNormalizer(resource_def)
-        normalized_map = normalizer.collapse_and_resolve_schema()
+        normalizer = JsonSchemaFlattener(resource_def)
+        normalized_map = normalizer.flatten_schema()
         LOG.debug("Normalized Schema Map: %s", normalized_map)
         self._java_pojo_resolver = JavaPojoResolver(
             normalized_map, resource_type_resource(resource_def["typeName"])
