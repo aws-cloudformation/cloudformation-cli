@@ -21,7 +21,7 @@ def contract_create_create(
     assert second_create_terminal_event["errorCode"] == contract_utils.ALREADY_EXISTS
 
 
-def contract_create_noop_update(resource_client, test_resource, created_resource):
+def contract_create_update_noop(resource_client, test_resource, created_resource):
     update_terminal_event = resource_client.update_resource(
         created_resource, test_resource
     )

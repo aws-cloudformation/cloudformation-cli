@@ -95,7 +95,7 @@ def test_prepare_request_no_resources(resource_client):
 def test_wait_for_complete_event(resource_client):
     listener_events = deque(EXPECTED_EVENTS)
     mock_listener = Mock(spec=CallbackServer, events=listener_events)
-    returned_events = resource_client._wait_for_specified_event(mock_listener, COMPLETE)
+    returned_events = resource_client.wait_for_specified_event(mock_listener, COMPLETE)
     assert returned_events == EXPECTED_EVENTS
 
 
@@ -103,19 +103,19 @@ def test_wait_for_failed_event(resource_client):
     expected_failed_events = [{"status": IN_PROGRESS}, {"status": FAILED}]
     listener_events = deque(expected_failed_events)
     mock_listener = Mock(spec=CallbackServer, events=listener_events)
-    returned_events = resource_client._wait_for_specified_event(mock_listener, COMPLETE)
+    returned_events = resource_client.wait_for_specified_event(mock_listener, COMPLETE)
     assert returned_events == expected_failed_events
 
 
 def test_verify_events_contain_token_fail(resource_client):
     events = [{"clientRequestToken": "someToken"}]
     with pytest.raises(AssertionError):
-        resource_client._verify_events_contain_token(events, "token")
+        resource_client.verify_events_contain_token(events, "token")
 
 
 def test_verify_events_contain_token_pass(resource_client):
     events = [{"clientRequestToken": "token"}]
-    resource_client._verify_events_contain_token(events, "token")
+    resource_client.verify_events_contain_token(events, "token")
 
 
 @pytest.mark.parametrize(

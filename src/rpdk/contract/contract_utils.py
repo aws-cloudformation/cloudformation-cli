@@ -28,61 +28,45 @@ JSON_MIME = "application/json"
 ACK_TIMEOUT = 3
 
 
-class CallbackServer(threading.Thread):
-    def __init__(self, host="127.0.0.1", port=0):
-        self.events = deque()
-        self._server = make_server(host, port, self, ssl_context=None)
-        self.server_address = self._server.server_address
-        super().__init__(name=self.__class__, target=self._server.serve_forever)
-
-    def __enter__(self):
-        self.start()
-        LOG.info(
-            "Started callback server at address %s on port %s", *self.server_address
-        )
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self.stop()
-
-    def __del__(self):
-        self.stop()
-
-    def stop(self):
-        self._server.shutdown()
-
-    @Request.application
-    def __call__(self, request):
-        response = ""
-        content_type = request.headers.get("content-type")
-        if content_type != JSON_MIME:
-            err_msg = 'callback with invalid content type "{}"'.format(content_type)
-            LOG.error(err_msg)
-            event = {"error": err_msg}
-        else:
-            LOG.info("Received event %s", request.data)
-            event = json.loads(request.data)
-        self.events.append(event)
-        return Response(response, mimetype=JSON_MIME)
-
-
 class ResourceClient:
     def __init__(self, transport, resource_def):
         self._transport = transport
         self._resource_def = resource_def
 
-    def send_async_request(self, request, token, status):
-        with CallbackServer() as listener:
-            self._transport(request, callback_endpoint=listener.server_address)
-            events = self._wait_for_specified_event(listener, status)
-        self._verify_events_contain_token(events, token)
-        assert events
-        return events
+    def get_identifier_property(self, resource, writable=False):
+        encoded_writable_identifiers = set(self._resource_def["identifiers"]) - set(
+            self._resource_def.get("readOnly", ())
+        )
+        writable_identifiers = {
+            fragment_decode(identifier)[-1]
+            for identifier in encoded_writable_identifiers
+        }
+        writable_identifiers = resource["properties"].keys() & writable_identifiers
+        # If a writable identifier exists, this returns that, because
+        # writable identifiers are required in resource cleanup on tests
+        # where resources get deleted/updated in the test body
+        if writable_identifiers:
+            identifier = writable_identifiers.pop()
+        elif not writable:
+            id_reference = fragment_decode(self._resource_def["identifiers"][0])
+            identifier = id_reference[-1]
+        else:
+            identifier = None
+        return identifier
 
-    def send_sync_request(self, request, token):
-        return_event = self._transport(request)
-        self._verify_events_contain_token([return_event], token)
-        return return_event
+    @staticmethod
+    def wait_for_specified_event(listener, specified_event, timeout_in_seconds=60):
+        events = []
+        start_time = time.time()
+        specified = False
+        while ((time.time() - start_time) < timeout_in_seconds) and not specified:
+            time.sleep(0.5)
+            while listener.events:
+                event = listener.events.popleft()
+                events.append(event)
+                if event.get("status", "") in (specified_event, FAILED):
+                    specified = True
+        return events
 
     def prepare_request(
         self, operation, token=None, resource=None, previous_resource=None
@@ -104,6 +88,14 @@ class ResourceClient:
                 "properties"
             ]
         return request, token
+
+    @staticmethod
+    def verify_events_contain_token(events, token):
+        if any(event["clientRequestToken"] != token for event in events):
+            raise AssertionError(
+                "Request tokens:\n"
+                + "\n".join(event["clientRequestToken"] for event in events)
+            )
 
     def create_resource(self, resource):
         request, token = self.prepare_request(
@@ -152,45 +144,53 @@ class ResourceClient:
                 returned_model["properties"][key] == requested_model["properties"][key]
             )
 
-    def get_identifier_property(self, resource, writable=False):
-        encoded_writable_identifiers = set(self._resource_def["identifiers"]) - set(
-            self._resource_def.get("readOnly", ())
-        )
-        writable_identifiers = {
-            fragment_decode(identifier)[-1]
-            for identifier in encoded_writable_identifiers
-        }
-        writable_identifiers = resource["properties"].keys() & writable_identifiers
-        # If a writable identifier exists, this returns that, because
-        # writable identifiers are required in resource cleanup on tests
-        # where resources get deleted/updated in the test body
-        if writable_identifiers:
-            identifier = writable_identifiers.pop()
-        elif not writable:
-            id_reference = fragment_decode(self._resource_def["identifiers"][0])
-            identifier = id_reference[-1]
-        else:
-            identifier = None
-        return identifier
-
-    @staticmethod
-    def _wait_for_specified_event(listener, specified_event, timeout_in_seconds=60):
-        events = []
-        start_time = time.time()
-        specified = False
-        while ((time.time() - start_time) < timeout_in_seconds) and not specified:
-            time.sleep(0.5)
-            while listener.events:
-                event = listener.events.popleft()
-                events.append(event)
-                if event.get("status", "") in (specified_event, FAILED):
-                    specified = True
+    def send_async_request(self, request, token, status):
+        with CallbackServer() as listener:
+            self._transport(request, callback_endpoint=listener.server_address)
+            events = self.wait_for_specified_event(listener, status)
+        self.verify_events_contain_token(events, token)
+        assert events
         return events
 
-    @staticmethod
-    def _verify_events_contain_token(events, token):
-        if any(event["clientRequestToken"] != token for event in events):
-            raise AssertionError(
-                "Request tokens:\n"
-                + "\n".join(event["clientRequestToken"] for event in events)
-            )
+    def send_sync_request(self, request, token):
+        return_event = self._transport(request)
+        self.verify_events_contain_token([return_event], token)
+        return return_event
+
+
+class CallbackServer(threading.Thread):
+    def __init__(self, host="127.0.0.1", port=0):
+        self.events = deque()
+        self._server = make_server(host, port, self, ssl_context=None)
+        self.server_address = self._server.server_address
+        super().__init__(name=self.__class__, target=self._server.serve_forever)
+
+    def __enter__(self):
+        self.start()
+        LOG.info(
+            "Started callback server at address %s on port %s", *self.server_address
+        )
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.stop()
+
+    def __del__(self):
+        self.stop()
+
+    def stop(self):
+        self._server.shutdown()
+
+    @Request.application
+    def __call__(self, request):
+        response = ""
+        content_type = request.headers.get("content-type")
+        if content_type != JSON_MIME:
+            err_msg = 'callback with invalid content type "{}"'.format(content_type)
+            LOG.error(err_msg)
+            event = {"error": err_msg}
+        else:
+            LOG.info("Received event %s", request.data)
+            event = json.loads(request.data)
+        self.events.append(event)
+        return Response(response, mimetype=JSON_MIME)
