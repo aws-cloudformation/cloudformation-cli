@@ -92,7 +92,7 @@ def traverse(document, path_parts):
     return document
 
 
-def schema_merge(target, src, path):  # pylint:disable=line-too-long
+def schema_merge(target, src, path):
     """Merges the src schema into the target schema in place.
 
     If there are duplicate keys, src will overwrite target.
