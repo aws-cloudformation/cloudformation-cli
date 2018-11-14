@@ -92,7 +92,7 @@ def traverse(document, path_parts):
     return document
 
 
-def schema_merge(target, src, path):
+def schema_merge(target, src, path):  # pylint:disable=line-too-long
     """Merges the src schema into the target schema in place.
 
     If there are duplicate keys, src will overwrite target.
@@ -116,18 +116,23 @@ def schema_merge(target, src, path):
     >>> b = {'type': {'a': 'bb'}, '$ref': {'a': 'bb'}}
     >>> schema_merge(a, b, '')
     {'type': {'a': 'bb'}, '$ref': {'a': 'bb'}}
-    >>> schema_merge({'type': 'a'}, {'type': 'b'}, '#')
+    >>> schema_merge({'type': 'a'}, {'type': 'b'}, '#') # doctest: +NORMALIZE_WHITESPACE
     Traceback (most recent call last):
     ...
-    rpdk.jsonutils.utils.NormalizationError: Object at path '#' declared multiple values for 'type': found 'a' and 'b'
-    >>> schema_merge({'$ref': 'a'}, {'$ref': 'b'}, '#/foo')
+    rpdk.jsonutils.utils.ConstraintError:
+    Object at path '#' declared multiple values for 'type': found 'a' and 'b'
+    >>> a, b = {'$ref': 'a'}, {'$ref': 'b'}
+    >>> schema_merge(a, b, '#/foo') # doctest: +NORMALIZE_WHITESPACE
     Traceback (most recent call last):
     ...
-    rpdk.jsonutils.utils.NormalizationError: Object at path '#/foo' declared multiple values for '$ref': found 'a' and 'b'
-    >>> schema_merge({'Foo': {'$ref': 'a'}}, {'Foo': {'$ref': 'b'}}, '#')
+    rpdk.jsonutils.utils.ConstraintError:
+    Object at path '#/foo' declared multiple values for '$ref': found 'a' and 'b'
+    >>> a, b = {'Foo': {'$ref': 'a'}}, {'Foo': {'$ref': 'b'}}
+    >>> schema_merge(a, b, '#') # doctest: +NORMALIZE_WHITESPACE
     Traceback (most recent call last):
     ...
-    rpdk.jsonutils.utils.NormalizationError: Object at path '#/Foo' declared multiple values for '$ref': found 'a' and 'b'
+    rpdk.jsonutils.utils.ConstraintError:
+    Object at path '#/Foo' declared multiple values for '$ref': found 'a' and 'b'
     >>> schema_merge('', {}, '')
     Traceback (most recent call last):
     ...
@@ -145,15 +150,15 @@ def schema_merge(target, src, path):
         except KeyError:
             target[key] = src_schema
         else:
+            next_path = fragment_encode([key], path)
             try:
-                next_path = "/".join((path, key))
                 target[key] = schema_merge(target_schema, src_schema, next_path)
             except TypeError:
                 if key in ("type", "$ref") and target_schema != src_schema:
                     msg = (
-                        "Object at path '{}' declared multiple values "
+                        "Object at path '{path}' declared multiple values "
                         "for '{}': found '{}' and '{}'"
-                    ).format(path, key, target_schema, src_schema)
-                    raise NormalizationError(msg)
+                    )
+                    raise ConstraintError(msg, path, key, target_schema, src_schema)
                 target[key] = src_schema
     return target
