@@ -11,9 +11,8 @@ def contract_create_ack(resource_client):
     assert events[0]["status"] == contract_utils.IN_PROGRESS
 
 
-def contract_create_create(
-    resource_client, test_resource, created_resource
-):  # pylint: disable=unused-argument
+@pytest.mark.usefixtures("created_resource")
+def contract_create_create(resource_client, test_resource):
     if resource_client.get_identifier_property(test_resource, writable=True) is None:
         pytest.skip("No writable identifiers")
     second_create_terminal_event = resource_client.create_resource(test_resource)

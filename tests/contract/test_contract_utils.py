@@ -36,12 +36,6 @@ EXPECTED_EVENTS = [
 
 
 @pytest.fixture
-def listener():
-    with CallbackServer() as listener:
-        yield listener
-
-
-@pytest.fixture
 def resource_client():
     mock_transport = Mock(spec=LocalLambdaTransport)
     return ResourceClient(mock_transport, RESOURCE_DEF)
@@ -127,13 +121,9 @@ def test_verify_events_contain_token_pass(resource_client):
     ],
 )
 def test_async_operation(resource_client, async_operation, args):
-    send_patch = patch(
-        "rpdk.contract.contract_utils.ResourceClient.send_async_request",
-        return_value=EXPECTED_EVENTS,
-    )
-    with send_patch as mock_send:
-        returned_event = async_operation(resource_client, *args)
-    mock_send.assert_called_once()
+    resource_client.send_async_request = Mock(return_value=EXPECTED_EVENTS)
+    returned_event = async_operation(resource_client, *args)
+    resource_client.send_async_request.assert_called_once()
     assert returned_event == EXPECTED_EVENTS[-1]
 
 
@@ -145,16 +135,12 @@ def test_async_operation(resource_client, async_operation, args):
     ],
 )
 def test_sync_operation(resource_client, sync_operation, args):
-    send_patch = patch(
-        "rpdk.contract.contract_utils.ResourceClient.send_sync_request",
-        return_value=EXPECTED_EVENTS[-1],
-    )
-    with send_patch as mock_send:
-        if not args:
-            returned_event = sync_operation(resource_client)
-        else:
-            returned_event = sync_operation(resource_client, args)
-    mock_send.assert_called_once()
+    resource_client.send_sync_request = Mock(return_value=EXPECTED_EVENTS[-1])
+    if not args:
+        returned_event = sync_operation(resource_client)
+    else:
+        returned_event = sync_operation(resource_client, args)
+    resource_client.send_sync_request.assert_called_once()
     assert returned_event == EXPECTED_EVENTS[-1]
 
 
@@ -186,14 +172,16 @@ def test_compare_requested_model(resource_client):
     resource_client.compare_requested_model(requested_model, RESOURCE_MODEL)
 
 
-def test_callback_server_valid(listener):
+def test_callback_server_valid():
     posted_event = {"event": "test"}
-    post("http://{}:{}".format(*listener.server_address), json=posted_event)
+    with CallbackServer() as listener:
+        post("http://{}:{}".format(*listener.server_address), json=posted_event)
     recorded_event = listener.events.popleft()
     assert recorded_event == posted_event
 
 
-def test_callback_server_fail(listener):
-    post("http://{}:{}".format(*listener.server_address), data="Just Text")
+def test_callback_server_fail():
+    with CallbackServer() as listener:
+        post("http://{}:{}".format(*listener.server_address), data="Just Text")
     event = listener.events.popleft()
     assert "callback with invalid content type" in event["error"]

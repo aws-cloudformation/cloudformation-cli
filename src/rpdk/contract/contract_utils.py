@@ -167,7 +167,7 @@ class CallbackServer(threading.Thread):
 
     def __enter__(self):
         self.start()
-        LOG.info(
+        LOG.debug(
             "Started callback server at address %s on port %s", *self.server_address
         )
         return self
@@ -183,14 +183,13 @@ class CallbackServer(threading.Thread):
 
     @Request.application
     def __call__(self, request):
-        response = ""
         content_type = request.headers.get("content-type")
         if content_type != JSON_MIME:
-            err_msg = 'callback with invalid content type "{}"'.format(content_type)
+            err_msg = "callback with invalid content type '{}'".format(content_type)
             LOG.error(err_msg)
             event = {"error": err_msg}
         else:
-            LOG.info("Received event %s", request.data)
+            LOG.debug("Received event %s", request.data)
             event = json.loads(request.data)
         self.events.append(event)
-        return Response(response, mimetype=JSON_MIME)
+        return Response("", mimetype=JSON_MIME)
