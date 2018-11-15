@@ -22,7 +22,11 @@ class LocalLambdaTransport:
             ),
         )
 
-    def __call__(self, payload, callback_endpoint=None):
+    def __call__(self, payload, callback_endpoint):
+        """Sends the payload to the specified local lambda endpoint.
+        If callback_endpoint is None, the operation
+        is assumed to be synchronous,
+        and the callback endpoint will not be set for the request."""
         try:
             _, port = callback_endpoint
         except TypeError:

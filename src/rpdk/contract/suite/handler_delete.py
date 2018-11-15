@@ -4,15 +4,12 @@ from .. import contract_utils
 
 
 def contract_delete_ack(resource_client):
-    request, token = resource_client.prepare_request(contract_utils.DELETE)
-    events = resource_client.send_async_request(
-        request, token, contract_utils.IN_PROGRESS
-    )
-    assert events[0]["status"] == contract_utils.IN_PROGRESS
+    event = resource_client.send_request_for_ack(contract_utils.DELETE)
+    assert event["status"] == contract_utils.IN_PROGRESS
 
 
 def contract_delete_create(resource_client, test_resource, created_resource):
-    if resource_client.get_identifier_property(test_resource, writable=True) is None:
+    if not resource_client.get_identifier_property(test_resource, writable=True):
         pytest.skip("No writable identifiers")
 
     delete_terminal_event = resource_client.delete_resource(created_resource)

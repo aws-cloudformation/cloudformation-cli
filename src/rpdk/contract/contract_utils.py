@@ -130,6 +130,11 @@ class ResourceClient:
         request, token = self.prepare_request(LIST)
         return self.send_sync_request(request, token)
 
+    def send_request_for_ack(self, operation):
+        request, token = self.prepare_request(operation)
+        events = self.send_async_request(request, token, IN_PROGRESS)
+        return events[0]
+
     def compare_requested_model(self, requested_model, returned_model):
         # Do not need to check write only properties in requested model.
         write_only_properties = {
@@ -153,7 +158,7 @@ class ResourceClient:
         return events
 
     def send_sync_request(self, request, token):
-        return_event = self._transport(request)
+        return_event = self._transport(request, None)
         self.verify_events_contain_token([return_event], token)
         return return_event
 

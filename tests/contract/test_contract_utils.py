@@ -136,12 +136,18 @@ def test_async_operation(resource_client, async_operation, args):
 )
 def test_sync_operation(resource_client, sync_operation, args):
     resource_client.send_sync_request = Mock(return_value=EXPECTED_EVENTS[-1])
-    if not args:
-        returned_event = sync_operation(resource_client)
-    else:
+    if args:
         returned_event = sync_operation(resource_client, args)
+    else:
+        returned_event = sync_operation(resource_client)
     resource_client.send_sync_request.assert_called_once()
     assert returned_event == EXPECTED_EVENTS[-1]
+
+
+def test_send_request_for_ack(resource_client):
+    resource_client.send_async_request = Mock(return_value=EXPECTED_EVENTS)
+    returned_event = resource_client.send_request_for_ack("SomeOperation")
+    assert returned_event == EXPECTED_EVENTS[0]
 
 
 def test_get_identifier_read_only(resource_client):

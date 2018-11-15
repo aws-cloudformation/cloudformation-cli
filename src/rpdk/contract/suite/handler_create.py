@@ -4,16 +4,13 @@ from .. import contract_utils
 
 
 def contract_create_ack(resource_client):
-    request, token = resource_client.prepare_request(contract_utils.CREATE)
-    events = resource_client.send_async_request(
-        request, token, contract_utils.IN_PROGRESS
-    )
-    assert events[0]["status"] == contract_utils.IN_PROGRESS
+    event = resource_client.send_request_for_ack(contract_utils.CREATE)
+    assert event["status"] == contract_utils.IN_PROGRESS
 
 
 @pytest.mark.usefixtures("created_resource")
 def contract_create_create(resource_client, test_resource):
-    if resource_client.get_identifier_property(test_resource, writable=True) is None:
+    if not resource_client.get_identifier_property(test_resource, writable=True):
         pytest.skip("No writable identifiers")
     second_create_terminal_event = resource_client.create_resource(test_resource)
     assert second_create_terminal_event["status"] == contract_utils.FAILED

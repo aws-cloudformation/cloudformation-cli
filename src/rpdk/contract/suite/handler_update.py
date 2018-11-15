@@ -4,11 +4,8 @@ from .. import contract_utils
 
 
 def contract_update_ack(resource_client):
-    request, token = resource_client.prepare_request(contract_utils.UPDATE)
-    events = resource_client.send_async_request(
-        request, token, contract_utils.IN_PROGRESS
-    )
-    assert events[0]["status"] == contract_utils.IN_PROGRESS
+    event = resource_client.send_request_for_ack(contract_utils.UPDATE)
+    assert event["status"] == contract_utils.IN_PROGRESS
 
 
 def contract_update_not_found(resource_client, test_resource, test_updated_resource):
@@ -23,7 +20,7 @@ def contract_update_not_found(resource_client, test_resource, test_updated_resou
 def contract_update_create(
     resource_client, test_resource, test_updated_resource, created_resource
 ):
-    if resource_client.get_identifier_property(test_resource, writable=True) is None:
+    if not resource_client.get_identifier_property(test_resource, writable=True):
         pytest.skip("No writable identifiers")
 
     update_terminal_event = resource_client.update_resource(

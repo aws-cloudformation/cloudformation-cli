@@ -13,6 +13,7 @@ from botocore.exceptions import ClientError, EndpointConnectionError
 
 from .argutils import TextFileType
 from .contract.contract_plugin import ContractPlugin
+from .contract.contract_utils import ResourceClient
 from .contract.transports import LocalLambdaTransport
 from .data_loaders import copy_resource
 
@@ -31,10 +32,11 @@ def temporary_ini_file():
 
 
 def invoke_pytest(transport, args):
+
     resource_def = json.load(args.resource_def_file)
     resource = json.load(args.resource_file)
     updated_resource = json.load(args.updated_resource_file)
-
+    resource_client = ResourceClient(transport, resource_def)
     with temporary_ini_file() as path:
         pytest_args = ["-c", path]
         if args.test_types:
@@ -43,9 +45,7 @@ def invoke_pytest(transport, args):
             pytest_args.extend(["--collect-only"])
         pytest.main(
             pytest_args,
-            plugins=[
-                ContractPlugin(transport, resource, updated_resource, resource_def)
-            ],
+            plugins=[ContractPlugin(resource_client, resource, updated_resource)],
         )
 
 
