@@ -160,8 +160,8 @@ def test_walk_ref_to_ref_object():
 @pytest.mark.parametrize("path", REF_PATHS)
 def test_walk_path_already_processed(path):
     flattener = JsonSchemaFlattener({})
-    flattener._schema_map = {path: None}
-    result = flattener._walk(path, None)
+    flattener._schema_map = {path: {}}
+    result = flattener._walk(path, {})
 
     assert result == {"$ref": path}
     assert len(flattener._schema_map) == 1
@@ -350,8 +350,9 @@ def test_flattener():
 def test_circular_reference_self():
     test_schema = {"properties": {"a": {"$ref": "#/properties/a"}}}
     flattener = JsonSchemaFlattener(test_schema)
-    with pytest.raises(RecursionError):
+    with pytest.raises(ConstraintError) as excinfo:
         flattener.flatten_schema()
+    assert "circular reference" in str(excinfo.value)
 
 
 def test_circular_reference_each_other():
@@ -359,8 +360,9 @@ def test_circular_reference_each_other():
         "properties": {"a": {"$ref": "#/properties/z"}, "z": {"$ref": "#/properties/a"}}
     }
     flattener = JsonSchemaFlattener(test_schema)
-    with pytest.raises(RecursionError):
+    with pytest.raises(ConstraintError) as excinfo:
         flattener.flatten_schema()
+    assert "circular reference" in str(excinfo.value)
 
 
 def test_circular_reference_indirect():
@@ -372,11 +374,12 @@ def test_circular_reference_indirect():
         }
     }
     flattener = JsonSchemaFlattener(test_schema)
-    with pytest.raises(RecursionError):
+    with pytest.raises(ConstraintError) as excinfo:
         flattener.flatten_schema()
+    assert "circular reference" in str(excinfo.value)
 
 
-def test_circular_reference_allowed():
+def test_circular_reference_nested():
     test_schema = {
         "properties": {
             "b": {"$ref": "#/properties/c"},
@@ -384,15 +387,7 @@ def test_circular_reference_allowed():
         }
     }
     flattener = JsonSchemaFlattener(test_schema)
-    flattened = flattener.flatten_schema()
 
-    expected_map = {
-        "#": {
-            "properties": {
-                "b": {"$ref": "#/properties/c"},
-                "c": {"$ref": "#/properties/c"},
-            }
-        },
-        "#/properties/c": {"properties": {"a": {"$ref": "#/properties/c"}}},
-    }
-    assert flattened == expected_map
+    with pytest.raises(ConstraintError) as excinfo:
+        flattener.flatten_schema()
+    assert "circular reference" in str(excinfo.value)
