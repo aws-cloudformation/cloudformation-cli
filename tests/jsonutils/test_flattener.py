@@ -1,5 +1,3 @@
-# fixture and parameter have the same name
-# pylint: disable=redefined-outer-name
 # pylint: disable=protected-access
 import string
 
@@ -9,22 +7,13 @@ from rpdk.data_loaders import resource_json
 from rpdk.jsonutils.flattener import COMBINERS, JsonSchemaFlattener
 from rpdk.jsonutils.utils import ConstraintError, FlatteningError
 
+UNIQUE_KEY = "OWSAZD"
 
-@pytest.fixture
-def test_provider_schema():
-    return resource_json(__name__, "data/area_definition.json")
-
-
-@pytest.fixture
-def flattened_schema():
-    return resource_json(__name__, "data/area_definition_flattened.json")
-
-
-@pytest.fixture
-def flattener(test_provider_schema):
-    return JsonSchemaFlattener(test_provider_schema)
-
-
+###################################
+#
+# PRIMITIVE TYPE TESTS
+#
+###################################
 PRIMITIVE_TYPES = [
     {"type": "string"},
     {"type": "integer"},
@@ -32,14 +21,9 @@ PRIMITIVE_TYPES = [
     {"type": "object"},
     {"type": "array"},
     {"type": "boolean"},
+    {"patternProperties": {"a": {}}},
+    {"type": "array", "items": {}},
 ]
-UNIQUE_KEY = "OWSAZD"
-
-
-def test_flattener(flattener, flattened_schema):
-    flattened_schema_map = flattener.flatten_schema()
-
-    assert flattened_schema == flattened_schema_map
 
 
 @pytest.mark.parametrize("primitive_type", PRIMITIVE_TYPES)
@@ -52,100 +36,175 @@ def test_walk_primitive_type(primitive_type):
 
 
 @pytest.mark.parametrize("primitive_type", PRIMITIVE_TYPES)
-def test_walk_ref_to_primitive_type(primitive_type):
-    flattener = JsonSchemaFlattener({"definitions": primitive_type})
-    result = flattener._walk("", {"$ref": "#/definitions"})
+def test_walk_ref_to_primitive(primitive_type):
+    flattener = JsonSchemaFlattener({"a": primitive_type})
+    result = flattener._walk("", {"$ref": "#/a"})
 
     assert result == primitive_type
     assert not flattener._schema_map
 
 
-def test_walk_path_already_processed():
+@pytest.mark.parametrize("primitive_type", PRIMITIVE_TYPES)
+def test_walk_ref_to_ref_to_primitive(primitive_type):
+    test_schema = {"b": {"$ref": "#/c"}, "c": primitive_type}
+    flattener = JsonSchemaFlattener(test_schema)
+    result = flattener._walk("", {"$ref": "#/b"})
+
+    assert result == primitive_type
+    assert not flattener._schema_map
+
+
+@pytest.mark.parametrize("primitive_type", PRIMITIVE_TYPES)
+def test_walk_pattern_properties_with_primitive(primitive_type):
+    test_schema = {"patternProperties": {"a": primitive_type}}
     flattener = JsonSchemaFlattener({})
-    ref = "#/properties/City"
-    flattener._schema_map = {ref: None}
-    result = flattener._walk(ref, None)
+    result = flattener._walk("", test_schema)
 
-    assert result == {"$ref": ref}
+    assert result == test_schema
+    assert not flattener._schema_map
+
+
+@pytest.mark.parametrize("primitive_type", PRIMITIVE_TYPES)
+def test_walk_array_items_with_primitive(primitive_type):
+    test_schema = {"type": "array", "items": primitive_type}
+    flattener = JsonSchemaFlattener({})
+    result = flattener._walk("", test_schema)
+
+    assert result == test_schema
+    assert not flattener._schema_map
+
+
+###################################
+#
+# OBJECT TESTS
+#
+###################################
+
+REF_PATHS = ["", "#", "#/definitions", "#/properties/a"]
+
+
+@pytest.mark.parametrize("path", REF_PATHS)
+def test_walk_object(path):
+    test_schema = {"properties": {"a": {}}}
+    flattener = JsonSchemaFlattener({})
+    result = flattener._walk(path, test_schema)
+
+    assert result == {"$ref": path}
     assert len(flattener._schema_map) == 1
+    assert flattener._schema_map[path] == test_schema
 
 
-def test_collapse_ref_type(flattener, flattened_schema):
-    schema_path = "#/definitions/boundary/properties/box/properties/north"
-    expected_collapsed_schema = {"$ref": "#/definitions/coordinate"}
-    coordinate_path = "#/definitions/coordinate"
+@pytest.mark.parametrize("path", REF_PATHS)
+def test_walk_pattern_properties_with_object(path):
+    test_schema = {"patternProperties": {"a": {"properties": {"b": {}}}}}
+    flattener = JsonSchemaFlattener({})
+    result = flattener._walk(path, test_schema)
 
-    collapsed_schema = flattener._flatten_ref_type(schema_path)
+    ref_path = "/".join((path, "patternProperties", "a"))
 
-    assert expected_collapsed_schema == collapsed_schema
-    assert flattener._schema_map[coordinate_path] == flattened_schema[coordinate_path]
+    assert result == {"patternProperties": {"a": {"$ref": ref_path}}}
     assert len(flattener._schema_map) == 1
+    assert flattener._schema_map[ref_path] == {"properties": {"b": {}}}
 
 
-def test_collapse_ref_type_nested(flattener, flattened_schema):
-    schema_path = "#/definitions/boundary/properties/box"
-    expected_collapsed_schema = {"$ref": "#/definitions/boundary/properties/box"}
-    coordinate_path = "#/definitions/coordinate"
+@pytest.mark.parametrize("path", REF_PATHS)
+def test_walk_array_items_with_object(path):
+    test_schema = {"type": "array", "items": {"properties": {"b": {}}}}
+    flattener = JsonSchemaFlattener({})
+    result = flattener._walk(path, test_schema)
 
-    collapsed_schema = flattener._flatten_ref_type(schema_path)
+    ref_path = "/".join((path, "items"))
 
-    assert expected_collapsed_schema == collapsed_schema
-    assert flattener._schema_map[schema_path] == flattened_schema[schema_path]
-    assert (
-        flattener._schema_map[coordinate_path]
-        == flattened_schema["#/definitions/coordinate"]
-    )
+    expected_schema = {"type": "array", "items": {"$ref": ref_path}}
+
+    assert result == expected_schema
+    assert len(flattener._schema_map) == 1
+    assert flattener._schema_map[ref_path] == {"properties": {"b": {}}}
+
+
+@pytest.mark.parametrize("path", REF_PATHS)
+def test_walk_nested_properties(path):
+    test_schema = {"properties": {"a": {"properties": {"b": {}}}}}
+    flattener = JsonSchemaFlattener({})
+    result = flattener._walk(path, test_schema)
+
+    ref_path = "/".join((path, "properties", "a"))
+
+    assert result == {"$ref": path}
     assert len(flattener._schema_map) == 2
+    assert flattener._schema_map[path] == {"properties": {"a": {"$ref": ref_path}}}
+    assert flattener._schema_map[ref_path] == {"properties": {"b": {}}}
 
 
-def test_circular_reference():
-    schema_flattened = resource_json(__name__, "data/circular_reference_flattened.json")
-    schema = resource_json(__name__, "data/circular_reference.json")
-    resolved_schema = JsonSchemaFlattener(schema).flatten_schema()
-    assert resolved_schema == schema_flattened
+def test_walk_ref_to_object():
+    test_schema = {"a": {"properties": {"b": {}}}}
+
+    flattener = JsonSchemaFlattener(test_schema)
+    flattened = flattener._walk("", {"$ref": "#/a"})
+
+    assert flattened == {"$ref": "#/a"}
+    assert len(flattener._schema_map) == 1
+    assert flattener._schema_map["#/a"] == {"properties": {"b": {}}}
 
 
-def test_collapse_array_type(flattener, flattened_schema):
-    property_key = "#/properties/city/properties/neighborhoods"
-    unresolved_schema = flattener._find_subschema_by_ref(property_key)
-    resolved_schema = flattener._flatten_array_type(property_key, unresolved_schema)
-    new_key = "#/properties/city/properties/neighborhoods/items/patternProperties/%5BA-Za-z0-9%5D%7B1%2C64%7D"  # noqa: B950 pylint:disable=line-too-long
-    expected_schema = {
-        "type": "array",
-        "items": {
-            "type": "object",
-            "patternProperties": {"[A-Za-z0-9]{1,64}": {"$ref": new_key}},
-            "insertionOrder": True,
-        },
-    }
-    assert resolved_schema == expected_schema
-    assert flattener._schema_map[new_key] == flattened_schema[new_key]
+def test_walk_ref_to_ref_object():
+    test_schema = {"b": {"$ref": "#/c"}, "c": {"properties": {"a": {}}}}
+    flattener = JsonSchemaFlattener(test_schema)
+    result = flattener._walk("", {"$ref": "#/b"})
+
+    assert result == {"$ref": "#/c"}
+    assert len(flattener._schema_map) == 1
+    assert flattener._schema_map["#/c"] == {"properties": {"a": {}}}
+
+
+@pytest.mark.parametrize("path", REF_PATHS)
+def test_walk_path_already_processed(path):
+    flattener = JsonSchemaFlattener({})
+    flattener._schema_map = {path: None}
+    result = flattener._walk(path, None)
+
+    assert result == {"$ref": path}
     assert len(flattener._schema_map) == 1
 
 
-def test_find_schema_from_ref(flattener, test_provider_schema):
-    location_schema_expected = {
-        "type": "object",
-        "properties": {
-            "country": {"type": "string"},
-            "boundary": {"$ref": "#/definitions/boundary"},
-        },
-    }
-    location_schema = flattener._find_subschema_by_ref("#/definitions/location")
-    assert location_schema == location_schema_expected
+###################################
+#
+# FIND SUBSCHEMA FROM REF TESTS
+#
+###################################
 
-    expected_street_schema = {"type": "string"}
-    street_schema = flattener._find_subschema_by_ref(
-        "#/properties/city/properties/neighborhoods/items/patternProperties/%5BA-Za-z0-9%5D%7B1%2C64%7D/properties/street"  # noqa: B950 pylint:disable=line-too-long
-    )
-    assert street_schema == expected_street_schema
 
-    assert flattener._find_subschema_by_ref("#") == test_provider_schema
+@pytest.mark.parametrize(
+    "path,subschema",
+    [("#", {"a": {"b": {"c": "d"}}}), ("#/a/b", {"c": "d"}), ("#/a/b/c", "d")],
+)
+def test_find_schema_from_ref(path, subschema):
+    test_schema = {"a": {"b": {"c": "d"}}}
+    flattener = JsonSchemaFlattener(test_schema)
+    assert flattener._find_subschema_by_ref(path) == subschema
 
-    ref = "#/this/is/not/a/path"
+
+def test_find_schema_from_ref_invalid_path():
+    flattener = JsonSchemaFlattener({"a": "b"})
+    ref = "#/b"
     with pytest.raises(FlatteningError) as excinfo:
         flattener._find_subschema_by_ref(ref)
     assert ref in str(excinfo.value)
+
+
+@pytest.mark.parametrize("ref", ["/", "/a"])
+def test_find_schema_from_ref_invalid_root(ref):
+    flattener = JsonSchemaFlattener({"a": "b"})
+    with pytest.raises(ValueError) as excinfo:
+        flattener._find_subschema_by_ref(ref)
+    assert "Expected prefix '#'" in str(excinfo.value)
+
+
+###################################
+#
+# COMBINERS TESTS
+#
+###################################
 
 
 @pytest.mark.parametrize("combiner", COMBINERS)
@@ -216,6 +275,13 @@ def test_flatten_combiners_with_reference():
     assert schema_map == expected_schema
 
 
+###################################
+#
+# CONSTRAINT TESTS
+#
+###################################
+
+
 def test_contraint_array_additional_items_valid():
     flattener = JsonSchemaFlattener({})
     schema = {}
@@ -255,3 +321,78 @@ def test_contraint_object_properties_and_pattern_properties():
     with pytest.raises(ConstraintError) as excinfo:
         flattener._flatten_object_type(UNIQUE_KEY, schema)
     assert UNIQUE_KEY in str(excinfo.value)
+
+
+###################################
+#
+# END TO END TESTS
+#
+###################################
+
+
+def test_flattener():
+    test_schema = resource_json(__name__, "data/area_definition.json")
+    expected = resource_json(__name__, "data/area_definition_flattened.json")
+
+    flattener = JsonSchemaFlattener(test_schema)
+    flattened = flattener.flatten_schema()
+
+    assert flattened == expected
+
+
+###################################
+#
+# CIRCULAR REFERENCE TESTS
+#
+###################################
+
+
+def test_circular_reference_self():
+    test_schema = {"properties": {"a": {"$ref": "#/properties/a"}}}
+    flattener = JsonSchemaFlattener(test_schema)
+    with pytest.raises(RecursionError):
+        flattener.flatten_schema()
+
+
+def test_circular_reference_each_other():
+    test_schema = {
+        "properties": {"a": {"$ref": "#/properties/z"}, "z": {"$ref": "#/properties/a"}}
+    }
+    flattener = JsonSchemaFlattener(test_schema)
+    with pytest.raises(RecursionError):
+        flattener.flatten_schema()
+
+
+def test_circular_reference_indirect():
+    test_schema = {
+        "properties": {
+            "a": {"$ref": "#/properties/b"},
+            "b": {"$ref": "#/properties/c"},
+            "c": {"$ref": "#/properties/a"},
+        }
+    }
+    flattener = JsonSchemaFlattener(test_schema)
+    with pytest.raises(RecursionError):
+        flattener.flatten_schema()
+
+
+def test_circular_reference_allowed():
+    test_schema = {
+        "properties": {
+            "b": {"$ref": "#/properties/c"},
+            "c": {"properties": {"a": {"$ref": "#/properties/b"}}},
+        }
+    }
+    flattener = JsonSchemaFlattener(test_schema)
+    flattened = flattener.flatten_schema()
+
+    expected_map = {
+        "#": {
+            "properties": {
+                "b": {"$ref": "#/properties/c"},
+                "c": {"$ref": "#/properties/c"},
+            }
+        },
+        "#/properties/c": {"properties": {"a": {"$ref": "#/properties/c"}}},
+    }
+    assert flattened == expected_map
