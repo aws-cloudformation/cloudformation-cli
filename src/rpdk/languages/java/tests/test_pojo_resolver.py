@@ -1,8 +1,8 @@
 # fixture and parameter have the same name
 # pylint: disable=redefined-outer-name,protected-access
-import pkg_resources
 import pytest
-import yaml
+
+from rpdk.data_loaders import resource_yaml
 
 from ..pojo_resolver import JavaPojoResolver
 
@@ -14,17 +14,12 @@ REF_TO_CLASS_MAP = {
 
 
 @pytest.fixture
-def normalized_schema():
-    resource = pkg_resources.resource_stream(__name__, "normalized_schema.json")
-    return yaml.safe_load(resource)
-
-
-@pytest.fixture
 def empty_resolver():
     return JavaPojoResolver({}, "Object")
 
 
-def test_resolver(normalized_schema):
+def test_resolver():
+    normalized_schema = resource_yaml(__name__, "normalized_schema.json")
     resolver = JavaPojoResolver(normalized_schema, "areaDescription")
     expected_pojos = {
         "AreaDescription": {

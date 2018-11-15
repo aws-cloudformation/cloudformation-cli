@@ -1,28 +1,30 @@
 """This sub command outputs the default project settings used for code
 generation for a given language.
 """
-import argparse
 import sys
 
-from .plugin_registry import PLUGIN_REGISTRY, add_language_argument
+from .argutils import TextFileType
+from .plugin_registry import add_language_argument, get_plugin
 
 
 def project_settings(args):
-    plugin = PLUGIN_REGISTRY[args.language]
+    plugin = get_plugin(args.language)
     with plugin.project_settings_defaults() as f:
         settings = f.read().decode("utf-8")
     args.output.write("# Project settings for {}\n".format(args.language))
     args.output.write(settings)
 
 
-def setup_subparser(subparsers):
+def setup_subparser(subparsers, parents):
     # see docstring of this file
-    parser = subparsers.add_parser("project-settings", description=__doc__)
+    parser = subparsers.add_parser(
+        "project-settings", description=__doc__, parents=parents
+    )
     parser.set_defaults(command=project_settings)
     add_language_argument(parser)
     parser.add_argument(
         "--output",
-        type=argparse.FileType("w", encoding="utf-8"),
+        type=TextFileType("w"),
         default=sys.stdout,
         help="Where to output the project settings. (Default: stdout)",
     )

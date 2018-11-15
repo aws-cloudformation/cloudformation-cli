@@ -4,19 +4,19 @@ resource provider definition and a given language.
 Language-specific project settings can optionally be provided to further
 customize the code generation.
 """
-import argparse
 import logging
 import os
 from pathlib import Path
 
+from .argutils import TextFileType
 from .data_loaders import load_project_settings, load_resource_spec
-from .plugin_registry import PLUGIN_REGISTRY, add_language_argument
+from .plugin_registry import add_language_argument, get_plugin
 
 LOG = logging.getLogger(__name__)
 
 
 def generate(args):
-    plugin = PLUGIN_REGISTRY[args.language]
+    plugin = get_plugin(args.language)
 
     LOG.info("Loading the project settings...")
     project_settings = load_project_settings(plugin, args.project_settings_file)
@@ -32,13 +32,13 @@ def generate(args):
     LOG.info("Generation complete.")
 
 
-def setup_subparser(subparsers):
+def setup_subparser(subparsers, parents):
     # see docstring of this file
-    parser = subparsers.add_parser("generate", description=__doc__)
+    parser = subparsers.add_parser("generate", description=__doc__, parents=parents)
     parser.set_defaults(command=generate)
     parser.add_argument(
         "resource_def_file",
-        type=argparse.FileType("r"),
+        type=TextFileType("r"),
         help="The resource provider definition to use for code generation.",
     )
     add_language_argument(parser)
@@ -52,7 +52,7 @@ def setup_subparser(subparsers):
     # so the user doesn't need to look these up before trying out codegen.
     parser.add_argument(
         "--project-settings",
-        type=argparse.FileType("r"),
+        type=TextFileType("r"),
         default=None,
         dest="project_settings_file",
         help=(

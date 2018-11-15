@@ -1,21 +1,18 @@
 """This sub command generates IDE and build files for a given language.
 """
-import argparse
 import logging
 import os
-import shutil
 from pathlib import Path
 
-import pkg_resources
-
-from .data_loaders import load_project_settings
-from .plugin_registry import PLUGIN_REGISTRY, add_language_argument
+from .argutils import TextFileType
+from .data_loaders import copy_resource, load_project_settings
+from .plugin_registry import add_language_argument, get_plugin
 
 LOG = logging.getLogger(__name__)
 
 
 def init(args):
-    plugin = PLUGIN_REGISTRY[args.language]
+    plugin = get_plugin(args.language)
 
     LOG.info("Loading the project settings...")
     project_settings = load_project_settings(plugin, args.project_settings_file)
@@ -25,19 +22,17 @@ def init(args):
     output_path = Path(args.output_directory)
     output_path.mkdir(exist_ok=True)
 
-    sample_schema_stream = pkg_resources.resource_stream(
-        __name__, "data/examples/resource/initech.tps.report.v1.json"
+    copy_resource(
+        __name__,
+        "data/examples/resource/initech.tps.report.v1.json",
+        output_path / "initech.tps.report.v1.json",
     )
-    sample_schema_out = output_path / "initech.tps.report.v1.json"
-    with sample_schema_out.open("wb") as f:
-        shutil.copyfileobj(sample_schema_stream, f)
-
     plugin.init(project_settings)
 
 
-def setup_subparser(subparsers):
+def setup_subparser(subparsers, parents):
     # see docstring of this file
-    parser = subparsers.add_parser("init", description=__doc__)
+    parser = subparsers.add_parser("init", description=__doc__, parents=parents)
     parser.set_defaults(command=init)
     parser.add_argument(
         "--output-directory",
@@ -48,7 +43,7 @@ def setup_subparser(subparsers):
     add_language_argument(parser)
     parser.add_argument(
         "--project-settings",
-        type=argparse.FileType("r"),
+        type=TextFileType("r"),
         default=None,
         dest="project_settings_file",
         help=(

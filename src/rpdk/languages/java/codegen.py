@@ -4,8 +4,7 @@ import logging
 import shutil
 from pathlib import Path
 
-import pkg_resources
-
+from rpdk.data_loaders import copy_resource
 from rpdk.filters import resource_type_resource
 from rpdk.jsonutils.jsonschema_normalizer import JsonSchemaNormalizer
 from rpdk.plugin_base import LanguagePlugin
@@ -45,25 +44,23 @@ class JavaLanguagePlugin(LanguagePlugin):
         intellij_conf_dir = project_settings["output_directory"] / ".idea"
         intellij_conf_dir.mkdir(exist_ok=True)
 
-        resource_schema_stream = pkg_resources.resource_stream(
-            "rpdk", "data/schema/provider.definition.schema.v1.json"
-        )
         resource_schema_out = (
             project_settings["output_directory"] / "provider.definition.schema.v1.json"
         )
-        with resource_schema_out.open("wb") as f:
-            shutil.copyfileobj(resource_schema_stream, f)
+
+        copy_resource(
+            "rpdk",
+            "data/schema/provider.definition.schema.v1.json",
+            resource_schema_out,
+        )
 
         misc_template = self.env.get_template("intellij/misc.xml")
         with open(intellij_conf_dir / "misc.xml", "w", encoding="utf-8") as f:
             f.write(misc_template.render(project_settings))
 
-        json_schemas_stream = pkg_resources.resource_stream(
-            __name__, "data/jsonSchemas.xml"
+        copy_resource(
+            __name__, "data/jsonSchemas.xml", intellij_conf_dir / "jsonSchemas.xml"
         )
-        json_schemas_out = intellij_conf_dir / "jsonSchemas.xml"
-        with json_schemas_out.open("wb") as f:
-            shutil.copyfileobj(json_schemas_stream, f)
 
     def _initialize_maven(self, project_settings):
         output_pom = project_settings["output_directory"] / "pom.xml"

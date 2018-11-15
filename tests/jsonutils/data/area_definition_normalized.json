@@ -28,7 +28,21 @@
                 "type": "object",
                 "properties": {
                     "box": {
-                        "$ref": "#/definitions/boundary/properties/box"
+                        "type": "object",
+                        "properties": {
+                            "north": {
+                                "$ref": "#/definitions/coordinate"
+                            },
+                            "south": {
+                                "$ref": "#/definitions/coordinate"
+                            },
+                            "east": {
+                                "$ref": "#/definitions/coordinate"
+                            },
+                            "west": {
+                                "$ref": "#/definitions/coordinate"
+                            }
+                        }
                     },
                     "otherPoints": {
                         "type": "array",

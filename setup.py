@@ -40,7 +40,7 @@ setup(
         "Jinja2>=2.9",  # fmt: off
         "jsonschema>=3.0.0a3",  # fmt: off
         "pytest>=3.7",  # fmt: off
-        "pytest-localserver>=0.4.1",  # fmt: off
+        "Werkzeug>=0.14",  # fmt: off
         "PyYAML>=3.13",  # fmt: off
         "requests>=2.19",  # fmt: off
     ],

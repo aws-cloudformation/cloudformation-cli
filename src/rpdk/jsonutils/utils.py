@@ -1,4 +1,4 @@
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 
 from .pointer import fragment_encode
 
@@ -79,3 +79,50 @@ def traverse(document, path_parts):
             part = int(part)
         document = document[part]
     return document
+
+
+def schema_merge(target, src):
+    """Merges the src schema into the target schema in place.
+
+    If there are duplicate keys, src will overwrite target.
+
+    :raises TypeError: either schema is not of type dict
+
+    >>> schema_merge({}, {})
+    {}
+    >>> schema_merge({'foo': 'a'}, {})
+    {'foo': 'a'}
+    >>> schema_merge({}, {'foo': 'a'})
+    {'foo': 'a'}
+    >>> schema_merge({'foo': 'a'}, {'foo': 'b'})
+    {'foo': 'b'}
+    >>> a = {'foo': {'a': {'aa': 'a', 'bb': 'b'}}, 'bar': 1}
+    >>> b = {'foo': {'a': {'aa': 'a', 'cc': 'c'}}}
+    >>> schema_merge(a, b)
+    {'foo': {'a': {'aa': 'a', 'bb': 'b', 'cc': 'c'}}, 'bar': 1}
+    >>>
+    >>> schema_merge('', {})
+    Traceback (most recent call last):
+    ...
+    TypeError: Both schemas must be dictionaries
+    >>>
+    >>> schema_merge({}, 1)
+    Traceback (most recent call last):
+    ...
+    TypeError: Both schemas must be dictionaries
+    >>>
+    """
+    if not (isinstance(target, Mapping) and isinstance(src, Mapping)):
+        raise TypeError("Both schemas must be dictionaries")
+    for key, src_schema in src.items():
+        try:
+            target_schema = target[key]
+        except KeyError:
+            target[key] = src_schema
+        else:
+            try:
+                target[key] = schema_merge(target_schema, src_schema)
+            except TypeError:
+                # TODO: add validation for type and $ref before overwriting keys
+                target[key] = src_schema
+    return target

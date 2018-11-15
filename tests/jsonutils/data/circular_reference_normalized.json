@@ -9,7 +9,7 @@
                 "type": "object",
                 "properties": {
                     "SubTestB": {
-                        "$ref": "#/definitions/TestB"
+                        "$ref": "#/definitions/TestA"
                     }
                 }
             }

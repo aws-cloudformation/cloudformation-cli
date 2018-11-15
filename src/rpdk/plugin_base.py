@@ -1,9 +1,8 @@
-import json
 from abc import ABC, abstractmethod
 
-import pkg_resources
 from jinja2 import Environment, PackageLoader, select_autoescape
 
+from .data_loaders import resource_json, resource_stream
 from .filters import FILTER_REGISTRY
 
 
@@ -23,15 +22,12 @@ class LanguagePlugin(ABC):
         This is so the project settings can be copied without loss of e.g. comments;
         if the project settings were parsed this would not be possible.
         """
-        return pkg_resources.resource_stream(
-            self._module_name, "data/project_defaults.yaml"
-        )
+        return resource_stream(self._module_name, "data/project_defaults.yaml")
 
     @abstractmethod
     def project_settings_schema(self):
         """Return the project settings schema."""
-        f = pkg_resources.resource_stream(self._module_name, "data/project_schema.json")
-        return json.load(f)
+        return resource_json(self._module_name, "data/project_schema.json")
 
     def _setup_jinja_env(self, **options):
         if "loader" not in options:
@@ -44,6 +40,10 @@ class LanguagePlugin(ABC):
         for filter_name, filter_func in FILTER_REGISTRY.items():
             env.filters[filter_name] = filter_func
         return env
+
+    @abstractmethod
+    def init(self, project_settings):
+        pass
 
     @abstractmethod
     def generate(self, resource_def, project_settings):
