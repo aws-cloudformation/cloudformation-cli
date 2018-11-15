@@ -2,21 +2,10 @@
 import logging
 
 from .pointer import fragment_decode, fragment_encode
-from .utils import schema_merge, traverse
+from .utils import ConstraintError, FlatteningError, schema_merge, traverse
 
 LOG = logging.getLogger(__name__)
 COMBINERS = ("oneOf", "anyOf", "allOf")
-
-
-class FlatteningError(Exception):
-    pass
-
-
-class ConstraintError(FlatteningError, ValueError):
-    def __init__(self, message, path, *args):
-        self.path = path
-        message = message.format(*args, path=self.path)
-        super().__init__(message)
 
 
 class JsonSchemaFlattener:
@@ -27,13 +16,11 @@ class JsonSchemaFlattener:
     1) The schema must be an object (not simply a boolean)
     2) Each property can only be a single type.
         A) For primitive types, combiners (``anyOf``, ``allOf``, and ``oneOf``)
-        are ignored and are for validation purposes only.
         B) For object types, the flattener will attempt to squash all properties
         specified in combiners into the object, and will fail if multiple types are
         declared.
     3) Truthy ``additionalProperties`` on objects are not allowed
     4) For objects, ``properties`` and ``patternProperties`` are mutually exclusive
-    5) Truthy ``additionalItems`` on arrays are not allowed
     """
 
     def __init__(self, schema):
@@ -172,8 +159,7 @@ class JsonSchemaFlattener:
                     resolved_schema = self._schema_map.get(ref_path)
                 else:
                     resolved_schema = self._schema_map.pop(ref_path, walked_schema)
-
-                schema_merge(sub_schema, resolved_schema)
+                schema_merge(sub_schema, resolved_schema, key)
         return sub_schema
 
     def _find_subschema_by_ref(self, ref_path):

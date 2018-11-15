@@ -6,12 +6,8 @@ import string
 import pytest
 
 from rpdk.data_loaders import resource_json
-from rpdk.jsonutils.flattener import (
-    COMBINERS,
-    ConstraintError,
-    FlatteningError,
-    JsonSchemaFlattener,
-)
+from rpdk.jsonutils.flattener import COMBINERS, JsonSchemaFlattener
+from rpdk.jsonutils.utils import ConstraintError, FlatteningError
 
 
 @pytest.fixture
