@@ -22,27 +22,12 @@
         "validations": {
             "dependencies": {
                 "enum": {
-                    "$comment": "Enforce that properties are strongly typed when allOf, anyOf, oneOf, enum, or const is specified.",
+                    "$comment": "Enforce that properties are strongly typed when enum, or const is specified.",
                     "required": [
                         "type"
                     ]
                 },
                 "const": {
-                    "required": [
-                        "type"
-                    ]
-                },
-                "oneOf": {
-                    "required": [
-                        "type"
-                    ]
-                },
-                "anyOf": {
-                    "required": [
-                        "type"
-                    ]
-                },
-                "allOf": {
                     "required": [
                         "type"
                     ]
