@@ -6,7 +6,7 @@ from pathlib import Path
 
 from rpdk.data_loaders import copy_resource
 from rpdk.filters import resource_type_resource
-from rpdk.jsonutils.jsonschema_flattener import JsonSchemaFlattener
+from rpdk.jsonutils.flattener import JsonSchemaFlattener
 from rpdk.plugin_base import LanguagePlugin
 
 from .pojo_resolver import JavaPojoResolver
