@@ -3,11 +3,11 @@ from collections.abc import Mapping, Sequence
 from .pointer import fragment_encode
 
 
-class NormalizationError(Exception):
+class FlatteningError(Exception):
     pass
 
 
-class ConstraintError(NormalizationError, ValueError):
+class ConstraintError(FlatteningError, ValueError):
     def __init__(self, message, path, *args):
         self.path = path
         message = message.format(*args, path=self.path)
