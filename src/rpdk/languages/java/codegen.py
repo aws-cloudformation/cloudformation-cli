@@ -6,7 +6,7 @@ from pathlib import Path
 
 from rpdk.data_loaders import copy_resource
 from rpdk.filters import resource_type_resource
-from rpdk.jsonutils.jsonschema_normalizer import JsonSchemaNormalizer
+from rpdk.jsonutils.flattener import JsonSchemaFlattener
 from rpdk.plugin_base import LanguagePlugin
 
 from .pojo_resolver import JavaPojoResolver
@@ -112,11 +112,11 @@ class JavaLanguagePlugin(LanguagePlugin):
         self.generate_stub_handlers(project_settings, stub_handlers_directory)
 
     def build_pojo_resolver(self, resource_def):
-        normalizer = JsonSchemaNormalizer(resource_def)
-        normalized_map = normalizer.collapse_and_resolve_schema()
-        LOG.debug("Normalized Schema Map: %s", normalized_map)
+        flattener = JsonSchemaFlattener(resource_def)
+        flattened_map = flattener.flatten_schema()
+        LOG.debug("Flattened Schema Map: %s", flattened_map)
         self._java_pojo_resolver = JavaPojoResolver(
-            normalized_map, resource_type_resource(resource_def["typeName"])
+            flattened_map, resource_type_resource(resource_def["typeName"])
         )
 
     def generate_pojos(self, project_settings, output_directory):
@@ -158,7 +158,7 @@ class JavaLanguagePlugin(LanguagePlugin):
     def generate_base_handlers(self, project_settings, output_directory):
         LOG.info("Generating Base Handlers...")
 
-        resource_type = self._java_pojo_resolver.normalized_resource_type_name
+        resource_type = self._java_pojo_resolver.resource_class_name
         operations = ["Create", "Read", "Update", "Delete", "List"]
 
         # writes a jinja subclass to the templates folder and adds the handlers
@@ -179,7 +179,7 @@ class JavaLanguagePlugin(LanguagePlugin):
     def generate_stub_handlers(self, project_settings, output_directory):
         LOG.info("Generating Handlers...")
 
-        resource_type = self._java_pojo_resolver.normalized_resource_type_name
+        resource_type = self._java_pojo_resolver.resource_class_name
         operations = ["Create", "Read", "Update", "Delete", "List"]
 
         # writes a jinja subclass to the templates folder and adds the handlers
