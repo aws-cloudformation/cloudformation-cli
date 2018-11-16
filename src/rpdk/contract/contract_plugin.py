@@ -40,7 +40,7 @@ class ContractPlugin:
             )
             assert create_terminal_event["status"] == COMPLETE
             resource = create_terminal_event["resources"][0]
-        except Exception:  # pylint: disable=bad-option-value
+        except Exception:
             LOG.exception("Could not create resource with given handler.")
             raise
         yield resource
@@ -53,6 +53,6 @@ class ContractPlugin:
             else:
                 assert delete_terminal_event["status"] == FAILED
                 assert error_code == NOT_FOUND
-        except Exception:  # pylint: disable=bad-option-value
+        except Exception:
             LOG.exception("Could not delete resource with given handler")
             raise
