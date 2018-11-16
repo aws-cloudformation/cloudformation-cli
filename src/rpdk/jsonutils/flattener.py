@@ -2,7 +2,13 @@
 import logging
 
 from .pointer import fragment_decode, fragment_encode
-from .utils import ConstraintError, FlatteningError, schema_merge, traverse
+from .utils import (
+    CircularRefError,
+    ConstraintError,
+    FlatteningError,
+    schema_merge,
+    traverse,
+)
 
 LOG = logging.getLogger(__name__)
 COMBINERS = ("oneOf", "anyOf", "allOf")
@@ -36,9 +42,7 @@ class JsonSchemaFlattener:
         # have we already seen this path?
         try:
             if self._schema_map[property_path] is None:
-                raise ConstraintError(
-                    "Detected circular reference at {path}", property_path
-                )
+                raise CircularRefError(property_path)
         except KeyError:
             pass
         else:
@@ -65,6 +69,7 @@ class JsonSchemaFlattener:
         else:
             sub_schema = self._flatten_ref_type(ref_path)
 
+        # if the path was never added to the schema map, remove placeholder
         if self._schema_map[property_path] is None:
             self._schema_map.pop(property_path)
 

@@ -5,25 +5,52 @@ import pytest
 
 from rpdk.data_loaders import resource_json
 from rpdk.jsonutils.flattener import COMBINERS, JsonSchemaFlattener
-from rpdk.jsonutils.utils import ConstraintError, FlatteningError
+from rpdk.jsonutils.utils import CircularRefError, ConstraintError, FlatteningError
 
 UNIQUE_KEY = "OWSAZD"
 
-###################################
-#
-# PRIMITIVE TYPE TESTS
-#
-###################################
-PRIMITIVE_TYPES = [
-    {"type": "string"},
-    {"type": "integer"},
-    {"type": "number"},
-    {"type": "object"},
-    {"type": "array"},
-    {"type": "boolean"},
-    {"patternProperties": {"a": {}}},
-    {"type": "array", "items": {}},
-]
+PRIMITIVE_TYPES = (
+    pytest.param({"type": "string"}, id="string"),
+    pytest.param({"type": "integer"}, id="integer"),
+    pytest.param({"type": "number"}, id="number"),
+    pytest.param({"type": "object"}, id="object"),
+    pytest.param({"type": "array"}, id="array"),
+    pytest.param({"type": "boolean"}, id="boolean"),
+    pytest.param({"patternProperties": {"a": {}}}, id="patternProperties"),
+    pytest.param({"type": "array", "items": {}}, id="array_items"),
+)
+REF_PATHS = ("", "#", "#/definitions", "#/properties/a")
+CIRCULAR_SCHEMAS = (
+    pytest.param({"properties": {"a": {"$ref": "#/properties/a"}}}, id="self"),
+    pytest.param(
+        {
+            "properties": {
+                "a": {"$ref": "#/properties/z"},
+                "z": {"$ref": "#/properties/a"},
+            }
+        },
+        id="each_other",
+    ),
+    pytest.param(
+        {
+            "properties": {
+                "a": {"$ref": "#/properties/b"},
+                "b": {"$ref": "#/properties/c"},
+                "c": {"$ref": "#/properties/a"},
+            }
+        },
+        id="indirect",
+    ),
+    pytest.param(
+        {
+            "properties": {
+                "a": {"$ref": "#/properties/b"},
+                "b": {"properties": {"a": {"$ref": "#/properties/a"}}},
+            }
+        },
+        id="nested",
+    ),
+)
 
 
 @pytest.mark.parametrize("primitive_type", PRIMITIVE_TYPES)
@@ -72,15 +99,6 @@ def test_walk_array_items_with_primitive(primitive_type):
 
     assert result == test_schema
     assert not flattener._schema_map
-
-
-###################################
-#
-# OBJECT TESTS
-#
-###################################
-
-REF_PATHS = ["", "#", "#/definitions", "#/properties/a"]
 
 
 @pytest.mark.parametrize("path", REF_PATHS)
@@ -167,16 +185,9 @@ def test_walk_path_already_processed(path):
     assert len(flattener._schema_map) == 1
 
 
-###################################
-#
-# FIND SUBSCHEMA FROM REF TESTS
-#
-###################################
-
-
 @pytest.mark.parametrize(
     "path,subschema",
-    [("#", {"a": {"b": {"c": "d"}}}), ("#/a/b", {"c": "d"}), ("#/a/b/c", "d")],
+    (("#", {"a": {"b": {"c": "d"}}}), ("#/a/b", {"c": "d"}), ("#/a/b/c", "d")),
 )
 def test_find_schema_from_ref(path, subschema):
     test_schema = {"a": {"b": {"c": "d"}}}
@@ -198,13 +209,6 @@ def test_find_schema_from_ref_invalid_root(ref):
     with pytest.raises(ValueError) as excinfo:
         flattener._find_subschema_by_ref(ref)
     assert "Expected prefix '#'" in str(excinfo.value)
-
-
-###################################
-#
-# COMBINERS TESTS
-#
-###################################
 
 
 @pytest.mark.parametrize("combiner", COMBINERS)
@@ -275,13 +279,6 @@ def test_flatten_combiners_with_reference():
     assert schema_map == expected_schema
 
 
-###################################
-#
-# CONSTRAINT TESTS
-#
-###################################
-
-
 def test_contraint_array_additional_items_valid():
     flattener = JsonSchemaFlattener({})
     schema = {}
@@ -323,14 +320,7 @@ def test_contraint_object_properties_and_pattern_properties():
     assert UNIQUE_KEY in str(excinfo.value)
 
 
-###################################
-#
-# END TO END TESTS
-#
-###################################
-
-
-def test_flattener():
+def test_flattener_full_example():
     test_schema = resource_json(__name__, "data/area_definition.json")
     expected = resource_json(__name__, "data/area_definition_flattened.json")
 
@@ -340,54 +330,9 @@ def test_flattener():
     assert flattened == expected
 
 
-###################################
-#
-# CIRCULAR REFERENCE TESTS
-#
-###################################
-
-
-def test_circular_reference_self():
-    test_schema = {"properties": {"a": {"$ref": "#/properties/a"}}}
+@pytest.mark.parametrize("test_schema", CIRCULAR_SCHEMAS)
+def test_circular_reference_self(test_schema):
     flattener = JsonSchemaFlattener(test_schema)
-    with pytest.raises(ConstraintError) as excinfo:
+    with pytest.raises(CircularRefError) as excinfo:
         flattener.flatten_schema()
-    assert "circular reference" in str(excinfo.value)
-
-
-def test_circular_reference_each_other():
-    test_schema = {
-        "properties": {"a": {"$ref": "#/properties/z"}, "z": {"$ref": "#/properties/a"}}
-    }
-    flattener = JsonSchemaFlattener(test_schema)
-    with pytest.raises(ConstraintError) as excinfo:
-        flattener.flatten_schema()
-    assert "circular reference" in str(excinfo.value)
-
-
-def test_circular_reference_indirect():
-    test_schema = {
-        "properties": {
-            "a": {"$ref": "#/properties/b"},
-            "b": {"$ref": "#/properties/c"},
-            "c": {"$ref": "#/properties/a"},
-        }
-    }
-    flattener = JsonSchemaFlattener(test_schema)
-    with pytest.raises(ConstraintError) as excinfo:
-        flattener.flatten_schema()
-    assert "circular reference" in str(excinfo.value)
-
-
-def test_circular_reference_nested():
-    test_schema = {
-        "properties": {
-            "b": {"$ref": "#/properties/c"},
-            "c": {"properties": {"a": {"$ref": "#/properties/b"}}},
-        }
-    }
-    flattener = JsonSchemaFlattener(test_schema)
-
-    with pytest.raises(ConstraintError) as excinfo:
-        flattener.flatten_schema()
-    assert "circular reference" in str(excinfo.value)
+    assert "#/properties/a" in str(excinfo.value)
