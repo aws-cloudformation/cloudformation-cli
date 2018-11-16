@@ -9,7 +9,7 @@ class FlatteningError(Exception):
 
 class ConstraintError(FlatteningError, ValueError):
     def __init__(self, message, path, *args):
-        self.path = path
+        self.path = fragment_encode(path)
         message = message.format(*args, path=self.path)
         super().__init__(message)
 
@@ -105,44 +105,44 @@ def schema_merge(target, src, path):
     :raises TypeError: either schema is not of type dict
     :raises ConstraintError: the schema tries to override "type" or "$ref"
 
-    >>> schema_merge({}, {}, '')
+    >>> schema_merge({}, {}, ())
     {}
-    >>> schema_merge({'foo': 'a'}, {}, '')
+    >>> schema_merge({'foo': 'a'}, {}, ())
     {'foo': 'a'}
-    >>> schema_merge({}, {'foo': 'a'}, '')
+    >>> schema_merge({}, {'foo': 'a'}, ())
     {'foo': 'a'}
-    >>> schema_merge({'foo': 'a'}, {'foo': 'b'}, '')
+    >>> schema_merge({'foo': 'a'}, {'foo': 'b'}, ())
     {'foo': 'b'}
     >>> a = {'foo': {'a': {'aa': 'a', 'bb': 'b'}}, 'bar': 1}
     >>> b = {'foo': {'a': {'aa': 'a', 'cc': 'c'}}}
-    >>> schema_merge(a, b, '')
+    >>> schema_merge(a, b, ())
     {'foo': {'a': {'aa': 'a', 'bb': 'b', 'cc': 'c'}}, 'bar': 1}
     >>> a = {'type': {'a': 'aa'}, '$ref': {'a': 'aa'}}
     >>> b = {'type': {'a': 'bb'}, '$ref': {'a': 'bb'}}
-    >>> schema_merge(a, b, '')
+    >>> schema_merge(a, b, ())
     {'type': {'a': 'bb'}, '$ref': {'a': 'bb'}}
-    >>> schema_merge({'type': 'a'}, {'type': 'b'}, '#') # doctest: +NORMALIZE_WHITESPACE
+    >>> schema_merge({'type': 'a'}, {'type': 'b'}, ()) # doctest: +NORMALIZE_WHITESPACE
     Traceback (most recent call last):
     ...
     rpdk.jsonutils.utils.ConstraintError:
     Object at path '#' declared multiple values for 'type': found 'a' and 'b'
     >>> a, b = {'$ref': 'a'}, {'$ref': 'b'}
-    >>> schema_merge(a, b, '#/foo') # doctest: +NORMALIZE_WHITESPACE
+    >>> schema_merge(a, b, ('foo',)) # doctest: +NORMALIZE_WHITESPACE
     Traceback (most recent call last):
     ...
     rpdk.jsonutils.utils.ConstraintError:
     Object at path '#/foo' declared multiple values for '$ref': found 'a' and 'b'
     >>> a, b = {'Foo': {'$ref': 'a'}}, {'Foo': {'$ref': 'b'}}
-    >>> schema_merge(a, b, '#') # doctest: +NORMALIZE_WHITESPACE
+    >>> schema_merge(a, b, ('foo',)) # doctest: +NORMALIZE_WHITESPACE
     Traceback (most recent call last):
     ...
-    rpdk.jsonutils.utils.ConstraintError:
-    Object at path '#/Foo' declared multiple values for '$ref': found 'a' and 'b'
-    >>> schema_merge('', {}, '')
+    rpdk.jsonutils.utils.ConstraintError: Object at path '#/foo/Foo'
+    declared multiple values for '$ref': found 'a' and 'b'
+    >>> schema_merge('', {}, ())
     Traceback (most recent call last):
     ...
     TypeError: Both schemas must be dictionaries
-    >>> schema_merge({}, 1, '')
+    >>> schema_merge({}, 1, ())
     Traceback (most recent call last):
     ...
     TypeError: Both schemas must be dictionaries
@@ -155,7 +155,7 @@ def schema_merge(target, src, path):
         except KeyError:
             target[key] = src_schema
         else:
-            next_path = fragment_encode([key], path)
+            next_path = path + (key,)
             try:
                 target[key] = schema_merge(target_schema, src_schema, next_path)
             except TypeError:

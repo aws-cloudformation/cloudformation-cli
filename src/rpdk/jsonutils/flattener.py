@@ -1,7 +1,7 @@
 # pylint: disable=too-few-public-methods,raising-format-tuple
 import logging
 
-from .pointer import fragment_decode, fragment_encode
+from .pointer import fragment_decode
 from .utils import (
     CircularRefError,
     ConstraintError,
@@ -34,7 +34,7 @@ class JsonSchemaFlattener:
         self._full_schema = schema
 
     def flatten_schema(self):
-        self._walk("#", self._full_schema)
+        self._walk((), self._full_schema)
 
         return self._schema_map
 
@@ -81,13 +81,20 @@ class JsonSchemaFlattener:
         * Refs to an object will have its own class, so the ref will be returned as is.
         * Refs to a primitive will be inlined into the schema, removing the ref.
         """
-        ref_schema = self._find_subschema_by_ref(ref_path)
-        return self._walk(ref_path, ref_schema)
+        try:
+            ref_parts = fragment_decode(ref_path)
+        except ValueError as e:
+            raise FlatteningError(
+                "Invalid ref at path '{}': {}".format(ref_path, str(e))
+            )
 
-    def _flatten_array_type(self, key, sub_schema):
+        ref_schema = self._find_subschema_by_ref(ref_parts)
+        return self._walk(ref_parts, ref_schema)
+
+    def _flatten_array_type(self, path, sub_schema):
         # if "additionalItems" is truthy (e.g. a non-empty object), then fail
         if sub_schema.get("additionalItems"):
-            raise ConstraintError("Object at '{path}' has 'additionalItems'", key)
+            raise ConstraintError("Object at '{path}' has 'additionalItems'", path)
 
         # if "items" are defined, each resolve each property
         try:
@@ -95,18 +102,16 @@ class JsonSchemaFlattener:
         except KeyError:
             pass
         else:
-            sub_schema["items"] = self._walk(
-                fragment_encode(["items"], key), items_schema
-            )
+            sub_schema["items"] = self._walk(path + ("items",), items_schema)
         return sub_schema
 
-    def _flatten_object_type(self, key, sub_schema):
+    def _flatten_object_type(self, path, sub_schema):
         # we only care about allOf, anyOf, oneOf for object types
-        sub_schema = self._flatten_combiners(key, sub_schema)
+        sub_schema = self._flatten_combiners(path, sub_schema)
 
         # if "additionalProperties" is truthy (e.g. a non-empty object), then fail
         if sub_schema.get("additionalProperties"):
-            raise ConstraintError("Object at '{path}' has 'additionalProperties'", key)
+            raise ConstraintError("Object at '{path}' has 'additionalProperties'", path)
 
         # don't allow these together
         if "properties" in sub_schema and "patternProperties" in sub_schema:
@@ -114,7 +119,7 @@ class JsonSchemaFlattener:
                 "Object at '{path}' has mutually exclusive "
                 "'properties' and 'patternProperties'"
             )
-            raise ConstraintError(msg, key)
+            raise ConstraintError(msg, path)
 
         # if "properties" are defined, resolve each property
         try:
@@ -126,13 +131,13 @@ class JsonSchemaFlattener:
             new_properties = {}
             for prop_name, prop_schema in properties.items():
                 new_properties[prop_name] = self._walk(
-                    fragment_encode(["properties", prop_name], key), prop_schema
+                    path + ("properties", prop_name), prop_schema
                 )
 
             # replace properties with resolved properties
             sub_schema["properties"] = new_properties
-            self._schema_map[key] = sub_schema
-            return {"$ref": key}
+            self._schema_map[path] = sub_schema
+            return {"$ref": path}
 
         # if "patternProperties" are defined, resolve each property
         try:
@@ -143,13 +148,13 @@ class JsonSchemaFlattener:
             new_pattern_properties = {}
             for pattern, prop_schema in pattern_properties.items():
                 new_pattern_properties[pattern] = self._walk(
-                    fragment_encode(["patternProperties", pattern], key), prop_schema
+                    path + ("patternProperties", pattern), prop_schema
                 )
             sub_schema["patternProperties"] = new_pattern_properties
 
         return sub_schema
 
-    def _flatten_combiners(self, key, sub_schema):
+    def _flatten_combiners(self, path, sub_schema):
         """This method iterates through allOf, anyOf, and oneOf schemas and
         merges them all into the surrounding sub_schema"""
 
@@ -159,7 +164,7 @@ class JsonSchemaFlattener:
             except KeyError:
                 continue
             for i, nested_schema in enumerate(schema_array):
-                ref_path = fragment_encode([arr_key, i], key)
+                ref_path = path + (arr_key, i)
                 ref_path_is_used = ref_path in self._schema_map
                 walked_schema = self._walk(ref_path, nested_schema)
 
@@ -169,7 +174,7 @@ class JsonSchemaFlattener:
                     resolved_schema = self._schema_map.get(ref_path)
                 else:
                     resolved_schema = self._schema_map.pop(ref_path, walked_schema)
-                schema_merge(sub_schema, resolved_schema, key)
+                schema_merge(sub_schema, resolved_schema, path)
         return sub_schema
 
     def _find_subschema_by_ref(self, ref_path):
@@ -178,8 +183,7 @@ class JsonSchemaFlattener:
         :param str ref_path: json schema ref, like "#/definitions/prop"
         :return: the subschema corresponding to the ref
         """
-        path_paths = fragment_decode(ref_path)
         try:
-            return traverse(self._full_schema, path_paths)
+            return traverse(self._full_schema, ref_path)
         except (LookupError, ValueError):
             raise FlatteningError("Invalid ref: {}".format(ref_path))
