@@ -40,22 +40,10 @@
             "type": "string"
         },
         "TestCode": {
-            "anyOf": [
-                {
-                    "type": "string",
-                    "enum": [
-                        "NOT_STARTED",
-                        "CANCELLED"
-                    ]
-                },
-                {
-                    "type": "integer",
-                    "enum": [
-                        123,
-                        456,
-                        789
-                    ]
-                }
+            "type": "string",
+            "enum": [
+                "NOT_STARTED",
+                "CANCELLED"
             ]
         },
         "Authors": {
