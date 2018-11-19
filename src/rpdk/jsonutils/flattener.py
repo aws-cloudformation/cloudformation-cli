@@ -2,7 +2,13 @@
 import logging
 
 from .pointer import fragment_decode, fragment_encode
-from .utils import ConstraintError, FlatteningError, schema_merge, traverse
+from .utils import (
+    CircularRefError,
+    ConstraintError,
+    FlatteningError,
+    schema_merge,
+    traverse,
+)
 
 LOG = logging.getLogger(__name__)
 COMBINERS = ("oneOf", "anyOf", "allOf")
@@ -34,8 +40,16 @@ class JsonSchemaFlattener:
 
     def _walk(self, property_path, sub_schema):
         # have we already seen this path?
-        if property_path in self._schema_map:
+        try:
+            if self._schema_map[property_path] is None:
+                raise CircularRefError(property_path)
+        except KeyError:
+            pass
+        else:
             return {"$ref": property_path}
+
+        # placeholder so as to not reprocess
+        self._schema_map[property_path] = None
 
         # work on shallow copy to avoid modifying the schema
         sub_schema = dict(sub_schema)
@@ -44,18 +58,20 @@ class JsonSchemaFlattener:
         try:
             ref_path = sub_schema["$ref"]
         except KeyError:
-            pass
+            # schemas without type are assumed to be objects
+            json_type = sub_schema.get("type", "object")
+
+            if json_type == "array":
+                sub_schema = self._flatten_array_type(property_path, sub_schema)
+
+            elif json_type == "object":
+                sub_schema = self._flatten_object_type(property_path, sub_schema)
         else:
-            return self._flatten_ref_type(ref_path)
+            sub_schema = self._flatten_ref_type(ref_path)
 
-        # schemas without type are assumed to be objects
-        json_type = sub_schema.get("type", "object")
-
-        if json_type == "array":
-            return self._flatten_array_type(property_path, sub_schema)
-
-        if json_type == "object":
-            return self._flatten_object_type(property_path, sub_schema)
+        # if the path was never added to the schema map, remove placeholder
+        if self._schema_map[property_path] is None:
+            self._schema_map.pop(property_path)
 
         # for primitive types, we are done processing
         return sub_schema
@@ -65,9 +81,6 @@ class JsonSchemaFlattener:
         * Refs to an object will have its own class, so the ref will be returned as is.
         * Refs to a primitive will be inlined into the schema, removing the ref.
         """
-        if ref_path in self._schema_map:
-            return {"$ref": ref_path}
-
         ref_schema = self._find_subschema_by_ref(ref_path)
         return self._walk(ref_path, ref_schema)
 
@@ -109,9 +122,6 @@ class JsonSchemaFlattener:
         except KeyError:
             pass
         else:
-            # placeholder so that any references to this object know not to reprocess
-            self._schema_map[key] = {}
-
             # resolve each property schema
             new_properties = {}
             for prop_name, prop_schema in properties.items():

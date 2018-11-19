@@ -14,6 +14,11 @@ class ConstraintError(FlatteningError, ValueError):
         super().__init__(message)
 
 
+class CircularRefError(ConstraintError):
+    def __init__(self, path):
+        super().__init__("Detected circular reference at '{path}'", path)
+
+
 class BaseRefPlaceholder:
     """A sentinel object representing a reference inside the base document."""
 
