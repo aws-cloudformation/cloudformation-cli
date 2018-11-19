@@ -1,5 +1,5 @@
-{
-    "#/definitions/location": {
+FLATTENED_SCHEMA = {
+    ("definitions", "location"): {
         "type": "object",
         "properties": {
             "country": {
@@ -10,7 +10,7 @@
             }
         }
     },
-    "#/properties/coordinate/items": {
+    ("properties", "coordinate", "items"): {
         "type": "object",
         "properties": {
             "lat": {
@@ -21,23 +21,23 @@
             }
         }
     },
-    "#": {
+    (): {
         "type": "object",
         "properties": {
             "state": {
-                "$ref": "#/definitions/location"
+                "$ref": ("definitions", "location")
             },
             "coordinates": {
                 "type": "array",
                 "items": {
-                    "$ref": "#/properties/coordinate/items"
+                    "$ref": ("properties", "coordinate", "items")
                 }
             },
             "surroundingStates": {
                 "type": "object",
                 "patternProperties": {
                     "[A-Za-z0-9]{1,64}": {
-                        "$ref": "#/definitions/location"
+                        "$ref": ("definitions", "location")
                     }
                 }
             }

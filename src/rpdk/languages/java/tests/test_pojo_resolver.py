@@ -2,14 +2,13 @@
 # pylint: disable=redefined-outer-name,protected-access
 import pytest
 
-from rpdk.data_loaders import resource_yaml
-
 from ..pojo_resolver import JavaPojoResolver
+from .flattened_schema import FLATTENED_SCHEMA
 
 REF_TO_CLASS_MAP = {
-    "#/definitions/Id": "Id",
-    "#/definitions/Test": "Test",
-    "#/definitions/Test/Test": "Test_",
+    ("definitions", "Id"): "Id",
+    ("definitions", "Test"): "Test",
+    ("definitions", "Test", "Test"): "Test_",
 }
 
 
@@ -19,8 +18,7 @@ def empty_resolver():
 
 
 def test_resolver():
-    flattened_schema = resource_yaml(__name__, "flattened_schema.json")
-    resolver = JavaPojoResolver(flattened_schema, "areaDescription")
+    resolver = JavaPojoResolver(FLATTENED_SCHEMA, "areaDescription")
     expected_pojos = {
         "AreaDescription": {
             "state": "Location",
@@ -32,9 +30,9 @@ def test_resolver():
     }
 
     expected_ref_map = {
-        "#": "AreaDescription",
-        "#/properties/coordinate/items": "Coordinate",
-        "#/definitions/location": "Location",
+        (): "AreaDescription",
+        ("properties", "coordinate", "items"): "Coordinate",
+        ("definitions", "location"): "Location",
     }
     assert resolver._ref_to_class_map == expected_ref_map
     pojos = resolver.resolve_pojos()
@@ -50,9 +48,9 @@ def test_java_property_type(empty_resolver):
         ({"type": "integer"}, "Integer"),
         ({"type": "boolean"}, "Boolean"),
         ({"type": "number"}, "Float"),
-        ({"$ref": "#/definitions/Id"}, "Id"),
-        ({"$ref": "#/definitions/Test"}, "Test"),
-        ({"$ref": "#/definitions/Test/Test"}, "Test_"),
+        ({"$ref": ("definitions", "Id")}, "Id"),
+        ({"$ref": ("definitions", "Test")}, "Test"),
+        ({"$ref": ("definitions", "Test", "Test")}, "Test_"),
     ]
     empty_resolver._ref_to_class_map = REF_TO_CLASS_MAP
     for (property_schema, result) in items:
@@ -112,9 +110,9 @@ def test_array_class_name(empty_resolver):
 
 def test_ref_to_class(empty_resolver):
     items = [
-        ("#/properties/Id", "Id_"),
-        ("#/definitions/prop/Test", "Test__"),
-        ("#/definitions/prop/Test/items", "Test__"),
+        (("properties", "Id"), "Id_"),
+        (("definitions", "prop", "Test"), "Test__"),
+        (("definitions", "prop", "Test", "items"), "Test__"),
     ]
     for (ref_path, result) in items:
         assert result == empty_resolver._get_class_name_from_ref(
