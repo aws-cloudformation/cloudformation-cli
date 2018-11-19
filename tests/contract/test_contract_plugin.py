@@ -1,4 +1,4 @@
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 import pytest
 
@@ -22,11 +22,13 @@ def test_contract_plugin_fixtures():
 
 
 def test_contract_plugin_create_from_fixture():
-    resource_client = Mock(spec=ResourceClient)
-    resource_client.create_resource = Mock(return_value=CREATE_EVENT)
-    plugin = ContractPlugin(resource_client, RESOURCE, None)
-    assert (next(plugin.created_resource.__wrapped__(plugin))) is RESOURCE
-    resource_client.create_resource.assert_called_once_with(RESOURCE)
+    plugin = ContractPlugin(None, RESOURCE, None)
+    patched_context = patch(
+        "rpdk.contract.contract_plugin.ContractPlugin._created_resource"
+    )
+    with patched_context as mock_resource:
+        next(plugin.created_resource.__wrapped__(plugin))
+    mock_resource.assert_called_once()
 
 
 @pytest.mark.parametrize(
@@ -34,8 +36,8 @@ def test_contract_plugin_create_from_fixture():
 )
 def test_contract_plugin_create_delete_success(delete_event):
     resource_client = Mock(spec=ResourceClient)
-    resource_client.create_resource = Mock(return_value=CREATE_EVENT)
-    resource_client.delete_resource = Mock(return_value=delete_event)
+    resource_client.create_resource.return_value = CREATE_EVENT
+    resource_client.delete_resource.return_value = delete_event
     plugin = ContractPlugin(resource_client, RESOURCE, None)
     with plugin._created_resource() as yielded_resource:
         assert yielded_resource == RESOURCE
@@ -46,7 +48,7 @@ def test_contract_plugin_create_delete_success(delete_event):
 def test_resource_fixture_create_fail():
     failed_create_event = {"status": FAILED}
     resource_client = Mock(spec=ResourceClient)
-    resource_client.create_resource = Mock(return_value=failed_create_event)
+    resource_client.create_resource.return_value = failed_create_event
     plugin = ContractPlugin(resource_client, RESOURCE, None)
     with pytest.raises(AssertionError):
         with plugin._created_resource():
@@ -57,8 +59,8 @@ def test_resource_fixture_create_fail():
 def test_resource_fixture_delete_fail():
     delete_event = {"status": FAILED, "errorCode": "InternalError"}
     resource_client = Mock(spec=ResourceClient)
-    resource_client.create_resource = Mock(return_value=CREATE_EVENT)
-    resource_client.delete_resource = Mock(return_value=delete_event)
+    resource_client.create_resource.return_value = CREATE_EVENT
+    resource_client.delete_resource.return_value = delete_event
     plugin = ContractPlugin(resource_client, RESOURCE, None)
     with pytest.raises(AssertionError):
         with plugin._created_resource():
