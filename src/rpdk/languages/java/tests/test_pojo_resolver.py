@@ -2,6 +2,9 @@
 # pylint: disable=redefined-outer-name,protected-access
 import pytest
 
+from rpdk.data_loaders import resource_json
+from rpdk.jsonutils.flattener import JsonSchemaFlattener
+
 from ..pojo_resolver import JavaPojoResolver
 from .flattened_schema import FLATTENED_SCHEMA
 
@@ -40,6 +43,39 @@ def test_resolver():
     assert pojos["AreaDescription"] == expected_pojos["AreaDescription"]
     assert pojos["Coordinate"] == expected_pojos["Coordinate"]
     assert pojos["Location"] == expected_pojos["Location"]
+
+
+def test_resolver_from_schema():
+    test_schema = resource_json("tests", "jsonutils/data/area_definition.json")
+    schema_map = JsonSchemaFlattener(test_schema).flatten_schema()
+    resolver = JavaPojoResolver(schema_map, "areaDescription")
+    expected_pojos = {
+        "AreaDescription": {
+            "areaName": "String",
+            "areaId": "String",
+            "location": "Location",
+            "city": "City",
+        },
+        "Location": {"country": "String", "boundary": "Boundary"},
+        "Boundary": {"box": "Box", "otherPoints": "Set<Coordinate>"},
+        "Box": {
+            "north": "Coordinate",
+            "south": "Coordinate",
+            "east": "Coordinate",
+            "west": "Coordinate",
+        },
+        "Coordinate": {"latitude": "Float", "longitude": "Float"},
+        "City": {
+            "cityName": "String",
+            "neighborhoods": "List<Map<String, Neighborhoods>>",
+        },
+        "Neighborhoods": {
+            "street": "String",
+            "charter": "Map<String, Object>",
+            "houses": "Map<String, Float>",
+        },
+    }
+    assert resolver.resolve_pojos() == expected_pojos
 
 
 def test_java_property_type(empty_resolver):
