@@ -17,6 +17,7 @@ def init(args):
     LOG.info("Loading the project settings...")
     project_settings = load_project_settings(plugin, args.project_settings_file)
     project_settings["output_directory"] = args.output_directory
+    project_settings["schemaFileName"] = "initech.tps.report.v1.json"
 
     LOG.info("Initializing project files...")
     output_path = Path(args.output_directory)
@@ -25,7 +26,7 @@ def init(args):
     copy_resource(
         __name__,
         "data/examples/resource/initech.tps.report.v1.json",
-        output_path / "initech.tps.report.v1.json",
+        output_path / project_settings["schemaFileName"],
     )
     plugin.init(project_settings)
 
