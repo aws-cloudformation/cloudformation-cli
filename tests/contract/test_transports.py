@@ -2,6 +2,8 @@ import json
 from io import StringIO
 from unittest.mock import patch
 
+import pytest
+
 from rpdk.contract.transports import LocalLambdaTransport
 
 FUNCTION_NAME = "WGTIDN"
@@ -11,7 +13,8 @@ INVALID_PORT = 65535 + 2
 SANTA = "🎅"
 
 
-def test_local_lambda_transport():
+@pytest.mark.parametrize("url", [(None, INVALID_PORT), None])
+def test_local_lambda_transport(url):
     request_payload = {"payload": SANTA, "requestContext": {}}
     response_payload = {"ret": DUMMY}
 
@@ -23,7 +26,7 @@ def test_local_lambda_transport():
     with patch.object(
         transport.client, "invoke", return_value={"Payload": response_stream}
     ) as mock_invoke:
-        response = transport(request_payload, (None, INVALID_PORT))
+        response = transport(request_payload, url)
 
     assert response == response_payload
 
