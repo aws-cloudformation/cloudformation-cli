@@ -1,0 +1,39 @@
+version: 1
+formatters:
+  simple:
+    format: "%(message)s"
+  detailed:
+    format: "[%(asctime)s] %(levelname)-8s - %(message)s"
+    datefmt: "%Y-%M-%dT%H:%M:%SZ"
+    class: rpdk.cli.UTCFormatter
+handlers:
+  console:
+    class: logging.StreamHandler
+    level: WARNING
+    formatter: simple
+    stream: ext://sys.stdout
+  logfile:
+    class: logging.handlers.RotatingFileHandler
+    level: DEBUG
+    formatter: detailed
+    filename: rpdk.log
+    encoding: utf-8
+    maxBytes: 5000000  # 5 MB
+    backupCount: 1
+# tweak specific loggers here (e.g. other libraries)
+loggers:
+  botocore:
+    level: ERROR
+    # propagate: no
+  boto3:
+    level: ERROR
+    # propagate: no
+  urllib3:
+    level: ERROR
+    # propagate: no
+root:
+  level: DEBUG
+  handlers:
+    - console
+    - logfile
+disable_existing_loggers: false
