@@ -33,32 +33,49 @@ def setup_logging(verbosity):
 
 def main(args_in=None):
     """The entry point for the CLI."""
-    # see docstring of this file
-    parser = argparse.ArgumentParser(description=__doc__)
-    # the default command just prints the help message
-    # subparsers should set their own default commands
-    # also need to set verbose here because now it only gets set if a
-    # subcommand is run (which is okay, the help doesn't need it)
-    parser.set_defaults(command=lambda args: parser.print_help(), verbose=0)
+    log = None
+    try:
+        # see docstring of this file
+        parser = argparse.ArgumentParser(description=__doc__)
+        # the default command just prints the help message
+        # subparsers should set their own default commands
+        # also need to set verbose here because now it only gets set if a
+        # subcommand is run (which is okay, the help doesn't need it)
+        parser.set_defaults(command=lambda args: parser.print_help(), verbose=0)
 
-    base_subparser = argparse.ArgumentParser(add_help=False)
-    # shared arguments
-    base_subparser.add_argument(
-        "-v",
-        "--verbose",
-        action="count",
-        default=0,
-        help="Increase the output verbosity. Can be specified multiple times.",
-    )
-    parents = [base_subparser]
+        base_subparser = argparse.ArgumentParser(add_help=False)
+        # shared arguments
+        base_subparser.add_argument(
+            "-v",
+            "--verbose",
+            action="count",
+            default=0,
+            help="Increase the output verbosity. Can be specified multiple times.",
+        )
+        parents = [base_subparser]
 
-    subparsers = parser.add_subparsers(dest="subparser_name")
-    init_setup_subparser(subparsers, parents)
-    validate_setup_subparser(subparsers, parents)
-    generate_setup_subparser(subparsers, parents)
-    project_settings_setup_subparser(subparsers, parents)
-    test_setup_subparser(subparsers, parents)
-    args = parser.parse_args(args=args_in)
+        subparsers = parser.add_subparsers(dest="subparser_name")
+        init_setup_subparser(subparsers, parents)
+        validate_setup_subparser(subparsers, parents)
+        generate_setup_subparser(subparsers, parents)
+        project_settings_setup_subparser(subparsers, parents)
+        test_setup_subparser(subparsers, parents)
+        args = parser.parse_args(args=args_in)
 
-    setup_logging(args.verbose)
-    args.command(args)
+        setup_logging(args.verbose)
+
+        log = logging.getLogger(__name__)
+        log.debug("Logging set up successfully")
+
+        args.command(args)
+    except Exception:
+        print("=== Unhandled exception ===")
+        print("Issue tracker: https://github.com/awslabs/aws-cloudformation-rpdk/issues")
+
+        if log:
+            print("Please include the log file 'rpdk.log'")
+            log.debug("Unhandled exception", exc_info=True)
+        else:
+            print("Please include this information:")
+            import traceback
+            traceback.print_exc()
