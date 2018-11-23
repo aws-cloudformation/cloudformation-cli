@@ -2,6 +2,7 @@
 """
 import argparse
 import logging
+import sys
 import time
 from logging.config import dictConfig
 
@@ -29,6 +30,10 @@ def setup_logging(verbosity):
     logging_config = resource_yaml(__name__, "data/logging.yaml")
     logging_config["handlers"]["console"]["level"] = level
     dictConfig(logging_config)
+
+
+def unittest_patch_setup_subparser(_subparsers, _parents):
+    pass
 
 
 def main(args_in=None):
@@ -60,6 +65,7 @@ def main(args_in=None):
         generate_setup_subparser(subparsers, parents)
         project_settings_setup_subparser(subparsers, parents)
         test_setup_subparser(subparsers, parents)
+        unittest_patch_setup_subparser(subparsers, parents)
         args = parser.parse_args(args=args_in)
 
         setup_logging(args.verbose)
@@ -68,14 +74,20 @@ def main(args_in=None):
         log.debug("Logging set up successfully")
 
         args.command(args)
-    except Exception:
-        print("=== Unhandled exception ===")
-        print("Issue tracker: https://github.com/awslabs/aws-cloudformation-rpdk/issues")
+    except Exception:  # pylint: disable=broad-except
+        print("=== Unhandled exception ===", file=sys.stderr)
+        print("Please report this issue to the team.", file=sys.stderr)
+        print(
+            "Issue tracker: "
+            "https://github.com/awslabs/aws-cloudformation-rpdk/issues",
+            file=sys.stderr,
+        )
 
         if log:
-            print("Please include the log file 'rpdk.log'")
+            print("Please include the log file 'rpdk.log'", file=sys.stderr)
             log.debug("Unhandled exception", exc_info=True)
         else:
-            print("Please include this information:")
+            print("Please include this information:", file=sys.stderr)
             import traceback
+
             traceback.print_exc()
