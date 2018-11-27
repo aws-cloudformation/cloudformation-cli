@@ -2,6 +2,7 @@
 """
 import argparse
 import logging
+import time
 from logging.config import dictConfig
 
 from .data_loaders import resource_yaml
@@ -10,6 +11,10 @@ from .init import setup_subparser as init_setup_subparser
 from .project_settings import setup_subparser as project_settings_setup_subparser
 from .test import setup_subparser as test_setup_subparser
 from .validate import setup_subparser as validate_setup_subparser
+
+
+class UTCFormatter(logging.Formatter):
+    converter = time.gmtime
 
 
 def setup_logging(verbosity):
@@ -21,7 +26,7 @@ def setup_logging(verbosity):
     else:
         level = logging.WARNING
 
-    logging_config = resource_yaml(__name__, "data/logging/logging.yaml")
+    logging_config = resource_yaml(__name__, "data/logging.yaml")
     logging_config["handlers"]["console"]["level"] = level
     dictConfig(logging_config)
 
