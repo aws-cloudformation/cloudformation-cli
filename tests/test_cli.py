@@ -1,4 +1,5 @@
 import logging
+from unittest.mock import patch
 
 import pytest
 
@@ -69,7 +70,8 @@ def test_setup_logging_console_two_verbosity(tmpdir, capsys):
 
 def test_main_no_args_prints_help(capsys):
     main(args_in=[])
-    out, _ = capsys.readouterr()
+    out, err = capsys.readouterr()
+    assert not err
     assert "--help" in out
 
 
@@ -89,3 +91,38 @@ def test_setup_logging_console_overrides(tmpdir, capsys, verbosity):
     assert WARNING_MSG not in log
     assert INFO_MSG not in log
     assert DEBUG_MSG not in log
+
+
+def test_main_unhandled_exception_before_logging(capsys):
+    with patch(
+        "rpdk.cli.unittest_patch_setup_subparser", autospec=True, side_effect=Exception
+    ) as mock_hook:
+        main(args_in=[])
+    mock_hook.assert_called_once()
+    out, err = capsys.readouterr()
+    assert not out
+    assert "Unhandled exception" in err
+    assert "Traceback" in err
+    assert "rpdk.log" not in err
+
+
+def test_main_unhandled_exception_after_logging(capsys):
+    def raise_exception(_args):
+        raise Exception
+
+    def setup_subparser(subparsers, parents):
+        parser = subparsers.add_parser("fail", parents=parents)
+        parser.set_defaults(command=raise_exception)
+
+    with patch(
+        "rpdk.cli.unittest_patch_setup_subparser",
+        autospec=True,
+        side_effect=setup_subparser,
+    ) as mock_hook:
+        main(args_in=["fail"])
+    mock_hook.assert_called_once()
+    out, err = capsys.readouterr()
+    assert not out
+    assert "Unhandled exception" in err
+    assert "Traceback" not in err
+    assert "rpdk.log" in err
