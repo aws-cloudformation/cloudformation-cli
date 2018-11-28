@@ -16,7 +16,10 @@ from hypothesis.strategies import (
 
 from ..jsonutils.utils import traverse
 
-# TODO add correct regular expressions for all jsonschema string formats.
+# TODO This resource generator handles simple cases for resource generation
+# List of outstanding issues available below
+# TODO https://github.com/awslabs/aws-cloudformation-rpdk/issues/118
+
 # Arn is just a placeholder for testing
 STRING_FORMATS = {
     "arn": "^arn:aws(-(cn|gov))?:[a-z-]+:(([a-z]+-)+[0-9])?:([0-9]{12})?:[^.]+$"
