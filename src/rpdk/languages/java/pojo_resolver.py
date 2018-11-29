@@ -7,20 +7,20 @@ class PojoResolverError(Exception):
 
 
 class JavaPojoResolver:
-    """This class takes in a normalized schema map (output of the JsonSchemaNormalizer),
+    """This class takes in a flattened schema map (output of the JsonSchemaFlattener),
     and builds a full set of Java classes.
     """
 
-    def __init__(self, normalized_schema_map, resource_type):
-        self.normalized_schema_map = normalized_schema_map
-        self._normalized_resource_type_name = uppercase_first_letter(resource_type)
+    def __init__(self, flattened_schema_map, resource_type):
+        self.flattened_schema_map = flattened_schema_map
+        self._resource_class_name = uppercase_first_letter(resource_type)
         self._ref_to_class_map = self._get_ref_to_class_map()
 
     def _get_ref_to_class_map(self):
-        """Creates a Java class name for each ref_path in the noramlized schema map.
+        """Creates a Java class name for each ref_path in the flattened schema map.
         """
-        ref_to_class_map = {"#": self.normalized_resource_type_name}
-        for ref_path in self.normalized_schema_map.keys():
+        ref_to_class_map = {"#": self.resource_class_name}
+        for ref_path in self.flattened_schema_map.keys():
             if ref_path == "#":
                 continue
             ref_to_class_map[ref_path] = self._get_class_name_from_ref(
@@ -40,8 +40,8 @@ class JavaPojoResolver:
         return class_name
 
     @property
-    def normalized_resource_type_name(self):
-        return self._normalized_resource_type_name
+    def resource_class_name(self):
+        return self._resource_class_name
 
     def resolve_pojos(self):
         """Main method of the class that iterates through each schema and creates
@@ -51,7 +51,7 @@ class JavaPojoResolver:
         of the defined property names to Java property types.
         """
         pojos = {}
-        for ref_path, sub_schema in self.normalized_schema_map.items():
+        for ref_path, sub_schema in self.flattened_schema_map.items():
             class_name = self._ref_to_class_map[ref_path]
             java_property_map = {}
             for prop_name, prop_schema in sub_schema["properties"].items():
@@ -60,7 +60,7 @@ class JavaPojoResolver:
         return pojos
 
     def _java_property_type(self, property_schema):
-        """Return the java class for a normalized schema.
+        """Return the java class for a flattened schema.
         If the schema is a ref, the class is determined from the ref_to_class_map
         """
         try:
@@ -108,7 +108,7 @@ class JavaPojoResolver:
         pattern. We do not care about the pattern itself, since that is only used
         for validation.
         * The object will never have nested properties, as that was taken care of by
-        normalizing the schema
+        flattening the schema
         * If there are no patternProperties, it must be an arbitrary JSON type, so V
         will be an Object.
         """
@@ -133,7 +133,7 @@ class JavaPojoResolver:
 
 
 def base_class_from_ref(ref_path):
-    """This method uses determines the class_name from a ref_path
+    """This method determines the class_name from a ref_path
     It uses json-schema heuristics to properly determine the class name
 
     >>> base_class_from_ref('#/definitions/SubObject')

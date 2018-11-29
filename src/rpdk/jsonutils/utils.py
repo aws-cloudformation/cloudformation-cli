@@ -3,6 +3,22 @@ from collections.abc import Mapping, Sequence
 from .pointer import fragment_encode
 
 
+class FlatteningError(Exception):
+    pass
+
+
+class ConstraintError(FlatteningError, ValueError):
+    def __init__(self, message, path, *args):
+        self.path = path
+        message = message.format(*args, path=self.path)
+        super().__init__(message)
+
+
+class CircularRefError(ConstraintError):
+    def __init__(self, path):
+        super().__init__("Detected circular reference at '{path}'", path)
+
+
 class BaseRefPlaceholder:
     """A sentinel object representing a reference inside the base document."""
 
@@ -81,36 +97,55 @@ def traverse(document, path_parts):
     return document
 
 
-def schema_merge(target, src):
+def schema_merge(target, src, path):
     """Merges the src schema into the target schema in place.
 
     If there are duplicate keys, src will overwrite target.
 
     :raises TypeError: either schema is not of type dict
+    :raises ConstraintError: the schema tries to override "type" or "$ref"
 
-    >>> schema_merge({}, {})
+    >>> schema_merge({}, {}, '')
     {}
-    >>> schema_merge({'foo': 'a'}, {})
+    >>> schema_merge({'foo': 'a'}, {}, '')
     {'foo': 'a'}
-    >>> schema_merge({}, {'foo': 'a'})
+    >>> schema_merge({}, {'foo': 'a'}, '')
     {'foo': 'a'}
-    >>> schema_merge({'foo': 'a'}, {'foo': 'b'})
+    >>> schema_merge({'foo': 'a'}, {'foo': 'b'}, '')
     {'foo': 'b'}
     >>> a = {'foo': {'a': {'aa': 'a', 'bb': 'b'}}, 'bar': 1}
     >>> b = {'foo': {'a': {'aa': 'a', 'cc': 'c'}}}
-    >>> schema_merge(a, b)
+    >>> schema_merge(a, b, '')
     {'foo': {'a': {'aa': 'a', 'bb': 'b', 'cc': 'c'}}, 'bar': 1}
-    >>>
-    >>> schema_merge('', {})
+    >>> a = {'type': {'a': 'aa'}, '$ref': {'a': 'aa'}}
+    >>> b = {'type': {'a': 'bb'}, '$ref': {'a': 'bb'}}
+    >>> schema_merge(a, b, '')
+    {'type': {'a': 'bb'}, '$ref': {'a': 'bb'}}
+    >>> schema_merge({'type': 'a'}, {'type': 'b'}, '#') # doctest: +NORMALIZE_WHITESPACE
+    Traceback (most recent call last):
+    ...
+    rpdk.jsonutils.utils.ConstraintError:
+    Object at path '#' declared multiple values for 'type': found 'a' and 'b'
+    >>> a, b = {'$ref': 'a'}, {'$ref': 'b'}
+    >>> schema_merge(a, b, '#/foo') # doctest: +NORMALIZE_WHITESPACE
+    Traceback (most recent call last):
+    ...
+    rpdk.jsonutils.utils.ConstraintError:
+    Object at path '#/foo' declared multiple values for '$ref': found 'a' and 'b'
+    >>> a, b = {'Foo': {'$ref': 'a'}}, {'Foo': {'$ref': 'b'}}
+    >>> schema_merge(a, b, '#') # doctest: +NORMALIZE_WHITESPACE
+    Traceback (most recent call last):
+    ...
+    rpdk.jsonutils.utils.ConstraintError:
+    Object at path '#/Foo' declared multiple values for '$ref': found 'a' and 'b'
+    >>> schema_merge('', {}, '')
     Traceback (most recent call last):
     ...
     TypeError: Both schemas must be dictionaries
-    >>>
-    >>> schema_merge({}, 1)
+    >>> schema_merge({}, 1, '')
     Traceback (most recent call last):
     ...
     TypeError: Both schemas must be dictionaries
-    >>>
     """
     if not (isinstance(target, Mapping) and isinstance(src, Mapping)):
         raise TypeError("Both schemas must be dictionaries")
@@ -120,9 +155,15 @@ def schema_merge(target, src):
         except KeyError:
             target[key] = src_schema
         else:
+            next_path = fragment_encode([key], path)
             try:
-                target[key] = schema_merge(target_schema, src_schema)
+                target[key] = schema_merge(target_schema, src_schema, next_path)
             except TypeError:
-                # TODO: add validation for type and $ref before overwriting keys
+                if key in ("type", "$ref") and target_schema != src_schema:
+                    msg = (
+                        "Object at path '{path}' declared multiple values "
+                        "for '{}': found '{}' and '{}'"
+                    )
+                    raise ConstraintError(msg, path, key, target_schema, src_schema)
                 target[key] = src_schema
     return target
