@@ -1,5 +1,5 @@
 from rpdk.filters import uppercase_first_letter
-from rpdk.jsonutils.pointer import fragment_decode
+from rpdk.jsonutils.utils import BASE, fragment_encode
 
 
 class PojoResolverError(Exception):
@@ -19,9 +19,9 @@ class JavaPojoResolver:
     def _get_ref_to_class_map(self):
         """Creates a Java class name for each ref_path in the flattened schema map.
         """
-        ref_to_class_map = {"#": self.resource_class_name}
+        ref_to_class_map = {(): self.resource_class_name}
         for ref_path in self.flattened_schema_map.keys():
-            if ref_path == "#":
+            if ref_path == ():
                 continue
             ref_to_class_map[ref_path] = self._get_class_name_from_ref(
                 ref_path, ref_to_class_map
@@ -136,36 +136,33 @@ def base_class_from_ref(ref_path):
     """This method determines the class_name from a ref_path
     It uses json-schema heuristics to properly determine the class name
 
-    >>> base_class_from_ref('#/definitions/SubObject')
-    'SubObject'
-    >>> base_class_from_ref('#/properties/SubObject/items')
-    'SubObject'
-    >>> base_class_from_ref('#/properties/SubObject/items/patternProperties/pattern')
-    'SubObject'
-    >>> base_class_from_ref('#/properties/items')
+    >>> base_class_from_ref(("definitions","Foo"))
+    'Foo'
+    >>> base_class_from_ref(("properties","foo","items"))
+    'Foo'
+    >>> base_class_from_ref(("properties","foo","items","patternProperties","a"))
+    'Foo'
+    >>> base_class_from_ref(("properties","items"))
     'Items'
-    >>> base_class_from_ref('#/properties/patternProperties')
+    >>> base_class_from_ref(("properties","patternProperties"))
     'PatternProperties'
-    >>> base_class_from_ref('#/properties/properties')
+    >>> base_class_from_ref(("properties","properties"))
     'Properties'
-    >>> base_class_from_ref('#/definitions')
+    >>> base_class_from_ref(("definitions",))
     'Definitions'
-    >>> base_class_from_ref('#/definitions/properties')
+    >>> base_class_from_ref(("definitions","properties"))
     'Properties'
-    >>> base_class_from_ref('#')
+    >>> base_class_from_ref(())   # doctest: +NORMALIZE_WHITESPACE
     Traceback (most recent call last):
     ...
-    java.pojo_resolver.PojoResolverError: Could not create a valid class from #
-    >>> base_class_from_ref('/foo')
-    Traceback (most recent call last):
-    ...
-    ValueError: Expected prefix '#', but was ''
+    java.pojo_resolver.PojoResolverError:
+    Could not create a valid class from schema at '#'
     """
-    parent_keywords = ["properties", "definitions", "#"]
-    schema_keywords = ["items", "patternProperties", "properties"]
+    parent_keywords = ("properties", "definitions")
+    schema_keywords = ("items", "patternProperties", "properties")
 
-    ref_parts = fragment_decode(ref_path, output=list)[::-1]
-    ref_parts_with_root = ref_parts + ["#"]
+    ref_parts = ref_path[::-1]
+    ref_parts_with_root = ref_parts + (BASE,)
     for idx, elem in enumerate(ref_parts):
         parent = ref_parts_with_root[idx + 1]
         if parent in parent_keywords or (
@@ -173,4 +170,8 @@ def base_class_from_ref(ref_path):
         ):
             return uppercase_first_letter(elem.rpartition("/")[2])
 
-    raise PojoResolverError("Could not create a valid class from {}".format(ref_path))
+    raise PojoResolverError(
+        "Could not create a valid class from schema at '{}'".format(
+            fragment_encode(ref_path)
+        )
+    )
