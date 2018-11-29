@@ -78,8 +78,9 @@ def test_resolver_from_schema():
     assert resolver.resolve_pojos() == expected_pojos
 
 
-def test_java_property_type(empty_resolver):
-    items = [
+@pytest.mark.parametrize(
+    "schema,result",
+    (
         ({"type": "string"}, "String"),
         ({"type": "integer"}, "Integer"),
         ({"type": "boolean"}, "Boolean"),
@@ -87,70 +88,56 @@ def test_java_property_type(empty_resolver):
         ({"$ref": ("definitions", "Id")}, "Id"),
         ({"$ref": ("definitions", "Test")}, "Test"),
         ({"$ref": ("definitions", "Test", "Test")}, "Test_"),
-    ]
-    empty_resolver._ref_to_class_map = REF_TO_CLASS_MAP
-    for (property_schema, result) in items:
-        assert result == empty_resolver._java_property_type(
-            property_schema
-        ), "Failed schema: {}".format(property_schema)
-
-
-def test_array_property_type(empty_resolver):
-    items = [
         ({"type": "array"}, "List<Object>"),
         ({"type": "array", "items": {"type": "object"}}, "List<Map<String, Object>>"),
         ({"type": "array", "items": {"type": "string"}}, "List<String>"),
         ({"type": "array", "items": {"type": "integer"}}, "List<Integer>"),
         ({"type": "array", "items": {"type": "boolean"}}, "List<Boolean>"),
         ({"type": "array", "items": {"type": "number"}}, "List<Float>"),
-    ]
-    for (property_schema, result) in items:
-        assert result == empty_resolver._java_array_type(
-            property_schema
-        ), "Failed schema: {}".format(property_schema)
-
-
-def test_object_property_type(empty_resolver):
-    items = [
         ({"type": "object"}, "Map<String, Object>"),
-        (get_object("string"), "Map<String, String>"),
-        (get_object("integer"), "Map<String, Integer>"),
-        (get_object("boolean"), "Map<String, Boolean>"),
-        (get_object("number"), "Map<String, Float>"),
+        ({"patternProperties": {"[A-Z]+": {"type": "string"}}}, "Map<String, String>"),
+        (
+            {"patternProperties": {"[A-Z]+": {"type": "integer"}}},
+            "Map<String, Integer>",
+        ),
+        (
+            {"patternProperties": {"[A-Z]+": {"type": "boolean"}}},
+            "Map<String, Boolean>",
+        ),
+        ({"patternProperties": {"[A-Z]+": {"type": "number"}}}, "Map<String, Float>"),
         ({"patternProperties": {}}, "Map<String, Object>"),
         ({"patternProperties": {"a-z": {}, "A-Z": {}}}, "Map<String, Object>"),
-    ]
-    for (property_schema, result) in items:
-        assert result == empty_resolver._java_object_type(
-            property_schema
-        ), "Failed schema: {}".format(property_schema)
+    ),
+)
+def test_java_property_type(empty_resolver, schema, result):
+    empty_resolver._ref_to_class_map = REF_TO_CLASS_MAP
+    resolved_type = empty_resolver._java_property_type(schema)
+    assert result == resolved_type
 
 
-def get_object(schema_type):
-    return {"type": "object", "patternProperties": {"[A-Z]+": {"type": schema_type}}}
-
-
-def test_array_class_name(empty_resolver):
-    items = [
+@pytest.mark.parametrize(
+    "schema,result",
+    (
         ({"type": "array"}, "List"),
         ({"type": "array", "insertionOrder": False, "uniqueItems": False}, "List"),
         ({"type": "array", "insertionOrder": True, "uniqueItems": True}, "List"),
         ({"type": "array", "insertionOrder": True}, "List"),
         ({"type": "array", "uniqueItems": True}, "Set"),
-    ]
-    for (property_schema, result) in items:
-        assert result == empty_resolver._array_class_name(
-            property_schema
-        ), "Failed schema: {}".format(property_schema)
+    ),
+)
+def test_array_class_name(empty_resolver, schema, result):
+    resolved_class = empty_resolver._array_class_name(schema)
+    assert result == resolved_class
 
 
-def test_ref_to_class(empty_resolver):
-    items = [
+@pytest.mark.parametrize(
+    "ref_path,result",
+    (
         (("properties", "Id"), "Id_"),
         (("definitions", "prop", "Test"), "Test__"),
         (("definitions", "prop", "Test", "items"), "Test__"),
-    ]
-    for (ref_path, result) in items:
-        assert result == empty_resolver._get_class_name_from_ref(
-            ref_path, REF_TO_CLASS_MAP
-        ), "Failed ref: {}".format(ref_path)
+    ),
+)
+def test_ref_to_class(empty_resolver, ref_path, result):
+    resolved_class = empty_resolver._get_class_name_from_ref(ref_path, REF_TO_CLASS_MAP)
+    assert result == resolved_class
