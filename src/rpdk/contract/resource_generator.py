@@ -1,4 +1,4 @@
-import collections.abc
+from collections.abc import Mapping, Sequence
 
 from hypothesis.strategies import (
     booleans,
@@ -7,6 +7,7 @@ from hypothesis.strategies import (
     fixed_dictionaries,
     from_regex,
     integers,
+    just,
     lists,
     nothing,
     one_of,
@@ -79,7 +80,7 @@ def generate_array_strategy(array_schema):
             item_schema = array_schema["contains"]
         except KeyError:
             return lists(nothing())
-    if isinstance(item_schema, collections.abc.Sequence):
+    if isinstance(item_schema, Sequence):
         item_strategy = [generate_property_strategy(schema) for schema in item_schema]
         # tuples let you define multiple strategies to generate elements.
         # When more than one schema for an item
@@ -89,9 +90,32 @@ def generate_array_strategy(array_schema):
     return lists(item_strategy, min_size=1)
 
 
+def generate_const_object_strategy(const):
+    strategies = {key: generate_const_strategy(value) for key, value in const.items()}
+    return fixed_dictionaries(strategies)
+
+
+def generate_enum_strategy(enum):
+    strategies = [generate_const_strategy(item) for item in enum]
+    return one_of(*strategies)
+
+
+def generate_const_strategy(const):
+    return (
+        generate_const_object_strategy(const)
+        if isinstance(const, Mapping)
+        else just(const)
+    )
+
+
 def generate_property_strategy(prop):
     json_type = prop.get("type", "object")
-    if json_type == "integer":
+
+    if "enum" in prop:
+        strategy = generate_enum_strategy(prop["enum"])
+    elif "const" in prop:
+        strategy = generate_const_strategy(prop["const"])
+    elif json_type == "integer":
         strategy = generate_number_strategy(prop, integers)
     elif json_type == "number":
         strategy = generate_number_strategy(prop, decimals)
