@@ -1,4 +1,4 @@
-from collections.abc import Mapping, Sequence
+from collections.abc import Sequence
 
 from hypothesis.strategies import (
     booleans,
@@ -90,29 +90,14 @@ def generate_array_strategy(array_schema):
     return lists(item_strategy, min_size=1)
 
 
-def generate_const_object_strategy(const):
-    strategies = {key: generate_const_strategy(value) for key, value in const.items()}
-    return fixed_dictionaries(strategies)
-
-
-def generate_enum_strategy(enum):
-    strategies = [generate_const_strategy(item) for item in enum]
-    return one_of(*strategies)
-
-
-def generate_const_strategy(const):
-    if isinstance(const, Mapping):
-        return generate_const_object_strategy(const)
-    return just(const)
-
-
 def generate_property_strategy(prop):
     json_type = prop.get("type", "object")
 
     if "const" in prop:
-        strategy = generate_const_strategy(prop["const"])
+        strategy = just(prop["const"])
     elif "enum" in prop:
-        strategy = generate_enum_strategy(prop["enum"])
+        strategies = [just(item) for item in prop["enum"]]
+        strategy = one_of(*strategies)
     elif json_type == "integer":
         strategy = generate_number_strategy(prop, integers)
     elif json_type == "number":
