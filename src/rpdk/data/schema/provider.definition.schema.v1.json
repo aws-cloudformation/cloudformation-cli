@@ -19,13 +19,37 @@
                 "$ref": "#/definitions/properties"
             }
         },
+        "validations": {
+            "dependencies": {
+                "enum": {
+                    "$comment": "Enforce that properties are strongly typed when enum, or const is specified.",
+                    "required": [
+                        "type"
+                    ]
+                },
+                "const": {
+                    "required": [
+                        "type"
+                    ]
+                },
+                "properties": {
+                    "$comment": "An object cannot have both defined and undefined properties; therefore, patternProperties is not allowed when properties is specified.",
+                    "not": {
+                        "required": [
+                            "patternProperties"
+                        ]
+                    }
+                }
+            }
+        },
         "properties": {
             "allOf": [
                 {
-                    "type": "object"
+                    "$ref": "#/definitions/validations"
                 },
                 {
                     "$comment": "The following subset of draft-07 property references is supported for resource definitions. Nested properties are disallowed and should be specified as a $ref to a definitions block.",
+                    "type": "object",
                     "properties": {
                         "insertionOrder": {
                             "description": "When set to true, this flag indicates that the order of insertion of the array will be honored, and that changing the order of the array would indicate a diff",
