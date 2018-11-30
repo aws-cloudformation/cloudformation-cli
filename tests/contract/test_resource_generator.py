@@ -100,16 +100,13 @@ def test_generate_object_strategy():
         example["second"]
 
 
-def test_generate_object_strategy_no_required():
+def test_generate_empty_object_strategy():
     schema = {
         "type": "object",
-        "required": ["first"],
         "properties": {"first": {"type": "object"}, "second": {"type": "object"}},
     }
     example = generate_schema_strategy(schema).example()
-    assert example["first"] is None
-    with pytest.raises(KeyError):
-        example["second"]
+    assert example == {}
 
 
 @pytest.mark.parametrize(

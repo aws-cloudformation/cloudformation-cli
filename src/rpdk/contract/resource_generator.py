@@ -9,7 +9,6 @@ from hypothesis.strategies import (
     integers,
     just,
     lists,
-    none,
     nothing,
     one_of,
     text,
@@ -32,7 +31,7 @@ def generate_object_strategy(schema):
     try:
         required = schema["required"]
     except KeyError:
-        return none()
+        return just({})
     else:
         strategies = {
             prop: generate_schema_strategy(schema["properties"][prop])
@@ -86,7 +85,7 @@ def generate_array_strategy(schema):
 def generate_one_of_strategy(schema, combiner):
     one_of_schemas = schema.pop(combiner)
     strategies = [
-        generate_schema_strategy(schema_merge(dict(schema), one_of_schema, ""))
+        generate_schema_strategy(schema_merge(schema.copy(), one_of_schema, ""))
         for one_of_schema in one_of_schemas
     ]
     return one_of(*strategies)
@@ -101,14 +100,12 @@ def generate_all_of_strategy(schema):
 
 def generate_schema_strategy(schema):
     if "allOf" in schema:
-        strategy = generate_all_of_strategy(schema)
-    elif "oneOf" in schema:
-        strategy = generate_one_of_strategy(schema, "oneOf")
-    elif "anyOf" in schema:
-        strategy = generate_one_of_strategy(schema, "anyOf")
-    else:
-        strategy = generate_primitive_strategy(schema)
-    return strategy
+        return generate_all_of_strategy(schema)
+    if "oneOf" in schema:
+        return generate_one_of_strategy(schema, "oneOf")
+    if "anyOf" in schema:
+        return generate_one_of_strategy(schema, "anyOf")
+    return generate_primitive_strategy(schema)
 
 
 def generate_primitive_strategy(schema):
