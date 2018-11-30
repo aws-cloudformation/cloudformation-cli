@@ -101,20 +101,18 @@ def generate_enum_strategy(enum):
 
 
 def generate_const_strategy(const):
-    return (
-        generate_const_object_strategy(const)
-        if isinstance(const, Mapping)
-        else just(const)
-    )
+    if isinstance(const, Mapping):
+        return generate_const_object_strategy(const)
+    return just(const)
 
 
 def generate_property_strategy(prop):
     json_type = prop.get("type", "object")
 
-    if "enum" in prop:
-        strategy = generate_enum_strategy(prop["enum"])
-    elif "const" in prop:
+    if "const" in prop:
         strategy = generate_const_strategy(prop["const"])
+    elif "enum" in prop:
+        strategy = generate_enum_strategy(prop["enum"])
     elif json_type == "integer":
         strategy = generate_number_strategy(prop, integers)
     elif json_type == "number":
