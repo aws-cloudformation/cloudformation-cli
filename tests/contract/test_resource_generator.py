@@ -84,3 +84,27 @@ def test_generate_object_strategy():
     assert isinstance(example["first"], bool)
     with pytest.raises(KeyError):
         example["second"]
+
+
+@pytest.mark.parametrize(
+    "schema",
+    [
+        {"type": "string", "const": "constTest"},
+        {"type": "object", "const": {"key": "value"}},
+    ],
+)
+def test_generate_const_strategy(schema):
+    example = generate_property_strategy(schema).example()
+    assert example == schema["const"]
+
+
+@pytest.mark.parametrize(
+    "schema",
+    [
+        {"type": "string", "enum": ["constTest", "anotherOne", "andOneMore"]},
+        {"type": "object", "enum": [{"key": "value"}, {"anotherKey": "anotherValue"}]},
+    ],
+)
+def test_generate_enum_strategy(schema):
+    example = generate_property_strategy(schema).example()
+    assert example in schema["enum"]
