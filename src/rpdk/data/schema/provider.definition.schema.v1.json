@@ -70,7 +70,7 @@
                         "$comment": {
                             "$ref": "http://json-schema.org/draft-07/schema#/properties/$comment"
                         },
-                        "$title": {
+                        "title": {
                             "$ref": "http://json-schema.org/draft-07/schema#/properties/title"
                         },
                         "description": {
@@ -106,20 +106,10 @@
                         "pattern": {
                             "$ref": "http://json-schema.org/draft-07/schema#/properties/pattern"
                         },
-                        "additionalItems": {
-                            "$ref": "http://json-schema.org/draft-07/schema#/properties/additionalItems"
-                        },
                         "items": {
-                            "$comment": "Redefined to capture our schemaArray override.",
-                            "anyOf": [
-                                {
-                                    "$ref": "#/definitions/properties"
-                                },
-                                {
-                                    "$ref": "#/definitions/schemaArray"
-                                }
-                            ],
-                            "default": true
+                            "$comment": "Redefined as just a schema. A list of schemas is not allowed",
+                            "$ref": "#/definitions/properties",
+                            "default": {}
                         },
                         "maxItems": {
                             "$ref": "http://json-schema.org/draft-07/schema#/properties/maxItems"

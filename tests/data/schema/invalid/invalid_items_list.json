@@ -1,0 +1,11 @@
+{
+    "typeName": "AWS::Valid::TypeName",
+    "properties": {
+        "property1": {
+            "type": "array",
+            "items": [
+                {"type": "string"}
+            ]
+        }
+    }
+}
