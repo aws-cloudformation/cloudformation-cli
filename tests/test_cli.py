@@ -3,7 +3,7 @@ from unittest.mock import patch
 
 import pytest
 
-from rpdk.cli import main, setup_logging
+from rpdk.cli import EXIT_UNHANDLED_EXCEPTION, main, setup_logging
 
 from .test_init import chdir
 
@@ -97,7 +97,9 @@ def test_main_unhandled_exception_before_logging(capsys):
     with patch(
         "rpdk.cli.unittest_patch_setup_subparser", autospec=True, side_effect=Exception
     ) as mock_hook:
-        main(args_in=[])
+        with pytest.raises(SystemExit) as excinfo:
+            main(args_in=[])
+    assert excinfo.value.code == EXIT_UNHANDLED_EXCEPTION
     mock_hook.assert_called_once()
     out, err = capsys.readouterr()
     assert not out
@@ -119,7 +121,9 @@ def test_main_unhandled_exception_after_logging(capsys):
         autospec=True,
         side_effect=setup_subparser,
     ) as mock_hook:
-        main(args_in=["fail"])
+        with pytest.raises(SystemExit) as excinfo:
+            main(args_in=["fail"])
+    assert excinfo.value.code == EXIT_UNHANDLED_EXCEPTION
     mock_hook.assert_called_once()
     out, err = capsys.readouterr()
     assert not out
