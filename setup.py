@@ -46,7 +46,7 @@ setup(
     ],
     entry_points={
         "console_scripts": ["uluru-cli = rpdk.cli:main"],
-        "rpdk.languages": ["java = rpdk.languages.java:JavaLanguagePlugin"],
+        "rpdk.v1.languages": ["java = rpdk.languages.java:JavaLanguagePlugin"],
     },
     license="Apache License 2.0",
     classifiers=(
