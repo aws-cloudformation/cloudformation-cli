@@ -13,6 +13,8 @@ from .project_settings import setup_subparser as project_settings_setup_subparse
 from .test import setup_subparser as test_setup_subparser
 from .validate import setup_subparser as validate_setup_subparser
 
+EXIT_UNHANDLED_EXCEPTION = 127
+
 
 class UTCFormatter(logging.Formatter):
     converter = time.gmtime
@@ -91,4 +93,4 @@ def main(args_in=None):
             import traceback
 
             traceback.print_exc()
-        raise SystemExit(1)
+        raise SystemExit(EXIT_UNHANDLED_EXCEPTION)
