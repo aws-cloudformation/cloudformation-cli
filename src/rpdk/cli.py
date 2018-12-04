@@ -91,3 +91,4 @@ def main(args_in=None):
             import traceback
 
             traceback.print_exc()
+        raise SystemExit(1)
