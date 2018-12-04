@@ -27,59 +27,14 @@ STRING_FORMATS = {
 }
 
 
-def generate_object_strategy(schema):
-    try:
-        required = schema["required"]
-    except KeyError:
-        return just({})
-    else:
-        strategies = {
-            prop: generate_schema_strategy(schema["properties"][prop])
-            for prop in required
-        }
-        return fixed_dictionaries(strategies)
-
-
-def generate_number_strategy(schema, strategy):
-    minimum = schema.get("minimum")
-    maximum = schema.get("maximum")
-    return strategy(min_value=minimum, max_value=maximum)
-
-
-def generate_string_strategy(schema):
-    try:
-        string_format = schema["format"]
-    except KeyError:
-        min_length = schema.get("minLength", 0)
-        max_length = schema.get("maxLength")
-        strategy = text(
-            alphabet=characters(min_codepoint=1, blacklist_categories=("Cc", "Cs")),
-            min_size=min_length,
-            max_size=max_length,
-        )
-    else:
-        strategy = from_regex(STRING_FORMATS[string_format])
-    return strategy
-
-
-def generate_array_strategy(schema):
-    min_items = schema.get("minItems", 0)
-    max_items = schema.get("maxItems", None)
-    try:
-        item_schemas = schema["items"]
-    except KeyError:
-        try:
-            item_schemas = schema["contains"]
-        except KeyError:
-            return lists(nothing())
-    if isinstance(item_schemas, Sequence):
-        item_strategy = [generate_schema_strategy(schema) for schema in item_schemas]
-        # tuples let you define multiple strategies to generate elements.
-        # When more than one schema for an item
-        # is present, we should try to generate both
-        return tuples(*item_strategy)
-    item_strategy = generate_schema_strategy(item_schemas)
-    return lists(item_strategy, min_size=min_items, max_size=max_items)
+def generate_schema_strategy(schema):
+    if "allOf" in schema:
+        return generate_all_of_strategy(schema)
+    if "oneOf" in schema:
+        return generate_one_of_strategy(schema, "oneOf")
+    if "anyOf" in schema:
+        return generate_one_of_strategy(schema, "anyOf")
+    return generate_primitive_strategy(schema)
 
 
 def generate_one_of_strategy(schema, combiner):
@@ -96,16 +51,6 @@ def generate_all_of_strategy(schema):
     for all_of_schema in all_of_schemas:
         schema_merge(schema, all_of_schema, ())
     return generate_schema_strategy(schema)
-
-
-def generate_schema_strategy(schema):
-    if "allOf" in schema:
-        return generate_all_of_strategy(schema)
-    if "oneOf" in schema:
-        return generate_one_of_strategy(schema, "oneOf")
-    if "anyOf" in schema:
-        return generate_one_of_strategy(schema, "anyOf")
-    return generate_primitive_strategy(schema)
 
 
 def generate_primitive_strategy(schema):
@@ -133,4 +78,59 @@ def generate_primitive_strategy(schema):
         strategy = generate_array_strategy(schema)
     else:
         strategy = generate_object_strategy(schema)
+    return strategy
+
+
+def generate_object_strategy(schema):
+    try:
+        required = schema["required"]
+    except KeyError:
+        return just({})
+    else:
+        strategies = {
+            prop: generate_schema_strategy(schema["properties"][prop])
+            for prop in required
+        }
+        return fixed_dictionaries(strategies)
+
+
+def generate_array_strategy(schema):
+    min_items = schema.get("minItems", 0)
+    max_items = schema.get("maxItems", None)
+    try:
+        item_schemas = schema["items"]
+    except KeyError:
+        try:
+            item_schemas = schema["contains"]
+        except KeyError:
+            return lists(nothing())
+    if isinstance(item_schemas, Sequence):
+        item_strategy = [generate_schema_strategy(schema) for schema in item_schemas]
+        # tuples let you define multiple strategies to generate elements.
+        # When more than one schema for an item
+        # is present, we should try to generate both
+        return tuples(*item_strategy)
+    item_strategy = generate_schema_strategy(item_schemas)
+    return lists(item_strategy, min_size=min_items, max_size=max_items)
+
+
+def generate_number_strategy(schema, strategy):
+    minimum = schema.get("minimum")
+    maximum = schema.get("maximum")
+    return strategy(min_value=minimum, max_value=maximum)
+
+
+def generate_string_strategy(schema):
+    try:
+        string_format = schema["format"]
+    except KeyError:
+        min_length = schema.get("minLength", 0)
+        max_length = schema.get("maxLength")
+        strategy = text(
+            alphabet=characters(min_codepoint=1, blacklist_categories=("Cc", "Cs")),
+            min_size=min_length,
+            max_size=max_length,
+        )
+    else:
+        strategy = from_regex(STRING_FORMATS[string_format])
     return strategy
