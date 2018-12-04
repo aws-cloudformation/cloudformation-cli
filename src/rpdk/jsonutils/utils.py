@@ -159,11 +159,14 @@ def schema_merge(target, src, path):
             try:
                 target[key] = schema_merge(target_schema, src_schema, next_path)
             except TypeError:
-                if key in ("type", "$ref") and target_schema != src_schema:
-                    msg = (
-                        "Object at path '{path}' declared multiple values "
-                        "for '{}': found '{}' and '{}'"
-                    )
-                    raise ConstraintError(msg, path, key, target_schema, src_schema)
-                target[key] = src_schema
+                if key == "required":
+                    target[key] = list(set(target_schema) | set(src_schema))
+                else:
+                    if key in ("type", "$ref") and target_schema != src_schema:
+                        msg = (
+                            "Object at path '{path}' declared multiple values "
+                            "for '{}': found '{}' and '{}'"
+                        )
+                        raise ConstraintError(msg, path, key, target_schema, src_schema)
+                    target[key] = src_schema
     return target

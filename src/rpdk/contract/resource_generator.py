@@ -3,8 +3,8 @@ from collections.abc import Sequence
 from hypothesis.strategies import (
     booleans,
     characters,
-    decimals,
     fixed_dictionaries,
+    floats,
     from_regex,
     integers,
     just,
@@ -15,7 +15,7 @@ from hypothesis.strategies import (
     tuples,
 )
 
-from ..jsonutils.utils import traverse
+from ..jsonutils.utils import schema_merge
 
 # TODO This resource generator handles simple cases for resource generation
 # List of outstanding issues available below
@@ -29,25 +29,15 @@ STRING_FORMATS = {
 
 def generate_object_strategy(schema):
     try:
-        one_of_schema = schema["oneOf"]
+        required = schema["required"]
     except KeyError:
-        required_properties = schema["required"]
-        strategy = generate_required_properties(schema, required_properties)
+        return just({})
     else:
-        strategies = [
-            generate_required_properties(schema, required_options["required"])
-            for required_options in one_of_schema
-        ]
-        strategy = one_of(strategies)
-    return strategy
-
-
-def generate_required_properties(schema, required):
-    strategies = {
-        prop: generate_property_strategy(traverse(schema, ("properties", prop)))
-        for prop in required
-    }
-    return fixed_dictionaries(strategies)
+        strategies = {
+            prop: generate_schema_strategy(schema["properties"][prop])
+            for prop in required
+        }
+        return fixed_dictionaries(strategies)
 
 
 def generate_number_strategy(schema, strategy):
@@ -72,47 +62,75 @@ def generate_string_strategy(schema):
     return strategy
 
 
-def generate_array_strategy(array_schema):
+def generate_array_strategy(schema):
+    min_items = schema.get("minItems", 0)
+    max_items = schema.get("maxItems", None)
     try:
-        item_schema = array_schema["items"]
+        item_schemas = schema["items"]
     except KeyError:
         try:
-            item_schema = array_schema["contains"]
+            item_schemas = schema["contains"]
         except KeyError:
             return lists(nothing())
-    if isinstance(item_schema, Sequence):
-        item_strategy = [generate_property_strategy(schema) for schema in item_schema]
+    if isinstance(item_schemas, Sequence):
+        item_strategy = [generate_schema_strategy(schema) for schema in item_schemas]
         # tuples let you define multiple strategies to generate elements.
         # When more than one schema for an item
         # is present, we should try to generate both
         return tuples(*item_strategy)
-    item_strategy = generate_property_strategy(item_schema)
-    return lists(item_strategy, min_size=1)
+    item_strategy = generate_schema_strategy(item_schemas)
+    return lists(item_strategy, min_size=min_items, max_size=max_items)
 
 
-def generate_property_strategy(prop):
-    json_type = prop.get("type", "object")
+def generate_one_of_strategy(schema, combiner):
+    one_of_schemas = schema.pop(combiner)
+    strategies = [
+        generate_schema_strategy(schema_merge(schema.copy(), one_of_schema, ""))
+        for one_of_schema in one_of_schemas
+    ]
+    return one_of(*strategies)
 
-    if "const" in prop:
-        strategy = just(prop["const"])
-    elif "enum" in prop:
-        strategies = [just(item) for item in prop["enum"]]
+
+def generate_all_of_strategy(schema):
+    all_of_schemas = schema.pop("allOf")
+    for all_of_schema in all_of_schemas:
+        schema_merge(schema, all_of_schema, ())
+    return generate_schema_strategy(schema)
+
+
+def generate_schema_strategy(schema):
+    if "allOf" in schema:
+        return generate_all_of_strategy(schema)
+    if "oneOf" in schema:
+        return generate_one_of_strategy(schema, "oneOf")
+    if "anyOf" in schema:
+        return generate_one_of_strategy(schema, "anyOf")
+    return generate_primitive_strategy(schema)
+
+
+def generate_primitive_strategy(schema):
+    json_type = schema.get("type", "object")
+
+    if "const" in schema:
+        strategy = just(schema["const"])
+    elif "enum" in schema:
+        strategies = [just(item) for item in schema["enum"]]
         strategy = one_of(*strategies)
     elif json_type == "integer":
-        strategy = generate_number_strategy(prop, integers)
+        strategy = generate_number_strategy(schema, integers)
     elif json_type == "number":
-        strategy = generate_number_strategy(prop, decimals)
+        strategy = generate_number_strategy(schema, floats)
     elif json_type == "boolean":
         strategy = booleans()
     elif json_type == "string":
         try:
-            regex = prop["pattern"]
+            regex = schema["pattern"]
         except KeyError:
-            strategy = generate_string_strategy(prop)
+            strategy = generate_string_strategy(schema)
         else:
             return from_regex(regex)
     elif json_type == "array":
-        strategy = generate_array_strategy(prop)
+        strategy = generate_array_strategy(schema)
     else:
-        strategy = generate_object_strategy(prop)
+        strategy = generate_object_strategy(schema)
     return strategy
