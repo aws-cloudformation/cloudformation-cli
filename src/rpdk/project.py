@@ -5,7 +5,7 @@ from pathlib import Path
 from jsonschema import Draft6Validator
 from jsonschema.exceptions import ValidationError
 
-from .data_loaders import load_resource_spec
+from .data_loaders import copy_resource, load_resource_spec
 from .plugin_registry import load_plugin
 
 LOG = logging.getLogger(__name__)
@@ -82,11 +82,17 @@ class Project:  # pylint: disable=too-many-instance-attributes
         self.settings = raw_settings.get("settings", {})
 
     def _write_example_schema(self):
+        copy_resource(
+            __name__,
+            "data/examples/resource/initech.tps.report.v1.json",
+            self.root / "initech.tps.report.v1.json",
+        )
+
+    def _write_skeleton_schema(self):
         obj = {
             "$id": self.schema_filename,
             "typeName": self.type_name,
-            "definitions": {"Foo": {"type": "integer"}},
-            "properties": {"Foo": {"$ref": "#/definitions/Foo"}},
+            "properties": {"Foo": {"type": "integer"}},
             "additionalProperties": False,
         }
         self.safewrite(self.schema_path, json.dumps(obj, indent=4))
@@ -105,6 +111,7 @@ class Project:  # pylint: disable=too-many-instance-attributes
         self.settings = {}
 
         self._write_example_schema()
+        self._write_skeleton_schema()
         self._plugin.init(self)
         self._write_settings(language)
 

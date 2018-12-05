@@ -66,7 +66,7 @@ def test_load_schema_settings_not_loaded(project):
 def test_load_schema_example(tmpdir):
     project = Project(root=tmpdir)
     project.type_name = "AWS::Color::Blue"
-    project._write_example_schema()
+    project._write_skeleton_schema()
     project.load_schema()
 
 
