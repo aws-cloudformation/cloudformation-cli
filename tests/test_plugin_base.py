@@ -3,7 +3,6 @@
 from unittest.mock import patch
 
 import pytest
-import yaml
 
 from rpdk.filters import FILTER_REGISTRY
 from rpdk.plugin_base import LanguagePlugin
@@ -12,17 +11,11 @@ from rpdk.plugin_base import LanguagePlugin
 class TestLanguagePlugin(LanguagePlugin):
     MODULE_NAME = __name__
 
-    def project_settings_defaults(self):
-        return super().project_settings_defaults()
+    def init(self, project):
+        return super().init(project)
 
-    def project_settings_schema(self):
-        return super().project_settings_schema()
-
-    def init(self, project_settings):
-        return super().init(project_settings)
-
-    def generate(self, resource_def, project_settings):
-        return super().generate(resource_def, project_settings)
+    def generate(self, project):
+        return super().generate(project)
 
 
 @pytest.fixture
@@ -38,20 +31,12 @@ def test_language_plugin_module_not_set():
         plugin._module_name  # pylint: disable=pointless-statement
 
 
-def test_language_plugin_project_settings_defaults(plugin):
-    assert yaml.safe_load(plugin.project_settings_defaults())
-
-
-def test_language_plugin_project_settings_schema(plugin):
-    assert "$schema" in plugin.project_settings_schema()
-
-
 def test_language_plugin_init_no_op(plugin):
     plugin.init(None)
 
 
 def test_language_plugin_generate_no_op(plugin):
-    plugin.generate(None, None)
+    plugin.generate(None)
 
 
 def test_language_plugin_setup_jinja_env_defaults(plugin):

@@ -12,7 +12,6 @@ import yaml
 from pytest_localserver.http import Request, Response, WSGIServer
 
 from rpdk.data_loaders import (
-    load_project_settings,
     load_resource_spec,
     make_validator,
     resource_json,
@@ -96,25 +95,6 @@ def plugin():
         __name__, "data/project_schema.json"
     )
     return mock_plugin
-
-
-def test_load_project_settings_defaults(plugin):
-    assert load_project_settings(plugin, None)
-
-
-def test_load_project_settings_user_specified_not_yaml(plugin):
-    with pytest.raises(yaml.YAMLError):
-        load_project_settings(plugin, StringIO("}"))
-
-
-def test_load_project_settings_user_specified_valid(plugin):
-    merged_settings = load_project_settings(plugin, yaml_s({"foo": "baz"}))
-    assert merged_settings["foo"] == "baz"
-
-
-def test_load_project_settings_user_specified_invalid(plugin):
-    with pytest.raises(jsonschema.exceptions.ValidationError):
-        load_project_settings(plugin, yaml_s({"foo": {}}))
 
 
 @contextmanager
