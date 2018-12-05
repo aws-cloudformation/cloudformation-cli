@@ -36,7 +36,7 @@ def test_validate_command_project_not_found(capsys):
     assert "init" in out
 
 
-def test_generate_command_invalid_schema(capsys):
+def test_validate_command_invalid_schema(capsys):
     mock_project = Mock(spec=Project)
     mock_project.load_schema.side_effect = ValidationError("")
 
@@ -53,7 +53,7 @@ def test_generate_command_invalid_schema(capsys):
     assert "failed" in out
 
 
-def test_generate_command_valid_schema(capsys):
+def test_validate_command_valid_schema(capsys):
     mock_project = Mock(spec=Project)
 
     with patch("rpdk.validate.Project", autospec=True, return_value=mock_project):
