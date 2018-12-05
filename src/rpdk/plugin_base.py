@@ -2,7 +2,6 @@ from abc import ABC, abstractmethod
 
 from jinja2 import Environment, PackageLoader, select_autoescape
 
-from .data_loaders import resource_json, resource_stream
 from .filters import FILTER_REGISTRY
 
 
@@ -14,20 +13,6 @@ class LanguagePlugin(ABC):
         if not self.MODULE_NAME:
             raise RuntimeError("Set MODULE_NAME to use parent's methods.")
         return self.MODULE_NAME
-
-    @abstractmethod
-    def project_settings_defaults(self):
-        """Return a file-like object of the default project settings in YAML.
-
-        This is so the project settings can be copied without loss of e.g. comments;
-        if the project settings were parsed this would not be possible.
-        """
-        return resource_stream(self._module_name, "data/project_defaults.yaml")
-
-    @abstractmethod
-    def project_settings_schema(self):
-        """Return the project settings schema."""
-        return resource_json(self._module_name, "data/project_schema.json")
 
     def _setup_jinja_env(self, **options):
         if "loader" not in options:
@@ -42,9 +27,9 @@ class LanguagePlugin(ABC):
         return env
 
     @abstractmethod
-    def init(self, project_settings):
+    def init(self, project):
         pass
 
     @abstractmethod
-    def generate(self, resource_def, project_settings):
+    def generate(self, project):
         pass

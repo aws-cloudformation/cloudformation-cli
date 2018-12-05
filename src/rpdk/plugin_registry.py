@@ -5,18 +5,8 @@ PLUGIN_REGISTRY = {
     for entry_point in pkg_resources.iter_entry_points("rpdk.v1.languages")
 }
 
-# mainly for unit tests
-_PLUGIN_DEFAULT = "java"
+PLUGIN_CHOICES = list(PLUGIN_REGISTRY.keys())
 
 
-def add_language_argument(parser):
-    parser.add_argument(
-        "--language",
-        choices=list(PLUGIN_REGISTRY.keys()),
-        default=_PLUGIN_DEFAULT,
-        help="The language for code generation. (Default: java)",
-    )
-
-
-def get_plugin(language):
+def load_plugin(language):
     return PLUGIN_REGISTRY[language]()()

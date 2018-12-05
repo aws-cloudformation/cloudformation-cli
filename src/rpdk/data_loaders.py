@@ -96,36 +96,3 @@ def load_resource_spec(resource_spec_file):
         )
 
     return resource_spec
-
-
-def load_project_settings(plugin, project_settings_file):
-    """Load language-specific project settings from a file, merge them into
-    the default project settings, and validate the result.
-
-    ``project_settings_file`` can be ``None``.
-    """
-    project_settings = yaml.safe_load(plugin.project_settings_defaults())
-
-    if project_settings_file:
-        try:
-            project_settings_user = yaml.safe_load(project_settings_file)
-        except yaml.YAMLError as e:
-            LOG.error("Could not load the project settings: %s", e)
-            raise
-            # TODO: error handling, decode errors have 'msg', 'doc', 'pos'
-        else:
-            project_settings.update(project_settings_user)
-    else:
-        LOG.warning(
-            "Using default project settings. Provide custom project settings "
-            "to further customize code generation."
-        )
-
-    validator = make_validator(plugin.project_settings_schema())
-    try:
-        validator.validate(project_settings)
-    except ValidationError as e:
-        LOG.error("The project settings are invalid: %s", e.message)  # noqa: B306
-        raise  # TODO: error handling
-
-    return project_settings
