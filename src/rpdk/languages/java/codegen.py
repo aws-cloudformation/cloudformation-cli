@@ -1,8 +1,18 @@
 # pylint: disable=useless-super-delegation,too-many-locals
 # pylint doesn't recognize abstract methods
+import json
 import logging
 import shutil
 
+<<<<<<< HEAD
+=======
+import boto3
+import botocore.exceptions
+import pkg_resources
+
+from rpdk.data_loaders import copy_resource, resource_yaml
+from rpdk.filters import resource_type_resource
+>>>>>>> Package command for java lambdas
 from rpdk.jsonutils.flattener import JsonSchemaFlattener
 from rpdk.plugin_base import LanguagePlugin
 
@@ -18,6 +28,7 @@ EXECUTABLE = "uluru-cli"
 class JavaLanguagePlugin(LanguagePlugin):
     MODULE_NAME = __name__
     NAME = "java"
+    INFRA_STACK = "CFNResourceHandlerInfrastructure"
 
     def __init__(self):
         self.env = self._setup_jinja_env(
@@ -124,3 +135,71 @@ class JavaLanguagePlugin(LanguagePlugin):
             project.overwrite(path, contents)
 
         LOG.debug("Generate complete")
+
+
+    def package(self, handler_path):
+        template_stream = pkg_resources.resource_stream(
+            __name__, "data/CloudFormationHandlerInfrastructure.yaml"
+        )
+        with template_stream as template:
+            self._create_or_update_stack(self.INFRA_STACK, str(template))
+        bucket_name = self.get_stack_output(self.INFRA_STACK, "BucketName")
+
+        handler_template = resource_yaml(__name__, "data/Handlers.yaml")
+        self._package_lambda(handler_path, bucket_name, handler_template)
+        self._create_or_update_stack(
+            "HandlerStack", json.dumps(handler_template)
+        )
+
+    def _package_lambda(self, handler_path, bucket_name, template):
+        s3_client = boto3.client("s3")
+        s3_client.upload_file(handler_path, bucket_name, handler_path)
+        response = s3_client.list_object_versions(
+            Bucket=bucket_name, Prefix=handler_path, MaxKeys=1
+        )
+        version = response["Versions"][0]
+        template["Resources"]["ResourceHandler"]["Properties"][
+            "CodeUri"
+        ] = {
+            "Bucket": bucket_name,
+            "Key": handler_path,
+            "Version": version["VersionId"],
+        }
+
+    def _create_or_update_stack(self, stack_name, template_body):
+        args = {
+            "StackName": stack_name,
+            "TemplateBody": template_body,
+            "Capabilities": ["CAPABILITY_IAM", "CAPABILITY_AUTO_EXPAND"],
+        }
+        try:
+            self._cfn_client.create_stack(**args)
+        except self._cfn_client.exceptions.AlreadyExistsException:
+            try:
+                self._cfn_client.update_stack(**args)
+            except botocore.exceptions.ClientError as e:
+                msg = str(e)
+                if all(s in msg for s in ("UpdateStack", "ValidationError")):
+                    pass
+                else:
+                    raise
+            else:
+                self._stack_wait(stack_name, "stack_update_complete")
+        else:
+            self._stack_wait(stack_name, "stack_create_complete")
+
+    def _stack_wait(self, stack_name, terminal_state):
+        waiter = self._cfn_client.get_waiter(terminal_state)
+        waiter.wait(StackName=stack_name, WaiterConfig={"Delay": 5, "MaxAttempts": 200})
+
+    def get_stack_output(self, stack_name, output_key):
+        result = self._cfn_client.describe_stacks(StackName=stack_name)
+        outputs = result["Stacks"][0]["Outputs"]
+        for output in outputs:
+            if output["OutputKey"] == output_key:
+                return output["OutputValue"]
+
+
+def test_package():
+    plugin = JavaLanguagePlugin()
+    plugin.package("HelloWorld-1.0.jar", "test-resource-type")
