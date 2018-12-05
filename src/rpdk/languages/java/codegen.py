@@ -24,13 +24,12 @@ class JavaLanguagePlugin(LanguagePlugin):
         )
         self._java_pojo_resolver = None
 
-    def project_settings_defaults(self):
-        return super().project_settings_defaults()
-
-    def project_settings_schema(self):
-        return super().project_settings_schema()
-
-    def init(self, project_settings):
+    def init(self, project):
+        project_settings = {
+            "output_directory": ".",
+            "packageName": "com.example.provider",
+            "typeName": project.type_name,
+        }
         LOG.info("Setting up package directories...")
 
         project_settings["buildSystem"] = "maven"
@@ -68,7 +67,14 @@ class JavaLanguagePlugin(LanguagePlugin):
         with output_pom.open("w", encoding="utf-8") as f:
             f.write(pom_template.render(project_settings))
 
-    def generate(self, resource_def, project_settings):
+    def generate(self, project):
+        project_settings = {
+            "output_directory": ".",
+            "packageName": "com.example.provider",
+            "typeName": project.type_name,
+        }
+        resource_def = {"typeName": project.type_name}
+
         LOG.info("Starting code generation...")
         output_directory = Path(project_settings["output_directory"])
 
