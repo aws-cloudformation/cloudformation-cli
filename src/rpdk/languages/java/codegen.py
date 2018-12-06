@@ -27,7 +27,9 @@ class JavaLanguagePlugin(LanguagePlugin):
         self.package_name = None
 
     def _namespace_from_project(self, project):
-        self.namespace = ("com", ) + tuple(safe_reserved(s.lower()) for s in project.type_info)
+        self.namespace = ("com",) + tuple(
+            safe_reserved(s.lower()) for s in project.type_info
+        )
         self.package_name = ".".join(self.namespace)
 
     def init(self, project):
@@ -76,6 +78,10 @@ class JavaLanguagePlugin(LanguagePlugin):
 
         LOG.debug("Init complete")
 
+    @staticmethod
+    def _get_generated_root(project):
+        return project.root / "target" / "generated-sources" / "rpdk"
+
     def generate(self, project):
         LOG.debug("Generate started")
 
@@ -83,7 +89,7 @@ class JavaLanguagePlugin(LanguagePlugin):
 
         objects = JsonSchemaFlattener(project.schema).flatten_schema()
 
-        generated_root = project.root / "target" / "generated-sources" / "rpdk"
+        generated_root = self._get_generated_root(project)
         LOG.debug("Removing generated sources: %s", generated_root)
         shutil.rmtree(generated_root, ignore_errors=True)
 
