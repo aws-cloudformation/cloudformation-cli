@@ -5,7 +5,7 @@ import pytest
 
 from rpdk.cli import EXIT_UNHANDLED_EXCEPTION, main, setup_logging
 
-from .test_init import chdir
+from .utils import chdir
 
 DEBUG_MSG = "DQCDVI"
 INFO_MSG = "TDDJOG"

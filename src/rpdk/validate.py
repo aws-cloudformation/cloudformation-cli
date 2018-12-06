@@ -3,27 +3,29 @@ import logging
 
 from jsonschema.exceptions import ValidationError
 
-from .argutils import TextFileType
-from .data_loaders import load_resource_spec
+from .project import Project
 
 LOG = logging.getLogger(__name__)
 
 
-def validate(args):
+def validate(_args):
+    project = Project()
+    try:
+        project.load_settings()
+    except FileNotFoundError:
+        LOG.error("Project file not found. Have you run 'init'?")
+        raise SystemExit(1)
+
     LOG.info("Validating your resource specification...")
     try:
-        load_resource_spec(args.resource_spec_file)
+        project.load_schema()
     except ValidationError:
         LOG.error("Validation failed.")
-    else:
-        LOG.info("Validation succeeded.")
+        raise SystemExit(1)
+
+    LOG.info("Validation succeeded.")
 
 
 def setup_subparser(subparsers, parents):
     parser = subparsers.add_parser("validate", description=__doc__, parents=parents)
     parser.set_defaults(command=validate)
-    parser.add_argument(
-        "resource_spec_file",
-        type=TextFileType("r"),
-        help="The resource specification to use for generating the code.",
-    )
