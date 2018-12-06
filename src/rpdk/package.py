@@ -2,14 +2,19 @@
 """
 import logging
 
-from .plugin_registry import add_language_argument, get_plugin
+from .project import Project
 
 LOG = logging.getLogger(__name__)
 
 
 def package(args):
-    plugin = get_plugin(args.language)
-    plugin.package(args.handler_path)
+    project = Project()
+    try:
+        project.load_settings()
+    except FileNotFoundError:
+        LOG.error("Project file not found. Have you run 'init'?")
+        raise SystemExit(1)
+    project.package(args.handler_path)
 
 
 def setup_subparser(subparsers, parents):
@@ -17,4 +22,3 @@ def setup_subparser(subparsers, parents):
     parser = subparsers.add_parser("package", description=__doc__, parents=parents)
     parser.set_defaults(command=package)
     parser.add_argument("handler_path", help="The file path of the handler zip file")
-    add_language_argument(parser)

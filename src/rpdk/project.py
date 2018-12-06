@@ -133,3 +133,6 @@ class Project:  # pylint: disable=too-many-instance-attributes
 
     def generate(self):
         return self._plugin.generate(self)
+
+    def package(self, handler_path):
+        return self._plugin.package(handler_path)

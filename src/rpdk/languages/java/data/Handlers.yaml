@@ -2,20 +2,13 @@ AWSTemplateFormatVersion: "2010-09-09"
 Transform: AWS::Serverless-2016-10-31
 Description: This CloudFormation template provisions an S3 bucket to upload handler artifacts to
 
-Parameters:
-  ResourceType:
-    Type: String
-    AllowedPattern: "^[a-zA-Z0-9]{2,64}-[a-zA-Z0-9]{2,64}-[a-zA-Z0-9]{2,64}$"
-
 Resources:
   ResourceHandler:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: "./HelloWorld-1.0.jar"
-      Description:
-        Fn::Sub: "Handler for Example Resources"
-      FunctionName:
-        Fn::Sub: "Example-handler"
+      Description: "Handler for Example Resources"
+      FunctionName: "Resource-handler-test"
       Handler: "com.aws.cfn.LambdaWrapper::handleRequest"
       KmsKeyArn:
         Fn::ImportValue: EncryptionKey
@@ -31,4 +24,4 @@ Outputs:
       Fn::GetAtt: ResourceHandler.Arn
     Export:
       Name:
-        Fn::Sub: "Example-resource-handler"
+        Fn::Sub: "Resource-handler-arn"

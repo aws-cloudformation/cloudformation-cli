@@ -4,3 +4,4 @@ omit = */tests/*,*/contract/suite/*
 
 [report]
 fail_under = 99
+
