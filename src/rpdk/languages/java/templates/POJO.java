@@ -4,7 +4,7 @@ import java.util.Map;
 import java.util.List;
 import java.util.Set;
 
-public class {{ pojo_name }} {
+public class {{ pojo_name|uppercase_first_letter }} {
 
     {% for name, type in properties.items() %}
     private {{ type }} {{ name|lowercase_first_letter }};
