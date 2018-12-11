@@ -8,7 +8,7 @@
             <SchemaInfo>
               <option name="name" value="resource_provider_schema" />
               <option name="relativePathToSchema" value="./resource_provider_schema.json"/>
-              <option name="schemaVersion" value="JSON schema version 6" />
+              <option name="schemaVersion" value="JSON schema version 7" />
               <option name="patterns">
                 <list>
                   <Item>

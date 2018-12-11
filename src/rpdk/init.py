@@ -13,6 +13,7 @@ def init(args):
     LOG.warning("Initializing new project")
 
     project.init("AWS::Color::Red", "java")
+    project.load_schema()
     project.generate()
 
 

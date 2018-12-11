@@ -2,16 +2,17 @@
 # pylint doesn't recognize abstract methods
 import logging
 import shutil
-from pathlib import Path
 
-from rpdk.data_loaders import copy_resource
-from rpdk.filters import resource_type_resource
 from rpdk.jsonutils.flattener import JsonSchemaFlattener
 from rpdk.plugin_base import LanguagePlugin
 
 from .pojo_resolver import JavaPojoResolver
+from .utils import safe_reserved
 
 LOG = logging.getLogger(__name__)
+
+OPERATIONS = ("Create", "Read", "Update", "Delete", "List")
+EXECUTABLE = "uluru-cli"
 
 
 class JavaLanguagePlugin(LanguagePlugin):
@@ -22,185 +23,104 @@ class JavaLanguagePlugin(LanguagePlugin):
         self.env = self._setup_jinja_env(
             trim_blocks=True, lstrip_blocks=True, keep_trailing_newline=True
         )
-        self._java_pojo_resolver = None
+        self.namespace = None
+        self.package_name = None
+
+    def _namespace_from_project(self, project):
+        self.namespace = ("com",) + tuple(
+            safe_reserved(s.lower()) for s in project.type_info
+        )
+        self.package_name = ".".join(self.namespace)
 
     def init(self, project):
-        project_settings = {
-            "output_directory": ".",
-            "packageName": "com.example.provider",
-            "typeName": project.type_name,
-        }
-        LOG.info("Setting up package directories...")
+        LOG.debug("Init started")
 
-        project_settings["buildSystem"] = "maven"
-        project_settings["output_directory"] = Path(
-            project_settings["output_directory"]
-        ).resolve(strict=True)
-        self._initialize_maven(project_settings)
-        self._initialize_intellij(project_settings)
+        self._namespace_from_project(project)
 
-    def _initialize_intellij(self, project_settings):
-        intellij_conf_dir = project_settings["output_directory"] / ".idea"
-        intellij_conf_dir.mkdir(exist_ok=True)
+        # maven folder structure
+        src = (project.root / "src" / "main" / "java").joinpath(*self.namespace)
+        LOG.debug("Making source folder structure: %s", src)
+        src.mkdir(parents=True, exist_ok=True)
+        tst = (project.root / "src" / "test" / "java").joinpath(*self.namespace)
+        LOG.debug("Making test folder structure: %s", tst)
+        tst.mkdir(parents=True, exist_ok=True)
 
-        resource_schema_out = (
-            project_settings["output_directory"] / "provider.definition.schema.v1.json"
+        path = project.root / "pom.xml"
+        LOG.debug("Writing Maven POM: %s", path)
+        template = self.env.get_template("pom.xml")
+        contents = template.render(
+            group_id=self.package_name, artifact_id="foo", executable=EXECUTABLE
         )
+        project.safewrite(path, contents)
 
-        copy_resource(
-            "rpdk",
-            "data/schema/provider.definition.schema.v1.json",
-            resource_schema_out,
+        LOG.debug("Writing stub handlers")
+        template = self.env.get_template("StubHandler.java")
+
+        for operation in OPERATIONS:
+            path = src / "{}Handler.java".format(operation)
+            LOG.debug("%s handler: %s", operation, path)
+            contents = template.render(
+                package_name=self.package_name,
+                operation=operation,
+                pojo_name="ResourceModel",
+            )
+            project.safewrite(path, contents)
+
+        path = project.root / "README.md"
+        LOG.debug("Writing README: %s", path)
+        template = self.env.get_template("README.md")
+        contents = template.render(
+            type_name=project.type_name,
+            schema_path=project.schema_path,
+            executable=EXECUTABLE,
         )
+        project.safewrite(path, contents)
 
-        misc_template = self.env.get_template("intellij/misc.xml")
-        with open(intellij_conf_dir / "misc.xml", "w", encoding="utf-8") as f:
-            f.write(misc_template.render(project_settings))
+        LOG.debug("Init complete")
 
-        copy_resource(
-            __name__, "data/jsonSchemas.xml", intellij_conf_dir / "jsonSchemas.xml"
-        )
-
-    def _initialize_maven(self, project_settings):
-        output_pom = project_settings["output_directory"] / "pom.xml"
-        pom_template = self.env.get_template("maven/pom.xml")
-        with output_pom.open("w", encoding="utf-8") as f:
-            f.write(pom_template.render(project_settings))
+    @staticmethod
+    def _get_generated_root(project):
+        return project.root / "target" / "generated-sources" / "rpdk"
 
     def generate(self, project):
-        project_settings = {
-            "output_directory": ".",
-            "packageName": "com.example.provider",
-            "typeName": project.type_name,
-        }
-        resource_def = {"typeName": project.type_name}
+        LOG.debug("Generate started")
 
-        LOG.info("Starting code generation...")
-        output_directory = Path(project_settings["output_directory"])
+        self._namespace_from_project(project)
 
-        package_components = project_settings["packageName"].split(".")
-        generated_src_main_dir = output_directory.joinpath(
-            "generated-src", *package_components
+        objects = JsonSchemaFlattener(project.schema).flatten_schema()
+
+        generated_root = self._get_generated_root(project)
+        LOG.debug("Removing generated sources: %s", generated_root)
+        shutil.rmtree(generated_root, ignore_errors=True)
+
+        src = generated_root.joinpath(*self.namespace)
+        LOG.debug("Making generated folder structure: %s", src)
+        src.mkdir(parents=True, exist_ok=True)
+
+        path = src / "BaseHandler.java"
+        LOG.debug("Writing base handler: %s", path)
+        template = self.env.get_template("BaseHandler.java")
+        contents = template.render(
+            package_name=self.package_name,
+            operations=OPERATIONS,
+            pojo_name="ResourceModel",
         )
-        src_main_dir = output_directory.joinpath("src", *package_components)
-        generated_tst_main_dir = output_directory.joinpath("tst", *package_components)
+        project.overwrite(path, contents)
 
-        # eradicate any content from a prior codegen run
-        shutil.rmtree(generated_src_main_dir, ignore_errors=True)
-        shutil.rmtree(generated_tst_main_dir, ignore_errors=True)
+        pojo_resolver = JavaPojoResolver(objects, "ResourceModel")
+        pojos = pojo_resolver.resolve_pojos()
 
-        pojos_directory = generated_src_main_dir / "models"
-        base_handlers_directory = generated_src_main_dir / "handlers"
-        stub_handlers_directory = src_main_dir / "handlers"
-        unit_tests_directory = generated_tst_main_dir
+        LOG.debug("Writing %d POJOs", len(pojos))
 
-        # package files
-        interfaces_directory = generated_src_main_dir / "interfaces"
-        messages_directory = generated_src_main_dir / "messages"
-
-        for directory in (
-            pojos_directory,
-            interfaces_directory,
-            messages_directory,
-            base_handlers_directory,
-            stub_handlers_directory,
-            unit_tests_directory,
-        ):
-            directory.mkdir(parents=True, exist_ok=True)
-            LOG.debug("Created directory %s", directory)
-
-        self.build_pojo_resolver(resource_def)
-
-        self.generate_pojos(project_settings, pojos_directory)
-        self.generate_package(project_settings, "messages", messages_directory)
-        self.generate_package(project_settings, "interfaces", interfaces_directory)
-        self.generate_base_handlers(project_settings, base_handlers_directory)
-        self.generate_stub_handlers(project_settings, stub_handlers_directory)
-
-    def build_pojo_resolver(self, resource_def):
-        flattener = JsonSchemaFlattener(resource_def)
-        flattened_map = flattener.flatten_schema()
-        LOG.debug("Flattened Schema Map: %s", flattened_map)
-        self._java_pojo_resolver = JavaPojoResolver(
-            flattened_map, resource_type_resource(resource_def["typeName"])
-        )
-
-    def generate_pojos(self, project_settings, output_directory):
-        LOG.info("Generating POJOs...")
-
-        pojos = self._java_pojo_resolver.resolve_pojos()
-        LOG.debug("Pojos: %s", pojos)
-
-        # writes a jinja subclass to the templates folder and adds the subresource
-        # template:output pair to the dictionary.
-        template = self.env.get_template("models/ResourceModel.java")
-        for class_name, resource_properties in pojos.items():
-            output_filepath = Path(output_directory) / (class_name + ".java")
-            with output_filepath.open("w", encoding="utf-8") as f:
-                f.write(
-                    template.render(
-                        class_name=class_name,
-                        resource_properties=resource_properties,
-                        **project_settings,
-                    )
-                )
-            LOG.debug("Created POJO file %s", output_filepath)
-
-    def generate_package(self, project_settings, input_directory, output_directory):
-        LOG.info("Generating Package Code...")
-
-        # writes a jinja subclass to the templates folder and adds the handlers
-        for path in self.env.list_templates(
-            filter_func=lambda x: x.startswith(input_directory)
-        ):
-            template = self.env.get_template(path)
-            output_filepath = Path(output_directory) / path.replace(
-                "{}/".format(input_directory), ""
+        template = self.env.get_template("POJO.java")
+        for pojo_name, properties in pojos.items():
+            path = src / "{}.java".format(pojo_name)
+            LOG.debug("%s POJO: %s", pojo_name, path)
+            contents = template.render(
+                package_name=self.package_name,
+                pojo_name=pojo_name,
+                properties=properties,
             )
-            with output_filepath.open("w", encoding="utf-8") as f:
-                f.write(template.render(**project_settings))
-            LOG.debug("Created Package file %s", output_filepath)
+            project.overwrite(path, contents)
 
-    def generate_base_handlers(self, project_settings, output_directory):
-        LOG.info("Generating Base Handlers...")
-
-        resource_type = self._java_pojo_resolver.resource_class_name
-        operations = ["Create", "Read", "Update", "Delete", "List"]
-
-        # writes a jinja subclass to the templates folder and adds the handlers
-        for operation in operations:
-            base_handler_file = "Base{}Handler.java".format(operation)
-            base_template = self.env.get_template(
-                "handlers/{}".format(base_handler_file)
-            )
-            base_output_filepath = Path(output_directory) / base_handler_file
-            with base_output_filepath.open("w", encoding="utf-8") as f:
-                f.write(
-                    base_template.render(
-                        operation=operation, pojo_name=resource_type, **project_settings
-                    )
-                )
-            LOG.debug("Created BaseHandler file %s", base_output_filepath)
-
-    def generate_stub_handlers(self, project_settings, output_directory):
-        LOG.info("Generating Handlers...")
-
-        resource_type = self._java_pojo_resolver.resource_class_name
-        operations = ["Create", "Read", "Update", "Delete", "List"]
-
-        # writes a jinja subclass to the templates folder and adds the handlers
-        for operation in operations:
-            stub_handler_file = "{}Handler.java".format(operation)
-            stub_template = self.env.get_template("handlers/StubHandler.java")
-            output_filepath = Path(output_directory) / stub_handler_file
-            # we do not overwrite the handler implementations
-            if not output_filepath.exists():
-                with output_filepath.open("w", encoding="utf-8") as f:
-                    f.write(
-                        stub_template.render(
-                            operation=operation,
-                            pojo_name=resource_type,
-                            **project_settings,
-                        )
-                    )
-                LOG.debug("Created Handler file %s", output_filepath)
+        LOG.debug("Generate complete")
