@@ -1,3 +1,4 @@
+// This is a generated file. Modifications will be overwritten.
 package {{ package_name }};
 
 import java.util.Map;
