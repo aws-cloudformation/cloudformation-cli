@@ -3,6 +3,7 @@
 import xml.etree.ElementTree as ET
 from unittest.mock import patch
 
+import pkg_resources
 import pytest
 
 from rpdk.project import Project
@@ -60,3 +61,41 @@ def test_generate(project):
 
     # asserts we remove existing files in the tree
     assert not test_file.is_file()
+
+
+def test_package(project):
+    with patch.dict(
+        "rpdk.plugin_registry.PLUGIN_REGISTRY",
+        {"test": lambda: JavaLanguagePlugin},
+        clear=True,
+    ):
+        project.init("AWS::Foo::{}".format(RESOURCE), "test")
+    project.load_schema()
+    expected_bucket = "BucketName"
+    expected_handler_path = "my/handler.path"
+    expected_client = object()
+
+    boto_patch = patch("boto3.client", return_value=expected_client)
+    create_update_patch = patch("java.codegen.create_or_update_stack")
+    stack_output_patch = patch(
+        "java.codegen.get_stack_output", return_value=expected_bucket
+    )
+    package_patch = patch("java.codegen.package_handler")
+
+    with boto_patch, create_update_patch as mock_create_update, (
+        stack_output_patch
+    ) as mock_stack_output, package_patch as mock_package:
+        project.package(expected_handler_path)
+    raw_template = pkg_resources.resource_string(
+        "rpdk.languages.java", "data/CloudFormationHandlerInfrastructure.yaml"
+    )
+
+    mock_create_update.assert_called_once_with(
+        expected_client, project._plugin.INFRA_STACK, raw_template.decode("utf-8")
+    )
+    mock_stack_output.assert_called_once_with(
+        expected_client, project._plugin.INFRA_STACK, "BucketName"
+    )
+    mock_package.assert_called_with(
+        expected_bucket, expected_handler_path, project._plugin.HANDLER_STACK
+    )

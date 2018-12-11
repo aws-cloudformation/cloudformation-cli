@@ -1,6 +1,6 @@
-AWSTemplateFormatVersion: "2010-09-09"
+AWSTemplateFormatVersion: 2010-09-09
 Transform: AWS::Serverless-2016-10-31
-Description: This CloudFormation template provisions an S3 bucket to upload handler artifacts to
+Description: This CloudFormation template provisions a lambda function for a given resource handler jar
 
 Resources:
   ResourceHandler:

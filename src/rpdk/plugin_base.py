@@ -33,7 +33,3 @@ class LanguagePlugin(ABC):
     @abstractmethod
     def generate(self, project):
         pass
-
-    @abstractmethod
-    def package(self, handler_path):
-        pass

@@ -17,9 +17,6 @@ class TestLanguagePlugin(LanguagePlugin):
     def generate(self, project):
         return super().generate(project)
 
-    def package(self, handler_path):
-        return super().package(handler_path)
-
 
 @pytest.fixture
 def plugin():
@@ -40,10 +37,6 @@ def test_language_plugin_init_no_op(plugin):
 
 def test_language_plugin_generate_no_op(plugin):
     plugin.generate(None)
-
-
-def test_language_plugin_package_no_op(plugin):
-    plugin.package(None)
 
 
 def test_language_plugin_setup_jinja_env_defaults(plugin):

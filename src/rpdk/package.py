@@ -14,11 +14,13 @@ def package(args):
     except FileNotFoundError:
         LOG.error("Project file not found. Have you run 'init'?")
         raise SystemExit(1)
-    project.package(args.handler_path)
+    project.package(args.handler_template)
 
 
 def setup_subparser(subparsers, parents):
     # see docstring of this file
     parser = subparsers.add_parser("package", description=__doc__, parents=parents)
     parser.set_defaults(command=package)
-    parser.add_argument("handler_path", help="The file path of the handler zip file")
+    parser.add_argument(
+        "handler_template", help="The file path of the handler zip file"
+    )
