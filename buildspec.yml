@@ -1,4 +1,7 @@
 version: 0.2
+env:
+  parameter-store:
+    GITHUB_OAUTH: /CodeBuild/aws-cloudformation-rpdk-comments-oauth
 phases:
   pre_build:
     commands:
@@ -7,3 +10,22 @@ phases:
   build:
     commands:
       - ./run_lint
+  post_build:
+    commands:
+      - echo "CODEBUILD_WEBHOOK_TRIGGER $CODEBUILD_WEBHOOK_TRIGGER"
+      - PR=$(echo "$CODEBUILD_WEBHOOK_TRIGGER" | perl -ne 'm|pr/(\d+)| && print "$1";')
+      - >
+        if [ -n "$PR" ]; then
+          COV=$(coverage report | grep -v "100%")
+          echo "$COV"
+          if [ $(echo "$COV" | wc -l) -gt 4 ]; then
+            COV=$(echo "$COV" | perl -pe 's/\n/\\n/g')
+            curl \
+              --verbose \
+              --request "POST" \
+              --header "Authorization: token $GITHUB_OAUTH" \
+              --header "Content-Type: application/json" \
+              --data '{"body": "```\n'"$COV"'```"}' \
+              "https://api.github.com/repos/awslabs/aws-cloudformation-rpdk/issues/$PR/comments"
+          fi
+        fi
