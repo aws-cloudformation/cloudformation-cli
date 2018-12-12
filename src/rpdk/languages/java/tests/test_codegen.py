@@ -45,7 +45,6 @@ def test_generate(project):
         clear=True,
     ):
         project.init("AWS::Foo::{}".format(RESOURCE), "test")
-    project.load_schema()
 
     generated_root = project._plugin._get_generated_root(project)
 
