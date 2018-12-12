@@ -4,10 +4,9 @@ import logging
 import shutil
 
 import boto3
-import pkg_resources
 
 from rpdk.jsonutils.flattener import JsonSchemaFlattener
-from rpdk.package_utils import create_or_update_stack, get_stack_output, package_handler
+from rpdk.package_utils import Packager
 from rpdk.plugin_base import LanguagePlugin
 
 from .pojo_resolver import JavaPojoResolver
@@ -22,8 +21,6 @@ EXECUTABLE = "uluru-cli"
 class JavaLanguagePlugin(LanguagePlugin):
     MODULE_NAME = __name__
     NAME = "java"
-    INFRA_STACK = "CFNResourceHandlerInfrastructure"
-    HANDLER_STACK = "ResourceHandlerStack"
 
     def __init__(self):
         self.env = self._setup_jinja_env(
@@ -131,12 +128,10 @@ class JavaLanguagePlugin(LanguagePlugin):
 
         LOG.debug("Generate complete")
 
-    def package(self, handler_template):
+    @staticmethod
+    def package(handler_template):
+        # Maven performs packaging of jar
+        # only thing to do is upload that to s3 and create a lambda function
         client = boto3.client("cloudformation")
-        raw_infra_template = pkg_resources.resource_string(
-            __name__, "data/CloudFormationHandlerInfrastructure.yaml"
-        )
-        decoded_template = raw_infra_template.decode("utf-8")
-        create_or_update_stack(client, self.INFRA_STACK, decoded_template)
-        bucket_name = get_stack_output(client, self.INFRA_STACK, "BucketName")
-        package_handler(bucket_name, handler_template, self.HANDLER_STACK)
+        packager = Packager(client)
+        return packager.package(handler_template)

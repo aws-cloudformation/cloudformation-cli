@@ -8,7 +8,7 @@
     <groupId>{{ group_id }}</groupId>
     <artifactId>{{ artifact_id }}</artifactId>
     <name>{{ artifact_id }}</name>
-    <version>1.0-SNAPSHOT</version>
+    <version>{{ artifact_version }}</version>
     <packaging>jar</packaging>
 
     <properties>

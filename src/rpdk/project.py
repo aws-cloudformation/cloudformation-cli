@@ -39,6 +39,7 @@ class Project:  # pylint: disable=too-many-instance-attributes
         self._plugin = None
         self.settings = None
         self.schema = None
+        self.handler_arn = None
 
         LOG.debug("Root directory: %s", self.root)
 
@@ -135,4 +136,4 @@ class Project:  # pylint: disable=too-many-instance-attributes
         return self._plugin.generate(self)
 
     def package(self, handler_template):
-        return self._plugin.package(handler_template)
+        self.handler_arn = self._plugin.package(handler_template)
