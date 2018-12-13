@@ -3,4 +3,5 @@ branch = True
 omit = */tests/*,*/contract/suite/*
 
 [report]
-fail_under = 99
+fail_under = 99.5
+

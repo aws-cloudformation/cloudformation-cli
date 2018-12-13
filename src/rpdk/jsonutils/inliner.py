@@ -65,7 +65,7 @@ class RefInliner(RefResolver):
                 # only process refs in this file
                 if base != rename:
                     continue
-                current = traverse(document, parts)
+                current, _ = traverse(document, parts)
                 new_ref = rewrite_ref(to_ref)
                 LOG.debug("  '%s' -> '%s'", current["$ref"], new_ref)
                 current["$ref"] = new_ref
