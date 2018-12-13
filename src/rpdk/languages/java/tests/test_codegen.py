@@ -4,6 +4,7 @@ import xml.etree.ElementTree as ET
 from unittest.mock import patch
 
 import pytest
+import yaml
 
 from rpdk.package_utils import Packager
 from rpdk.project import Project
@@ -33,10 +34,23 @@ def test_java_language_plugin_module_is_set():
 def test_initialize(project):
     assert (project.root / "README.md").is_file()
 
+    handler_name = "{}-handler".format(project.hypenated_name)
+
     pom_tree = ET.parse(str(project.root / "pom.xml"))
     namespace = {"maven": "http://maven.apache.org/POM/4.0.0"}
     group_id = pom_tree.find("maven:groupId", namespace)
     assert group_id.text == "com.aws.foo.{}".format(RESOURCE.lower())
+    with open(project.root / "Handler.yaml") as f:
+        template = yaml.safe_load(f)
+
+    handler_properties = template["Resources"]["ResourceHandler"]["Properties"]
+    assert handler_properties["CodeUri"] == "./target/{}-1.0-SNAPSHOT.jar".format(
+        handler_name
+    )
+    assert handler_properties["FunctionName"] == handler_name
+    assert template["Outputs"]["ResourceHandlerArn"]["Export"][
+        "Name"
+    ] == "{}-arn".format(handler_name)
 
 
 def test_generate(project):
@@ -59,12 +73,11 @@ def test_generate(project):
 
 
 def test_package(project):
-    expected_handler_path = "TestHandler.path"
     expected_arn = "HandlerArn"
     project.load_schema()
 
     with patch.object(Packager, "package", return_value=expected_arn) as mock_package:
-        project.package(expected_handler_path)
+        project.package()
 
-    mock_package.assert_called_once_with(expected_handler_path)
+    mock_package.assert_called_once_with(project.handler_template_path)
     assert project.handler_arn == expected_arn

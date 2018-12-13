@@ -1,0 +1,33 @@
+AWSTemplateFormatVersion: 2010-09-09
+Transform: AWS::Serverless-2016-10-31
+Description: "Handler template for the {{ resource_type }} resource type"
+
+Resources:
+  ResourceHandler:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./target/{{ resource_type }}-handler-1.0-SNAPSHOT.jar
+      Description: "Handler function for the {{ resource_type }} resource type"
+      FunctionName: {{ resource_type }}-handler
+      Handler: "com.aws.cfn.LambdaWrapper::handleRequest"
+      KmsKeyArn:
+        Fn::ImportValue: EncryptionKey
+      MemorySize: 128
+      Role:
+        Fn::ImportValue: LambdaRole
+      Runtime: "java8"
+      Timeout: 120
+  CloudformationPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName:
+        Ref: ResourceHandler
+      Action: lambda:InvokeFunction
+      Principal: cloudformation.amazonaws.com
+
+Outputs:
+  ResourceHandlerArn:
+    Value:
+      Fn::GetAtt: ResourceHandler.Arn
+    Export:
+      Name: {{ resource_type }}-handler-arn

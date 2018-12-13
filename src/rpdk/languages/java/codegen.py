@@ -28,6 +28,7 @@ class JavaLanguagePlugin(LanguagePlugin):
         )
         self.namespace = None
         self.package_name = None
+        self.artifact_id = None
 
     def _namespace_from_project(self, project):
         self.namespace = ("com",) + tuple(
@@ -48,13 +49,24 @@ class JavaLanguagePlugin(LanguagePlugin):
         LOG.debug("Making test folder structure: %s", tst)
         tst.mkdir(parents=True, exist_ok=True)
 
+        self.artifact_id = "{}-handler".format(project.hypenated_name)
         path = project.root / "pom.xml"
         LOG.debug("Writing Maven POM: %s", path)
         template = self.env.get_template("pom.xml")
         contents = template.render(
-            group_id=self.package_name, artifact_id="foo", executable=EXECUTABLE
+            group_id=self.package_name,
+            artifact_id=self.artifact_id,
+            executable=EXECUTABLE,
         )
         project.safewrite(path, contents)
+
+        # Cloudformation/SAM template for handler lambda
+        path = project.root / "Handler.yaml"
+        LOG.debug("Writing SAM template: %s", path)
+        template = self.env.get_template("Handler.yaml")
+        contents = template.render(resource_type=project.hypenated_name)
+        project.safewrite(path, contents)
+        project.handler_template_path = str(path)
 
         LOG.debug("Writing stub handlers")
         template = self.env.get_template("StubHandler.java")
