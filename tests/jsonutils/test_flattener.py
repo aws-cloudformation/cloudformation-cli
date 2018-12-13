@@ -1,10 +1,12 @@
 # pylint: disable=protected-access
 import string
+from unittest.mock import patch
 
 import pytest
 
 from rpdk.data_loaders import resource_json
 from rpdk.jsonutils.flattener import COMBINERS, JsonSchemaFlattener
+from rpdk.jsonutils.pointer import fragment_encode
 from rpdk.jsonutils.utils import CircularRefError, ConstraintError, FlatteningError
 
 from .area_definition_flattened import AREA_DEFINITION_FLATTENED
@@ -191,10 +193,11 @@ def test_walk_path_already_processed(path):
     "path,subschema",
     (((), {"a": {"b": {"c": "d"}}}), (("a", "b"), {"c": "d"}), (("a", "b", "c"), "d")),
 )
-def test_find_schema_from_ref(path, subschema):
+def test_find_schema_from_ref_valid_path(path, subschema):
     test_schema = {"a": {"b": {"c": "d"}}}
     flattener = JsonSchemaFlattener(test_schema)
-    assert flattener._find_subschema_by_ref(path) == subschema
+    found, _ = flattener._find_subschema_by_ref(path)
+    assert found == subschema
 
 
 def test_find_schema_from_ref_invalid_path():
@@ -241,36 +244,26 @@ def test_flatten_combiners_overwrites(combiner):
     assert flattened == {"a": "Foo"}
 
 
-def test_flatten_combiners_with_reference():
-    # test that a ref to an allOf will work when processed before OR after the allOf
+@pytest.mark.parametrize("combiner", COMBINERS)
+def test_flatten_combiners_no_clobber(combiner):
+    # https://github.com/awslabs/aws-cloudformation-rpdk/pull/92#discussion_r231348534
+    ref = ("properties", "p2", combiner, 0)
     test_schema = {
+        "typeName": "AWS::Valid::TypeName",
         "properties": {
-            "p1": {"$ref": "#/properties/p2/allOf/0"},
+            "p1": {"$ref": fragment_encode(ref)},
             "p2": {
-                "allOf": [
+                combiner: [
                     {"properties": {"a2": {"type": "integer"}}},
-                    {"properties": {"a2": {"type": "integer"}}},
+                    {"properties": {"b1": {"type": "integer"}}},
                 ]
             },
-            "p3": {"$ref": "#/properties/p2/allOf/1"},
-        }
-    }
-    expected_schema = {
-        (): {
-            "properties": {
-                "p1": {"$ref": ("properties", "p2", "allOf", "0")},
-                "p2": {"$ref": ("properties", "p2")},
-                "p3": {"$ref": ("properties", "p2", "allOf", "1")},
-            }
         },
-        ("properties", "p2"): {"properties": {"a2": {"type": "integer"}}},
-        ("properties", "p2", "allOf", "0"): {"properties": {"a2": {"type": "integer"}}},
-        ("properties", "p2", "allOf", "1"): {"properties": {"a2": {"type": "integer"}}},
     }
 
     flattener = JsonSchemaFlattener(test_schema)
-    schema_map = flattener.flatten_schema()
-    assert schema_map == expected_schema
+    flattener.flatten_schema()
+    assert ref in flattener._schema_map
 
 
 def test_contraint_array_additional_items_valid():
@@ -329,3 +322,16 @@ def test_circular_reference(test_schema):
     with pytest.raises(CircularRefError) as excinfo:
         flattener.flatten_schema()
     assert "#/properties/a" in str(excinfo.value)
+
+
+def test__flatten_ref_type():
+    flattener = JsonSchemaFlattener({})
+    patch_decode = patch(
+        "rpdk.jsonutils.flattener.fragment_decode",
+        autospec=True,
+        side_effect=ValueError,
+    )
+    with patch_decode as mock_decode, pytest.raises(FlatteningError):
+        flattener._flatten_ref_type("!")
+
+    mock_decode.assert_called_once_with("!")

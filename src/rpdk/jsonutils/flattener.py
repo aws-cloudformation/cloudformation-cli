@@ -88,7 +88,7 @@ class JsonSchemaFlattener:
                 "Invalid ref at path '{}': {}".format(ref_path, str(e))
             )
 
-        ref_schema = self._find_subschema_by_ref(ref_parts)
+        ref_schema, ref_parts = self._find_subschema_by_ref(ref_parts)
         return self._walk(ref_parts, ref_schema)
 
     def _flatten_array_type(self, path, sub_schema):
