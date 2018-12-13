@@ -82,12 +82,12 @@ class Project:  # pylint: disable=too-many-instance-attributes
         self.settings = raw_settings.get("settings", {})
 
     def _write_example_schema(self):
-        schema = resource_json(
+        self.schema = resource_json(
             __name__, "data/examples/resource/initech.tps.report.v1.json"
         )
-        schema["$id"] = self.schema_filename
-        schema["typeName"] = self.type_name
-        self.safewrite(self.schema_path, json.dumps(schema, indent=4))
+        self.schema["$id"] = self.schema_filename
+        self.schema["typeName"] = self.type_name
+        self.safewrite(self.schema_path, json.dumps(self.schema, indent=4))
 
     def _write_settings(self, language):
         raw_settings = {
