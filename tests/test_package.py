@@ -20,7 +20,7 @@ def test_package_command_project_not_found(capsys):
 
     with patch("rpdk.package.Project", autospec=True, return_value=mock_project):
         with pytest.raises(SystemExit) as excinfo:
-            main(args_in=["package", "SomeHandler"])
+            main(args_in=["package"])
 
     assert excinfo.value.code == 1
     mock_project.load_settings.assert_called_once_with()
@@ -33,8 +33,11 @@ def test_package_command_project_not_found(capsys):
 
 
 def test_package_command_default():
-    handler_path = "Handler.path"
+    expected_template_path = "Handler.path"
+    expected_language = "test_language"
     mock_project = Mock(spec=Project)
+    mock_project.handler_template_path = expected_template_path
+    mock_project.language = expected_language
     with patch("rpdk.package.Project", autospec=True, return_value=mock_project):
-        main(args_in=["package", handler_path])
-    mock_project.package.assert_called_once_with(handler_path)
+        main(args_in=["package"])
+    mock_project.package.assert_called_once_with()

@@ -19,6 +19,8 @@ SETTINGS_VALIDATOR = Draft6Validator(
             "language": {"type": "string"},
             "typeName": {"type": "string", "pattern": TYPE_NAME_REGEX},
             "settings": {"type": "object"},
+            "handlerArn": {"type": ["string", "null"]},
+            "handlerTemplatePath": {"type": "string"},
         },
         "required": ["language", "typeName"],
         "additionalProperties": False,
@@ -40,8 +42,13 @@ class Project:  # pylint: disable=too-many-instance-attributes
         self.settings = None
         self.schema = None
         self.handler_arn = None
+        self.handler_template_path = None
 
         LOG.debug("Root directory: %s", self.root)
+
+    @property
+    def language(self):
+        return self._plugin.NAME
 
     @property
     def type_name(self):
@@ -52,8 +59,12 @@ class Project:  # pylint: disable=too-many-instance-attributes
         self.type_info = tuple(value.split("::"))
 
     @property
+    def hypenated_name(self):
+        return "-".join(self.type_info).lower()
+
+    @property
     def schema_filename(self):
-        return "{}.json".format("-".join(self.type_info)).lower()
+        return "{}.json".format(self.hypenated_name)
 
     @property
     def schema_path(self):
@@ -80,6 +91,8 @@ class Project:  # pylint: disable=too-many-instance-attributes
 
         self.type_name = raw_settings["typeName"]
         self._plugin = load_plugin(raw_settings["language"])
+        self.handler_template_path = raw_settings["handlerTemplatePath"]
+        self.handler_arn = raw_settings["handlerArn"]
         self.settings = raw_settings.get("settings", {})
 
     def _write_example_schema(self):
@@ -95,6 +108,8 @@ class Project:  # pylint: disable=too-many-instance-attributes
             "typeName": self.type_name,
             "language": language,
             "settings": self.settings,
+            "handlerTemplatePath": self.handler_template_path,
+            "handlerArn": self.handler_arn,
         }
         self.overwrite(self.settings_path, json.dumps(raw_settings, indent=4))
 
@@ -135,5 +150,6 @@ class Project:  # pylint: disable=too-many-instance-attributes
     def generate(self):
         return self._plugin.generate(self)
 
-    def package(self, handler_template):
-        self.handler_arn = self._plugin.package(handler_template)
+    def package(self):
+        self.handler_arn = self._plugin.package(self.handler_template_path)
+        self._write_settings(self.language)

@@ -12,6 +12,8 @@ from rpdk.project import InvalidSettingsError, Project
 
 LANGUAGE = "BQHDBC"
 CONTENTS_UTF8 = "💣"
+TYPE_NAME = "AWS::Color::Red"
+ARN = "SOMEARN"
 
 
 @pytest.fixture
@@ -43,8 +45,15 @@ def test_load_settings_invalid_settings(project):
 def test_load_settings_valid_json(project):
     plugin = object()
     type_name = "AWS::Color::Red"
-
-    data = json.dumps({"typeName": type_name, "language": LANGUAGE})
+    template_path = "pathToTemplate"
+    data = json.dumps(
+        {
+            "typeName": type_name,
+            "language": LANGUAGE,
+            "handlerArn": ARN,
+            "handlerTemplatePath": template_path,
+        }
+    )
     patch_load = patch("rpdk.project.load_plugin", autospec=True, return_value=plugin)
 
     with patch_settings(project, data) as mock_open, patch_load as mock_load:
@@ -150,14 +159,16 @@ def test_init(tmpdir):
 
 
 def test_package(project):
-    expected_arn = "SomeARN"
     expected_template = "template.path"
+    project.type_name = TYPE_NAME
+    project.handler_template_path = expected_template
 
     mock_plugin = MagicMock(spec=["package"])
-    mock_plugin.package.return_value = expected_arn
+    mock_plugin.package.return_value = ARN
+    mock_plugin.NAME = LANGUAGE
 
     with patch.object(project, "_plugin", mock_plugin):
-        project.package(expected_template)
+        project.package()
 
     mock_plugin.package.assert_called_once_with(expected_template)
-    assert project.handler_arn == expected_arn
+    assert project.handler_arn == ARN

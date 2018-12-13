@@ -134,7 +134,7 @@ class Packager:
             )
             # uploads file to s3 and outputs modified template with s3 location
             PackageCommand(session)._run_main(package_ns, global_ns)
-            LOG.info("Upload successful. Now creating handler stack '%s'", stack_name)
+            LOG.info("Upload successful. Now deploying handler stack '%s'", stack_name)
             # adds output file to deploy arguments
             deploy_ns = Namespace(**deploy_args, template_file=output_file.name)
             try:
@@ -145,11 +145,9 @@ class Packager:
                 # If there are no changes between templates,
                 # log that and still return the handler arn
                 LOG.info(str(e))
+            else:
+                LOG.info("Successfully deployed handler stack '%s'", stack_name)
         handler_arn = self.get_stack_output(stack_name, HANDLER_ARN_KEY)
-        LOG.info(
-            "Successfully deployed handler stack '%s'  with arn: '%s'",
-            stack_name,
-            handler_arn,
-        )
-        LOG.debug(captured_out)
+        LOG.info("Lambda function handler: '%s'", handler_arn)
+        LOG.debug(captured_out.read())
         return handler_arn
