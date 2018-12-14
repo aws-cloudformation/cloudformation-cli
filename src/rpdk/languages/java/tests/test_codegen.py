@@ -5,6 +5,7 @@ from unittest.mock import patch
 
 import pytest
 
+from rpdk.package_utils import Packager
 from rpdk.project import Project
 
 from ..codegen import JavaLanguagePlugin
@@ -14,7 +15,14 @@ RESOURCE = "DZQWCC"
 
 @pytest.fixture
 def project(tmpdir):
-    return Project(root=tmpdir)
+    project = Project(root=tmpdir)
+    with patch.dict(
+        "rpdk.plugin_registry.PLUGIN_REGISTRY",
+        {"test": lambda: JavaLanguagePlugin},
+        clear=True,
+    ):
+        project.init("AWS::Foo::{}".format(RESOURCE), "test")
+    return project
 
 
 def test_java_language_plugin_module_is_set():
@@ -23,13 +31,6 @@ def test_java_language_plugin_module_is_set():
 
 
 def test_initialize(project):
-    with patch.dict(
-        "rpdk.plugin_registry.PLUGIN_REGISTRY",
-        {"test": lambda: JavaLanguagePlugin},
-        clear=True,
-    ):
-        project.init("AWS::Foo::{}".format(RESOURCE), "test")
-
     assert (project.root / "README.md").is_file()
 
     pom_tree = ET.parse(str(project.root / "pom.xml"))
@@ -39,12 +40,7 @@ def test_initialize(project):
 
 
 def test_generate(project):
-    with patch.dict(
-        "rpdk.plugin_registry.PLUGIN_REGISTRY",
-        {"test": lambda: JavaLanguagePlugin},
-        clear=True,
-    ):
-        project.init("AWS::Foo::{}".format(RESOURCE), "test")
+    project.load_schema()
 
     generated_root = project._plugin._get_generated_root(project)
 
@@ -60,3 +56,15 @@ def test_generate(project):
 
     # asserts we remove existing files in the tree
     assert not test_file.is_file()
+
+
+def test_package(project):
+    expected_handler_path = "TestHandler.path"
+    expected_arn = "HandlerArn"
+    project.load_schema()
+
+    with patch.object(Packager, "package", return_value=expected_arn) as mock_package:
+        project.package(expected_handler_path)
+
+    mock_package.assert_called_once_with(expected_handler_path)
+    assert project.handler_arn == expected_arn

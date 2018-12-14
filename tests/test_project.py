@@ -147,3 +147,17 @@ def test_init(tmpdir):
 
     with project.schema_path.open("r", encoding="utf-8") as f:
         assert json.load(f)
+
+
+def test_package(project):
+    expected_arn = "SomeARN"
+    expected_template = "template.path"
+
+    mock_plugin = MagicMock(spec=["package"])
+    mock_plugin.package.return_value = expected_arn
+
+    with patch.object(project, "_plugin", mock_plugin):
+        project.package(expected_template)
+
+    mock_plugin.package.assert_called_once_with(expected_template)
+    assert project.handler_arn == expected_arn

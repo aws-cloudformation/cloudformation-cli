@@ -3,7 +3,10 @@
 import logging
 import shutil
 
+import boto3
+
 from rpdk.jsonutils.flattener import JsonSchemaFlattener
+from rpdk.package_utils import Packager
 from rpdk.plugin_base import LanguagePlugin
 
 from .pojo_resolver import JavaPojoResolver
@@ -124,3 +127,11 @@ class JavaLanguagePlugin(LanguagePlugin):
             project.overwrite(path, contents)
 
         LOG.debug("Generate complete")
+
+    @staticmethod
+    def package(handler_template):
+        # Maven performs packaging of jar
+        # only thing to do is upload that to s3 and create a lambda function
+        client = boto3.client("cloudformation")
+        packager = Packager(client)
+        return packager.package(handler_template)

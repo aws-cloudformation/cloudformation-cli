@@ -1,0 +1,27 @@
+AWSTemplateFormatVersion: 2010-09-09
+Transform: AWS::Serverless-2016-10-31
+Description: This CloudFormation template provisions a lambda function for a given resource handler jar
+
+Resources:
+  ResourceHandler:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: "./HelloWorld-1.0.jar"
+      Description: "Handler for Example Resources"
+      FunctionName: "Resource-handler-test"
+      Handler: "com.aws.cfn.LambdaWrapper::handleRequest"
+      KmsKeyArn:
+        Fn::ImportValue: EncryptionKey
+      MemorySize: 128
+      Role:
+        Fn::ImportValue: LambdaRole
+      Runtime: "java8"
+      Timeout: 120
+
+Outputs:
+  ResourceHandlerArn:
+    Value:
+      Fn::GetAtt: ResourceHandler.Arn
+    Export:
+      Name:
+        Fn::Sub: "Resource-handler-arn"
