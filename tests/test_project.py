@@ -170,5 +170,5 @@ def test_package(project):
     with patch.object(project, "_plugin", mock_plugin):
         project.package()
 
-    mock_plugin.package.assert_called_once_with(expected_template)
+    mock_plugin.package.assert_called_once_with(project)
     assert project.handler_arn == ARN

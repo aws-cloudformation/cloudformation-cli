@@ -48,11 +48,6 @@
                 <artifactId>maven-shade-plugin</artifactId>
                 <version>2.3</version>
                 <configuration>
-                    <artifactSet>
-                        <excludes>
-                            <exclude>com.aws.cfn:ResourceProviderExample</exclude>
-                        </excludes>
-                    </artifactSet>
                     <createDependencyReducedPom>false</createDependencyReducedPom>
                 </configuration>
                 <executions>

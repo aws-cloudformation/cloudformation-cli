@@ -14,7 +14,8 @@ from botocore.stub import ANY, Stubber
 from dateutil.tz import tzutc
 
 from rpdk.package_utils import (
-    HANDLER_STACK_NAME,
+    HANDLER_PARAMS,
+    HANDLER_TEMPLATE_PATH,
     INFRA_BUCKET_NAME,
     INFRA_STACK_NAME,
     NO_UPDATES_ERROR_MESSAGE,
@@ -30,6 +31,7 @@ EXPECTED_STACK_PARAMS = {
     "StackName": EXPECTED_STACK_NAME,
     "TemplateBody": EXPECTED_TEMPLATE_BODY,
     "Capabilities": EXPECTED_STACK_CAPS,
+    "Parameters": ANY,
 }
 
 EXPECTED_BUCKET = "TestBucket"
@@ -53,7 +55,7 @@ def test_create_stack_doesnt_exist(caplog, packager):
     wait_patch = patch.object(Packager, "stack_wait", autospec=True)
     caplog.set_level(logging.INFO)
     with stubber, wait_patch:
-        packager.create_or_update_stack(EXPECTED_STACK_NAME, EXPECTED_TEMPLATE_BODY)
+        packager.create_or_update_stack(EXPECTED_STACK_NAME, EXPECTED_TEMPLATE_BODY, [])
     stubber.assert_no_pending_responses()
     last_record = caplog.records[-1]
 
@@ -68,7 +70,7 @@ def test_create_already_exists_update_success(caplog, packager):
     wait_patch = patch.object(Packager, "stack_wait", autospec=True)
     caplog.set_level(logging.INFO)
     with stubber, wait_patch:
-        packager.create_or_update_stack(EXPECTED_STACK_NAME, EXPECTED_TEMPLATE_BODY)
+        packager.create_or_update_stack(EXPECTED_STACK_NAME, EXPECTED_TEMPLATE_BODY, [])
     stubber.assert_no_pending_responses()
     last_record = caplog.records[-1]
     assert all(s in last_record.message for s in (EXPECTED_STACK_NAME, "updated"))
@@ -87,7 +89,7 @@ def test_create_exists_update_noop(caplog, packager):
     caplog.set_level(logging.INFO)
 
     with stubber, wait_patch:
-        packager.create_or_update_stack(EXPECTED_STACK_NAME, EXPECTED_TEMPLATE_BODY)
+        packager.create_or_update_stack(EXPECTED_STACK_NAME, EXPECTED_TEMPLATE_BODY, [])
 
     last_record = caplog.records[-1]
     assert all(
@@ -103,7 +105,7 @@ def test_create_exists_update_fails(packager):
     stubber.add_client_error("update_stack", "ClientError")
     wait_patch = patch.object(Packager, "stack_wait", autospec=True)
     with stubber, wait_patch, pytest.raises(botocore.exceptions.ClientError):
-        packager.create_or_update_stack(EXPECTED_STACK_NAME, EXPECTED_TEMPLATE_BODY)
+        packager.create_or_update_stack(EXPECTED_STACK_NAME, EXPECTED_TEMPLATE_BODY, [])
     stubber.assert_no_pending_responses()
 
 
@@ -133,7 +135,7 @@ def test_package_handler(packager):
 
     with package as mock_package, deploy as mock_deploy, output as mock_output:
         packager.package_handler(
-            EXPECTED_BUCKET, EXPECTED_TEMPLATE_PATH, EXPECTED_STACK_NAME
+            EXPECTED_BUCKET, EXPECTED_TEMPLATE_PATH, EXPECTED_STACK_NAME, {}
         )
     mock_output.assert_called_once()
     mock_package.assert_called_once()
@@ -158,7 +160,7 @@ def test_no_changes_package_handler(packager, caplog):
 
     with package as mock_package, deploy as mock_deploy, output as mock_output:
         packager.package_handler(
-            EXPECTED_BUCKET, EXPECTED_TEMPLATE_PATH, EXPECTED_STACK_NAME
+            EXPECTED_BUCKET, EXPECTED_TEMPLATE_PATH, EXPECTED_STACK_NAME, {}
         )
 
     mock_output.assert_called_once()
@@ -207,25 +209,62 @@ def test_no_output_get_stack_output(packager):
     stubber.assert_no_pending_responses()
 
 
+def test_cached_get_stack_output(packager):
+    first_value = "FirstValue"
+    second_value = "SecondValue"
+    stubber = Stubber(packager.client)
+    response = {
+        "Stacks": [
+            {
+                "StackName": EXPECTED_STACK_NAME,
+                "Outputs": [
+                    {"OutputKey": "FirstKey", "OutputValue": first_value},
+                    {"OutputKey": "SecondKey", "OutputValue": second_value},
+                ],
+                "StackStatus": "CREATE_COMPLETE",
+                "CreationTime": FAKE_DATETIME,
+            }
+        ]
+    }
+    stubber.add_response("describe_stacks", response)
+    with stubber:
+        first_output = packager.get_stack_output(EXPECTED_STACK_NAME, "FirstKey")
+        second_output = packager.get_stack_output(EXPECTED_STACK_NAME, "SecondKey")
+    assert first_output == first_value
+    assert second_output == second_value
+    stubber.assert_no_pending_responses()
+
+
 def test_package(packager):
     create_update_patch = patch.object(Packager, "create_or_update_stack")
+    expected_out = "ExpectedOut"
     stack_output_patch = patch.object(
-        Packager, "get_stack_output", return_value=EXPECTED_BUCKET
+        Packager, "get_stack_output", return_value=expected_out
     )
     package_patch = patch.object(Packager, "package_handler")
 
     with create_update_patch as mock_create_update, (
         stack_output_patch
     ) as mock_stack_output, package_patch as mock_package:
-        packager.package(EXPECTED_TEMPLATE_PATH)
+        packager.package("stackName", {})
 
     raw_template = pkg_resources.resource_string(
         "rpdk", "data/CloudFormationHandlerInfrastructure.yaml"
     )
     mock_create_update.assert_called_once_with(
-        INFRA_STACK_NAME, raw_template.decode("utf-8")
+        INFRA_STACK_NAME, raw_template.decode("utf-8"), []
     )
-    mock_stack_output.assert_called_once_with(INFRA_STACK_NAME, INFRA_BUCKET_NAME)
+
+    mock_stack_output.assert_any_call(INFRA_STACK_NAME, INFRA_BUCKET_NAME)
+
+    for param in HANDLER_PARAMS:
+        mock_stack_output.assert_any_call(INFRA_STACK_NAME, param)
+
+    expected_handler_params = {
+        "EncryptionKey": expected_out,
+        "LambdaRole": expected_out,
+    }
+
     mock_package.assert_called_with(
-        EXPECTED_BUCKET, EXPECTED_TEMPLATE_PATH, HANDLER_STACK_NAME
+        expected_out, HANDLER_TEMPLATE_PATH, "stackName", expected_handler_params
     )

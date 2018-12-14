@@ -25,29 +25,41 @@ SHARED_ARGS = {"s3_prefix": None, "kms_key_id": None, "force_upload": False}
 CAPABILITIES = ["CAPABILITY_IAM", "CAPABILITY_AUTO_EXPAND"]
 INFRA_TEMPLATE_PATH = "data/CloudFormationHandlerInfrastructure.yaml"
 INFRA_STACK_NAME = "CFNResourceHandlerInfrastructure"
-HANDLER_STACK_NAME = "ResourceHandlerStack"
 INFRA_BUCKET_NAME = "BucketName"
+INFRA_ROLE = "LambdaRole"
+INFRA_KEY = "EncryptionKey"
+HANDLER_PARAMS = [INFRA_KEY, INFRA_ROLE]
+HANDLER_TEMPLATE_PATH = "./Handler.yaml"
 HANDLER_ARN_KEY = "ResourceHandlerArn"
 
 
 class Packager:
     def __init__(self, client):
         self.client = client
+        self.outputs = {}
 
-    def package(self, handler_template):
+    def package(self, stack_name, handler_params):
         raw_infra_template = pkg_resources.resource_string(
             __name__, INFRA_TEMPLATE_PATH
         )
         decoded_template = raw_infra_template.decode("utf-8")
-        self.create_or_update_stack(INFRA_STACK_NAME, decoded_template)
+        self.create_or_update_stack(INFRA_STACK_NAME, decoded_template, [])
         bucket_name = self.get_stack_output(INFRA_STACK_NAME, INFRA_BUCKET_NAME)
-        self.package_handler(bucket_name, handler_template, HANDLER_STACK_NAME)
+        output_params = {
+            param: self.get_stack_output(INFRA_STACK_NAME, param)
+            for param in HANDLER_PARAMS
+        }
+        handler_params.update(output_params)
+        return self.package_handler(
+            bucket_name, HANDLER_TEMPLATE_PATH, stack_name, handler_params
+        )
 
-    def create_or_update_stack(self, stack_name, template_body):
+    def create_or_update_stack(self, stack_name, template_body, params):
         args = {
             "StackName": stack_name,
             "TemplateBody": template_body,
             "Capabilities": CAPABILITIES,
+            "Parameters": params,
         }
         # attempt to create stack. if the stack already exists, try to update it
         try:
@@ -79,16 +91,23 @@ class Packager:
         waiter.wait(StackName=stack_name, WaiterConfig={"Delay": 5, "MaxAttempts": 200})
 
     def get_stack_output(self, stack_name, output_key):
-        result = self.client.describe_stacks(StackName=stack_name)
-        outputs = result["Stacks"][0]["Outputs"]
-        for output in outputs:
-            if output["OutputKey"] == output_key:
-                return output["OutputValue"]
-        raise OutputNotFoundError(stack_name, output_key)
+        try:
+            return self.outputs[stack_name][output_key]
+        except KeyError:
+            # cache results
+            self.outputs[stack_name] = {}
+            result = self.client.describe_stacks(StackName=stack_name)
+            outputs = result["Stacks"][0]["Outputs"]
+            for output in outputs:
+                self.outputs[stack_name][output["OutputKey"]] = output["OutputValue"]
+        try:
+            return self.outputs[stack_name][output_key]
+        except KeyError:
+            raise OutputNotFoundError(stack_name, output_key)
 
     def package_handler(
-        self, bucket_name, template_file, stack_name
-    ):  # pylint: disable=protected-access
+        self, bucket_name, template_file, stack_name, params
+    ):  # pylint: disable=protected-access,too-many-locals
         session = Session()
 
         # setting up argument namespaces for the package command
@@ -99,11 +118,14 @@ class Packager:
             "use_json": False,
         }
         package_args.update(SHARED_ARGS)
-        # setting up arguments for package
+        # preparing arguments for package
+        # convert parameters into correct format
+        formatted_params = ["{}={}".format(key, value) for key, value in params.items()]
+
         deploy_args = {
             "stack_name": stack_name,
             "s3_bucket": None,
-            "parameter_overrides": [],
+            "parameter_overrides": formatted_params,
             "tags": [],
             "execute_changeset": True,
             "role_arn": None,
@@ -121,7 +143,6 @@ class Packager:
         )
 
         captured_out = StringIO()
-
         with NamedTemporaryFile() as output_file, redirect_stdout(captured_out):
             # adding temporary file to namespace for the output template
             package_ns = Namespace(
