@@ -1,7 +1,6 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Description: This CloudFormation template provisions all the infrastructure and dependencies for a Java Provider on Lambda
 
-
 Resources:
   ArtifactBucket:
     Type: AWS::S3::Bucket
@@ -15,12 +14,10 @@ Resources:
               SSEAlgorithm: aws:kms
       VersioningConfiguration:
         Status: Enabled
-
   LogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
       RetentionInDays: 30
-
   LambdaRole:
     Type: AWS::IAM::Role
     Properties:
@@ -65,7 +62,6 @@ Resources:
                   - "events:RemoveTargets"
                 Resource: "*"
 
-
   EncryptionKey:
     Type: AWS::KMS::Key
     Properties:
@@ -109,18 +105,9 @@ Resources:
             Resource: "*"
 
 Outputs:
-  BucketName:
-    Value:
-      Ref: ArtifactBucket
-    Export:
-      Name: ArtifactBucket
   EncryptionKey:
-    Value:
-      Fn::GetAtt: EncryptionKey.Arn
-    Export:
-      Name: EncryptionKey
+    Value: !GetAtt EncryptionKey.Arn
+  BucketName:
+    Value: !Ref ArtifactBucket
   LambdaRole:
-    Value:
-      Fn::GetAtt: LambdaRole.Arn
-    Export:
-      Name: LambdaRole
+    Value: !GetAtt LambdaRole.Arn

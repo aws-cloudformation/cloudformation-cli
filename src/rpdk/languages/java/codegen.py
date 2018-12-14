@@ -21,6 +21,8 @@ EXECUTABLE = "uluru-cli"
 class JavaLanguagePlugin(LanguagePlugin):
     MODULE_NAME = __name__
     NAME = "java"
+    RUNTIME = "java8"
+    ENTRY_POINT = "com.{}.BaseHandler::handleRequest"
 
     def __init__(self):
         self.env = self._setup_jinja_env(
@@ -57,6 +59,7 @@ class JavaLanguagePlugin(LanguagePlugin):
             group_id=self.package_name,
             artifact_id=self.artifact_id,
             executable=EXECUTABLE,
+            artifact_version="1.0",
         )
         project.safewrite(path, contents)
 
@@ -140,10 +143,13 @@ class JavaLanguagePlugin(LanguagePlugin):
 
         LOG.debug("Generate complete")
 
-    @staticmethod
-    def package(handler_template):
+    def package(self, project):
         # Maven performs packaging of jar
         # only thing to do is upload that to s3 and create a lambda function
         client = boto3.client("cloudformation")
         packager = Packager(client)
-        return packager.package(handler_template)
+        handler_stack_name = "{}-stack".format(project.hypenated_name)
+        handler_params = {}
+        handler_params["HandlerEntry"] = self.ENTRY_POINT.format(project.namespace)
+        handler_params["Runtime"] = self.RUNTIME
+        return packager.package(handler_stack_name, handler_params)

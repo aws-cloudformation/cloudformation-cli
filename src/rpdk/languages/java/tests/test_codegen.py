@@ -48,9 +48,6 @@ def test_initialize(project):
         handler_name
     )
     assert handler_properties["FunctionName"] == handler_name
-    assert template["Outputs"]["ResourceHandlerArn"]["Export"][
-        "Name"
-    ] == "{}-arn".format(handler_name)
 
 
 def test_generate(project):
@@ -79,5 +76,12 @@ def test_package(project):
     with patch.object(Packager, "package", return_value=expected_arn) as mock_package:
         project.package()
 
-    mock_package.assert_called_once_with(project.handler_template_path)
+    expected_stack = "{}-stack".format(project.hypenated_name)
+    expected_params = {}
+    expected_params["HandlerEntry"] = JavaLanguagePlugin.ENTRY_POINT.format(
+        project.namespace
+    )
+    expected_params["Runtime"] = JavaLanguagePlugin.RUNTIME
+
+    mock_package.assert_called_once_with(expected_stack, expected_params)
     assert project.handler_arn == expected_arn

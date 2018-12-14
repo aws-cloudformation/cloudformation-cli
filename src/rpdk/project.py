@@ -59,6 +59,10 @@ class Project:  # pylint: disable=too-many-instance-attributes
         self.type_info = tuple(value.split("::"))
 
     @property
+    def namespace(self):
+        return ".".join(self.type_info).lower()
+
+    @property
     def hypenated_name(self):
         return "-".join(self.type_info).lower()
 
@@ -151,5 +155,5 @@ class Project:  # pylint: disable=too-many-instance-attributes
         return self._plugin.generate(self)
 
     def package(self):
-        self.handler_arn = self._plugin.package(self.handler_template_path)
+        self.handler_arn = self._plugin.package(self)
         self._write_settings(self.language)
