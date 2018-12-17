@@ -20,6 +20,8 @@ from rpdk.data_loaders import (
 )
 from rpdk.plugin_base import LanguagePlugin
 
+BASEDIR = Path(__file__).parent  # tests/test_data_loaders.py -> tests/
+
 # Lonely continuation byte is invalid
 # https://www.cl.cam.ac.uk/~mgk25/ucs/examples/UTF-8-test.txt
 INVALID_UTF8 = b"\x80"
@@ -49,29 +51,33 @@ def test_load_resource_spec_empty_object_is_invalid():
         load_resource_spec(yaml_s({}))
 
 
-def test_load_resource_spec_example_spec_is_valid():
-    basedir = Path(__file__).parent.parent  # tests/test_data_loaders.py
-    exampledir = basedir / "examples" / "schema" / "resource"
-    for example in exampledir.glob("*.json"):
-        with example.open("r", encoding="utf-8") as f:
-            assert load_resource_spec(f)
+def json_files_params(path):
+    return tuple(pytest.param(p, id=p.name) for p in path.glob("*.json"))
 
 
-def test_load_resource_spec_valid_snippets():
-    basedir = Path(__file__).parent.parent  # tests/test_data_loaders.py
-    exampledir = basedir / "tests" / "data" / "schema" / "valid"
-    for example in exampledir.glob("*.json"):
-        with example.open("r", encoding="utf-8") as f:
-            assert load_resource_spec(f)
+@pytest.mark.parametrize(
+    "example", json_files_params(BASEDIR.parent / "examples" / "schema" / "resource")
+)
+def test_load_resource_spec_example_spec_is_valid(example):
+    with example.open("r", encoding="utf-8") as f:
+        assert load_resource_spec(f)
 
 
-def test_load_resource_spec_invalid_snippets():
-    basedir = Path(__file__).parent.parent  # tests/test_data_loaders.py
-    exampledir = basedir / "tests" / "data" / "schema" / "invalid"
-    for example in exampledir.glob("*.json"):
-        with example.open("r", encoding="utf-8") as f:
-            with pytest.raises(jsonschema.exceptions.ValidationError):
-                load_resource_spec(f)
+@pytest.mark.parametrize(
+    "example", json_files_params(BASEDIR / "data" / "schema" / "valid")
+)
+def test_load_resource_spec_valid_snippets(example):
+    with example.open("r", encoding="utf-8") as f:
+        assert load_resource_spec(f)
+
+
+@pytest.mark.parametrize(
+    "example", json_files_params(BASEDIR / "data" / "schema" / "invalid")
+)
+def test_load_resource_spec_invalid_snippets(example):
+    with example.open("r", encoding="utf-8") as f:
+        with pytest.raises(jsonschema.exceptions.ValidationError):
+            load_resource_spec(f)
 
 
 def test_load_resource_spec_remote_key_is_invalid():
