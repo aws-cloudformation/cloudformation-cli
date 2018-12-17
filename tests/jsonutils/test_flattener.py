@@ -349,3 +349,10 @@ def test__flatten_ref_type_tuple():
     flattener = JsonSchemaFlattener({"a": sub_schema})
     ret = flattener._flatten_ref_type(("a",))
     assert ret == sub_schema
+
+
+def test_flattener_double_processed_refs():
+    test_schema = resource_json(__name__, "data/valid_refs_flattened_twice.json")
+
+    flattener = JsonSchemaFlattener(test_schema)
+    flattener.flatten_schema()
