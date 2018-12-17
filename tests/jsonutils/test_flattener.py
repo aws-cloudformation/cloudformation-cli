@@ -324,7 +324,7 @@ def test_circular_reference(test_schema):
     assert "#/properties/a" in str(excinfo.value)
 
 
-def test__flatten_ref_type():
+def test__flatten_ref_type_invalid():
     flattener = JsonSchemaFlattener({})
     patch_decode = patch(
         "rpdk.jsonutils.flattener.fragment_decode",
@@ -335,3 +335,17 @@ def test__flatten_ref_type():
         flattener._flatten_ref_type("!")
 
     mock_decode.assert_called_once_with("!")
+
+
+def test__flatten_ref_type_string():
+    sub_schema = {"type": "string"}
+    flattener = JsonSchemaFlattener({"a": sub_schema})
+    ret = flattener._flatten_ref_type("#/a")
+    assert ret == sub_schema
+
+
+def test__flatten_ref_type_tuple():
+    sub_schema = {"type": "string"}
+    flattener = JsonSchemaFlattener({"a": sub_schema})
+    ret = flattener._flatten_ref_type(("a",))
+    assert ret == sub_schema
