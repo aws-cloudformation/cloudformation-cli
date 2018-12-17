@@ -37,13 +37,13 @@ setup(
     zip_safe=True,
     install_requires=[
         "awscli>=1.16",
-        "boto3>=1.9",  # fmt: off
-        "Jinja2>=2.9",  # fmt: off
-        "jsonschema>=3.0.0a3",  # fmt: off
-        "pytest>=3.7",  # fmt: off
-        "Werkzeug>=0.14",  # fmt: off
-        "PyYAML>=3.13",  # fmt: off
-        "requests>=2.19",  # fmt: off
+        "boto3>=1.9",
+        "Jinja2>=2.10",
+        "jsonschema>=3.0.0a3",
+        "pytest>=4.0",
+        "Werkzeug>=0.14",
+        "PyYAML>=3.13",
+        "requests>=2.20",
     ],
     entry_points={
         "console_scripts": ["uluru-cli = rpdk.cli:main"],
@@ -59,8 +59,6 @@ setup(
         "Topic :: Software Development :: Code Generators",
         "Operating System :: OS Independent",
         "Programming Language :: Python :: 3 :: Only",
-        "Programming Language :: Python :: 3.4",
-        "Programming Language :: Python :: 3.5",
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
     ),
