@@ -30,7 +30,6 @@ class JavaLanguagePlugin(LanguagePlugin):
         )
         self.namespace = None
         self.package_name = None
-        self.artifact_id = None
 
     def _namespace_from_project(self, project):
         self.namespace = ("com",) + tuple(
@@ -51,15 +50,12 @@ class JavaLanguagePlugin(LanguagePlugin):
         LOG.debug("Making test folder structure: %s", tst)
         tst.mkdir(parents=True, exist_ok=True)
 
-        self.artifact_id = "{}-handler".format(project.hypenated_name)
+        artifact_id = "{}-handler".format(project.hypenated_name)
         path = project.root / "pom.xml"
         LOG.debug("Writing Maven POM: %s", path)
         template = self.env.get_template("pom.xml")
         contents = template.render(
-            group_id=self.package_name,
-            artifact_id=self.artifact_id,
-            executable=EXECUTABLE,
-            artifact_version="1.0",
+            group_id=self.package_name, artifact_id=artifact_id, executable=EXECUTABLE
         )
         project.safewrite(path, contents)
 
@@ -144,12 +140,13 @@ class JavaLanguagePlugin(LanguagePlugin):
         LOG.debug("Generate complete")
 
     def package(self, project):
+        self._namespace_from_project(project)
         # Maven performs packaging of jar
         # only thing to do is upload that to s3 and create a lambda function
         client = boto3.client("cloudformation")
         packager = Packager(client)
         handler_stack_name = "{}-stack".format(project.hypenated_name)
         handler_params = {}
-        handler_params["HandlerEntry"] = self.ENTRY_POINT.format(project.namespace)
+        handler_params["HandlerEntry"] = self.ENTRY_POINT.format(self.package_name)
         handler_params["Runtime"] = self.RUNTIME
         return packager.package(handler_stack_name, handler_params)

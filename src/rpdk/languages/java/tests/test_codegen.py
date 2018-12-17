@@ -79,7 +79,7 @@ def test_package(project):
     expected_stack = "{}-stack".format(project.hypenated_name)
     expected_params = {}
     expected_params["HandlerEntry"] = JavaLanguagePlugin.ENTRY_POINT.format(
-        project.namespace
+        project._plugin.namespace
     )
     expected_params["Runtime"] = JavaLanguagePlugin.RUNTIME
 
