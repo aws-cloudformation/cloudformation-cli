@@ -33,6 +33,11 @@ EXPECTED_STACK_PARAMS = {
     "Capabilities": EXPECTED_STACK_CAPS,
 }
 
+TERMINATION_PARAMS = {
+    "StackName": EXPECTED_STACK_NAME,
+    "EnableTerminationProtection": True,
+}
+
 EXPECTED_BUCKET = "TestBucket"
 EXPECTED_TEMPLATE_PATH = "TestTemplate.path"
 EXPECTED_HANDLER_ARN = "TestHandlerArn"
@@ -53,6 +58,7 @@ def packager():
 def test_create_stack_doesnt_exist(caplog, packager):
     stubber = Stubber(packager.client)
     stubber.add_response("create_stack", {}, EXPECTED_STACK_PARAMS)
+    stubber.add_response("update_termination_protection", {}, TERMINATION_PARAMS)
     wait_patch = patch.object(Packager, "stack_wait", autospec=True)
     caplog.set_level(logging.INFO)
     with stubber, wait_patch:
@@ -104,6 +110,7 @@ def test_create_exists_update_fails(packager):
     stubber = Stubber(packager.client)
     stubber.add_client_error("create_stack", "AlreadyExistsException")
     stubber.add_client_error("update_stack", "ClientError")
+
     wait_patch = patch.object(Packager, "stack_wait", autospec=True)
     with stubber, wait_patch, pytest.raises(botocore.exceptions.ClientError):
         packager.create_or_update_stack(EXPECTED_STACK_NAME, EXPECTED_TEMPLATE_BODY)
@@ -128,6 +135,8 @@ def test_stack_wait(packager):
 
 
 def test_package_handler(packager):
+    stubber = Stubber(packager.client)
+    stubber.add_response("update_termination_protection", {}, TERMINATION_PARAMS)
     package = patch.object(PackageCommand, "_run_main", return_value=0)
     deploy = patch.object(DeployCommand, "_run_main", return_value=0)
     output = patch.object(
@@ -136,7 +145,7 @@ def test_package_handler(packager):
         return_value={HANDLER_ARN_KEY: EXPECTED_HANDLER_ARN},
     )
 
-    with package as mock_package, deploy as mock_deploy, output as mock_output:
+    with stubber, package as mock_package, deploy as mock_deploy, output as mock_output:
         packager.package_handler(
             EXPECTED_BUCKET, EXPECTED_TEMPLATE_PATH, EXPECTED_STACK_NAME, {}
         )
