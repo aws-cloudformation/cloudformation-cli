@@ -59,10 +59,6 @@ class Project:  # pylint: disable=too-many-instance-attributes
         self.type_info = tuple(value.split("::"))
 
     @property
-    def namespace(self):
-        return ".".join(self.type_info).lower()
-
-    @property
     def hypenated_name(self):
         return "-".join(self.type_info).lower()
 
