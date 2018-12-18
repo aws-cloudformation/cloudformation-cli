@@ -45,15 +45,7 @@ def test_load_settings_invalid_settings(project):
 def test_load_settings_valid_json(project):
     plugin = object()
     type_name = "AWS::Color::Red"
-    template_path = "pathToTemplate"
-    data = json.dumps(
-        {
-            "typeName": type_name,
-            "language": LANGUAGE,
-            "handlerArn": ARN,
-            "handlerTemplatePath": template_path,
-        }
-    )
+    data = json.dumps({"typeName": type_name, "language": LANGUAGE, "handlerArn": ARN})
     patch_load = patch("rpdk.project.load_plugin", autospec=True, return_value=plugin)
 
     with patch_settings(project, data) as mock_open, patch_load as mock_load:

@@ -20,7 +20,6 @@ SETTINGS_VALIDATOR = Draft6Validator(
             "typeName": {"type": "string", "pattern": TYPE_NAME_REGEX},
             "settings": {"type": "object"},
             "handlerArn": {"type": ["string", "null"]},
-            "handlerTemplatePath": {"type": "string"},
         },
         "required": ["language", "typeName"],
         "additionalProperties": False,
