@@ -33,11 +33,7 @@ def test_package_command_project_not_found(capsys):
 
 
 def test_package_command_default():
-    expected_template_path = "Handler.path"
-    expected_language = "test_language"
     mock_project = Mock(spec=Project)
-    mock_project.handler_template_path = expected_template_path
-    mock_project.language = expected_language
     with patch("rpdk.package.Project", autospec=True, return_value=mock_project):
         main(args_in=["package"])
     mock_project.package.assert_called_once_with()
