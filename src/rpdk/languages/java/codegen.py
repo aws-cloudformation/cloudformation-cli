@@ -22,7 +22,7 @@ class JavaLanguagePlugin(LanguagePlugin):
     MODULE_NAME = __name__
     NAME = "java"
     RUNTIME = "java8"
-    ENTRY_POINT = "com.{}.BaseHandler::handleRequest"
+    ENTRY_POINT = "{}.BaseHandler::handleRequest"
 
     def __init__(self):
         self.env = self._setup_jinja_env(
