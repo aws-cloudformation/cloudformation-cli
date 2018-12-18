@@ -59,7 +59,7 @@ class JavaLanguagePlugin(LanguagePlugin):
         )
         project.safewrite(path, contents)
 
-        # Cloudformation/SAM template for handler lambda
+        # CloudFormation/SAM template for handler lambda
         path = project.root / "Handler.yaml"
         LOG.debug("Writing SAM template: %s", path)
         template = self.env.get_template("Handler.yaml")
