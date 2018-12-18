@@ -42,7 +42,6 @@ class Project:  # pylint: disable=too-many-instance-attributes
         self.settings = None
         self.schema = None
         self.handler_arn = None
-        self.handler_template_path = None
 
         LOG.debug("Root directory: %s", self.root)
 
@@ -91,7 +90,6 @@ class Project:  # pylint: disable=too-many-instance-attributes
 
         self.type_name = raw_settings["typeName"]
         self._plugin = load_plugin(raw_settings["language"])
-        self.handler_template_path = raw_settings["handlerTemplatePath"]
         self.handler_arn = raw_settings["handlerArn"]
         self.settings = raw_settings.get("settings", {})
 
@@ -108,7 +106,6 @@ class Project:  # pylint: disable=too-many-instance-attributes
             "typeName": self.type_name,
             "language": language,
             "settings": self.settings,
-            "handlerTemplatePath": self.handler_template_path,
             "handlerArn": self.handler_arn,
         }
         self.overwrite(self.settings_path, json.dumps(raw_settings, indent=4))
