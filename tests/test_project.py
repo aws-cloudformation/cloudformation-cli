@@ -159,9 +159,7 @@ def test_init(tmpdir):
 
 
 def test_package(project):
-    expected_template = "template.path"
     project.type_name = TYPE_NAME
-    project.handler_template_path = expected_template
 
     mock_plugin = MagicMock(spec=["package"])
     mock_plugin.package.return_value = ARN

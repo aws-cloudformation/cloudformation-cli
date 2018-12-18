@@ -65,7 +65,6 @@ class JavaLanguagePlugin(LanguagePlugin):
         template = self.env.get_template("Handler.yaml")
         contents = template.render(resource_type=project.hypenated_name)
         project.safewrite(path, contents)
-        project.handler_template_path = str(path)
 
         LOG.debug("Writing stub handlers")
         template = self.env.get_template("StubHandler.java")
