@@ -352,6 +352,22 @@ def test__flatten_ref_type_tuple():
 
 
 def test_flattener_double_processed_refs():
+    """The flattener uses references to indicate objects, but these
+    references are not JSON pointer URI fragments. In some cases, such references
+    may be fed back into the flattener, like if object B is nested inside
+    object A with a combiner (``oneOf``).
+
+    When the combiner is processed, B is (correctly) flattened into a distinct
+    object and placed in the schema map. A reference to B is returned, as a tuple
+    (``{'$ref': ('properties', 'A', 'oneOf', 0, 'properties', 'B')}``), from
+    ``_flatten_object_type``. So when the combiners are flattened, the result is:
+    ``{'properties': {'B': {'$ref': ('properties', 'A', 'oneOf', 0, 'properties',
+    'B')}}}``.
+
+    So when `_flatten_object_type` hits the `$ref`, it's important that
+    ``_flatten_ref_type`` understands tuples, which is also tested, so this test
+    is for showing that such a situation occurs in a normal, well-formed schema.
+    """
     test_schema = resource_json(__name__, "data/valid_refs_flattened_twice.json")
 
     flattener = JsonSchemaFlattener(test_schema)
