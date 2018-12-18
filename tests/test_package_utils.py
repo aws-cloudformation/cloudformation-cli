@@ -31,7 +31,7 @@ EXPECTED_STACK_PARAMS = {
     "StackName": EXPECTED_STACK_NAME,
     "TemplateBody": EXPECTED_TEMPLATE_BODY,
     "Capabilities": EXPECTED_STACK_CAPS,
-    "Parameters": ANY,
+    "Parameters": [],
 }
 
 EXPECTED_BUCKET = "TestBucket"

@@ -5,12 +5,16 @@ Description: "Handler template for the {{ resource_type }} resource type"
 Parameters:
   HandlerEntry:
     Type: String
+    Description: "The name of the function that Lambda executes"
   EncryptionKey:
     Type: String
+    Description: "The ARN of the key used to encrypt/decrypt requests"
   LambdaRole:
     Type: String
+    Description: "The role necessary for the Lambda function to successfully execute"
   Runtime:
     Type: String
+    Description: "The runtime of the Lambda function"
 
 
 Resources:
@@ -18,7 +22,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ./target/{{ resource_type }}-handler-1.0-SNAPSHOT.jar
-      Description: "Handler function for the {{ resource_type }} resource type"
+      Description: "Handler lambda function for the {{ resource_type }} resource type"
       FunctionName: {{ resource_type }}-handler
       Handler:
         Ref: HandlerEntry
