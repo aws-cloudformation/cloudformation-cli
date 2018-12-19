@@ -1,11 +1,9 @@
 # pylint: disable=protected-access
 import json
-from pathlib import Path
 from unittest.mock import patch
 
 import pytest
 
-from rpdk.data_loaders import load_resource_spec, make_resource_validator
 from rpdk.jsonutils.inliner import RefInliner
 
 BASE_URI = "http://localhost/"
@@ -136,15 +134,3 @@ def test_refinliner_rename_comment_is_added(httpserver):
 def test_refinliner_exiting_remote_key_is_invalid():
     with pytest.raises(ValueError):
         RefInliner("", {"remote": {}})
-
-
-def test_refinliner_produces_valid_schemas():
-    validator = make_resource_validator()
-    basedir = Path(__file__).parent.parent.parent  # tests/jsonutils/test_inliner.py
-    exampledir = basedir / "examples" / "schema" / "resource"
-    for example in exampledir.glob("*.json"):
-        with example.open("r", encoding="utf-8") as f:
-            schema = load_resource_spec(f)
-        inliner = RefInliner(example.as_uri(), schema)
-        inlined = inliner.inline()
-        validator.validate(inlined)
