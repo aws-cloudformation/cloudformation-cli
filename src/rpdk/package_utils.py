@@ -22,13 +22,13 @@ class OutputNotFoundError(Exception):
 
 NO_UPDATES_ERROR_MESSAGE = "No updates are to be performed"
 SHARED_ARGS = {"s3_prefix": None, "kms_key_id": None, "force_upload": False}
-CAPABILITIES = ["CAPABILITY_IAM", "CAPABILITY_AUTO_EXPAND"]
+CAPABILITIES = ("CAPABILITY_IAM", "CAPABILITY_AUTO_EXPAND")
 INFRA_TEMPLATE_PATH = "data/CloudFormationHandlerInfrastructure.yaml"
 INFRA_STACK_NAME = "CFNResourceHandlerInfrastructure"
 INFRA_BUCKET_NAME = "BucketName"
 INFRA_ROLE = "LambdaRole"
 INFRA_KEY = "EncryptionKey"
-HANDLER_PARAMS = [INFRA_KEY, INFRA_ROLE]
+HANDLER_PARAMS = (INFRA_KEY, INFRA_ROLE)
 HANDLER_TEMPLATE_PATH = "./Handler.yaml"
 HANDLER_ARN_KEY = "ResourceHandlerArn"
 
@@ -36,30 +36,30 @@ HANDLER_ARN_KEY = "ResourceHandlerArn"
 class Packager:
     def __init__(self, client):
         self.client = client
-        self.outputs = {}
 
-    def package(self, stack_name, handler_params):
+    def package(self, handler_stack_name, handler_params):
         raw_infra_template = pkg_resources.resource_string(
             __name__, INFRA_TEMPLATE_PATH
         )
         decoded_template = raw_infra_template.decode("utf-8")
-        self.create_or_update_stack(INFRA_STACK_NAME, decoded_template, [])
-        bucket_name = self.get_stack_output(INFRA_STACK_NAME, INFRA_BUCKET_NAME)
+        self.create_or_update_stack(INFRA_STACK_NAME, decoded_template)
+        outputs = self.get_stack_outputs(INFRA_STACK_NAME)
+        bucket_name = self.get_output(outputs, INFRA_BUCKET_NAME, INFRA_STACK_NAME)
         output_params = {
-            param: self.get_stack_output(INFRA_STACK_NAME, param)
+            param: self.get_output(outputs, param, INFRA_STACK_NAME)
             for param in HANDLER_PARAMS
         }
+
         handler_params.update(output_params)
         return self.package_handler(
-            bucket_name, HANDLER_TEMPLATE_PATH, stack_name, handler_params
+            bucket_name, HANDLER_TEMPLATE_PATH, handler_stack_name, handler_params
         )
 
-    def create_or_update_stack(self, stack_name, template_body, params):
+    def create_or_update_stack(self, stack_name, template_body):
         args = {
             "StackName": stack_name,
             "TemplateBody": template_body,
             "Capabilities": CAPABILITIES,
-            "Parameters": params,
         }
         # attempt to create stack. if the stack already exists, try to update it
         try:
@@ -90,20 +90,17 @@ class Packager:
         waiter = self.client.get_waiter(terminal_state)
         waiter.wait(StackName=stack_name, WaiterConfig={"Delay": 5, "MaxAttempts": 200})
 
-    def get_stack_output(self, stack_name, output_key):
+    def get_stack_outputs(self, stack_name):
+        result = self.client.describe_stacks(StackName=stack_name)
+        outputs = result["Stacks"][0]["Outputs"]
+        return {output["OutputKey"]: output["OutputValue"] for output in outputs}
+
+    @staticmethod
+    def get_output(outputs, key, stack_name):
         try:
-            return self.outputs[stack_name][output_key]
+            return outputs[key]
         except KeyError:
-            # cache results
-            self.outputs[stack_name] = {}
-            result = self.client.describe_stacks(StackName=stack_name)
-            outputs = result["Stacks"][0]["Outputs"]
-            for output in outputs:
-                self.outputs[stack_name][output["OutputKey"]] = output["OutputValue"]
-        try:
-            return self.outputs[stack_name][output_key]
-        except KeyError:
-            raise OutputNotFoundError(stack_name, output_key)
+            raise OutputNotFoundError(stack_name, key)
 
     def package_handler(
         self, bucket_name, template_file, stack_name, params
@@ -168,7 +165,8 @@ class Packager:
                 LOG.info(str(e))
             else:
                 LOG.info("Successfully deployed handler stack '%s'", stack_name)
-        handler_arn = self.get_stack_output(stack_name, HANDLER_ARN_KEY)
+        outputs = self.get_stack_outputs(stack_name)
+        handler_arn = self.get_output(outputs, HANDLER_ARN_KEY, stack_name)
         LOG.info("Lambda function handler: '%s'", handler_arn)
-        LOG.debug(captured_out.read())
+        captured_out.close()
         return handler_arn

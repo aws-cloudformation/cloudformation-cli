@@ -106,8 +106,11 @@ Resources:
 
 Outputs:
   EncryptionKey:
-    Value: !GetAtt EncryptionKey.Arn
+    Value:
+      Fn::GetAtt: EncryptionKey.Arn
   BucketName:
-    Value: !Ref ArtifactBucket
+    Value:
+      Ref: ArtifactBucket
   LambdaRole:
-    Value: !GetAtt LambdaRole.Arn
+    Value:
+      Fn::GetAtt: LambdaRole.Arn

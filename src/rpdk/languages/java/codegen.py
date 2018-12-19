@@ -50,10 +50,10 @@ class JavaLanguagePlugin(LanguagePlugin):
         LOG.debug("Making test folder structure: %s", tst)
         tst.mkdir(parents=True, exist_ok=True)
 
-        artifact_id = "{}-handler".format(project.hypenated_name)
         path = project.root / "pom.xml"
         LOG.debug("Writing Maven POM: %s", path)
         template = self.env.get_template("pom.xml")
+        artifact_id = "{}-handler".format(project.hypenated_name)
         contents = template.render(
             group_id=self.package_name, artifact_id=artifact_id, executable=EXECUTABLE
         )
@@ -63,7 +63,9 @@ class JavaLanguagePlugin(LanguagePlugin):
         path = project.root / "Handler.yaml"
         LOG.debug("Writing SAM template: %s", path)
         template = self.env.get_template("Handler.yaml")
-        contents = template.render(resource_type=project.hypenated_name)
+        contents = template.render(
+            resource_type=project.hypenated_name, runtime=self.RUNTIME
+        )
         project.safewrite(path, contents)
 
         LOG.debug("Writing stub handlers")
@@ -145,7 +147,5 @@ class JavaLanguagePlugin(LanguagePlugin):
         client = boto3.client("cloudformation")
         packager = Packager(client)
         handler_stack_name = "{}-stack".format(project.hypenated_name)
-        handler_params = {}
-        handler_params["HandlerEntry"] = self.ENTRY_POINT.format(self.package_name)
-        handler_params["Runtime"] = self.RUNTIME
-        return packager.package(handler_stack_name, handler_params)
+        params = {"HandlerEntry": self.ENTRY_POINT.format(self.package_name)}
+        return packager.package(handler_stack_name, params)
