@@ -2,6 +2,7 @@ import json
 import logging
 import shutil
 from io import TextIOWrapper
+from pathlib import Path
 
 import pkg_resources
 import requests
@@ -9,10 +10,17 @@ import yaml
 from jsonschema import Draft7Validator, RefResolver
 from jsonschema.exceptions import ValidationError
 
+from .jsonutils.inliner import RefInliner
+
 LOG = logging.getLogger(__name__)
 
 
+class InternalError(Exception):
+    pass
+
+
 TIMEOUT_IN_SECONDS = 10
+STDIN_NAME = "<stdin>"
 
 
 def resource_stream(package_name, resource_name, encoding="utf-8"):
@@ -67,6 +75,23 @@ def make_resource_validator(base_uri=None, timeout=TIMEOUT_IN_SECONDS):
     return make_validator(schema, base_uri=base_uri, timeout=timeout)
 
 
+def get_file_base_uri(file):
+    try:
+        name = file.name
+    except AttributeError:
+        LOG.error(
+            "Resource spec has no filename associated, "
+            "relative references may not work"
+        )
+        name = STDIN_NAME
+
+    if name == STDIN_NAME:
+        path = Path.cwd() / "-"  # fake file
+    else:
+        path = Path(name)
+    return path.resolve().as_uri()
+
+
 def load_resource_spec(resource_spec_file):
     """Load a resource provider definition from a file, and validate it."""
     try:
@@ -95,4 +120,15 @@ def load_resource_spec(resource_spec_file):
             schema=resource_spec,
         )
 
-    return resource_spec
+    base_uri = get_file_base_uri(resource_spec_file)
+
+    inliner = RefInliner(base_uri, resource_spec)
+    inlined = inliner.inline()
+
+    try:
+        validator.validate(inlined)
+    except ValidationError as e:
+        LOG.debug("Inlined schema is no longer valid", exc_info=True)
+        raise InternalError() from e
+
+    return inlined

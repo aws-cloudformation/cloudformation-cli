@@ -4,14 +4,19 @@ import json
 from contextlib import contextmanager
 from io import BytesIO, StringIO
 from pathlib import Path
-from unittest.mock import create_autospec, patch
+from subprocess import check_output
+from unittest.mock import ANY, create_autospec, patch
 
 import jsonschema
 import pytest
 import yaml
+from jsonschema.exceptions import ValidationError
 from pytest_localserver.http import Request, Response, WSGIServer
 
 from rpdk.data_loaders import (
+    STDIN_NAME,
+    InternalError,
+    get_file_base_uri,
     load_resource_spec,
     make_validator,
     resource_json,
@@ -23,6 +28,8 @@ from rpdk.plugin_base import LanguagePlugin
 # Lonely continuation byte is invalid
 # https://www.cl.cam.ac.uk/~mgk25/ucs/examples/UTF-8-test.txt
 INVALID_UTF8 = b"\x80"
+
+BASIC_SCHEMA = {"typeName": "AWS::FOO::BAR", "properties": {"foo": {"type": "string"}}}
 
 
 def yaml_s(obj):
@@ -83,6 +90,61 @@ def test_load_resource_spec_remote_key_is_invalid():
     with pytest.raises(jsonschema.exceptions.ValidationError) as excinfo:
         load_resource_spec(yaml_s(schema))
     assert "remote" in excinfo.value.message
+
+
+def test_argparse_stdin_name():
+    """By default, pytest messes with stdin and stdout, which prevents me from
+    writing a test to check we have the right magic name that argparse uses
+    for stdin. So I invoke a separate, pristine python process to check.
+    """
+    code = "; ".join(
+        """import argparse
+parser = argparse.ArgumentParser()
+parser.add_argument("file", type=argparse.FileType("r"))
+args = parser.parse_args(["-"])
+print(args.file.name)
+""".splitlines()
+    )
+
+    raw = check_output(["python3", "-c", code])
+    result = raw.rstrip().decode("utf-8")  # remove trailing newline
+    assert result == STDIN_NAME
+
+
+def test_get_file_base_uri_file_object_no_name():
+    f = yaml_s(BASIC_SCHEMA)
+    assert not hasattr(f, "name")
+    expected = (Path.cwd() / "-").resolve().as_uri()
+    actual = get_file_base_uri(f)
+    assert actual == expected
+
+
+def test_load_resource_spec_file_object_stdin():
+    f = yaml_s(BASIC_SCHEMA)
+    f.name = STDIN_NAME
+    expected = (Path.cwd() / "-").resolve().as_uri()
+    actual = get_file_base_uri(f)
+    assert actual == expected
+
+
+def test_load_resource_spec_file_object_has_name(tmpdir):
+    f = yaml_s(BASIC_SCHEMA)
+    f.name = tmpdir.join("test.json")
+    expected = Path(f.name).resolve().as_uri()
+    actual = get_file_base_uri(f)
+    assert actual == expected
+
+
+def test_load_resource_spec_inliner_produced_invalid_schema():
+    with patch("rpdk.data_loaders.RefInliner", autospec=True) as mock_inliner:
+        mock_inliner.return_value.inline.return_value = {}
+        with pytest.raises(InternalError) as excinfo:
+            load_resource_spec(yaml_s(BASIC_SCHEMA))
+
+    mock_inliner.assert_called_once_with(ANY, BASIC_SCHEMA)
+    cause = excinfo.value.__cause__
+    assert cause
+    assert isinstance(cause, ValidationError)
 
 
 @pytest.fixture
