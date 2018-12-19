@@ -1,5 +1,5 @@
 {
-    "$id": "aws.s3.bucket.v1.json",
+    "$id": "aws-s3-bucket.json",
     "typeName": "AWS::S3::Bucket",
     "definitions": {
         "AccelerateConfiguration": {
@@ -22,10 +22,10 @@
             "type": "object",
             "properties": {
                 "BucketAccountId": {
-                    "$ref": "../aws.common.types.v1.json#/definitions/AccountId"
+                    "$ref": "aws.common.types.v1.json#/definitions/AccountId"
                 },
                 "BucketArn": {
-                    "$ref": "../aws.common.types.v1.json#/definitions/Arn"
+                    "$ref": "aws.common.types.v1.json#/definitions/Arn"
                 },
                 "Format": {
                     "type": "string"
@@ -294,7 +294,7 @@
                     "type": "string"
                 },
                 "TransitionDate": {
-                    "$ref": "../common.types.v1.json#/definitions/iso8601UTC"
+                    "$ref": "common.types.v1.json#/definitions/iso8601UTC"
                 },
                 "TransitionInDays": {
                     "type": "integer"
@@ -324,7 +324,7 @@
                     "$ref": "#/definitions/AbortIncompleteMultipartUpload"
                 },
                 "ExpirationDate": {
-                    "$ref": "../common.types.v1.json#/definitions/iso8601UTC"
+                    "$ref": "common.types.v1.json#/definitions/iso8601UTC"
                 },
                 "ExpirationInDays": {
                     "type": "integer"
@@ -515,7 +515,7 @@
                     "$ref": "#/definitions/NotificationFilter"
                 },
                 "Function": {
-                    "$ref": "../aws.common.types.v1.json#/definitions/Arn"
+                    "$ref": "aws.common.types.v1.json#/definitions/Arn"
                 }
             },
             "additionalProperties": false,
@@ -534,7 +534,7 @@
                     "$ref": "#/definitions/NotificationFilter"
                 },
                 "Queue": {
-                    "$ref": "../aws.common.types.v1.json#/definitions/Arn"
+                    "$ref": "aws.common.types.v1.json#/definitions/Arn"
                 }
             },
             "additionalProperties": false,
@@ -553,7 +553,7 @@
                     "$ref": "#/definitions/NotificationFilter"
                 },
                 "Topic": {
-                    "$ref": "../aws.common.types.v1.json#/definitions/Arn"
+                    "$ref": "aws.common.types.v1.json#/definitions/Arn"
                 }
             },
             "additionalProperties": false,
@@ -602,7 +602,7 @@
             "type": "object",
             "properties": {
                 "ReplicaKmsKeyID": {
-                    "$ref": "../aws.common.types.v1.json#/definitions/Arn"
+                    "$ref": "aws.common.types.v1.json#/definitions/Arn"
                 }
             },
             "additionalProperties": false,
@@ -617,7 +617,7 @@
                     "$ref": "#/definitions/AccessControlTranslation"
                 },
                 "Account": {
-                    "$ref": "../aws.common.types.v1.json#/definitions/AccountId"
+                    "$ref": "aws.common.types.v1.json#/definitions/AccountId"
                 },
                 "Bucket": {
                     "type": "string"
@@ -857,7 +857,7 @@
         },
         "Arn": {
             "description": "The Amazon Resource Name (ARN) of the specified bucket.",
-            "$ref": "../aws.common.types.v1.json#/definitions/Arn",
+            "$ref": "aws.common.types.v1.json#/definitions/Arn",
             "examples": [
                 "arn:aws:s3:::mybucket"
             ]
@@ -922,7 +922,7 @@
         },
         "Tags": {
             "description": "An arbitrary set of tags (key-value pairs) for this S3 bucket.",
-            "$ref": "../aws.common.types.v1.json#/definitions/Tags"
+            "$ref": "aws.common.types.v1.json#/definitions/Tags"
         },
         "VersioningConfiguration": {
             "description": "Enables multiple variants of all objects in this bucket.",
