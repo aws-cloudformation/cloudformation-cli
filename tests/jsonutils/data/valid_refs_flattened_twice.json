@@ -1,0 +1,25 @@
+{
+    "typeName": "AWS::Valid::TypeName",
+    "properties": {
+        "A": {
+            "type": "object",
+            "oneOf": [
+                {
+                    "properties": {
+                        "B": {
+                            "type": "object",
+                            "properties": {
+                                "HostName": {
+                                    "type": "string"
+                                }
+                            },
+                            "additionalProperties": false
+                        }
+                    }
+                }
+            ],
+            "additionalProperties": false
+        }
+    },
+    "additionalProperties": false
+}

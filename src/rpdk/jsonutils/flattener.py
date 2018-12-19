@@ -81,12 +81,16 @@ class JsonSchemaFlattener:
         * Refs to an object will have its own class, so the ref will be returned as is.
         * Refs to a primitive will be inlined into the schema, removing the ref.
         """
-        try:
-            ref_parts = fragment_decode(ref_path)
-        except ValueError as e:
-            raise FlatteningError(
-                "Invalid ref at path '{}': {}".format(ref_path, str(e))
-            )
+        if isinstance(ref_path, tuple):
+            # we have already processed the ref, usually via flattening combiners
+            ref_parts = ref_path
+        else:
+            try:
+                ref_parts = fragment_decode(ref_path)
+            except ValueError as e:
+                raise FlatteningError(
+                    "Invalid ref at path '{}': {}".format(ref_path, str(e))
+                )
 
         ref_schema, ref_parts = self._find_subschema_by_ref(ref_parts)
         return self._walk(ref_parts, ref_schema)
