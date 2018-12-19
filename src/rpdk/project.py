@@ -19,7 +19,7 @@ SETTINGS_VALIDATOR = Draft6Validator(
             "language": {"type": "string"},
             "typeName": {"type": "string", "pattern": TYPE_NAME_REGEX},
             "settings": {"type": "object"},
-            "handlerArn": {"type": ["string", "null"]},
+            "handlerArn": {"type": ["string"]},
         },
         "required": ["language", "typeName"],
         "additionalProperties": False,
@@ -43,10 +43,6 @@ class Project:  # pylint: disable=too-many-instance-attributes
         self.handler_arn = None
 
         LOG.debug("Root directory: %s", self.root)
-
-    @property
-    def language(self):
-        return self._plugin.NAME
 
     @property
     def type_name(self):
@@ -148,4 +144,4 @@ class Project:  # pylint: disable=too-many-instance-attributes
 
     def package(self):
         self.handler_arn = self._plugin.package(self)
-        self._write_settings(self.language)
+        self._write_settings(self._plugin.NAME)

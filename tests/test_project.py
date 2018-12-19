@@ -44,8 +44,7 @@ def test_load_settings_invalid_settings(project):
 
 def test_load_settings_valid_json(project):
     plugin = object()
-    type_name = "AWS::Color::Red"
-    data = json.dumps({"typeName": type_name, "language": LANGUAGE, "handlerArn": ARN})
+    data = json.dumps({"typeName": TYPE_NAME, "language": LANGUAGE, "handlerArn": ARN})
     patch_load = patch("rpdk.project.load_plugin", autospec=True, return_value=plugin)
 
     with patch_settings(project, data) as mock_open, patch_load as mock_load:
@@ -54,7 +53,7 @@ def test_load_settings_valid_json(project):
     mock_open.assert_called_once_with("r", encoding="utf-8")
     mock_load.assert_called_once_with(LANGUAGE)
     assert project.type_info == ("AWS", "Color", "Red")
-    assert project.type_name == type_name
+    assert project.type_name == TYPE_NAME
     assert project._plugin is plugin
     assert project.settings == {}
 

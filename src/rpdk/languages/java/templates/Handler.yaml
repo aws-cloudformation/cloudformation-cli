@@ -12,10 +12,6 @@ Parameters:
   LambdaRole:
     Type: String
     Description: "The role necessary for the Lambda function to successfully execute"
-  Runtime:
-    Type: String
-    Description: "The runtime of the Lambda function"
-
 
 Resources:
   ResourceHandler:
@@ -30,8 +26,7 @@ Resources:
         Ref: EncryptionKey
       Role:
         Ref: LambdaRole
-      Runtime:
-        Ref: Runtime
+      Runtime: {{ runtime }}
       Timeout: 60
       MemorySize: 128
 

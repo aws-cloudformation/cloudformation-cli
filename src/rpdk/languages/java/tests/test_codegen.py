@@ -40,13 +40,14 @@ def test_initialize(project):
     namespace = {"maven": "http://maven.apache.org/POM/4.0.0"}
     group_id = pom_tree.find("maven:groupId", namespace)
     assert group_id.text == "com.aws.foo.{}".format(RESOURCE.lower())
-    with open(project.root / "Handler.yaml") as f:
+    path = project.root / "Handler.yaml"
+    with path.open("r", encoding="utf-8") as f:
         template = yaml.safe_load(f)
 
     handler_properties = template["Resources"]["ResourceHandler"]["Properties"]
-    assert handler_properties["CodeUri"] == "./target/{}-1.0-SNAPSHOT.jar".format(
-        handler_name
-    )
+
+    code_uri = "./target/{}-1.0-SNAPSHOT.jar".format(handler_name)
+    assert handler_properties["CodeUri"] == code_uri
     assert handler_properties["FunctionName"] == handler_name
 
 
@@ -77,11 +78,11 @@ def test_package(project):
         project.package()
 
     expected_stack = "{}-stack".format(project.hypenated_name)
-    expected_params = {}
-    expected_params["HandlerEntry"] = JavaLanguagePlugin.ENTRY_POINT.format(
-        project._plugin.package_name
-    )
-    expected_params["Runtime"] = JavaLanguagePlugin.RUNTIME
+    expected_params = {
+        "HandlerEntry": JavaLanguagePlugin.ENTRY_POINT.format(
+            project._plugin.package_name
+        )
+    }
 
     mock_package.assert_called_once_with(expected_stack, expected_params)
     assert project.handler_arn == expected_arn
