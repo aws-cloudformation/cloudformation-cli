@@ -88,7 +88,7 @@ def test_refinliner_remote_refs_simple_are_walked_and_inlined(httpserver):
     inliner = make_inliner({"type": "object", "properties": {"foo": {"$ref": ref}}})
     schema = inliner.inline()
     assert schema["remote"]["schema0"]["nested"]["bar"] == target
-    assert schema["properties"]["foo"]["$ref"] == "#/definitions/schema0/nested/bar"
+    assert schema["properties"]["foo"]["$ref"] == "#/remote/schema0/nested/bar"
     assert len(inliner.ref_graph) == 1
 
 
@@ -104,7 +104,7 @@ def test_refinliner_remote_refs_circular_are_walked_and_inlined(httpserver):
     )
     schema = inliner.inline()
     assert schema["remote"]["schema0"]["nested"]["bar"]["$ref"] == ref_a
-    assert schema["properties"]["foo"]["$ref"] == "#/definitions/schema0/nested/bar"
+    assert schema["properties"]["foo"]["$ref"] == "#/remote/schema0/nested/bar"
     assert len(inliner.ref_graph) == 2
 
 
@@ -121,7 +121,7 @@ def test_refinliner_remote_refs_on_filesystem_are_inlined(tmpdir):
     )
     schema = inliner.inline()
     assert schema["remote"]["schema0"]["nested"]["bar"] == target
-    assert schema["properties"]["foo"]["$ref"] == "#/definitions/schema0/nested/bar"
+    assert schema["properties"]["foo"]["$ref"] == "#/remote/schema0/nested/bar"
     assert len(inliner.ref_graph) == 1
 
 

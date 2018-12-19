@@ -44,20 +44,20 @@ def rewrite_ref(ref):
 
     If the reference is outside of the base document, a unique pointer inside
     the base document is made by namespacing the reference under the remote base
-    name inside the definitions section.
+    name inside the remote section.
 
     >>> rewrite_ref((BASE, "foo", "bar"))
     '#/foo/bar'
     >>> rewrite_ref((BASE,))
     '#'
     >>> rewrite_ref(("remote", "foo", "bar"))
-    '#/definitions/remote/foo/bar'
+    '#/remote/remote/foo/bar'
     >>> rewrite_ref(("remote",))
-    '#/definitions/remote'
+    '#/remote/remote'
     """
     base, *parts = ref
     if base is not BASE:
-        parts = ["definitions", base] + parts
+        parts = ["remote", base] + parts
     return fragment_encode(parts)
 
 
