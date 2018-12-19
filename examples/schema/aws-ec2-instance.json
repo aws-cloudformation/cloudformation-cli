@@ -1,5 +1,5 @@
 {
-    "$id": "aws.ec2.instance.v1.json",
+    "$id": "aws-ec2-instance.json",
     "typeName": "AWS::EC2::Instance",
     "definitions": {
         "Ebs": {
@@ -90,7 +90,7 @@
             "type": "object",
             "properties": {
                 "Ipv6Address": {
-                    "$ref": "../common.types.v1.json#/definitions/ipv6Address"
+                    "$ref": "common.types.v1.json#/definitions/ipv6Address"
                 }
             },
             "additionalProperties": false,
@@ -123,7 +123,7 @@
                     "type": "boolean"
                 },
                 "PrivateIpAddress": {
-                    "$ref": "../common.types.v1.json#/definitions/ipv4Address"
+                    "$ref": "common.types.v1.json#/definitions/ipv4Address"
                 }
             },
             "additionalProperties": false,
@@ -166,7 +166,7 @@
                     "type": "string"
                 },
                 "PrivateIpAddress": {
-                    "$ref": "../common.types.v1.json#/definitions/ipv4Address"
+                    "$ref": "common.types.v1.json#/definitions/ipv4Address"
                 },
                 "PrivateIpAddresses": {
                     "type": "array",
@@ -264,7 +264,7 @@
             ]
         },
         "AvailabilityZone": {
-            "$ref": "../aws.common.types.v1.json#/definitions/AvailabilityZone"
+            "$ref": "aws.common.types.v1.json#/definitions/AvailabilityZone"
         },
         "BlockDeviceMappings": {
             "type": "array",
@@ -306,8 +306,8 @@
         "InstanceType": {
             "type": "string",
             "default": "m1.small",
-            "$comment": "defined in ../aws.common.types.v1.json#/definitions/InstanceType",
-            "$ref": "../aws.common.types.v1.json#/definitions/InstanceType"
+            "$comment": "defined in aws.common.types.v1.json#/definitions/InstanceType",
+            "$ref": "aws.common.types.v1.json#/definitions/InstanceType"
         },
         "Ipv6AddressCount": {
             "type": "integer"
@@ -340,7 +340,7 @@
             "type": "string"
         },
         "PrivateIpAddress": {
-            "$ref": "../common.types.v1.json#/definitions/ipv4Address"
+            "$ref": "common.types.v1.json#/definitions/ipv4Address"
         },
         "RamdiskId": {
             "type": "string"
@@ -370,7 +370,7 @@
             "type": "string"
         },
         "Tags": {
-            "$ref": "../aws.common.types.v1.json#/definitions/Tags"
+            "$ref": "aws.common.types.v1.json#/definitions/Tags"
         },
         "Tenancy": {
             "type": "string",

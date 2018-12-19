@@ -58,12 +58,12 @@ def test_load_resource_spec_empty_object_is_invalid():
         load_resource_spec(yaml_s({}))
 
 
-def json_files_params(path):
-    return tuple(pytest.param(p, id=p.name) for p in path.glob("*.json"))
+def json_files_params(path, glob="*.json"):
+    return tuple(pytest.param(p, id=p.name) for p in path.glob(glob))
 
 
 @pytest.mark.parametrize(
-    "example", json_files_params(BASEDIR.parent / "examples" / "schema" / "resource")
+    "example", json_files_params(BASEDIR.parent / "examples" / "schema", "*-*-*.json")
 )
 def test_load_resource_spec_example_spec_is_valid(example):
     with example.open("r", encoding="utf-8") as f:

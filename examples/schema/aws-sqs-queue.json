@@ -1,10 +1,10 @@
 {
-    "$id": "aws.sqs.queue.v1.json",
+    "$id": "aws-sqs-queue.json",
     "typeName": "AWS::SQS::Queue",
     "properties": {
         "Arn": {
             "description": "The Amazon Resource Name (ARN) of the queue.",
-            "$ref": "../aws.common.types.v1.json#/definitions/Arn",
+            "$ref": "aws.common.types.v1.json#/definitions/Arn",
             "examples": [
                 "arn:aws:sqs:us-east-2:123456789012:mystack-myqueue-15PG5C2FC1CW8."
             ]
@@ -68,7 +68,7 @@
             "description": "Specifies an existing dead letter queue to receive messages after the source queue (this queue) fails to process a message a specified number of times.",
             "properties": {
                 "deadLetterTargetArn": {
-                    "$ref": "../aws.common.types.v1.json#/definitions/Arn"
+                    "$ref": "aws.common.types.v1.json#/definitions/Arn"
                 },
                 "maxReceiveCount": {
                     "type": "integer"
@@ -78,7 +78,7 @@
         },
         "Tags": {
             "description": "The tags that you want to attach to this queue.",
-            "$ref": "../aws.common.types.v1.json#/definitions/Tags"
+            "$ref": "aws.common.types.v1.json#/definitions/Tags"
         },
         "URL": {
             "type": "string",
