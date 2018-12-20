@@ -19,7 +19,7 @@ class JavaLanguagePlugin(LanguagePlugin):
     MODULE_NAME = __name__
     NAME = "java"
     RUNTIME = "java8"
-    ENTRY_POINT = "{}.BaseHandler::handleRequest"
+    ENTRY_POINT = "{}.HandlerWrapper::handleRequest"
     CODE_URI = "./target/{}-1.0-SNAPSHOT.jar"
 
     def __init__(self):
@@ -115,9 +115,9 @@ class JavaLanguagePlugin(LanguagePlugin):
         LOG.debug("Making generated folder structure: %s", src)
         src.mkdir(parents=True, exist_ok=True)
 
-        path = src / "BaseHandler.java"
+        path = src / "HandlerWrapper.java"
         LOG.debug("Writing base handler: %s", path)
-        template = self.env.get_template("BaseHandler.java")
+        template = self.env.get_template("HandlerWrapper.java")
         contents = template.render(
             package_name=self.package_name,
             operations=OPERATIONS,

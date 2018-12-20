@@ -9,7 +9,7 @@ import com.aws.rpdk.RequestContext;
 
 import {{ package_name }}.{{ pojo_name }};
 
-public final class BaseHandler extends LambdaWrapper<{{ pojo_name }}> {
+public final class HandlerWrapper extends LambdaWrapper<{{ pojo_name }}> {
 
     @Override
     public ProgressEvent invokeHandler(final HandlerRequest<{{ pojo_name }}> request,
