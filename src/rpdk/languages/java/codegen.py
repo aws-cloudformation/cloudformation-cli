@@ -28,12 +28,14 @@ class JavaLanguagePlugin(LanguagePlugin):
         )
         self.namespace = None
         self.package_name = None
+        self.aws_sdk_client_type_name = None
 
     def _namespace_from_project(self, project):
         self.namespace = ("com",) + tuple(
             safe_reserved(s.lower()) for s in project.type_info
         )
         self.package_name = ".".join(self.namespace)
+        self.aws_sdk_client_type_name = project.aws_sdk_client_type_name
 
     def init(self, project):
         LOG.debug("Init started")
@@ -116,12 +118,23 @@ class JavaLanguagePlugin(LanguagePlugin):
         src.mkdir(parents=True, exist_ok=True)
 
         path = src / "HandlerWrapper.java"
-        LOG.debug("Writing base handler: %s", path)
+        LOG.debug("Writing handler wrapper: %s", path)
         template = self.env.get_template("HandlerWrapper.java")
         contents = template.render(
             package_name=self.package_name,
             operations=OPERATIONS,
             pojo_name="ResourceModel",
+        )
+        project.overwrite(path, contents)
+
+        path = src / "BaseHandler.java"
+        LOG.debug("Writing base handler: %s", path)
+        template = self.env.get_template("BaseHandler.java")
+        contents = template.render(
+            package_name=self.package_name,
+            operations=OPERATIONS,
+            pojo_name="ResourceModel",
+            aws_sdk_client_type_name=self.aws_sdk_client_type_name
         )
         project.overwrite(path, contents)
 

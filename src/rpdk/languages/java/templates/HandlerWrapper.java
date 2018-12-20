@@ -11,19 +11,26 @@ import {{ package_name }}.{{ pojo_name }};
 
 public final class HandlerWrapper extends LambdaWrapper<{{ pojo_name }}> {
 
+    private final Map<Action, BaseHandler> handlers = new HashMap<>();
+
+    public HandlerWrapper() {
+
+        {{ client_package_name }} client = {{ client_builder }}.defaultClient();
+
+{% for op in operations %}
+        handlers.put({{ op }}, new {{ op }}Handler(client));
+{% endfor %}
+    }
+
     @Override
     public ProgressEvent invokeHandler(final HandlerRequest<{{ pojo_name }}> request,
                                        final Action action,
                                        final RequestContext context) {
 
-        switch (action) {
-{% for op in operations %}
-            case {{ op }}:
-                return {{ op }}Handler.handle{{ op }}(request, context);
-{% endfor %}
-        }
-
         final String actionName = (action == null) ? "<null>" : action.toString(); // paranoia
-        throw new RuntimeException("Unknown action " + actionName);
+        if (!handlers.containsKey(action))
+            throw new RuntimeException("Unknown action " + actionName);
+
+        handlers.get(action).handlerRequest(request, context);
     }
 }

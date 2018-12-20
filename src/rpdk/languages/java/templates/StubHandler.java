@@ -5,7 +5,11 @@ import com.aws.rpdk.HandlerRequest;
 import com.aws.rpdk.ProgressEvent;
 import com.aws.rpdk.RequestContext;
 
-public class {{ operation }}Handler {
+public class {{ operation }}Handler extends BaseHandler {
+
+    public {{ operation }}Handler({{ client_package_name }} client) {
+        super(client);
+    }
 
     public static ProgressEvent handle{{ operation }}(
         final HandlerRequest<{{ pojo_name }}> request,

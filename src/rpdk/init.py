@@ -11,6 +11,7 @@ LOG = logging.getLogger(__name__)
 
 
 TYPE_NAME_REGEX = r"^[a-zA-Z0-9]{2,64}::[a-zA-Z0-9]{2,64}::[a-zA-Z0-9]{2,64}$"
+AWS_SDK_CLIENT_REGEX = r"^com.amazonaws.services.[a-zA-Z0-9]{2,64}.[a-zA-Z0-9]{2,64}$"
 
 
 class AbortError(Exception):
@@ -36,6 +37,14 @@ def validate_type_name(value):
         return value
     LOG.debug("'%s' did not match '%s'", value, TYPE_NAME_REGEX)
     raise ValidationError("Please enter a value matching '{}'".format(TYPE_NAME_REGEX))
+
+
+def validate_aws_sdk_client_name(value):
+    match = re.match(AWS_SDK_CLIENT_REGEX, value)
+    if match:
+        return value
+    LOG.debug("'%s' did not match '%s'", value, AWS_SDK_CLIENT_REGEX)
+    raise ValidationError("Please enter a value matching '{}'".format(AWS_SDK_CLIENT_REGEX))
 
 
 def validate_yes(value):
@@ -116,6 +125,15 @@ def input_language():
     return language
 
 
+def input_aws_sdk_client_typename():
+    type_name = input_with_validation(
+        "Enter AWS SDK client package (com.amazonaws.services.<service>.<client>): ",
+        validate_aws_sdk_client_name,
+    )
+    LOG.debug("AWS SDK Client identifier: %s", type_name)
+    return type_name
+
+
 def init(args):
     project = Project(args.force)
 
@@ -125,8 +143,9 @@ def init(args):
 
     type_name = input_typename()
     language = input_language()
+    aws_sdk_client_type_name = input_aws_sdk_client_typename()
 
-    project.init(type_name, language)
+    project.init(type_name, language, aws_sdk_client_type_name)
     project.generate()
 
 
