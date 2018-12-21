@@ -7,9 +7,9 @@ import com.aws.rpdk.RequestContext;
 
 public abstract class BaseHandler {
 
-    protected final {{ aws_sdk_client_type_name }} client;
+    protected {{ aws_sdk_client_type_name }} client;
 
-    public BaseHandler({{ aws_sdk_client_type_name }} client) {
+    public void setClient({{ aws_sdk_client_type_name }} client) {
         this.client = client;
     }
 

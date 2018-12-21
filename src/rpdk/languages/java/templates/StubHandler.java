@@ -7,15 +7,17 @@ import com.aws.rpdk.RequestContext;
 
 public class {{ operation }}Handler extends BaseHandler {
 
-    public {{ operation }}Handler({{ client_package_name }} client) {
-        super(client);
-    }
-
-    public static ProgressEvent handle{{ operation }}(
+    @Override
+    public ProgressEvent handleRequest(
         final HandlerRequest<{{ pojo_name }}> request,
         final RequestContext context) {
 
+        ResourceModel model = request.getResourceModel();
+
         // TODO : put your code here
-        return new ProgressEvent(ProgressStatus.Complete, "");
+        ProgressEvent pe = new ProgressEvent();
+        pe.setResourceModel(model);
+        pe.setStatus(ProgressStatus.Complete);
+        return pe;
     }
 }

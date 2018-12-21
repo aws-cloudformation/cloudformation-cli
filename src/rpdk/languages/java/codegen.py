@@ -83,6 +83,7 @@ class JavaLanguagePlugin(LanguagePlugin):
                 package_name=self.package_name,
                 operation=operation,
                 pojo_name="ResourceModel",
+                aws_sdk_client_type_name=self.aws_sdk_client_type_name,
             )
             project.safewrite(path, contents)
 
@@ -124,6 +125,16 @@ class JavaLanguagePlugin(LanguagePlugin):
             package_name=self.package_name,
             operations=OPERATIONS,
             pojo_name="ResourceModel",
+            aws_sdk_client_type_name=self.aws_sdk_client_type_name,
+        )
+        project.overwrite(path, contents)
+
+        path = src / "AWSSDKClientFactory.java"
+        LOG.debug("Writing AWSSDK client factory: %s", path)
+        template = self.env.get_template("AWSSDKClientFactory.java")
+        contents = template.render(
+            package_name=self.package_name,
+            aws_sdk_client_type_name=self.aws_sdk_client_type_name,
         )
         project.overwrite(path, contents)
 
@@ -134,7 +145,7 @@ class JavaLanguagePlugin(LanguagePlugin):
             package_name=self.package_name,
             operations=OPERATIONS,
             pojo_name="ResourceModel",
-            aws_sdk_client_type_name=self.aws_sdk_client_type_name
+            aws_sdk_client_type_name=self.aws_sdk_client_type_name,
         )
         project.overwrite(path, contents)
 

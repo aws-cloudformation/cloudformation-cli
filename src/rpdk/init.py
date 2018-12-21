@@ -44,7 +44,9 @@ def validate_aws_sdk_client_name(value):
     if match:
         return value
     LOG.debug("'%s' did not match '%s'", value, AWS_SDK_CLIENT_REGEX)
-    raise ValidationError("Please enter a value matching '{}'".format(AWS_SDK_CLIENT_REGEX))
+    raise ValidationError(
+        "Please enter a value matching '{}'".format(AWS_SDK_CLIENT_REGEX)
+    )
 
 
 def validate_yes(value):

@@ -9,16 +9,16 @@ import com.aws.rpdk.RequestContext;
 
 import {{ package_name }}.{{ pojo_name }};
 
+import java.util.HashMap;
+import java.util.Map;
+
 public final class HandlerWrapper extends LambdaWrapper<{{ pojo_name }}> {
 
     private final Map<Action, BaseHandler> handlers = new HashMap<>();
 
     public HandlerWrapper() {
-
-        {{ client_package_name }} client = {{ client_builder }}.defaultClient();
-
 {% for op in operations %}
-        handlers.put({{ op }}, new {{ op }}Handler(client));
+        handlers.put(Action.{{ op }}, new {{ op }}Handler());
 {% endfor %}
     }
 
@@ -31,6 +31,15 @@ public final class HandlerWrapper extends LambdaWrapper<{{ pojo_name }}> {
         if (!handlers.containsKey(action))
             throw new RuntimeException("Unknown action " + actionName);
 
-        handlers.get(action).handlerRequest(request, context);
+        {{ aws_sdk_client_type_name }} client = AWSSDKClientFactory.newClient(
+            request.getRequestData().getCredentials().getAccessKeyId(),
+            request.getRequestData().getCredentials().getSecretAccessKey(),
+            request.getRegion()
+        );
+
+        BaseHandler handler = handlers.get(action);
+        handler.setClient(client);
+
+        return handlers.get(action).handleRequest(request, context);
     }
 }
