@@ -1,7 +1,7 @@
 # pylint: disable=redefined-outer-name
 import datetime
 import logging
-from unittest.mock import patch
+from unittest.mock import ANY as MOCK_ANY, patch
 
 import boto3
 import botocore.exceptions
@@ -13,7 +13,7 @@ from awscli.customizations.cloudformation.package import PackageCommand
 from botocore.stub import ANY, Stubber
 from dateutil.tz import tzutc
 
-from rpdk.package_utils import (
+from rpdk.packager import (
     HANDLER_ARN_KEY,
     HANDLER_PARAMS,
     HANDLER_TEMPLATE_PATH,
@@ -21,6 +21,7 @@ from rpdk.package_utils import (
     NO_UPDATES_ERROR_MESSAGE,
     OutputNotFoundError,
     Packager,
+    package_handler,
 )
 
 EXPECTED_STACK_NAME = "Stack"
@@ -229,7 +230,7 @@ def test_package(packager):
     with create_update_patch as mock_create_update, (
         stack_output_patch
     ) as mock_stack_output, package_patch as mock_package:
-        packager.package("stackName", {})
+        packager.package("stackName")
 
     raw_template = pkg_resources.resource_string(
         "rpdk", "data/CloudFormationHandlerInfrastructure.yaml"
@@ -246,3 +247,11 @@ def test_package(packager):
     mock_package.assert_called_with(
         expected_out, HANDLER_TEMPLATE_PATH, "stackName", expected_handler_params
     )
+
+
+def test_helper_func_package_handler():
+    handler_stack_name = object()
+    with patch("rpdk.packager.Packager", autospec=True) as mock_packager:
+        package_handler(handler_stack_name)
+    mock_packager.assert_called_once_with(MOCK_ANY)
+    mock_packager.return_value.package.assert_called_once_with(handler_stack_name)

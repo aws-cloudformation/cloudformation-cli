@@ -6,7 +6,6 @@ from unittest.mock import patch
 import pytest
 import yaml
 
-from rpdk.package_utils import Packager
 from rpdk.project import Project
 
 from ..codegen import JavaLanguagePlugin
@@ -34,21 +33,22 @@ def test_java_language_plugin_module_is_set():
 def test_initialize(project):
     assert (project.root / "README.md").is_file()
 
-    handler_name = "{}-handler".format(project.hypenated_name)
-
     pom_tree = ET.parse(str(project.root / "pom.xml"))
     namespace = {"maven": "http://maven.apache.org/POM/4.0.0"}
-    group_id = pom_tree.find("maven:groupId", namespace)
-    assert group_id.text == "com.aws.foo.{}".format(RESOURCE.lower())
+    actual_group_id = pom_tree.find("maven:groupId", namespace)
+    expected_group_id = "com.aws.foo.{}".format(RESOURCE.lower())
+    assert actual_group_id.text == expected_group_id
     path = project.root / "Handler.yaml"
     with path.open("r", encoding="utf-8") as f:
         template = yaml.safe_load(f)
 
     handler_properties = template["Resources"]["ResourceHandler"]["Properties"]
 
-    code_uri = "./target/{}-1.0-SNAPSHOT.jar".format(handler_name)
+    code_uri = "./target/{}-handler-1.0-SNAPSHOT.jar".format(project.hypenated_name)
     assert handler_properties["CodeUri"] == code_uri
-    assert handler_properties["FunctionName"] == handler_name
+    handler = "{}.BaseHandler::handleRequest".format(expected_group_id)
+    assert handler_properties["Handler"] == handler
+    assert handler_properties["Runtime"] == project._plugin.RUNTIME
 
 
 def test_generate(project):
@@ -71,18 +71,5 @@ def test_generate(project):
 
 
 def test_package(project):
-    expected_arn = "HandlerArn"
     project.load_schema()
-
-    with patch.object(Packager, "package", return_value=expected_arn) as mock_package:
-        project.package()
-
-    expected_stack = "{}-stack".format(project.hypenated_name)
-    expected_params = {
-        "HandlerEntry": JavaLanguagePlugin.ENTRY_POINT.format(
-            project._plugin.package_name
-        )
-    }
-
-    mock_package.assert_called_once_with(expected_stack, expected_params)
-    assert project.handler_arn == expected_arn
+    project._plugin.package(project)

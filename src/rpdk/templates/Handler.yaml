@@ -3,9 +3,6 @@ Transform: AWS::Serverless-2016-10-31
 Description: "Handler template for the {{ resource_type }} resource type"
 
 Parameters:
-  HandlerEntry:
-    Type: String
-    Description: "The name of the function that Lambda executes"
   EncryptionKey:
     Type: String
     Description: "The ARN of the key used to encrypt/decrypt requests"
@@ -17,18 +14,16 @@ Resources:
   ResourceHandler:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ./target/{{ resource_type }}-handler-1.0-SNAPSHOT.jar
       Description: "Handler lambda function for the {{ resource_type }} resource type"
-      FunctionName: {{ resource_type }}-handler
-      Handler:
-        Ref: HandlerEntry
       KmsKeyArn:
         Ref: EncryptionKey
       Role:
         Ref: LambdaRole
-      Runtime: {{ runtime }}
       Timeout: 60
       MemorySize: 128
+      {% for key, value in handler_params.items() %}
+      {{ key }}: {{ value }}
+      {% endfor %}
 
   CloudFormationPermission:
     Type: AWS::Lambda::Permission

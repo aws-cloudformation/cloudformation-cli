@@ -3,10 +3,7 @@
 import logging
 import shutil
 
-import boto3
-
 from rpdk.jsonutils.flattener import JsonSchemaFlattener
-from rpdk.package_utils import Packager
 from rpdk.plugin_base import LanguagePlugin
 
 from .pojo_resolver import JavaPojoResolver
@@ -23,6 +20,7 @@ class JavaLanguagePlugin(LanguagePlugin):
     NAME = "java"
     RUNTIME = "java8"
     ENTRY_POINT = "{}.BaseHandler::handleRequest"
+    CODE_URI = "./target/{}-1.0-SNAPSHOT.jar"
 
     def __init__(self):
         self.env = self._setup_jinja_env(
@@ -64,7 +62,12 @@ class JavaLanguagePlugin(LanguagePlugin):
         LOG.debug("Writing SAM template: %s", path)
         template = self.env.get_template("Handler.yaml")
         contents = template.render(
-            resource_type=project.hypenated_name, runtime=self.RUNTIME
+            resource_type=project.type_name,
+            handler_params={
+                "Handler": self.ENTRY_POINT.format(self.package_name),
+                "Runtime": self.RUNTIME,
+                "CodeUri": self.CODE_URI.format(artifact_id),
+            },
         )
         project.safewrite(path, contents)
 
@@ -143,9 +146,3 @@ class JavaLanguagePlugin(LanguagePlugin):
     def package(self, project):
         self._namespace_from_project(project)
         # Maven performs packaging of jar
-        # only thing to do is upload that to s3 and create a lambda function
-        client = boto3.client("cloudformation")
-        packager = Packager(client)
-        handler_stack_name = "{}-stack".format(project.hypenated_name)
-        params = {"HandlerEntry": self.ENTRY_POINT.format(self.package_name)}
-        return packager.package(handler_stack_name, params)

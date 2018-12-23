@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from jinja2 import Environment, PackageLoader, select_autoescape
+from jinja2 import ChoiceLoader, Environment, PackageLoader, select_autoescape
 
 from .filters import FILTER_REGISTRY
 
@@ -16,7 +16,12 @@ class LanguagePlugin(ABC):
 
     def _setup_jinja_env(self, **options):
         if "loader" not in options:
-            options["loader"] = PackageLoader(self._module_name, "templates/")
+            options["loader"] = ChoiceLoader(
+                [
+                    PackageLoader(self._module_name, "templates/"),
+                    PackageLoader(__name__, "templates/"),
+                ]
+            )
         if "autoescape" not in options:
             options["autoescape"] = select_autoescape(["html", "htm", "xml"])
 
