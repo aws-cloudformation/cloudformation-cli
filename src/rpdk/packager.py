@@ -4,6 +4,7 @@ from contextlib import redirect_stdout
 from io import StringIO
 from tempfile import NamedTemporaryFile
 
+import boto3
 import botocore.exceptions
 import pkg_resources
 from awscli.customizations.cloudformation.deploy import DeployCommand
@@ -37,7 +38,7 @@ class Packager:
     def __init__(self, client):
         self.client = client
 
-    def package(self, handler_stack_name, handler_params):
+    def package(self, handler_stack_name):
         raw_infra_template = pkg_resources.resource_string(
             __name__, INFRA_TEMPLATE_PATH
         )
@@ -50,9 +51,8 @@ class Packager:
             for param in HANDLER_PARAMS
         }
 
-        handler_params.update(output_params)
         return self.package_handler(
-            bucket_name, HANDLER_TEMPLATE_PATH, handler_stack_name, handler_params
+            bucket_name, HANDLER_TEMPLATE_PATH, handler_stack_name, output_params
         )
 
     def create_or_update_stack(self, stack_name, template_body):
@@ -173,3 +173,8 @@ class Packager:
         LOG.info("Lambda function handler: '%s'", handler_arn)
         captured_out.close()
         return handler_arn
+
+
+def package_handler(handler_stack_name):
+    client = boto3.client("cloudformation")
+    return Packager(client).package(handler_stack_name)

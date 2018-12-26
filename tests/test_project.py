@@ -151,13 +151,19 @@ def test_init(tmpdir):
 
 def test_package(project):
     project.type_name = TYPE_NAME
-
     mock_plugin = MagicMock(spec=["package"])
-    mock_plugin.package.return_value = ARN
     mock_plugin.NAME = LANGUAGE
 
-    with patch.object(project, "_plugin", mock_plugin):
+    patch_plugin = patch.object(project, "_plugin", mock_plugin)
+    patch_package = patch(
+        "rpdk.project.package_handler", autospec=True, return_value=ARN
+    )
+    patch_write = patch.object(project, "_write_settings", autospec=True)
+    with patch_plugin, patch_package as mock_package, patch_write as mock_write:
         project.package()
 
     mock_plugin.package.assert_called_once_with(project)
+    stack_name = "{}-stack".format(project.hypenated_name)
+    mock_package.assert_called_once_with(stack_name)
     assert project.handler_arn == ARN
+    mock_write.assert_called_once_with(LANGUAGE)

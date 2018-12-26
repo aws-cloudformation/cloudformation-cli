@@ -6,6 +6,7 @@ from jsonschema import Draft6Validator
 from jsonschema.exceptions import ValidationError
 
 from .data_loaders import load_resource_spec, resource_json
+from .packager import package_handler
 from .plugin_registry import load_plugin
 
 LOG = logging.getLogger(__name__)
@@ -143,5 +144,9 @@ class Project:  # pylint: disable=too-many-instance-attributes
         return self._plugin.generate(self)
 
     def package(self):
-        self.handler_arn = self._plugin.package(self)
+        self._plugin.package(self)
+
+        handler_stack_name = "{}-stack".format(self.hypenated_name)
+        self.handler_arn = package_handler(handler_stack_name)
+
         self._write_settings(self._plugin.NAME)
