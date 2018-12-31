@@ -21,5 +21,3 @@ def setup_subparser(subparsers, parents):
     # see docstring of this file
     parser = subparsers.add_parser("package", description=__doc__, parents=parents)
     parser.set_defaults(command=package)
-    # TODO this should be an optional argument and loaded in by the rpdk config
-    # https://github.com/awslabs/aws-cloudformation-rpdk/issues/141
