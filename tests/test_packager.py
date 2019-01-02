@@ -58,8 +58,11 @@ def packager():
 
 def test_create_stack_doesnt_exist(caplog, packager):
     stubber = Stubber(packager.client)
-    stubber.add_response("create_stack", {}, EXPECTED_STACK_PARAMS)
-    stubber.add_response("update_termination_protection", {}, TERMINATION_PARAMS)
+    stubber.add_response(
+        "create_stack",
+        {},
+        {**EXPECTED_STACK_PARAMS, "EnableTerminationProtection": True},
+    )
     wait_patch = patch.object(Packager, "stack_wait", autospec=True)
     caplog.set_level(logging.INFO)
     with stubber, wait_patch:
