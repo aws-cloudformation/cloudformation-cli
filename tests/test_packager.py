@@ -1,9 +1,8 @@
 # pylint: disable=redefined-outer-name
 import datetime
 import logging
-from unittest.mock import ANY as MOCK_ANY, patch
+from unittest.mock import patch
 
-import boto3
 import botocore.exceptions
 import pkg_resources
 import pytest
@@ -13,6 +12,7 @@ from awscli.customizations.cloudformation.package import PackageCommand
 from botocore.stub import ANY, Stubber
 from dateutil.tz import tzutc
 
+from rpdk.boto_helpers import create_client
 from rpdk.packager import (
     HANDLER_ARN_KEY,
     HANDLER_PARAMS,
@@ -50,7 +50,7 @@ FAKE_DATETIME = datetime.datetime(1, 1, 1, 1, 1, 1, 1, tzinfo=tzutc())
 
 @pytest.fixture
 def packager():
-    client = boto3.client(
+    client = create_client(
         "cloudformation", aws_access_key_id="NOTHING", aws_secret_access_key="NOTHING"
     )
     return Packager(client)
@@ -251,7 +251,14 @@ def test_package(packager):
 
 def test_helper_func_package_handler():
     handler_stack_name = object()
-    with patch("rpdk.packager.Packager", autospec=True) as mock_packager:
+    client = object()
+    patch_packager = patch("rpdk.packager.Packager", autospec=True)
+    patch_client = patch(
+        "rpdk.packager.create_client", autospec=True, return_value=client
+    )
+    with patch_packager as mock_packager, patch_client as mock_client:
         package_handler(handler_stack_name)
-    mock_packager.assert_called_once_with(MOCK_ANY)
+
+    mock_client.assert_called_once_with("cloudformation")
+    mock_packager.assert_called_once_with(client)
     mock_packager.return_value.package.assert_called_once_with(handler_stack_name)

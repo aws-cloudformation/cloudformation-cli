@@ -4,13 +4,14 @@ from contextlib import redirect_stdout
 from io import StringIO
 from tempfile import NamedTemporaryFile
 
-import boto3
 import botocore.exceptions
 import pkg_resources
 from awscli.customizations.cloudformation.deploy import DeployCommand
 from awscli.customizations.cloudformation.exceptions import ChangeEmptyError
 from awscli.customizations.cloudformation.package import PackageCommand
 from botocore.session import Session
+
+from .boto_helpers import create_client
 
 LOG = logging.getLogger(__name__)
 
@@ -176,5 +177,5 @@ class Packager:
 
 
 def package_handler(handler_stack_name):
-    client = boto3.client("cloudformation")
+    client = create_client("cloudformation")
     return Packager(client).package(handler_stack_name)
