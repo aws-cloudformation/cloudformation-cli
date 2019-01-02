@@ -152,14 +152,18 @@ class Packager:
                 bucket_name,
             )
             # uploads file to s3 and outputs modified template with s3 location
-            PackageCommand(self.client.boto3_session)._run_main(package_ns, global_ns)
+            PackageCommand(self.client.botocore_session)._run_main(
+                package_ns, global_ns
+            )
             LOG.info("Upload successful. Now deploying handler stack '%s'", stack_name)
             # adds output file to deploy arguments
             deploy_ns = Namespace(**deploy_args, template_file=output_file.name)
             try:
                 # deploys stack, which creates stack changeset
                 # from rewritten template and executes it
-                DeployCommand(self.client.boto3_session)._run_main(deploy_ns, global_ns)
+                DeployCommand(self.client.botocore_session)._run_main(
+                    deploy_ns, global_ns
+                )
             except ChangeEmptyError as e:
                 # If there are no changes between templates,
                 # log that and still return the handler arn
