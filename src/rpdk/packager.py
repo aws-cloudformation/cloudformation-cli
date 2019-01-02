@@ -23,7 +23,7 @@ class OutputNotFoundError(Exception):
 
 NO_UPDATES_ERROR_MESSAGE = "No updates are to be performed"
 SHARED_ARGS = {"s3_prefix": None, "kms_key_id": None, "force_upload": False}
-CAPABILITIES = ("CAPABILITY_IAM", "CAPABILITY_AUTO_EXPAND")
+CAPABILITIES = ("CAPABILITY_IAM",)
 INFRA_TEMPLATE_PATH = "data/CloudFormationHandlerInfrastructure.yaml"
 INFRA_STACK_NAME = "CFNResourceHandlerInfrastructure"
 INFRA_BUCKET_NAME = "BucketName"

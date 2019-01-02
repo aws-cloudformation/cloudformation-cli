@@ -37,7 +37,7 @@ setup(
     zip_safe=True,
     install_requires=[
         "awscli>=1.16",
-        "boto3>=1.9",
+        "boto3>=1.9.71,<1.10.0",
         "Jinja2>=2.10",
         "jsonschema>=3.0.0a3",
         "pytest>=4.0",
