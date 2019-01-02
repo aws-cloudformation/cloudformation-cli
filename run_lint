@@ -12,4 +12,4 @@ pylint "${files[@]}"
 # have to skip B101, contract tests use it and there's no way to skip for specific files
 # have to skip B322, as bandit apparently isn't clever enough to detect we're running Python 3
 bandit -r "src/" --skip "B101,B322" --exclude "tests"
-pytest --cov="src/" --doctest-modules "src/" "tests/"
+pytest --cov="src/" --doctest-modules --random-order-bucket="parent" "src/" "tests/"
