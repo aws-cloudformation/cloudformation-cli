@@ -101,13 +101,13 @@ def test_create_exists_update_noop(caplog, packager):
 
     with stubber, wait_patch:
         packager.create_or_update_stack(EXPECTED_STACK_NAME, EXPECTED_TEMPLATE_BODY)
+    stubber.assert_no_pending_responses()
 
     last_record = caplog.records[-1]
     assert all(
         s in last_record.message
         for s in (EXPECTED_STACK_NAME, NO_UPDATES_ERROR_MESSAGE)
     )
-    stubber.assert_no_pending_responses()
 
 
 def test_create_exists_update_fails(packager):
@@ -140,7 +140,6 @@ def test_stack_wait(packager):
 
 def test_package_handler(packager):
     stubber = Stubber(packager.client)
-    stubber.add_response("update_termination_protection", {}, TERMINATION_PARAMS)
     package = patch.object(PackageCommand, "_run_main", return_value=0)
     deploy = patch.object(DeployCommand, "_run_main", return_value=0)
     output = patch.object(
@@ -153,6 +152,8 @@ def test_package_handler(packager):
         packager.package_handler(
             EXPECTED_BUCKET, EXPECTED_TEMPLATE_PATH, EXPECTED_STACK_NAME, {}
         )
+    stubber.assert_no_pending_responses()
+
     mock_output.assert_called_once()
     mock_package.assert_called_once()
     mock_deploy.assert_called_once()
@@ -203,8 +204,9 @@ def test_get_stack_outputs(packager):
     stubber.add_response("describe_stacks", response)
     with stubber:
         returned_outputs = packager.get_stack_outputs(EXPECTED_STACK_NAME)
-    assert returned_outputs[OUTPUT_KEY] == OUTPUT_VALUE
     stubber.assert_no_pending_responses()
+
+    assert returned_outputs[OUTPUT_KEY] == OUTPUT_VALUE
 
 
 def test_get_output():
