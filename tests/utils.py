@@ -48,6 +48,10 @@ NAMES = [
 ]
 
 
+def random_type_name():
+    return "::".join(sample(NAMES, 3))
+
+
 def random_name():
     return "-".join(sample(NAMES, 3))
 

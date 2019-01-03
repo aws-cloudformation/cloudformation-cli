@@ -6,19 +6,37 @@ from io import StringIO
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+import boto3
 import pytest
+from botocore.stub import Stubber
 
-from rpdk.project import InvalidSettingsError, Project
+from rpdk.project import HANDLER_OPS, RESOURCE_EXISTS_MSG, InvalidSettingsError, Project
 
 LANGUAGE = "BQHDBC"
 CONTENTS_UTF8 = "💣"
 TYPE_NAME = "AWS::Color::Red"
 ARN = "SOMEARN"
+SCHEMA = {}
+EXPECTED_REGISTRY_ARGS = {
+    "TypeName": TYPE_NAME,
+    "Schema": json.dumps(SCHEMA),
+    "Handlers": {op: ARN for op in HANDLER_OPS},
+    "Documentation": "Docs",
+}
 
 
 @pytest.fixture
 def project():
     return Project()
+
+
+@pytest.fixture
+def submit_project():
+    project = Project()
+    project.type_name = TYPE_NAME
+    project.schema = SCHEMA
+    project.handler_arn = ARN
+    return project
 
 
 @contextmanager
@@ -167,3 +185,47 @@ def test_package(project):
     mock_package.assert_called_once_with(stack_name)
     assert project.handler_arn == ARN
     mock_write.assert_called_once_with(LANGUAGE)
+
+
+def test_submit(submit_project):
+    client = boto3.client("cloudformation")
+    stubber = Stubber(client)
+    stubber.add_response("create_resource_type", {"Arn": ARN}, EXPECTED_REGISTRY_ARGS)
+
+    with patch("rpdk.project.create_client", return_value=client), stubber:
+        arn = submit_project.submit()
+    stubber.assert_no_pending_responses()
+
+    assert arn == ARN
+
+
+def test_update_submit(submit_project):
+    client = boto3.client("cloudformation")
+    stubber = Stubber(client)
+    stubber.add_client_error(
+        "create_resource_type",
+        service_error_code="CFNRegistryException",
+        service_message=RESOURCE_EXISTS_MSG,
+    )
+    stubber.add_response("update_resource_type", {"Arn": ARN}, EXPECTED_REGISTRY_ARGS)
+    with patch("rpdk.project.create_client", return_value=client), stubber:
+        arn = submit_project.submit()
+    stubber.assert_no_pending_responses()
+
+    assert arn == ARN
+
+
+def test_fail_submit(submit_project):
+    client = boto3.client("cloudformation")
+    stubber = Stubber(client)
+
+    stubber.add_client_error(
+        "create_resource_type",
+        service_error_code="CFNRegistryException",
+        service_message="Unhandled Exception",
+    )
+    with patch(
+        "rpdk.project.create_client", return_value=client
+    ), stubber, pytest.raises(client.exceptions.CFNRegistryException):
+        submit_project.submit()
+    stubber.assert_no_pending_responses()
