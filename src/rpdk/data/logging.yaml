@@ -31,6 +31,9 @@ loggers:
   urllib3:
     level: ERROR
     # propagate: no
+  s3transfer:
+    level: ERROR
+    # propagate: no
 root:
   level: DEBUG
   handlers:
