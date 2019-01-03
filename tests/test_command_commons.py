@@ -29,11 +29,13 @@ def test_command_project_not_found(capsys, command):
         with pytest.raises(SystemExit) as excinfo:
             main(args_in=[command])
 
-    assert excinfo.value.code == 1
+    assert excinfo.value.code != EXIT_UNHANDLED_EXCEPTION
     mock_project.load_settings.assert_called_once_with()
     mock_project.load_schema.assert_not_called()
-    mock_project.generate.assert_not_called()
-
+    try:
+        getattr(mock_project, command).assert_not_called()
+    except AttributeError:
+        pass
     out, err = capsys.readouterr()
     assert not err
     assert "not found" in out
@@ -50,9 +52,12 @@ def test_command_invalid_schema(capsys, command):
     ):
         with pytest.raises(SystemExit):
             main(args_in=[command])
-    assert len(mock_project.method_calls) == 2
     mock_project.load_settings.assert_called_once_with()
     mock_project.load_schema.assert_called_once_with()
+    try:
+        getattr(mock_project, command).assert_not_called()
+    except AttributeError:
+        pass
 
     out, err = capsys.readouterr()
     assert not err
