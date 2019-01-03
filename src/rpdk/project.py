@@ -159,7 +159,7 @@ class Project:  # pylint: disable=too-many-instance-attributes
 
         registry_args = {
             "TypeName": self.type_name,
-            "Schema": json.dumps(self.schema),
+            "Schema": json.dumps(self.schema, ensure_ascii=False),
             "Handlers": handler_arns,
             # https://github.com/awslabs/aws-cloudformation-rpdk/issues/175
             "Documentation": "Docs",
