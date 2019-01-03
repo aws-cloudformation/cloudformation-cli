@@ -37,5 +37,7 @@ def create_client(name, **kwargs):
 
 def create_registry_client():
     return create_client(
-        "cloudformation", endpoint_url="https://uluru-facade.us-west-2.amazonaws.com"
+        "cloudformation",
+        endpoint_url="https://uluru-facade.us-west-2.amazonaws.com",
+        region_name="us-west-2",
     )

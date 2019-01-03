@@ -22,7 +22,9 @@ def test_create_registry_client():
     with patch("rpdk.boto_helpers.create_client", autospec=True) as mock_create:
         create_registry_client()
     mock_create.assert_called_once_with(
-        "cloudformation", endpoint_url="https://uluru-facade.us-west-2.amazonaws.com"
+        "cloudformation",
+        endpoint_url="https://uluru-facade.us-west-2.amazonaws.com",
+        region_name="us-west-2",
     )
 
 
