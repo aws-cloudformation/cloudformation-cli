@@ -2,7 +2,6 @@ from unittest.mock import ANY, Mock, PropertyMock, patch
 
 import pytest
 
-from rpdk.cli import EXIT_UNHANDLED_EXCEPTION, main
 from rpdk.init import (
     AbortError,
     ValidatePluginChoice,
@@ -20,16 +19,6 @@ from rpdk.project import Project
 
 PROMPT = "MECVGD"
 ERROR = "TUJFEL"
-
-
-def test_init_command_help(capsys):
-    with patch("rpdk.init.init", autospec=True) as mock_init:
-        with pytest.raises(SystemExit) as excinfo:
-            main(args_in=["init", "--help"])  # init has no required params
-    assert excinfo.value.code != EXIT_UNHANDLED_EXCEPTION
-    out, _ = capsys.readouterr()
-    assert "--help" in out
-    mock_init.assert_not_called()
 
 
 def test_init_method():

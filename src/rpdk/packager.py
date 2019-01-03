@@ -64,7 +64,7 @@ class Packager:
         # attempt to create stack. if the stack already exists, try to update it
         try:
             LOG.info("Creating stack '%s'", stack_name)
-            self.client.create_stack(**args)
+            self.client.create_stack(**args, EnableTerminationProtection=True)
         except self.client.exceptions.AlreadyExistsException:
             LOG.info(
                 "Stack '%s' already exists. Attempting to update stack", stack_name
@@ -84,9 +84,6 @@ class Packager:
         else:
             self.stack_wait(stack_name, "stack_create_complete")
             LOG.info("Stack '%s' successfully created", stack_name)
-            self.client.update_termination_protection(
-                EnableTerminationProtection=True, StackName=stack_name
-            )
 
     def stack_wait(self, stack_name, terminal_state):
         # waits for stack with name stack_name to be in state terminal_state

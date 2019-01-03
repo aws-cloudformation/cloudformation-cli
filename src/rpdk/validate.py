@@ -20,10 +20,10 @@ def validate(_args):
     try:
         project.load_schema()
     except ValidationError:
-        LOG.error("Validation failed.")
+        LOG.error("Resource specification is invalid.")
         raise SystemExit(1)
 
-    LOG.info("Validation succeeded.")
+    LOG.info("Resource specification is valid.")
 
 
 def setup_subparser(subparsers, parents):
