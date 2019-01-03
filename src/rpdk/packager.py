@@ -4,13 +4,13 @@ from contextlib import redirect_stdout
 from io import StringIO
 from tempfile import NamedTemporaryFile
 
-import boto3
 import botocore.exceptions
 import pkg_resources
 from awscli.customizations.cloudformation.deploy import DeployCommand
 from awscli.customizations.cloudformation.exceptions import ChangeEmptyError
 from awscli.customizations.cloudformation.package import PackageCommand
-from botocore.session import Session
+
+from .boto_helpers import create_client
 
 LOG = logging.getLogger(__name__)
 
@@ -105,8 +105,6 @@ class Packager:
     def package_handler(
         self, bucket_name, template_file, stack_name, params
     ):  # pylint: disable=protected-access,too-many-locals
-        session = Session()
-
         # setting up argument namespaces for the package command
         package_args = {
             "template_file": template_file,
@@ -134,7 +132,7 @@ class Packager:
 
         # global namespace for the commands that includes information like region
         global_ns = Namespace(
-            region=session.get_config_variable("region"),
+            region=self.client.boto3_session.region_name,
             verify_ssl=True,
             endpoint_url=None,
         )
@@ -151,14 +149,18 @@ class Packager:
                 bucket_name,
             )
             # uploads file to s3 and outputs modified template with s3 location
-            PackageCommand(session)._run_main(package_ns, global_ns)
+            PackageCommand(self.client.botocore_session)._run_main(
+                package_ns, global_ns
+            )
             LOG.info("Upload successful. Now deploying handler stack '%s'", stack_name)
             # adds output file to deploy arguments
             deploy_ns = Namespace(**deploy_args, template_file=output_file.name)
             try:
                 # deploys stack, which creates stack changeset
                 # from rewritten template and executes it
-                DeployCommand(session)._run_main(deploy_ns, global_ns)
+                DeployCommand(self.client.botocore_session)._run_main(
+                    deploy_ns, global_ns
+                )
             except ChangeEmptyError as e:
                 # If there are no changes between templates,
                 # log that and still return the handler arn
@@ -173,5 +175,5 @@ class Packager:
 
 
 def package_handler(handler_stack_name):
-    client = boto3.client("cloudformation")
+    client = create_client("cloudformation")
     return Packager(client).package(handler_stack_name)

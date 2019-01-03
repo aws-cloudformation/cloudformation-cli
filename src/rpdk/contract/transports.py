@@ -1,15 +1,16 @@
 import json
 
-import boto3
 from botocore import UNSIGNED
 from botocore.config import Config
+
+from ..boto_helpers import create_client
 
 
 class LocalLambdaTransport:
     def __init__(self, endpoint, function_name):
         self.endpoint = endpoint
         self.function_name = function_name
-        self.client = boto3.client(
+        self.client = create_client(
             "lambda",
             endpoint_url=self.endpoint,
             use_ssl=False,
