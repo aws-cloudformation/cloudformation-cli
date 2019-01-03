@@ -155,15 +155,13 @@ class Project:  # pylint: disable=too-many-instance-attributes
         self._write_settings(self._plugin.NAME)
 
     def submit(self):
-        # TODO need to decide if we are having separate lambda ARN for each operation.
-        # The below handlers dict assumes all operations share the same ARN
         handler_arns = {op: self.handler_arn for op in HANDLER_OPS}
 
         registry_args = {
             "TypeName": self.type_name,
             "Schema": json.dumps(self.schema),
             "Handlers": handler_arns,
-            # TODO Documentation field necessary because of bug
+            # https://github.com/awslabs/aws-cloudformation-rpdk/issues/175
             "Documentation": "Docs",
         }
         client = create_client("cloudformation")
@@ -173,7 +171,7 @@ class Project:  # pylint: disable=too-many-instance-attributes
             LOG.info("Created resource type with ARN '%s'", response["Arn"])
         except client.exceptions.CFNRegistryException as e:
             msg = str(e)
-            # TODO rely on exception type rather than message
+            # https://github.com/awslabs/aws-cloudformation-rpdk/issues/177
             if RESOURCE_EXISTS_MSG in msg:
                 response = client.update_resource_type(**registry_args)
                 LOG.info("Updated resource type with ARN '%s'", response["Arn"])
