@@ -5,6 +5,7 @@ from pathlib import Path
 from jsonschema import Draft6Validator
 from jsonschema.exceptions import ValidationError
 
+from .boto_helpers import create_client
 from .data_loaders import load_resource_spec, resource_json
 from .packager import package_handler
 from .plugin_registry import load_plugin
@@ -13,6 +14,8 @@ LOG = logging.getLogger(__name__)
 
 SETTINGS_FILENAME = ".rpdk-config"
 TYPE_NAME_REGEX = "^[a-zA-Z0-9]{2,64}::[a-zA-Z0-9]{2,64}::[a-zA-Z0-9]{2,64}$"
+RESOURCE_EXISTS_MSG = "Resource already exists."
+HANDLER_OPS = ("CREATE", "READ", "UPDATE", "DELETE", "LIST")
 
 SETTINGS_VALIDATOR = Draft6Validator(
     {
@@ -150,3 +153,28 @@ class Project:  # pylint: disable=too-many-instance-attributes
         self.handler_arn = package_handler(handler_stack_name)
 
         self._write_settings(self._plugin.NAME)
+
+    def submit(self):
+        handler_arns = {op: self.handler_arn for op in HANDLER_OPS}
+
+        registry_args = {
+            "TypeName": self.type_name,
+            "Schema": json.dumps(self.schema, ensure_ascii=False),
+            "Handlers": handler_arns,
+            # https://github.com/awslabs/aws-cloudformation-rpdk/issues/175
+            "Documentation": "Docs",
+        }
+        client = create_client("cloudformation")
+
+        try:
+            response = client.create_resource_type(**registry_args)
+            LOG.info("Created resource type with ARN '%s'", response["Arn"])
+        except client.exceptions.CFNRegistryException as e:
+            msg = str(e)
+            # https://github.com/awslabs/aws-cloudformation-rpdk/issues/177
+            if RESOURCE_EXISTS_MSG in msg:
+                response = client.update_resource_type(**registry_args)
+                LOG.info("Updated resource type with ARN '%s'", response["Arn"])
+            else:
+                raise
+        return response["Arn"]

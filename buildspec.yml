@@ -4,6 +4,7 @@ phases:
     commands:
       - pip install --upgrade pip wheel
       - pip install . -r requirements.txt
+      - aws configure add-model --service-model "file://cloudformation-2010-05-15.normal.json" --service-name cloudformation
   build:
     commands:
       - ./run_lint
