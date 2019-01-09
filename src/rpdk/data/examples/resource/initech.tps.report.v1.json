@@ -54,13 +54,13 @@
         }
     },
     "required": [
-        "#/properties/Title",
-        "#/properties/DueDate"
+        "/properties/Title",
+        "/properties/DueDate"
     ],
     "readOnly": [
-        "#/properties/tps_code"
+        "/properties/tps_code"
     ],
     "identifiers": [
-        "#/properties/tps_code"
+        "/properties/tps_code"
     ]
 }
