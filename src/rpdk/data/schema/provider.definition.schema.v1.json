@@ -274,15 +274,15 @@
             },
             "additionalProperties": false
         },
-        "readOnly": {
+        "readOnlyProperties": {
             "description": "A list of JSON pointers to properties that are able to be found in a Read request but unable to be specified by the customer",
             "$ref": "#/definitions/jsonPointerArray"
         },
-        "writeOnly": {
+        "writeOnlyProperties": {
             "description": "A list of JSON pointers to properties (typically sensitive) that are able to be specified by the customer but unable to be returned in a Read request",
             "$ref": "#/definitions/jsonPointerArray"
         },
-        "createOnly": {
+        "createOnlyProperties": {
             "description": "A list of JSON pointers to properties that are only able to be specified by the customer when creating a resource. Conversely, any property *not* in this list can be applied to an Update request.",
             "$ref": "#/definitions/jsonPointerArray"
         },
