@@ -943,18 +943,18 @@
         }
     },
     "createOnly": [
-        "#/properties/BucketName"
+        "/properties/BucketName"
     ],
     "readOnly": [
-        "#/properties/Arn",
-        "#/properties/DomainName",
-        "#/properties/DualStackDomainName",
-        "#/properties/WebsiteURL"
+        "/properties/Arn",
+        "/properties/DomainName",
+        "/properties/DualStackDomainName",
+        "/properties/WebsiteURL"
     ],
     "identifiers": [
-        "#/properties/Arn",
-        "#/properties/BucketName",
-        "#/properties/URL"
+        "/properties/Arn",
+        "/properties/BucketName",
+        "/properties/URL"
     ],
     "additionalProperties": false
 }
