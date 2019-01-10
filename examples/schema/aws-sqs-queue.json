@@ -96,17 +96,17 @@
         }
     },
     "createOnly": [
-        "#/properties/FifoQueue",
-        "#/properties/QueueName"
+        "/properties/FifoQueue",
+        "/properties/QueueName"
     ],
     "readOnly": [
-        "#/properties/Arn",
-        "#/properties/URL"
+        "/properties/Arn",
+        "/properties/URL"
     ],
     "identifiers": [
-        "#/properties/Arn",
-        "#/properties/QueueName",
-        "#/properties/URL"
+        "/properties/Arn",
+        "/properties/QueueName",
+        "/properties/URL"
     ],
     "additionalProperties": false
 }
