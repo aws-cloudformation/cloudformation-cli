@@ -57,7 +57,7 @@
         "/properties/Title",
         "/properties/DueDate"
     ],
-    "readOnly": [
+    "readOnlyProperties": [
         "/properties/tps_code"
     ],
     "identifiers": [

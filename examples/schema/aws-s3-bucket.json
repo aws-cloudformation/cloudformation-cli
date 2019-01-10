@@ -942,10 +942,10 @@
             ]
         }
     },
-    "createOnly": [
+    "createOnlyProperties": [
         "/properties/BucketName"
     ],
-    "readOnly": [
+    "readOnlyProperties": [
         "/properties/Arn",
         "/properties/DomainName",
         "/properties/DualStackDomainName",
