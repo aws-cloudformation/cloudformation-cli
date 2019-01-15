@@ -178,3 +178,17 @@ class Project:  # pylint: disable=too-many-instance-attributes
             else:
                 raise
         return response["Arn"]
+
+    def load(self):
+        try:
+            self.load_settings()
+        except FileNotFoundError:
+            LOG.error("Project file not found. Have you run 'init'?")
+            raise SystemExit(1)
+
+        LOG.info("Validating your resource specification...")
+        try:
+            self.load_schema()
+        except ValidationError:
+            LOG.error("Resource specification is invalid.")
+            raise SystemExit(1)
