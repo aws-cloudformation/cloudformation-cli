@@ -189,6 +189,9 @@ class Project:  # pylint: disable=too-many-instance-attributes
         LOG.info("Validating your resource specification...")
         try:
             self.load_schema()
+        except FileNotFoundError:
+            LOG.error("Resource specification not found.")
+            raise SystemExit(1)
         except ValidationError:
             LOG.error("Resource specification is invalid.")
             raise SystemExit(1)

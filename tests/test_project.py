@@ -249,6 +249,24 @@ def test_load_invalid_schema(project, caplog):
     assert "invalid" in last_record.message
 
 
+def test_schema_not_found(project, caplog):
+    patch_settings = patch.object(project, "load_settings")
+    patch_schema = patch.object(project, "load_schema", side_effect=FileNotFoundError)
+    with patch_settings as mock_settings, patch_schema as mock_schema, pytest.raises(
+        SystemExit
+    ) as excinfo:
+        project.load()
+
+    last_record = caplog.records[-1]
+    mock_settings.assert_called_once_with()
+    mock_schema.assert_called_once_with()
+
+    assert excinfo.value.code != EXIT_UNHANDLED_EXCEPTION
+    assert all(
+        keyword in last_record.message for keyword in ("not found", "specification")
+    )
+
+
 def test_settings_not_found(project, caplog):
     patch_settings = patch.object(
         project, "load_settings", side_effect=FileNotFoundError
@@ -264,4 +282,5 @@ def test_settings_not_found(project, caplog):
     mock_settings.assert_called_once_with()
     mock_schema.assert_not_called()
     last_record = caplog.records[-1]
+
     assert all(keyword in last_record.message for keyword in ("not found", "init"))
