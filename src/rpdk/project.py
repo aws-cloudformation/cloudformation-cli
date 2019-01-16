@@ -5,7 +5,7 @@ from pathlib import Path
 from jsonschema import Draft6Validator
 from jsonschema.exceptions import ValidationError
 
-from .boto_helpers import create_client
+from .boto_helpers import create_registry_client
 from .data_loaders import load_resource_spec, resource_json
 from .packager import package_handler
 from .plugin_registry import load_plugin
@@ -164,7 +164,7 @@ class Project:  # pylint: disable=too-many-instance-attributes
             # https://github.com/awslabs/aws-cloudformation-rpdk/issues/175
             "Documentation": "Docs",
         }
-        client = create_client("cloudformation")
+        client = create_registry_client("cloudformation")
 
         try:
             response = client.create_resource_type(**registry_args)

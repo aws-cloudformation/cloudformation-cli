@@ -194,7 +194,7 @@ def test_submit(submit_project):
     stubber = Stubber(client)
     stubber.add_response("create_resource_type", {"Arn": ARN}, EXPECTED_REGISTRY_ARGS)
 
-    with patch("rpdk.project.create_client", return_value=client), stubber:
+    with patch("rpdk.project.create_registry_client", return_value=client), stubber:
         arn = submit_project.submit()
     stubber.assert_no_pending_responses()
 
@@ -210,7 +210,7 @@ def test_update_submit(submit_project):
         service_message=RESOURCE_EXISTS_MSG,
     )
     stubber.add_response("update_resource_type", {"Arn": ARN}, EXPECTED_REGISTRY_ARGS)
-    with patch("rpdk.project.create_client", return_value=client), stubber:
+    with patch("rpdk.project.create_registry_client", return_value=client), stubber:
         arn = submit_project.submit()
     stubber.assert_no_pending_responses()
 
@@ -227,7 +227,7 @@ def test_fail_submit(submit_project):
         service_message="Unhandled Exception",
     )
     with patch(
-        "rpdk.project.create_client", return_value=client
+        "rpdk.project.create_registry_client", return_value=client
     ), stubber, pytest.raises(client.exceptions.CFNRegistryException):
         submit_project.submit()
     stubber.assert_no_pending_responses()
