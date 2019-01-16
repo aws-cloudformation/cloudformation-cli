@@ -33,10 +33,13 @@ def _create_sdk_session():
 
 def create_client(name, **kwargs):
     boto3_session, botocore_session = _create_sdk_session()
-    # https://github.com/awslabs/aws-cloudformation-rpdk/issues/173
-    if name == "cloudformation":
-        kwargs["endpoint_url"] = "https://uluru-facade.us-west-2.amazonaws.com"
     client = boto3_session.client(name, **kwargs)
     client.boto3_session = boto3_session
     client.botocore_session = botocore_session
     return client
+
+
+def create_registry_client(name, **kwargs):
+    # https://github.com/awslabs/aws-cloudformation-rpdk/issues/173
+    kwargs["endpoint_url"] = "https://uluru-facade.us-west-2.amazonaws.com"
+    return create_client(name, **kwargs)

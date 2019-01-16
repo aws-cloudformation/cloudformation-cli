@@ -2,7 +2,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from rpdk.boto_helpers import _create_sdk_session, create_client
+from rpdk.boto_helpers import _create_sdk_session, create_client, create_registry_client
 
 
 def test_create_client_lambda():
@@ -26,12 +26,7 @@ def test_create_client_cloudformation():
         client = create_client("cloudformation", a="b")
 
     mock_create.assert_called_once_with()
-    mock_session.client.assert_called_once_with(
-        "cloudformation",
-        a="b",
-        # https://github.com/awslabs/aws-cloudformation-rpdk/issues/173
-        endpoint_url="https://uluru-facade.us-west-2.amazonaws.com",
-    )
+    mock_session.client.assert_called_once_with("cloudformation", a="b")
     assert client.boto3_session is mock_session
     assert client.botocore_session is botocore_session
 
@@ -87,3 +82,20 @@ def test__create_sdk_session_no_creds():
         # https://github.com/awslabs/aws-cloudformation-rpdk/issues/173
         region_name="us-west-2",
     )
+
+
+def test_create_registry_client():
+    mock_session = Mock(spec=["client"])
+    botocore_session = object()
+    with patch("rpdk.boto_helpers._create_sdk_session", autospec=True) as mock_create:
+        mock_create.return_value = (mock_session, botocore_session)
+        client = create_registry_client("cloudformation", a="b")
+
+    mock_create.assert_called_once_with()
+    mock_session.client.assert_called_once_with(
+        "cloudformation",
+        a="b",
+        endpoint_url="https://uluru-facade.us-west-2.amazonaws.com",
+    )
+    assert client.boto3_session is mock_session
+    assert client.botocore_session is botocore_session
