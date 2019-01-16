@@ -9,11 +9,7 @@ LOG = logging.getLogger(__name__)
 
 def package(_args):
     project = Project()
-    try:
-        project.load_settings()
-    except FileNotFoundError:
-        LOG.error("Project file not found. Have you run 'init'?")
-        raise SystemExit(1)
+    project.load()
     project.package()
 
 
