@@ -23,7 +23,8 @@ class OutputNotFoundError(Exception):
 
 NO_UPDATES_ERROR_MESSAGE = "No updates are to be performed"
 SHARED_ARGS = {"s3_prefix": None, "kms_key_id": None, "force_upload": False}
-CAPABILITIES = ("CAPABILITY_IAM",)
+INFRA_CAPABILITIES = ("CAPABILITY_IAM",)
+DEPLOY_CAPABILITIES = ("CAPABILITY_AUTO_EXPAND",)
 INFRA_TEMPLATE_PATH = "data/CloudFormationHandlerInfrastructure.yaml"
 INFRA_STACK_NAME = "CFNResourceHandlerInfrastructure"
 INFRA_BUCKET_NAME = "BucketName"
@@ -59,7 +60,7 @@ class Packager:
         args = {
             "StackName": stack_name,
             "TemplateBody": template_body,
-            "Capabilities": CAPABILITIES,
+            "Capabilities": INFRA_CAPABILITIES,
         }
         # attempt to create stack. if the stack already exists, try to update it
         try:
@@ -126,7 +127,7 @@ class Packager:
             "role_arn": None,
             "notification_arns": [],
             "fail_on_empty_changeset": True,
-            "capabilities": CAPABILITIES,
+            "capabilities": DEPLOY_CAPABILITIES,
         }
         deploy_args.update(SHARED_ARGS)
 
@@ -134,7 +135,7 @@ class Packager:
         global_ns = Namespace(
             region=self.client.boto3_session.region_name,
             verify_ssl=True,
-            endpoint_url=None,
+            endpoint_url=self.client.meta.endpoint_url,
         )
 
         captured_out = StringIO()
@@ -167,6 +168,7 @@ class Packager:
                 LOG.info(str(e))
             else:
                 LOG.info("Successfully deployed handler stack '%s'", stack_name)
+        LOG.debug(captured_out.getvalue())
         outputs = self.get_stack_outputs(stack_name)
         handler_arn = self.get_output(outputs, HANDLER_ARN_KEY, stack_name)
         LOG.info("Lambda function handler: '%s'", handler_arn)
