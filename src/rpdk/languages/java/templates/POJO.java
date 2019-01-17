@@ -6,7 +6,6 @@ import java.util.Map;
 import java.util.List;
 import java.util.Set;
 
-
 @Data
 public class {{ pojo_name|uppercase_first_letter }} {
     {% for name, type in properties.items() %}

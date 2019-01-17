@@ -14,14 +14,12 @@ public abstract class BaseConfiguration {
 
     public InputStream resourceSchema() {
         final File file = new File(String.format(schemaFilename));
-        InputStream in = null;
         try {
-            in = new FileInputStream(file);
+            return new FileInputStream(file);
         } catch (final FileNotFoundException e) {
             e.printStackTrace();
+            return null;
         }
-
-        return in;
     }
 
 }

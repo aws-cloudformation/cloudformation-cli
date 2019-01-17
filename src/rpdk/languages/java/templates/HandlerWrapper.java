@@ -39,10 +39,10 @@ public final class HandlerWrapper extends LambdaWrapper<{{ pojo_name }}> {
             request.getRequestData().getRegion()
         );
 
-        BaseHandler handler = handlers.get(action);
+        final BaseHandler handler = handlers.get(action);
         handler.setClient(client);
 
-        return handlers.get(action).handleRequest(request, context);
+        return handler.handleRequest(request, context);
     }
 
     @Override

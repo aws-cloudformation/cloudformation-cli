@@ -12,10 +12,11 @@ public class {{ operation }}Handler extends BaseHandler {
         final HandlerRequest<{{ pojo_name }}> request,
         final RequestContext context) {
 
-        ResourceModel model = request.getResourceModel();
+        final ResourceModel model = request.getResourceModel();
 
         // TODO : put your code here
-        ProgressEvent pe = new ProgressEvent();
+
+        final ProgressEvent pe = new ProgressEvent();
         pe.setResourceModel(model);
         pe.setStatus(ProgressStatus.Complete);
         return pe;
