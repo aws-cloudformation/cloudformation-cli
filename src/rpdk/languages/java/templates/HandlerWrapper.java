@@ -3,17 +3,19 @@ package {{ package_name }};
 
 import com.aws.cfn.Action;
 import com.aws.cfn.LambdaWrapper;
-import com.aws.rpdk.HandlerRequest;
-import com.aws.rpdk.ProgressEvent;
-import com.aws.rpdk.RequestContext;
+import com.aws.cfn.proxy.HandlerRequest;
+import com.aws.cfn.proxy.ProgressEvent;
+import com.aws.cfn.proxy.RequestContext;
 
 import {{ package_name }}.{{ pojo_name }};
 
+import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
 
 public final class HandlerWrapper extends LambdaWrapper<{{ pojo_name }}> {
 
+    private final Configuration configuration = new Configuration();
     private final Map<Action, BaseHandler> handlers = new HashMap<>();
 
     public HandlerWrapper() {
@@ -34,12 +36,17 @@ public final class HandlerWrapper extends LambdaWrapper<{{ pojo_name }}> {
         {{ aws_sdk_client_type_name }} client = AWSSDKClientFactory.newClient(
             request.getRequestData().getCredentials().getAccessKeyId(),
             request.getRequestData().getCredentials().getSecretAccessKey(),
-            request.getRegion()
+            request.getRequestData().getRegion()
         );
 
         BaseHandler handler = handlers.get(action);
         handler.setClient(client);
 
         return handlers.get(action).handleRequest(request, context);
+    }
+
+    @Override
+    public InputStream provideResourceSchema() {
+        return this.configuration.resourceSchema();
     }
 }

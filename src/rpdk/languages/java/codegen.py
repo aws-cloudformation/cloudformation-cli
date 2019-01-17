@@ -138,6 +138,14 @@ class JavaLanguagePlugin(LanguagePlugin):
         )
         project.overwrite(path, contents)
 
+        path = src / "BaseConfiguration.java"
+        LOG.debug("Writing base configuration: %s", path)
+        template = self.env.get_template("BaseConfiguration.java")
+        contents = template.render(
+            package_name=self.package_name,
+        )
+        project.overwrite(path, contents)
+
         path = src / "BaseHandler.java"
         LOG.debug("Writing base handler: %s", path)
         template = self.env.get_template("BaseHandler.java")
