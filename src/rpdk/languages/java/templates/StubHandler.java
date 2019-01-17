@@ -1,17 +1,24 @@
 package {{ package_name }};
 
-import com.aws.cfn.ProgressStatus;
-import com.aws.rpdk.HandlerRequest;
-import com.aws.rpdk.ProgressEvent;
-import com.aws.rpdk.RequestContext;
+import com.aws.cfn.proxy.ProgressStatus;
+import com.aws.cfn.proxy.HandlerRequest;
+import com.aws.cfn.proxy.ProgressEvent;
+import com.aws.cfn.proxy.RequestContext;
 
-public class {{ operation }}Handler {
+public class {{ operation }}Handler extends BaseHandler {
 
-    public static ProgressEvent handle{{ operation }}(
+    @Override
+    public ProgressEvent handleRequest(
         final HandlerRequest<{{ pojo_name }}> request,
         final RequestContext context) {
 
+        final ResourceModel model = request.getResourceModel();
+
         // TODO : put your code here
-        return new ProgressEvent(ProgressStatus.Complete, "");
+
+        final ProgressEvent pe = new ProgressEvent();
+        pe.setResourceModel(model);
+        pe.setStatus(ProgressStatus.Complete);
+        return pe;
     }
 }
