@@ -28,14 +28,12 @@ class JavaLanguagePlugin(LanguagePlugin):
         )
         self.namespace = None
         self.package_name = None
-        self.aws_sdk_client_type_name = None
 
     def _namespace_from_project(self, project):
         self.namespace = ("com",) + tuple(
             safe_reserved(s.lower()) for s in project.type_info
         )
         self.package_name = ".".join(self.namespace)
-        self.aws_sdk_client_type_name = project.aws_sdk_client_type_name
 
     def init(self, project):
         LOG.debug("Init started")
@@ -83,7 +81,6 @@ class JavaLanguagePlugin(LanguagePlugin):
                 package_name=self.package_name,
                 operation=operation,
                 pojo_name="ResourceModel",
-                aws_sdk_client_type_name=self.aws_sdk_client_type_name,
             )
             project.safewrite(path, contents)
 
@@ -125,25 +122,14 @@ class JavaLanguagePlugin(LanguagePlugin):
             package_name=self.package_name,
             operations=OPERATIONS,
             pojo_name="ResourceModel",
-            aws_sdk_client_type_name=self.aws_sdk_client_type_name,
         )
         project.overwrite(path, contents)
-
-        path = src / "AWSSDKClientFactory.java"
-        LOG.debug("Writing AWSSDK client factory: %s", path)
-        template = self.env.get_template("AWSSDKClientFactory.java")
-        contents = template.render(
-            package_name=self.package_name,
-            aws_sdk_client_type_name=self.aws_sdk_client_type_name,
-        )
         project.overwrite(path, contents)
 
         path = src / "BaseConfiguration.java"
         LOG.debug("Writing base configuration: %s", path)
         template = self.env.get_template("BaseConfiguration.java")
-        contents = template.render(
-            package_name=self.package_name,
-        )
+        contents = template.render(package_name=self.package_name)
         project.overwrite(path, contents)
 
         path = src / "BaseHandler.java"
@@ -153,7 +139,6 @@ class JavaLanguagePlugin(LanguagePlugin):
             package_name=self.package_name,
             operations=OPERATIONS,
             pojo_name="ResourceModel",
-            aws_sdk_client_type_name=self.aws_sdk_client_type_name,
         )
         project.overwrite(path, contents)
 

@@ -33,14 +33,7 @@ public final class HandlerWrapper extends LambdaWrapper<{{ pojo_name }}> {
         if (!handlers.containsKey(action))
             throw new RuntimeException("Unknown action " + actionName);
 
-        {{ aws_sdk_client_type_name }} client = AWSSDKClientFactory.newClient(
-            request.getRequestData().getCredentials().getAccessKeyId(),
-            request.getRequestData().getCredentials().getSecretAccessKey(),
-            request.getRequestData().getRegion()
-        );
-
         final BaseHandler handler = handlers.get(action);
-        handler.setClient(client);
 
         return handler.handleRequest(request, context);
     }

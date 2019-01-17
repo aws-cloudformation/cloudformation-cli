@@ -16,14 +16,12 @@ SETTINGS_FILENAME = ".rpdk-config"
 TYPE_NAME_REGEX = "^[a-zA-Z0-9]{2,64}::[a-zA-Z0-9]{2,64}::[a-zA-Z0-9]{2,64}$"
 RESOURCE_EXISTS_MSG = "Resource already exists."
 HANDLER_OPS = ("CREATE", "READ", "UPDATE", "DELETE", "LIST")
-AWS_SDK_CLIENT_REGEX = "^com.amazonaws.services.[a-zA-Z0-9]{2,64}.[a-zA-Z0-9]{2,64}$"
 
 SETTINGS_VALIDATOR = Draft6Validator(
     {
         "properties": {
             "language": {"type": "string"},
             "typeName": {"type": "string", "pattern": TYPE_NAME_REGEX},
-            "awsSdkClientTypeName": {"type": "string", "pattern": AWS_SDK_CLIENT_REGEX},
             "settings": {"type": "object"},
             "handlerArn": {"type": ["string", "null"]},
         },
@@ -43,7 +41,6 @@ class Project:  # pylint: disable=too-many-instance-attributes
         self.root = Path(root) if root else Path.cwd()
         self.settings_path = self.root / SETTINGS_FILENAME
         self.type_info = None
-        self.aws_sdk_client_info = None
         self._plugin = None
         self.settings = None
         self.schema = None
@@ -58,14 +55,6 @@ class Project:  # pylint: disable=too-many-instance-attributes
     @type_name.setter
     def type_name(self, value):
         self.type_info = tuple(value.split("::"))
-
-    @property
-    def aws_sdk_client_type_name(self):
-        return self.aws_sdk_client_info
-
-    @aws_sdk_client_type_name.setter
-    def aws_sdk_client_type_name(self, value):
-        self.aws_sdk_client_info = value
 
     @property
     def hypenated_name(self):
@@ -99,7 +88,6 @@ class Project:  # pylint: disable=too-many-instance-attributes
             _invalid_settings(e)
 
         self.type_name = raw_settings["typeName"]
-        self.aws_sdk_client_type_name = raw_settings["awsSdkClientTypeName"]
         self._plugin = load_plugin(raw_settings["language"])
         self.handler_arn = raw_settings["handlerArn"]
         self.settings = raw_settings.get("settings", {})
@@ -116,16 +104,14 @@ class Project:  # pylint: disable=too-many-instance-attributes
         raw_settings = {
             "typeName": self.type_name,
             "language": language,
-            "awsSdkClientTypeName": self.aws_sdk_client_type_name,
             "settings": self.settings,
             "handlerArn": self.handler_arn,
         }
         self.overwrite(self.settings_path, json.dumps(raw_settings, indent=4))
 
-    def init(self, type_name, language, aws_sdk_client_type_name):
+    def init(self, type_name, language):
         self.type_name = type_name
         self._plugin = load_plugin(language)
-        self.aws_sdk_client_type_name = aws_sdk_client_type_name
         self.settings = {}
 
         self._write_example_schema()

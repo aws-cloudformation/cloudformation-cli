@@ -1,17 +1,11 @@
 // This is a generated file. Modifications will be overwritten.
 package {{ package_name }};
 
-import com.aws.rpdk.HandlerRequest;
-import com.aws.rpdk.ProgressEvent;
-import com.aws.rpdk.RequestContext;
+import com.aws.cfn.proxy.HandlerRequest;
+import com.aws.cfn.proxy.ProgressEvent;
+import com.aws.cfn.proxy.RequestContext;
 
 public abstract class BaseHandler {
-
-    protected {{ aws_sdk_client_type_name }} client;
-
-    public void setClient({{ aws_sdk_client_type_name }} client) {
-        this.client = client;
-    }
 
     public abstract ProgressEvent handleRequest(
         final HandlerRequest<{{ pojo_name }}> request,

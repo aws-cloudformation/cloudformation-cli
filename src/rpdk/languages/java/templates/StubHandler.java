@@ -1,9 +1,9 @@
 package {{ package_name }};
 
-import com.aws.cfn.ProgressStatus;
-import com.aws.rpdk.HandlerRequest;
-import com.aws.rpdk.ProgressEvent;
-import com.aws.rpdk.RequestContext;
+import com.aws.cfn.proxy.ProgressStatus;
+import com.aws.cfn.proxy.HandlerRequest;
+import com.aws.cfn.proxy.ProgressEvent;
+import com.aws.cfn.proxy.RequestContext;
 
 public class {{ operation }}Handler extends BaseHandler {
 
