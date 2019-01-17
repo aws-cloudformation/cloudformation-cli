@@ -124,7 +124,6 @@ class JavaLanguagePlugin(LanguagePlugin):
             pojo_name="ResourceModel",
         )
         project.overwrite(path, contents)
-        project.overwrite(path, contents)
 
         path = src / "BaseConfiguration.java"
         LOG.debug("Writing base configuration: %s", path)
