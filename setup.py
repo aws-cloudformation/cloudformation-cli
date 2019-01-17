@@ -42,7 +42,7 @@ setup(
         "jsonschema>=3.0.0a3",
         "pytest>=4.0",
         "Werkzeug>=0.14",
-        "PyYAML>=4.2b4",
+        "PyYAML>=3.13",
         "requests>=2.20",
     ],
     entry_points={
