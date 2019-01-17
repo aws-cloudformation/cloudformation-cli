@@ -46,7 +46,7 @@ def test_initialize(project):
 
     code_uri = "./target/{}-handler-1.0-SNAPSHOT.jar".format(project.hypenated_name)
     assert handler_properties["CodeUri"] == code_uri
-    handler = "{}.BaseHandler::handleRequest".format(expected_group_id)
+    handler = "{}.HandlerWrapper::handleRequest".format(expected_group_id)
     assert handler_properties["Handler"] == handler
     assert handler_properties["Runtime"] == project._plugin.RUNTIME
 
