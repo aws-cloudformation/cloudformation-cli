@@ -542,30 +542,30 @@
         }
     },
     "createOnlyProperties": [
-        "#/properties/AvailabilityZone",
-        "#/properties/ElasticGpuSpecifications",
-        "#/properties/ElasticInferenceAccelerators",
-        "#/properties/ImageId",
-        "#/properties/Ipv6AddressCount",
-        "#/properties/Ipv6Addresses",
-        "#/properties/KeyName",
-        "#/properties/LaunchTemplate",
-        "#/properties/LicenseSpecifications",
-        "#/properties/NetworkInterfaces",
-        "#/properties/PlacementGroupName",
-        "#/properties/PrivateIpAddress",
-        "#/properties/SecurityGroups",
-        "#/properties/SubnetId"
+        "/properties/AvailabilityZone",
+        "/properties/ElasticGpuSpecifications",
+        "/properties/ElasticInferenceAccelerators",
+        "/properties/ImageId",
+        "/properties/Ipv6AddressCount",
+        "/properties/Ipv6Addresses",
+        "/properties/KeyName",
+        "/properties/LaunchTemplate",
+        "/properties/LicenseSpecifications",
+        "/properties/NetworkInterfaces",
+        "/properties/PlacementGroupName",
+        "/properties/PrivateIpAddress",
+        "/properties/SecurityGroups",
+        "/properties/SubnetId"
     ],
     "readOnlyProperties": [
-        "#/properties/PrivateDnsName",
-        "#/properties/PublicDnsName",
-        "#/properties/PrivateIp",
-        "#/properties/PublicIp",
-        "#/properties/InstanceId"
+        "/properties/PrivateDnsName",
+        "/properties/PublicDnsName",
+        "/properties/PrivateIp",
+        "/properties/PublicIp",
+        "/properties/InstanceId"
     ],
     "identifiers": [
-        "#/properties/InstanceId"
+        "/properties/InstanceId"
     ],
     "additionalProperties": false
 }
