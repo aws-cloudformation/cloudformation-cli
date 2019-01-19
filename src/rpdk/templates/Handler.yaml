@@ -20,7 +20,7 @@ Resources:
       Role:
         Ref: LambdaRole
       Timeout: 60
-      MemorySize: 128
+      MemorySize: 256
       {% for key, value in handler_params.items() %}
       {{ key }}: {{ value }}
       {% endfor %}
