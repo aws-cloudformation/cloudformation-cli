@@ -12,7 +12,7 @@ public class {{ operation }}Handler extends BaseHandler {
         final HandlerRequest<{{ pojo_name }}> request,
         final RequestContext context) {
 
-        final ResourceModel model = request.getResourceModel();
+        final ResourceModel model = request.getRequestData().getResourceProperties();
 
         // TODO : put your code here
 

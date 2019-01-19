@@ -10,7 +10,11 @@ import java.io.InputStream;
 
 public abstract class BaseConfiguration {
 
-    protected String schemaFilename;
+    protected final String schemaFilename;
+
+    protected BaseConfiguration(final String schemaFilename) {
+        this.schemaFilename = schemaFilename;
+    }
 
     public InputStream resourceSchema() {
         final File file = new File(String.format(schemaFilename));

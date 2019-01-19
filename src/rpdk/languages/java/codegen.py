@@ -84,6 +84,16 @@ class JavaLanguagePlugin(LanguagePlugin):
             )
             project.safewrite(path, contents)
 
+
+        path = src / "Configuration.java"
+        LOG.debug("Writing configuration: %s", path)
+        template = self.env.get_template("StubConfiguration.java")
+        contents = template.render(
+            package_name=self.package_name,
+            schema_file_name=project.schema_filename,
+        )
+        project.overwrite(path, contents)
+
         path = project.root / "README.md"
         LOG.debug("Writing README: %s", path)
         template = self.env.get_template("README.md")
@@ -128,7 +138,10 @@ class JavaLanguagePlugin(LanguagePlugin):
         path = src / "BaseConfiguration.java"
         LOG.debug("Writing base configuration: %s", path)
         template = self.env.get_template("BaseConfiguration.java")
-        contents = template.render(package_name=self.package_name)
+        contents = template.render(
+            package_name=self.package_name,
+            schema_file_name=project.schema_filename,
+        )
         project.overwrite(path, contents)
 
         path = src / "BaseHandler.java"
