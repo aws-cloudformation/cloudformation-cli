@@ -97,6 +97,19 @@
                     </execution>
                 </executions>
             </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-resources-plugin</artifactId>
+                <version>2.3</version>
+            </plugin>
         </plugins>
+        <resources>
+            <resource>
+                <directory>${project.basedir}</directory>
+                <includes>
+                    <include>{{ schema_file_name }}</include>
+                </includes>
+            </resource>
+        </resources>
     </build>
 </project>
