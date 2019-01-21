@@ -176,10 +176,24 @@ def test_submit(project):
     patch_register = patch.object(project, "register")
 
     with patch_package as mock_package, patch_register as mock_register:
-        project.submit()
+        project.submit(False)
     stack_name = "{}-stack".format(project.hypenated_name)
     mock_package.assert_called_once_with(stack_name)
     mock_register.assert_called_once_with(ARN)
+
+
+def test_only_package_submit(project):
+    project.type_name = TYPE_NAME
+    patch_package = patch(
+        "rpdk.project.package_handler", autospec=True, return_value=ARN
+    )
+    patch_register = patch.object(project, "register")
+
+    with patch_package as mock_package, patch_register as mock_register:
+        project.submit(True)
+    stack_name = "{}-stack".format(project.hypenated_name)
+    mock_package.assert_called_once_with(stack_name)
+    mock_register.assert_not_called()
 
 
 def test_register(register_project):

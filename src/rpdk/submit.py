@@ -7,13 +7,19 @@ from .project import Project
 LOG = logging.getLogger(__name__)
 
 
-def submit(_args):
+def submit(args):
     project = Project()
     project.load()
-    project.submit()
+    project.submit(args.only_package)
 
 
 def setup_subparser(subparsers, parents):
     # see docstring of this file
     parser = subparsers.add_parser("submit", description=__doc__, parents=parents)
     parser.set_defaults(command=submit)
+    parser.add_argument(
+        "--only-package",
+        default=None,
+        help="Skips registering the resource type.",
+        action="store_true",
+    )
