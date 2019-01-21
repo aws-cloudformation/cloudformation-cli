@@ -144,6 +144,7 @@ class Project:  # pylint: disable=too-many-instance-attributes
         return self._plugin.generate(self)
 
     def submit(self, only_package):
+        self._plugin.package(self)
         handler_stack_name = "{}-stack".format(self.hypenated_name)
         handler_arn = package_handler(handler_stack_name)
         if not only_package:

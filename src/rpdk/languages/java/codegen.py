@@ -158,3 +158,6 @@ class JavaLanguagePlugin(LanguagePlugin):
             project.overwrite(path, contents)
 
         LOG.debug("Generate complete")
+
+    def package(self, project):
+        pass

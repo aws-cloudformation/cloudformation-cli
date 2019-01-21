@@ -68,3 +68,8 @@ def test_generate(project):
 
     # asserts we remove existing files in the tree
     assert not test_file.is_file()
+
+
+def test_package(project):
+    project.load_schema()
+    project._plugin.package(project)

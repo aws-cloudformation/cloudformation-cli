@@ -170,12 +170,15 @@ def test_init(tmpdir):
 
 def test_submit(project):
     project.type_name = TYPE_NAME
+    mock_plugin = MagicMock(spec=["package"])
+    mock_plugin.NAME = LANGUAGE
+    patch_plugin = patch.object(project, "_plugin", mock_plugin)
     patch_package = patch(
         "rpdk.project.package_handler", autospec=True, return_value=ARN
     )
     patch_register = patch.object(project, "register")
 
-    with patch_package as mock_package, patch_register as mock_register:
+    with patch_plugin, patch_package as mock_package, patch_register as mock_register:
         project.submit(False)
     stack_name = "{}-stack".format(project.hypenated_name)
     mock_package.assert_called_once_with(stack_name)
@@ -184,12 +187,15 @@ def test_submit(project):
 
 def test_only_package_submit(project):
     project.type_name = TYPE_NAME
+    mock_plugin = MagicMock(spec=["package"])
+    mock_plugin.NAME = LANGUAGE
+    patch_plugin = patch.object(project, "_plugin", mock_plugin)
     patch_package = patch(
         "rpdk.project.package_handler", autospec=True, return_value=ARN
     )
     patch_register = patch.object(project, "register")
 
-    with patch_package as mock_package, patch_register as mock_register:
+    with patch_plugin, patch_package as mock_package, patch_register as mock_register:
         project.submit(True)
     stack_name = "{}-stack".format(project.hypenated_name)
     mock_package.assert_called_once_with(stack_name)
