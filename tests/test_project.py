@@ -37,7 +37,6 @@ def submit_project():
     project = Project()
     project.type_name = TYPE_NAME
     project.schema = SCHEMA
-    project.handler_arn = ARN
     return project
 
 
@@ -64,7 +63,7 @@ def test_load_settings_invalid_settings(project):
 
 def test_load_settings_valid_json(project):
     plugin = object()
-    data = json.dumps({"typeName": TYPE_NAME, "language": LANGUAGE, "handlerArn": ARN})
+    data = json.dumps({"typeName": TYPE_NAME, "language": LANGUAGE})
     patch_load = patch("rpdk.project.load_plugin", autospec=True, return_value=plugin)
 
     with patch_settings(project, data) as mock_open, patch_load as mock_load:
@@ -174,18 +173,17 @@ def test_package(project):
     mock_plugin = MagicMock(spec=["package"])
     mock_plugin.NAME = LANGUAGE
 
-    patch_plugin = patch.object(project, "_plugin", mock_plugin)
-    patch_package = patch(
-        "rpdk.project.package_handler", autospec=True, return_value=ARN
-    )
-    patch_write = patch.object(project, "_write_settings", autospec=True)
-    with patch_plugin, patch_package as mock_package, patch_write as mock_write:
+    plugin = patch.object(project, "_plugin", mock_plugin)
+    package = patch("rpdk.project.package_handler", autospec=True, return_value=ARN)
+    write = patch.object(project, "_write_settings", autospec=True)
+    submit = patch.object(project, "submit")
+    with plugin, package as mock_package, write as mock_write, submit as mock_submit:
         project.package()
 
     mock_plugin.package.assert_called_once_with(project)
     stack_name = "{}-stack".format(project.hypenated_name)
     mock_package.assert_called_once_with(stack_name)
-    assert project.handler_arn == ARN
+    mock_submit.assert_called_once_with(ARN)
     mock_write.assert_called_once_with(LANGUAGE)
 
 
@@ -195,7 +193,7 @@ def test_submit(submit_project):
     stubber.add_response("create_resource_type", {"Arn": ARN}, EXPECTED_REGISTRY_ARGS)
 
     with patch("rpdk.project.create_registry_client", return_value=client), stubber:
-        arn = submit_project.submit()
+        arn = submit_project.submit(ARN)
     stubber.assert_no_pending_responses()
 
     assert arn == ARN
@@ -211,7 +209,7 @@ def test_update_submit(submit_project):
     )
     stubber.add_response("update_resource_type", {"Arn": ARN}, EXPECTED_REGISTRY_ARGS)
     with patch("rpdk.project.create_registry_client", return_value=client), stubber:
-        arn = submit_project.submit()
+        arn = submit_project.submit(ARN)
     stubber.assert_no_pending_responses()
 
     assert arn == ARN
@@ -229,7 +227,7 @@ def test_fail_submit(submit_project):
     with patch(
         "rpdk.project.create_registry_client", return_value=client
     ), stubber, pytest.raises(client.exceptions.CFNRegistryException):
-        submit_project.submit()
+        submit_project.submit(ARN)
     stubber.assert_no_pending_responses()
 
 
