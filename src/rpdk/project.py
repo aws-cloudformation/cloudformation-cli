@@ -163,13 +163,13 @@ class Project:  # pylint: disable=too-many-instance-attributes
 
         try:
             response = client.create_resource_type(**registry_args)
-            LOG.info("Created resource type with ARN '%s'", response["Arn"])
+            LOG.critical("Created resource type with ARN '%s'", response["Arn"])
         except client.exceptions.CFNRegistryException as e:
             msg = str(e)
             # https://github.com/awslabs/aws-cloudformation-rpdk/issues/177
             if RESOURCE_EXISTS_MSG in msg:
                 response = client.update_resource_type(**registry_args)
-                LOG.info("Updated resource type with ARN '%s'", response["Arn"])
+                LOG.critical("Updated resource type with ARN '%s'", response["Arn"])
             else:
                 raise
         return response["Arn"]
