@@ -143,15 +143,12 @@ class Project:  # pylint: disable=too-many-instance-attributes
     def generate(self):
         return self._plugin.generate(self)
 
-    def package(self):
-        self._plugin.package(self)
-
+    def submit(self):
         handler_stack_name = "{}-stack".format(self.hypenated_name)
         handler_arn = package_handler(handler_stack_name)
-        self.submit(handler_arn)
-        self._write_settings(self._plugin.NAME)
+        self.register(handler_arn)
 
-    def submit(self, handler_arn):
+    def register(self, handler_arn):
         handler_arns = {op: handler_arn for op in HANDLER_OPS}
 
         registry_args = {

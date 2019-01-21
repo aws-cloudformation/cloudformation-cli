@@ -158,7 +158,3 @@ class JavaLanguagePlugin(LanguagePlugin):
             project.overwrite(path, contents)
 
         LOG.debug("Generate complete")
-
-    def package(self, project):
-        self._namespace_from_project(project)
-        # Maven performs packaging of jar

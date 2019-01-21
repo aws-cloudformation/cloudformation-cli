@@ -33,7 +33,7 @@ def project():
 
 
 @pytest.fixture
-def submit_project():
+def register_project():
     project = Project()
     project.type_name = TYPE_NAME
     project.schema = SCHEMA
@@ -168,38 +168,33 @@ def test_init(tmpdir):
         assert json.load(f)
 
 
-def test_package(project):
+def test_submit(project):
     project.type_name = TYPE_NAME
-    mock_plugin = MagicMock(spec=["package"])
-    mock_plugin.NAME = LANGUAGE
+    patch_package = patch(
+        "rpdk.project.package_handler", autospec=True, return_value=ARN
+    )
+    patch_register = patch.object(project, "register")
 
-    plugin = patch.object(project, "_plugin", mock_plugin)
-    package = patch("rpdk.project.package_handler", autospec=True, return_value=ARN)
-    write = patch.object(project, "_write_settings", autospec=True)
-    submit = patch.object(project, "submit")
-    with plugin, package as mock_package, write as mock_write, submit as mock_submit:
-        project.package()
-
-    mock_plugin.package.assert_called_once_with(project)
+    with patch_package as mock_package, patch_register as mock_register:
+        project.submit()
     stack_name = "{}-stack".format(project.hypenated_name)
     mock_package.assert_called_once_with(stack_name)
-    mock_submit.assert_called_once_with(ARN)
-    mock_write.assert_called_once_with(LANGUAGE)
+    mock_register.assert_called_once_with(ARN)
 
 
-def test_submit(submit_project):
+def test_register(register_project):
     client = boto3.client("cloudformation")
     stubber = Stubber(client)
     stubber.add_response("create_resource_type", {"Arn": ARN}, EXPECTED_REGISTRY_ARGS)
 
     with patch("rpdk.project.create_registry_client", return_value=client), stubber:
-        arn = submit_project.submit(ARN)
+        arn = register_project.register(ARN)
     stubber.assert_no_pending_responses()
 
     assert arn == ARN
 
 
-def test_update_submit(submit_project):
+def test_update_register(register_project):
     client = boto3.client("cloudformation")
     stubber = Stubber(client)
     stubber.add_client_error(
@@ -209,13 +204,13 @@ def test_update_submit(submit_project):
     )
     stubber.add_response("update_resource_type", {"Arn": ARN}, EXPECTED_REGISTRY_ARGS)
     with patch("rpdk.project.create_registry_client", return_value=client), stubber:
-        arn = submit_project.submit(ARN)
+        arn = register_project.register(ARN)
     stubber.assert_no_pending_responses()
 
     assert arn == ARN
 
 
-def test_fail_submit(submit_project):
+def test_fail_register(register_project):
     client = boto3.client("cloudformation")
     stubber = Stubber(client)
 
@@ -227,7 +222,7 @@ def test_fail_submit(submit_project):
     with patch(
         "rpdk.project.create_registry_client", return_value=client
     ), stubber, pytest.raises(client.exceptions.CFNRegistryException):
-        submit_project.submit(ARN)
+        register_project.register(ARN)
     stubber.assert_no_pending_responses()
 
 

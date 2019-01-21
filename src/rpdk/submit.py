@@ -7,13 +7,13 @@ from .project import Project
 LOG = logging.getLogger(__name__)
 
 
-def package(_args):
+def submit(_args):
     project = Project()
     project.load()
-    project.package()
+    project.submit()
 
 
 def setup_subparser(subparsers, parents):
     # see docstring of this file
-    parser = subparsers.add_parser("package", description=__doc__, parents=parents)
-    parser.set_defaults(command=package)
+    parser = subparsers.add_parser("submit", description=__doc__, parents=parents)
+    parser.set_defaults(command=submit)
