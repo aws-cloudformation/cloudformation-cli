@@ -3,7 +3,7 @@ phases:
   pre_build:
     commands:
       - pip install --upgrade pip wheel
-      - pip install . -r requirements.txt
+      - pip install . plugins/java/ -r requirements.txt
       - aws configure add-model --service-model "file://cloudformation-2010-05-15.normal.json" --service-name cloudformation
   build:
     commands:
