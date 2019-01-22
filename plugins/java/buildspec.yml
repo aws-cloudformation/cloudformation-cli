@@ -1,0 +1,34 @@
+version: 0.2
+phases:
+  build:
+    commands:
+      - cd "$CODEBUILD_SRC_DIR_SDK"
+      - pwd
+      - ls -la
+      - >
+        mvn install:install-file --batch-mode
+        -Dfile=AWSCloudFormationJavaClientInternal-1.11.x.jar
+        -DgroupId=com.amazonaws
+        -DartifactId=aws-java-sdk-cloudformation
+        -Dversion=1.11.485-PATCH
+        -Dpackaging=jar
+        -DgeneratePom=true
+      - cd "$CODEBUILD_SRC_DIR_SCHEMA"
+      - pwd
+      - ls -la
+      - mvn package --batch-mode
+      - >
+        mvn install:install-file --batch-mode
+        -Dfile=target/aws-cloudformation-resource-schema-1.0.0.jar
+        -DgroupId=com.aws.cfn
+        -DartifactId=aws-cloudformation-resource-schema
+        -Dversion=1.0.0
+        -Dpackaging=jar
+        -DgeneratePom=true
+      - cd "$CODEBUILD_SRC_DIR"
+      - pwd
+      - ls -la
+      - mvn package --batch-mode
+artifacts:
+  files:
+    - target/ResourceProviderExample-1.0.jar

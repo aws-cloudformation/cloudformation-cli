@@ -1,0 +1,124 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: This CloudFormation template provisions all the infrastructure and dependencies for a Java Provider on Lambda
+
+Parameters:
+  ManagementUserArn:
+    NoEcho: True
+    Type: String
+
+Resources:
+  ArtifactBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      AccessControl: BucketOwnerFullControl
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              KMSMasterKeyID: !Ref EncryptionKey
+              SSEAlgorithm: aws:kms
+      VersioningConfiguration:
+        Status: Enabled
+
+  LogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      RetentionInDays: 30
+
+  LambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service: 
+                - "lambda.amazonaws.com"
+            Action: "sts:AssumeRole"
+      Policies:
+        - PolicyName: "CloudWatchMetricsPolicy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: "Allow"
+                Action: "cloudwatch:PutMetricData"
+                Resource: "*"
+        - PolicyName: "CloudWatchLogsPolicy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: "Allow"
+                Action: 
+                  - "logs:PutLogEvents"
+                  - "logs:CreateLogGroup"
+                  - "logs:CreateLogStream"
+                Resource: !GetAtt LogGroup.Arn
+        - PolicyName: "CloudWatchEventsPolicy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: "Allow"
+                Action:
+                  - "events:DeleteRule"
+                  - "events:PutTargets"
+                  - "events:DescribeRule"
+                  - "events:EnableRule"
+                  - "events:PutRule"
+                  - "events:RemoveTargets"
+                Resource: "*" 
+          
+
+  EncryptionKey:
+    Type: AWS::KMS::Key
+    Properties:
+      Description: "KMS key used to encrypt the resource provider artifacts and API payloads"
+      EnableKeyRotation: false # Can't rotate keys until we can ensure that re-invokes are not broken by rotation
+      KeyPolicy:
+        Version: "2012-10-17"
+        Id: "key-default-1"
+        Statement:
+          - Sid: "Allow administration of the key"
+            Effect: "Allow"
+            Principal:
+              AWS: !Ref ManagementUserArn
+            Action:
+              - "kms:Create*"
+              - "kms:Describe*"
+              - "kms:Enable*"
+              - "kms:List*"
+              - "kms:Put*"
+              - "kms:Update*"
+              - "kms:Revoke*"
+              - "kms:Disable*"
+              - "kms:Get*"
+              - "kms:Delete*"
+              - "kms:ScheduleKeyDeletion"
+              - "kms:CancelKeyDeletion"
+            Resource: "*"
+          - Sid: "Allow use of the key"
+            Effect: "Allow"
+            Principal:
+              AWS: 
+                - !GetAtt LambdaRole.Arn
+                - !Ref ManagementUserArn
+            Action:
+              - "kms:Encrypt"
+              - "kms:Decrypt"
+              - "kms:ReEncrypt*"
+              - "kms:GenerateDataKey*"
+              - "kms:DescribeKey"
+            Resource: "*"
+
+Outputs:
+  BucketName:
+    Value: !Ref ArtifactBucket
+    Export:
+      Name: ArtifactBucket
+  EncryptionKey:
+    Value: !GetAtt EncryptionKey.Arn
+    Export:
+      Name: EncryptionKey
+  LambdaRole:
+    Value: !GetAtt LambdaRole.Arn
+    Export:
+      Name: LambdaRole

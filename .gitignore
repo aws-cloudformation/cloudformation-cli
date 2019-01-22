@@ -114,3 +114,10 @@ README.html
 .idea
 out.java
 out/
+
+# Maven outputs
+.classpath
+
+# IntelliJ 
+.settings
+.project

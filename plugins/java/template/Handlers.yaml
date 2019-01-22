@@ -1,0 +1,31 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: This CloudFormation template provisions an S3 bucket to upload handler artifacts to
+
+Parameters:
+  ResourceType:
+    Type: String
+    AllowedPattern: "^[a-zA-Z0-9]{2,64}-[a-zA-Z0-9]{2,64}-[a-zA-Z0-9]{2,64}$"
+  PackageS3Key:
+    Type: String
+
+Resources:
+  CreateHandler:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        S3Bucket: !ImportValue ArtifactBucket
+        S3Key: !Ref PackageS3Key
+      Description: !Sub "Create Handler for ${ResourceType} Resources"
+      FunctionName: !Sub "create-${ResourceType}-handler"
+      Handler: "com.aws.cfn.LambdaWrapper::handleRequest"
+      KmsKeyArn: !ImportValue EncryptionKey
+      MemorySize: 128
+      Role: !ImportValue LambdaRole
+      Runtime: "java8"
+      Timeout: 120
+
+Outputs:
+  CreateHandlerArn:
+    Value: !GetAtt CreateHandler.Arn
+    Export:
+      Name: !Sub "${ResourceType}-create-handler"
