@@ -142,7 +142,7 @@ def test_load_resource_spec_file_object_has_name(tmpdir):
 
 
 def test_load_resource_spec_inliner_produced_invalid_schema():
-    with patch("rpdk.data_loaders.RefInliner", autospec=True) as mock_inliner:
+    with patch("rpdk.core.data_loaders.RefInliner", autospec=True) as mock_inliner:
         mock_inliner.return_value.inline.return_value = {}
         with pytest.raises(InternalError) as excinfo:
             load_resource_spec(yaml_s(BASIC_SCHEMA))
@@ -194,7 +194,7 @@ def test_make_validator_handlers_time_out():
 
 def mock_pkg_resource_stream(bytes_in, func=resource_stream):
     resource_name = "data/test.utf-8"
-    target = "rpdk.data_loaders.pkg_resources.resource_stream"
+    target = "rpdk.core.data_loaders.pkg_resources.resource_stream"
     with patch(target, autospec=True, return_value=BytesIO(bytes_in)) as mock_stream:
         f = func(__name__, resource_name)
     mock_stream.assert_called_once_with(__name__, resource_name)

@@ -12,7 +12,9 @@ from rpdk.core.boto_helpers import (
 def test_create_client_lambda():
     mock_session = Mock(spec=["client"])
     botocore_session = object()
-    with patch("rpdk.boto_helpers._create_sdk_session", autospec=True) as mock_create:
+    with patch(
+        "rpdk.core.boto_helpers._create_sdk_session", autospec=True
+    ) as mock_create:
         mock_create.return_value = (mock_session, botocore_session)
         client = create_client("lambda", a="b")
 
@@ -25,7 +27,9 @@ def test_create_client_lambda():
 def test_create_client_cloudformation():
     mock_session = Mock(spec=["client"])
     botocore_session = object()
-    with patch("rpdk.boto_helpers._create_sdk_session", autospec=True) as mock_create:
+    with patch(
+        "rpdk.core.boto_helpers._create_sdk_session", autospec=True
+    ) as mock_create:
         mock_create.return_value = (mock_session, botocore_session)
         client = create_client("cloudformation", a="b")
 
@@ -36,8 +40,8 @@ def test_create_client_cloudformation():
 
 
 def test__create_sdk_session_ok():
-    patch_botoc = patch("rpdk.boto_helpers.BotocoreSession", autospec=True)
-    patch_boto3 = patch("rpdk.boto_helpers.Boto3Session", autospec=True)
+    patch_botoc = patch("rpdk.core.boto_helpers.BotocoreSession", autospec=True)
+    patch_boto3 = patch("rpdk.core.boto_helpers.Boto3Session", autospec=True)
 
     with patch_botoc as mock_botoc, patch_boto3 as mock_boto3:
         boto3_session, botocore_session = _create_sdk_session()
@@ -48,15 +52,15 @@ def test__create_sdk_session_ok():
     mock_botoc.assert_called_once_with()
     mock_boto3.assert_called_once_with(
         botocore_session=botocore_session,
-        # https://github.com/awslabs/aws-cloudformation-rpdk/issues/173
+        # https://github.com/awslabs/aws-cloudformation-rpdk.core.issues/173
         region_name="us-west-2",
     )
     mock_boto3.return_value.get_credentials.assert_called_once_with()
 
 
 def test__create_sdk_session_no_region():
-    patch_botoc = patch("rpdk.boto_helpers.BotocoreSession", autospec=True)
-    patch_boto3 = patch("rpdk.boto_helpers.Boto3Session", autospec=True)
+    patch_botoc = patch("rpdk.core.boto_helpers.BotocoreSession", autospec=True)
+    patch_boto3 = patch("rpdk.core.boto_helpers.Boto3Session", autospec=True)
 
     with patch_botoc as mock_botoc, patch_boto3 as mock_boto3:
         mock_boto3.return_value.region_name = None
@@ -66,14 +70,14 @@ def test__create_sdk_session_no_region():
     mock_botoc.assert_called_once_with()
     mock_boto3.assert_called_once_with(
         botocore_session=mock_botoc.return_value,
-        # https://github.com/awslabs/aws-cloudformation-rpdk/issues/173
+        # https://github.com/awslabs/aws-cloudformation-rpdk.core.issues/173
         region_name="us-west-2",
     )
 
 
 def test__create_sdk_session_no_creds():
-    patch_botoc = patch("rpdk.boto_helpers.BotocoreSession", autospec=True)
-    patch_boto3 = patch("rpdk.boto_helpers.Boto3Session", autospec=True)
+    patch_botoc = patch("rpdk.core.boto_helpers.BotocoreSession", autospec=True)
+    patch_boto3 = patch("rpdk.core.boto_helpers.Boto3Session", autospec=True)
 
     with patch_botoc as mock_botoc, patch_boto3 as mock_boto3:
         mock_boto3.return_value.get_credentials.return_value = None
@@ -91,7 +95,9 @@ def test__create_sdk_session_no_creds():
 def test_create_registry_client():
     mock_session = Mock(spec=["client"])
     botocore_session = object()
-    with patch("rpdk.boto_helpers._create_sdk_session", autospec=True) as mock_create:
+    with patch(
+        "rpdk.core.boto_helpers._create_sdk_session", autospec=True
+    ) as mock_create:
         mock_create.return_value = (mock_session, botocore_session)
         client = create_registry_client("cloudformation", a="b")
 

@@ -327,7 +327,7 @@ def test_circular_reference(test_schema):
 def test__flatten_ref_type_invalid():
     flattener = JsonSchemaFlattener({})
     patch_decode = patch(
-        "rpdk.jsonutils.flattener.fragment_decode",
+        "rpdk.core.jsonutils.flattener.fragment_decode",
         autospec=True,
         side_effect=ValueError,
     )

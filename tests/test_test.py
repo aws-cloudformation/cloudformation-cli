@@ -25,7 +25,7 @@ def mock_temporary_ini_file():
 
 def test_test_command_help(capsys):
     # also mock other transports here
-    with patch("rpdk.test.local_lambda", autospec=True) as mock_local_lambda:
+    with patch("rpdk.core.test.local_lambda", autospec=True) as mock_local_lambda:
         main(args_in=["test"])
     out, _ = capsys.readouterr()
     assert "--help" in out
@@ -33,7 +33,7 @@ def test_test_command_help(capsys):
 
 
 def test_test_command_local_lambda_help(capsys):
-    with patch("rpdk.test.local_lambda", autospec=True) as mock_local_lambda:
+    with patch("rpdk.core.test.local_lambda", autospec=True) as mock_local_lambda:
         with pytest.raises(SystemExit):
             main(args_in=["test", "local-lambda"])
     _, err = capsys.readouterr()
@@ -42,7 +42,7 @@ def test_test_command_local_lambda_help(capsys):
 
 
 def test_test_command_args():
-    with patch("rpdk.test.local_lambda", autospec=True) as mock_lambda_command:
+    with patch("rpdk.core.test.local_lambda", autospec=True) as mock_lambda_command:
         test_resource_file = NamedTemporaryFile()
         test_updated_resource_file = NamedTemporaryFile()
         test_resource_def_file = NamedTemporaryFile()
@@ -81,7 +81,7 @@ def test_invoke_pytest():
         collect_only=False,
     )
     mock_init = patch(
-        "rpdk.test.temporary_ini_file", side_effect=mock_temporary_ini_file
+        "rpdk.core.test.temporary_ini_file", side_effect=mock_temporary_ini_file
     )
     mock_json = patch("json.load", return_value={}, autospec=True)
     with mock_json, mock_init, patch("pytest.main") as mock_pytest:
@@ -104,7 +104,7 @@ def test_invoke_pytest_with_test_type():
         collect_only=False,
     )
     mock_init = patch(
-        "rpdk.test.temporary_ini_file", side_effect=mock_temporary_ini_file
+        "rpdk.core.test.temporary_ini_file", side_effect=mock_temporary_ini_file
     )
     mock_json = patch("json.load", return_value={}, autospec=True)
     with mock_json, mock_init, patch("pytest.main") as mock_pytest:
@@ -117,8 +117,8 @@ def test_invoke_pytest_with_test_type():
 
 def test_local_lambda_command():
     with TemporaryFile() as test_file, patch(
-        "rpdk.contract.transports.LocalLambdaTransport.__call__"
-    ), patch("rpdk.test.invoke_pytest") as mock_invoke_pytest:
+        "rpdk.core.contract.transports.LocalLambdaTransport.__call__"
+    ), patch("rpdk.core.test.invoke_pytest") as mock_invoke_pytest:
         arg_namespace = argparse.Namespace(
             endpoint="http://127.0.0.1:3001",
             function_name="Handler",
@@ -143,9 +143,9 @@ def test_local_lambda_fail_fast_endpoint():
 
     e = EndpointConnectionError(endpoint_url="http://127.0.0.1:3001")
     mock_transport_call = patch(
-        "rpdk.contract.transports.LocalLambdaTransport.__call__", side_effect=e
+        "rpdk.core.contract.transports.LocalLambdaTransport.__call__", side_effect=e
     )
-    with mock_transport_call, patch("rpdk.test.invoke_pytest") as mock_pytest:
+    with mock_transport_call, patch("rpdk.core.test.invoke_pytest") as mock_pytest:
         with pytest.raises(SystemExit):
             local_lambda(arg_namespace)
     mock_pytest.assert_not_called()
@@ -167,8 +167,8 @@ def test_local_lambda_fail_fast_function_name():
         },
         "Invoke",
     )
-    with patch("rpdk.test.invoke_pytest") as mock_pytest, patch(
-        "rpdk.contract.transports.LocalLambdaTransport.__call__", side_effect=e
+    with patch("rpdk.core.test.invoke_pytest") as mock_pytest, patch(
+        "rpdk.core.contract.transports.LocalLambdaTransport.__call__", side_effect=e
     ):
         with pytest.raises(SystemExit):
             local_lambda(arg_namespace)
@@ -191,8 +191,8 @@ def test_local_lambda_fail_fast_reraise():
         },
         "Invoke",
     )
-    with patch("rpdk.test.invoke_pytest") as mock_pytest, patch(
-        "rpdk.contract.transports.LocalLambdaTransport.__call__", side_effect=e
+    with patch("rpdk.core.test.invoke_pytest") as mock_pytest, patch(
+        "rpdk.core.contract.transports.LocalLambdaTransport.__call__", side_effect=e
     ):
         with pytest.raises(ClientError):
             local_lambda(arg_namespace)
@@ -218,7 +218,7 @@ def patched_setup_subparser(subparsers, parents):
 
 def test_e2e_test_command(capsys):
     with patch(
-        "rpdk.cli.test_setup_subparser", side_effect=patched_setup_subparser
+        "rpdk.core.cli.test_setup_subparser", side_effect=patched_setup_subparser
     ), NamedTemporaryFile(mode="w", encoding="utf-8") as temp:
         temp.write("{}")
         temp.flush()

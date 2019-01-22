@@ -16,7 +16,7 @@ RESOURCE = "DZQWCC"
 def project(tmpdir):
     project = Project(root=tmpdir)
     with patch.dict(
-        "rpdk.plugin_registry.PLUGIN_REGISTRY",
+        "rpdk.core.plugin_registry.PLUGIN_REGISTRY",
         {"test": lambda: JavaLanguagePlugin},
         clear=True,
     ):

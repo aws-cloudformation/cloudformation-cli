@@ -29,7 +29,7 @@ def test_contract_plugin_fixtures():
 def test_contract_plugin_create_from_fixture():
     plugin = ContractPlugin(None, RESOURCE, None)
     patched_context = patch(
-        "rpdk.contract.contract_plugin.ContractPlugin._created_resource"
+        "rpdk.core.contract.contract_plugin.ContractPlugin._created_resource"
     )
     with patched_context as mock_resource:
         next(plugin.created_resource.__wrapped__(plugin))

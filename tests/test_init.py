@@ -32,9 +32,9 @@ def test_init_method():
     mock_project.load_settings.side_effect = FileNotFoundError
     mock_project.settings_path = ""
 
-    patch_project = patch("rpdk.init.Project", return_value=mock_project)
-    patch_tn = patch("rpdk.init.input_typename", return_value=type_name)
-    patch_l = patch("rpdk.init.input_language", return_value=language)
+    patch_project = patch("rpdk.core.init.Project", return_value=mock_project)
+    patch_tn = patch("rpdk.core.init.input_typename", return_value=type_name)
+    patch_l = patch("rpdk.core.init.input_language", return_value=language)
 
     with patch_project, patch_tn as mock_tn, patch_l as mock_l:
         init(args)
@@ -52,7 +52,7 @@ def test_input_with_validation_valid_first_try():
     sentinel2 = object()
 
     validator = Mock(return_value=sentinel1)
-    with patch("rpdk.init.input", return_value=sentinel2) as mock_input:
+    with patch("rpdk.core.init.input", return_value=sentinel2) as mock_input:
         ret = input_with_validation(PROMPT, validator)
 
     mock_input.assert_called_once_with(PROMPT)
@@ -68,7 +68,7 @@ def test_input_with_validation_valid_second_try(capsys):
 
     sentinel = object()
 
-    with patch("rpdk.init.input", side_effect=(ERROR, sentinel)) as mock_input:
+    with patch("rpdk.core.init.input", side_effect=(ERROR, sentinel)) as mock_input:
         ret = input_with_validation(PROMPT, mock_validator)
 
     assert mock_input.call_count == 2
@@ -142,7 +142,7 @@ def test_check_for_existing_project_bad_path_overwrite():
     project.overwrite = True
     project.settings_path = ""  # not sure why this doesn't get specced?
 
-    with patch("rpdk.init.input_with_validation", autospec=True) as mock_input:
+    with patch("rpdk.core.init.input_with_validation", autospec=True) as mock_input:
         check_for_existing_project(project)
 
     mock_input.assert_not_called()
@@ -154,7 +154,7 @@ def test_check_for_existing_project_bad_path_ask_yes():
     project.settings_path = ""
 
     patch_input = patch(
-        "rpdk.init.input_with_validation", autospec=True, return_value=True
+        "rpdk.core.init.input_with_validation", autospec=True, return_value=True
     )
     with patch_input as mock_input:
         check_for_existing_project(project)
@@ -169,7 +169,7 @@ def test_check_for_existing_project_bad_path_ask_no():
     project.settings_path = ""
 
     patch_input = patch(
-        "rpdk.init.input_with_validation", autospec=True, return_value=False
+        "rpdk.core.init.input_with_validation", autospec=True, return_value=False
     )
     with patch_input as mock_input:
         with pytest.raises(AbortError):
@@ -210,7 +210,7 @@ def test_ignore_abort_abort():
 
 def test_input_typename():
     type_name = "AWS::Color::Red"
-    patch_input = patch("rpdk.init.input", return_value=type_name)
+    patch_input = patch("rpdk.core.init.input", return_value=type_name)
     with patch_input as mock_input:
         assert input_typename() == type_name
     mock_input.assert_called_once()
@@ -218,21 +218,21 @@ def test_input_typename():
 
 def test_input_language_no_plugins():
     validator = ValidatePluginChoice([])
-    with patch("rpdk.init.validate_plugin_choice", validator):
+    with patch("rpdk.core.init.validate_plugin_choice", validator):
         with pytest.raises(AbortError):
             input_language()
 
 
 def test_input_language_one_plugin():
     validator = ValidatePluginChoice([PROMPT])
-    with patch("rpdk.init.validate_plugin_choice", validator):
+    with patch("rpdk.core.init.validate_plugin_choice", validator):
         assert input_language() == PROMPT
 
 
 def test_input_language_several_plugins():
     validator = ValidatePluginChoice(["1", PROMPT, "2"])
-    patch_validator = patch("rpdk.init.validate_plugin_choice", validator)
-    patch_input = patch("rpdk.init.input", return_value="2")
+    patch_validator = patch("rpdk.core.init.validate_plugin_choice", validator)
+    patch_input = patch("rpdk.core.init.input", return_value="2")
     with patch_validator, patch_input as mock_input:
         assert input_language() == PROMPT
 

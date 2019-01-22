@@ -7,7 +7,7 @@ from rpdk.core.project import Project
 def test_generate_command_generate(capsys):
     mock_project = Mock(spec=Project)
 
-    with patch("rpdk.generate.Project", autospec=True, return_value=mock_project):
+    with patch("rpdk.core.generate.Project", autospec=True, return_value=mock_project):
         main(args_in=["generate"])
 
     mock_project.load.assert_called_once_with()

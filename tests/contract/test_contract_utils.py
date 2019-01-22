@@ -46,7 +46,7 @@ def test_send_async_request(resource_client):
     mock_listener = Mock(
         spec=CallbackServer, events=listener_events, server_address=("url", "port")
     )
-    with patch("rpdk.contract.contract_utils.CallbackServer") as mock_context:
+    with patch("rpdk.core.contract.contract_utils.CallbackServer") as mock_context:
         mock_context.return_value.__enter__.return_value = mock_listener
         returned_events = resource_client.send_async_request(None, "token", COMPLETE)
     assert returned_events == EXPECTED_EVENTS

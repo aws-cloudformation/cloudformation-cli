@@ -46,7 +46,7 @@ def test_resolver():
 
 
 def test_resolver_from_schema():
-    test_schema = resource_json("tests", "jsonutils/data/area_definition.json")
+    test_schema = resource_json(__name__, "data/area_definition.json")
     schema_map = JsonSchemaFlattener(test_schema).flatten_schema()
     resolver = JavaPojoResolver(schema_map, "areaDescription")
     expected_pojos = {
