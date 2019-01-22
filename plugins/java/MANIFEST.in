@@ -1,7 +1,7 @@
 include README.rst
 include LICENSE
 
-graft src
+graft java
 
 # last rule wins, put excludes last
 global-exclude __pycache__ *.py[co] .DS_Store

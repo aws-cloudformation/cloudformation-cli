@@ -3,6 +3,29 @@ AWS CloudFormation Resource Provider Development Kit
 
 The CloudFormation Resource Provider Development Kit (RPDK) allows you to author your own resource providers that can be used by CloudFormation.
 
+Development
+-----------
+
+For developing, it's strongly suggested to install the development dependencies
+inside a virtual environment. (This isn't required if you just want to use this
+tool.)
+
+.. code-block:: bash
+
+    python3 -m venv env
+    source env/bin/activate
+    pip install -e . -e plugins/java/ -r requirements.txt
+
+Before committing code, please execute the ``run_lint`` script. This performs
+several steps for your convenience:
+
+* Auto-formatting of all code to make it uniform and PEP8 compliant
+* Linting for issues the auto-formatter doesn't catch
+* Run all tests and confirm coverage is over a threshold
+
+If you want to generate an HTML coverage report afterwards, run
+``coverage html``. The report is output to ``htmlcov/index.html``.
+
 Usage
 -----
 
@@ -83,37 +106,13 @@ have the following entry point:
 .. code-block:: python
 
     entry_points={
-        "rpdk.languages": ["groovy = rpdk-groovy:GroovyLanguagePlugin"],
+        "rpdk.v1.languages": ["groovy = rpdk.groovy:GroovyLanguagePlugin"],
     },
 
 Plugins must provide the same interface as ``LanguagePlugin`` (in
 ``plugin_base.py``). And they may inherit from ``LanguagePlugin`` for the helper
 methods - but this is not necessary. As long as the class has the same methods,
 it will work as a plugin.
-
-Development
------------
-
-For developing, it's strongly suggested to install the development dependencies
-inside a virtual environment. (This isn't required if you just want to use this
-tool.)
-
-.. code-block:: bash
-
-    virtualenv -p python3 env
-    source env/bin/activate
-    pip install -e .
-    pip install -r requirements.txt
-
-Before committing code, please execute the ``run_lint`` script. This performs
-several steps for your convenience:
-
-* Auto-formatting of all code to make it uniform and PEP8 compliant
-* Linting for issues the auto-formatter doesn't catch
-* Run all tests and confirm coverage is over a threshold
-
-If you want to generate an HTML coverage report afterwards, run
-``coverage html``. The report is output to ``htmlcov/index.html``.
 
 License
 -------

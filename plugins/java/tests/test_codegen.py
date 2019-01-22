@@ -6,9 +6,8 @@ from unittest.mock import patch
 import pytest
 import yaml
 
-from rpdk.project import Project
-
-from ..codegen import JavaLanguagePlugin
+from rpdk.core.project import Project
+from rpdk.java.codegen import JavaLanguagePlugin
 
 RESOURCE = "DZQWCC"
 

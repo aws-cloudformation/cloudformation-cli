@@ -1,5 +1,5 @@
-from rpdk.filters import uppercase_first_letter
-from rpdk.jsonutils.utils import BASE, fragment_encode
+from rpdk.core.filters import uppercase_first_letter
+from rpdk.core.jsonutils.utils import BASE, fragment_encode
 
 
 class PojoResolverError(Exception):

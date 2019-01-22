@@ -22,29 +22,20 @@ def find_version(*file_paths):
 
 
 setup(
-    name="aws-cloudformation-rpdk",
-    version=find_version("src", "rpdk", "core", "__init__.py"),
+    name="aws-cloudformation-rpdk-java-plugin",
+    version=find_version("rpdk", "java", "__init__.py"),
     description=__doc__,
     long_description=read("README.rst"),
     author="Amazon Web Services",
     url="https://aws.amazon.com/cloudformation/",
     # https://packaging.python.org/guides/packaging-namespace-packages/
-    packages=["rpdk.core"],
-    package_dir={"": "src"},
+    packages=["rpdk.java"],
+    # package_dir={"": "src"},
     # package_data -> use MANIFEST.in instead
     include_package_data=True,
     zip_safe=True,
-    install_requires=[
-        "awscli>=1.16",
-        "boto3>=1.9.71,<1.10.0",
-        "Jinja2>=2.10",
-        "jsonschema>=3.0.0a3",
-        "pytest>=4.0",
-        "Werkzeug>=0.14",
-        "PyYAML>=3.13",
-        "requests>=2.20",
-    ],
-    entry_points={"console_scripts": ["uluru-cli = rpdk.core.cli:main"]},
+    install_requires=["aws-cloudformation-rpdk>=0.1,<0.2"],
+    entry_points={"rpdk.v1.languages": ["java = rpdk.java:JavaLanguagePlugin"]},
     license="Apache License 2.0",
     classifiers=(
         "Development Status :: 2 - Pre-Alpha",

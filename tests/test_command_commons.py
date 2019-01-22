@@ -2,8 +2,8 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from rpdk.cli import EXIT_UNHANDLED_EXCEPTION, main
-from rpdk.project import Project
+from rpdk.core.cli import EXIT_UNHANDLED_EXCEPTION, main
+from rpdk.core.project import Project
 
 
 @pytest.mark.parametrize("command", ["init", "generate", "submit", "validate"])

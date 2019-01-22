@@ -6,8 +6,13 @@ from unittest.mock import Mock, patch
 import pytest
 from botocore.exceptions import ClientError, EndpointConnectionError
 
-from rpdk.cli import main
-from rpdk.test import invoke_pytest, local_lambda, setup_subparser, temporary_ini_file
+from rpdk.core.cli import main
+from rpdk.core.test import (
+    invoke_pytest,
+    local_lambda,
+    setup_subparser,
+    temporary_ini_file,
+)
 
 RANDOM_INI = "pytest_SOYPKR.ini"
 EXPECTED_PYTEST_ARGS = ["-c", RANDOM_INI]

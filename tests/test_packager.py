@@ -12,8 +12,8 @@ from awscli.customizations.cloudformation.package import PackageCommand
 from botocore.stub import ANY, Stubber
 from dateutil.tz import tzutc
 
-from rpdk.boto_helpers import create_client
-from rpdk.packager import (
+from rpdk.core.boto_helpers import create_client
+from rpdk.core.packager import (
     HANDLER_ARN_KEY,
     HANDLER_PARAMS,
     HANDLER_TEMPLATE_PATH,

@@ -11,8 +11,13 @@ import pytest
 from botocore.stub import Stubber
 from jsonschema.exceptions import ValidationError
 
-from rpdk.cli import EXIT_UNHANDLED_EXCEPTION
-from rpdk.project import HANDLER_OPS, RESOURCE_EXISTS_MSG, InvalidSettingsError, Project
+from rpdk.core.cli import EXIT_UNHANDLED_EXCEPTION
+from rpdk.core.project import (
+    HANDLER_OPS,
+    RESOURCE_EXISTS_MSG,
+    InvalidSettingsError,
+    Project,
+)
 
 LANGUAGE = "BQHDBC"
 CONTENTS_UTF8 = "💣"

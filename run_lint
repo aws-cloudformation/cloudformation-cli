@@ -2,21 +2,39 @@
 set -xeuo pipefail
 IFS=$'\n\t'
 
-declare -a files=("setup.py" "json_lint" "newline_lint" "src/" "tests/")
 ./json_lint --check
 ./newline_lint --check
-isort --check-only --verbose --recursive "${files[@]}"
-black --check "${files[@]}"
-flake8 "${files[@]}"
-pylint "${files[@]}"
-# have to skip B101, contract tests use it and there's no way to skip for specific files
-# have to skip B322, as bandit apparently isn't clever enough to detect we're running Python 3
-bandit -r "src/" --skip "B101,B322" --exclude "tests"
-# although we mock SDK calls, these must be set, otherwise the credential-checking code
-# in boto_helpers.py fails. this probably needs fixing properly in future.
-# on the other hand, this means that exported creds aren't honoured when running tests,
-# also a good thing
-AWS_ACCESS_KEY_ID="" \
-AWS_SECRET_ACCESS_KEY="" \
-AWS_SESSION_TOKEN="" \
-pytest --cov="src/" --doctest-modules --random-order-bucket="parent" "src/" "tests/"
+
+function lint() {
+    echo "src: $src, tst: $tst, files: ${files[@]}"
+    isort --check-only --recursive "${files[@]}"
+    black --check "${files[@]}"
+    flake8 "${files[@]}"
+    pylint "${files[@]}"
+    # # have to skip B101, contract tests use it and there's no way to skip for specific files
+    # # have to skip B322, as bandit apparently isn't clever enough to detect we're running Python 3
+    # bandit -r "$src" --skip "B101,B322"
+    # # although we mock SDK calls, these must be set, otherwise the credential-checking code
+    # # in boto_helpers.py fails. this probably needs fixing properly in future.
+    # # on the other hand, this means that exported creds aren't honoured when running tests,
+    # # also a good thing
+    # AWS_ACCESS_KEY_ID="" \
+    # AWS_SECRET_ACCESS_KEY="" \
+    # AWS_SESSION_TOKEN="" \
+    # pytest --cov="$src" --doctest-modules --random-order-bucket="parent" "$src" "$tst"
+}
+
+src="src/"
+tst="tests"
+declare -a files=("setup.py" "json_lint" "newline_lint" "$src" "$tst")
+
+lint
+
+for plugin in plugins/*/; do
+    echo "Checking $plugin ..."
+    name="${plugin#plugins/}"  # bash-fu: strip "plugins/" to get name
+    src="${plugin}rpdk/${name}"
+    tst="${plugin}tests/"
+    declare -a files=("${plugin}setup.py" "$src" "$tst")
+    lint
+done

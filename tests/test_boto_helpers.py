@@ -2,7 +2,11 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from rpdk.boto_helpers import _create_sdk_session, create_client, create_registry_client
+from rpdk.core.boto_helpers import (
+    _create_sdk_session,
+    create_client,
+    create_registry_client,
+)
 
 
 def test_create_client_lambda():

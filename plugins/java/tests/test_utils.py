@@ -1,4 +1,4 @@
-from ..utils import safe_reserved
+from rpdk.java.utils import safe_reserved
 
 
 def test_safe_reserved_safe_string():

@@ -1,6 +1,6 @@
 from unittest.mock import Mock, patch
 
-from rpdk.plugin_registry import load_plugin
+from rpdk.core.plugin_registry import load_plugin
 
 
 def test_load_plugin():

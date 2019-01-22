@@ -4,7 +4,7 @@ from unittest.mock import Mock, patch
 import pytest
 from requests import post
 
-from rpdk.contract.contract_utils import (
+from rpdk.core.contract.contract_utils import (
     COMPLETE,
     CREATE,
     FAILED,
@@ -12,8 +12,8 @@ from rpdk.contract.contract_utils import (
     CallbackServer,
     ResourceClient,
 )
-from rpdk.contract.transports import LocalLambdaTransport
-from rpdk.jsonutils.pointer import fragment_decode
+from rpdk.core.contract.transports import LocalLambdaTransport
+from rpdk.core.jsonutils.pointer import fragment_decode
 
 RESOURCE_MODEL = {"type": "Some::Resource::Type", "properties": {"identifier": "value"}}
 UPDATED_RESOURCE_MODEL = {

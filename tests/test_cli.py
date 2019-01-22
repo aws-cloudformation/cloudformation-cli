@@ -3,7 +3,7 @@ from unittest.mock import patch
 
 import pytest
 
-from rpdk.cli import EXIT_UNHANDLED_EXCEPTION, main, setup_logging
+from rpdk.core.cli import EXIT_UNHANDLED_EXCEPTION, main, setup_logging
 
 from .utils import chdir
 

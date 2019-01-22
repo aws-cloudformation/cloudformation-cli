@@ -2,8 +2,13 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from rpdk.contract.contract_plugin import ContractPlugin
-from rpdk.contract.contract_utils import COMPLETE, FAILED, NOT_FOUND, ResourceClient
+from rpdk.core.contract.contract_plugin import ContractPlugin
+from rpdk.core.contract.contract_utils import (
+    COMPLETE,
+    FAILED,
+    NOT_FOUND,
+    ResourceClient,
+)
 
 RESOURCE = {"type": "AWS::Foo::Bar", "properties": {"number": 1}}
 

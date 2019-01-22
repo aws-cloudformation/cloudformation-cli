@@ -4,10 +4,10 @@ from unittest.mock import patch
 
 import pytest
 
-from rpdk.data_loaders import resource_json
-from rpdk.jsonutils.flattener import COMBINERS, JsonSchemaFlattener
-from rpdk.jsonutils.pointer import fragment_encode
-from rpdk.jsonutils.utils import CircularRefError, ConstraintError, FlatteningError
+from rpdk.core.data_loaders import resource_json
+from rpdk.core.jsonutils.flattener import COMBINERS, JsonSchemaFlattener
+from rpdk.core.jsonutils.pointer import fragment_encode
+from rpdk.core.jsonutils.utils import CircularRefError, ConstraintError, FlatteningError
 
 from .area_definition_flattened import AREA_DEFINITION_FLATTENED
 

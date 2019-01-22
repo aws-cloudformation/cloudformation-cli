@@ -1,7 +1,7 @@
 from unittest.mock import Mock, patch
 
-from rpdk.cli import main
-from rpdk.project import Project
+from rpdk.core.cli import main
+from rpdk.core.project import Project
 
 
 def test_validate_command_valid_schema(capsys):

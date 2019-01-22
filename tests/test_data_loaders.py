@@ -13,7 +13,7 @@ import yaml
 from jsonschema.exceptions import ValidationError
 from pytest_localserver.http import Request, Response, WSGIServer
 
-from rpdk.data_loaders import (
+from rpdk.core.data_loaders import (
     STDIN_NAME,
     InternalError,
     get_file_base_uri,
@@ -23,7 +23,7 @@ from rpdk.data_loaders import (
     resource_stream,
     resource_yaml,
 )
-from rpdk.plugin_base import LanguagePlugin
+from rpdk.core.plugin_base import LanguagePlugin
 
 BASEDIR = Path(__file__).parent  # tests/test_data_loaders.py -> tests/
 

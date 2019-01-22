@@ -1,6 +1,6 @@
 import pytest
 
-from rpdk.argutils import TextFileType
+from rpdk.core.argutils import TextFileType
 
 
 def test_textfiletype_binary_mode():

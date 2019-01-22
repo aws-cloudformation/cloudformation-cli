@@ -3,8 +3,8 @@
 import logging
 import shutil
 
-from rpdk.jsonutils.flattener import JsonSchemaFlattener
-from rpdk.plugin_base import LanguagePlugin
+from rpdk.core.jsonutils.flattener import JsonSchemaFlattener
+from rpdk.core.plugin_base import LanguagePlugin
 
 from .pojo_resolver import JavaPojoResolver
 from .utils import safe_reserved

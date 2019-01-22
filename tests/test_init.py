@@ -2,7 +2,7 @@ from unittest.mock import ANY, Mock, PropertyMock, patch
 
 import pytest
 
-from rpdk.init import (
+from rpdk.core.init import (
     AbortError,
     ValidatePluginChoice,
     ValidationError,
@@ -15,7 +15,7 @@ from rpdk.init import (
     validate_type_name,
     validate_yes,
 )
-from rpdk.project import Project
+from rpdk.core.project import Project
 
 PROMPT = "MECVGD"
 ERROR = "TUJFEL"
