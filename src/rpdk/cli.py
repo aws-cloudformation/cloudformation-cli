@@ -9,7 +9,6 @@ from logging.config import dictConfig
 from .data_loaders import resource_yaml
 from .generate import setup_subparser as generate_setup_subparser
 from .init import setup_subparser as init_setup_subparser
-from .package import setup_subparser as package_setup_subparser
 from .submit import setup_subparser as submit_setup_subparser
 from .test import setup_subparser as test_setup_subparser
 from .validate import setup_subparser as validate_setup_subparser
@@ -65,10 +64,9 @@ def main(args_in=None):
         subparsers = parser.add_subparsers(dest="subparser_name")
         init_setup_subparser(subparsers, parents)
         validate_setup_subparser(subparsers, parents)
-        package_setup_subparser(subparsers, parents)
+        submit_setup_subparser(subparsers, parents)
         generate_setup_subparser(subparsers, parents)
         test_setup_subparser(subparsers, parents)
-        submit_setup_subparser(subparsers, parents)
         unittest_patch_setup_subparser(subparsers, parents)
         args = parser.parse_args(args=args_in)
 

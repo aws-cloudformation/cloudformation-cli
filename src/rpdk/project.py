@@ -23,7 +23,6 @@ SETTINGS_VALIDATOR = Draft6Validator(
             "language": {"type": "string"},
             "typeName": {"type": "string", "pattern": TYPE_NAME_REGEX},
             "settings": {"type": "object"},
-            "handlerArn": {"type": ["string", "null"]},
         },
         "required": ["language", "typeName"],
         "additionalProperties": False,
@@ -89,7 +88,6 @@ class Project:  # pylint: disable=too-many-instance-attributes
 
         self.type_name = raw_settings["typeName"]
         self._plugin = load_plugin(raw_settings["language"])
-        self.handler_arn = raw_settings["handlerArn"]
         self.settings = raw_settings.get("settings", {})
 
     def _write_example_schema(self):
@@ -105,7 +103,6 @@ class Project:  # pylint: disable=too-many-instance-attributes
             "typeName": self.type_name,
             "language": language,
             "settings": self.settings,
-            "handlerArn": self.handler_arn,
         }
         self.overwrite(self.settings_path, json.dumps(raw_settings, indent=4))
 
@@ -146,16 +143,15 @@ class Project:  # pylint: disable=too-many-instance-attributes
     def generate(self):
         return self._plugin.generate(self)
 
-    def package(self):
+    def submit(self, only_package):
         self._plugin.package(self)
-
         handler_stack_name = "{}-stack".format(self.hypenated_name)
-        self.handler_arn = package_handler(handler_stack_name)
+        handler_arn = package_handler(handler_stack_name)
+        if not only_package:
+            self.register(handler_arn)
 
-        self._write_settings(self._plugin.NAME)
-
-    def submit(self):
-        handler_arns = {op: self.handler_arn for op in HANDLER_OPS}
+    def register(self, handler_arn):
+        handler_arns = {op: handler_arn for op in HANDLER_OPS}
 
         registry_args = {
             "TypeName": self.type_name,
@@ -168,13 +164,13 @@ class Project:  # pylint: disable=too-many-instance-attributes
 
         try:
             response = client.create_resource_type(**registry_args)
-            LOG.info("Created resource type with ARN '%s'", response["Arn"])
+            LOG.critical("Created resource type with ARN '%s'", response["Arn"])
         except client.exceptions.CFNRegistryException as e:
             msg = str(e)
             # https://github.com/awslabs/aws-cloudformation-rpdk/issues/177
             if RESOURCE_EXISTS_MSG in msg:
                 response = client.update_resource_type(**registry_args)
-                LOG.info("Updated resource type with ARN '%s'", response["Arn"])
+                LOG.critical("Updated resource type with ARN '%s'", response["Arn"])
             else:
                 raise
         return response["Arn"]

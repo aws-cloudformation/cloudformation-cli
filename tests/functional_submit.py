@@ -13,7 +13,7 @@ LOG = logging.getLogger(__name__)
 @contextmanager
 def handle_resource_type(project, client):
     try:
-        arn = project.submit()
+        arn = project.register()
         yield arn
     finally:
         try:

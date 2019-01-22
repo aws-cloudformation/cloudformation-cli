@@ -165,9 +165,9 @@ class Packager:
             except ChangeEmptyError as e:
                 # If there are no changes between templates,
                 # log that and still return the handler arn
-                LOG.info(str(e))
+                LOG.critical(str(e))
             else:
-                LOG.info("Successfully deployed handler stack '%s'", stack_name)
+                LOG.critical("Successfully deployed handler stack '%s'", stack_name)
         LOG.debug(captured_out.getvalue())
         outputs = self.get_stack_outputs(stack_name)
         handler_arn = self.get_output(outputs, HANDLER_ARN_KEY, stack_name)
