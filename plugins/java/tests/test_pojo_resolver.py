@@ -4,7 +4,11 @@ import pytest
 
 from rpdk.core.data_loaders import resource_json
 from rpdk.core.jsonutils.flattener import JsonSchemaFlattener
-from rpdk.java.pojo_resolver import JavaPojoResolver
+from rpdk.java.pojo_resolver import (
+    JavaPojoResolver,
+    PojoResolverError,
+    base_class_from_ref,
+)
 
 from .flattened_schema import FLATTENED_SCHEMA
 
@@ -141,3 +145,8 @@ def test_array_class_name(empty_resolver, schema, result):
 def test_ref_to_class(empty_resolver, ref_path, result):
     resolved_class = empty_resolver._get_class_name_from_ref(ref_path, REF_TO_CLASS_MAP)
     assert result == resolved_class
+
+
+def test_base_class_from_ref_resolve_error():
+    with pytest.raises(PojoResolverError):
+        base_class_from_ref(())
