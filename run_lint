@@ -21,7 +21,13 @@ function lint() {
     AWS_ACCESS_KEY_ID="" \
     AWS_SECRET_ACCESS_KEY="" \
     AWS_SESSION_TOKEN="" \
-    pytest --cov "rpdk.$name" --random-order-bucket "parent" "$tst" --doctest-modules --pyargs "rpdk.$name"
+    pytest \
+        --cov "rpdk.$name" \
+        --cov-report "term-missing" \
+        --random-order-bucket "parent" \
+        "$tst" \
+        --doctest-modules \
+        --pyargs "rpdk.$name"
 }
 
 src="src/"
