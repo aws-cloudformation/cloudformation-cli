@@ -93,7 +93,7 @@ class JavaLanguagePlugin(LanguagePlugin):
         contents = template.render(
             package_name=self.package_name, schema_file_name=project.schema_filename
         )
-        project.overwrite(path, contents)
+        project.safewrite(path, contents)
 
         path = project.root / "README.md"
         LOG.debug("Writing README: %s", path)
