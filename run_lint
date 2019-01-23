@@ -21,20 +21,22 @@ function lint() {
     AWS_ACCESS_KEY_ID="" \
     AWS_SECRET_ACCESS_KEY="" \
     AWS_SESSION_TOKEN="" \
-    pytest --cov="$src" --doctest-modules --random-order-bucket="parent" "$src" "$tst"
+    pytest --cov "rpdk.$name" --random-order-bucket "parent" "$tst" --doctest-modules --pyargs "rpdk.$name"
 }
 
 src="src/"
-tst="tests"
+tst="tests/"
+name="core"
 declare -a files=("setup.py" "json_lint" "newline_lint" "$src" "$tst")
 
 lint
 
-for plugin in plugins/*/; do
-    echo "Checking $plugin ..."
+for path in plugins/*/; do
+    echo "Checking $path ..."
+    plugin=${path%/}
     name="${plugin#plugins/}"  # bash-fu: strip "plugins/" to get name
-    src="${plugin}rpdk/${name}"
-    tst="${plugin}tests/"
-    declare -a files=("${plugin}setup.py" "$src" "$tst")
+    src="$plugin/rpdk/$name/"
+    tst="$plugin/tests/"
+    declare -a files=("$plugin/setup.py" "$src" "$tst")
     lint
 done
