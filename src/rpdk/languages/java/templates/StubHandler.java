@@ -1,6 +1,7 @@
 package {{ package_name }};
 
 import com.aws.cfn.proxy.ProgressEvent;
+import com.aws.cfn.proxy.ProgressStatus;
 import com.aws.cfn.proxy.RequestContext;
 import com.aws.cfn.proxy.ResourceHandlerRequest;
 
