@@ -24,13 +24,14 @@ class OutputNotFoundError(Exception):
 NO_UPDATES_ERROR_MESSAGE = "No updates are to be performed"
 SHARED_ARGS = {"s3_prefix": None, "kms_key_id": None, "force_upload": False}
 INFRA_CAPABILITIES = ("CAPABILITY_IAM",)
-DEPLOY_CAPABILITIES = ("CAPABILITY_AUTO_EXPAND",)
+DEPLOY_CAPABILITIES = ("CAPABILITY_AUTO_EXPAND", "CAPABILITY_IAM")
 INFRA_TEMPLATE_PATH = "data/CloudFormationHandlerInfrastructure.yaml"
 INFRA_STACK_NAME = "CFNResourceHandlerInfrastructure"
 INFRA_BUCKET_NAME = "BucketName"
-INFRA_ROLE = "LambdaRole"
+INFRA_ROLE_ARN = "LambdaRoleArn"
+INFRA_ROLE_NAME = "LambdaRoleName"
 INFRA_KEY = "EncryptionKey"
-HANDLER_PARAMS = (INFRA_KEY, INFRA_ROLE)
+HANDLER_PARAMS = (INFRA_KEY, INFRA_ROLE_ARN, INFRA_ROLE_NAME)
 HANDLER_TEMPLATE_PATH = "./Handler.yaml"
 HANDLER_ARN_KEY = "ResourceHandlerArn"
 

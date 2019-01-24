@@ -247,7 +247,8 @@ def test_package(packager):
     mock_stack_output.assert_called_once()
     expected_handler_params = {
         "EncryptionKey": expected_out,
-        "LambdaRole": expected_out,
+        "LambdaRoleArn": expected_out,
+        "LambdaRoleName": expected_out,
     }
     mock_package.assert_called_with(
         expected_out, HANDLER_TEMPLATE_PATH, "stackName", expected_handler_params
