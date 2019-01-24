@@ -37,17 +37,6 @@ Resources:
               - Effect: "Allow"
                 Action: "cloudwatch:PutMetricData"
                 Resource: "*"
-        - PolicyName: "CloudWatchLogsPolicy"
-          PolicyDocument:
-            Version: "2012-10-17"
-            Statement:
-              - Effect: "Allow"
-                Action:
-                  - "logs:PutLogEvents"
-                  - "logs:CreateLogGroup"
-                  - "logs:CreateLogStream"
-                Resource:
-                  Fn::GetAtt: LogGroup.Arn
         - PolicyName: "CloudWatchEventsPolicy"
           PolicyDocument:
             Version: "2012-10-17"
@@ -111,6 +100,9 @@ Outputs:
   BucketName:
     Value:
       Ref: ArtifactBucket
-  LambdaRole:
+  LambdaRoleArn:
     Value:
       Fn::GetAtt: LambdaRole.Arn
+  LambdaRoleName:
+    Value:
+      Ref: LambdaRole
