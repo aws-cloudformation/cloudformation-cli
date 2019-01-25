@@ -6,6 +6,7 @@ import com.aws.cfn.LambdaWrapper;
 import com.aws.cfn.metrics.MetricsPublisher;
 import com.aws.cfn.proxy.CallbackAdapter;
 import com.aws.cfn.proxy.HandlerRequest;
+import com.aws.cfn.proxy.LoggerProxy;
 import com.aws.cfn.proxy.ProgressEvent;
 import com.aws.cfn.proxy.RequestContext;
 import com.aws.cfn.proxy.ResourceHandlerRequest;
@@ -53,9 +54,11 @@ public final class HandlerWrapper extends LambdaWrapper<{{ pojo_name }}> {
         if (!handlers.containsKey(action))
             throw new RuntimeException("Unknown action " + actionName);
 
+        final LoggerProxy loggerProxy = new LoggerProxy(this.logger);
+
         final BaseHandler handler = handlers.get(action);
 
-        return handler.handleRequest(request, context);
+        return handler.handleRequest(request, context, loggerProxy);
     }
 
     @Override
