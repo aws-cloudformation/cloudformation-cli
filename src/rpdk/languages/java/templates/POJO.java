@@ -15,5 +15,9 @@ public class {{ pojo_name|uppercase_first_letter }} {
         return this.{{ name|lowercase_first_letter }};
     }
 
+    public void set{{ name|uppercase_first_letter }}({{ type }} {{ name|lowercase_first_letter }}) {
+        this.{{ name|lowercase_first_letter }} = {{ name|lowercase_first_letter }};
+    }
+
     {% endfor %}
 }
