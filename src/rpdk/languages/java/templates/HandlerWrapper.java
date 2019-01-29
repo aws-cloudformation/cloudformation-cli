@@ -14,6 +14,7 @@ import com.aws.cfn.resource.SchemaValidator;
 import com.aws.cfn.resource.Serializer;
 import com.aws.cfn.scheduler.CloudWatchScheduler;
 import com.google.inject.Inject;
+import org.json.JSONObject;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -48,7 +49,7 @@ public final class HandlerWrapper extends LambdaWrapper<{{ pojo_name }}> {
     @Override
     public ProgressEvent invokeHandler(final ResourceHandlerRequest<{{ pojo_name }}> request,
                                        final Action action,
-                                       final RequestContext context) {
+                                       final JSONObject callbackContext) {
 
         final String actionName = (action == null) ? "<null>" : action.toString(); // paranoia
         if (!handlers.containsKey(action))
@@ -58,7 +59,7 @@ public final class HandlerWrapper extends LambdaWrapper<{{ pojo_name }}> {
 
         final BaseHandler handler = handlers.get(action);
 
-        return handler.handleRequest(request, context, loggerProxy);
+        return handler.handleRequest(request, callbackContext, loggerProxy);
     }
 
     @Override
@@ -99,8 +100,7 @@ public final class HandlerWrapper extends LambdaWrapper<{{ pojo_name }}> {
             request.getResourceTypeVersion(),
             request.getRequestData().getCredentials(),
             desiredResourceState,
-            previousResourceState,
-            request.getRequestContext().getCallbackContext()
+            previousResourceState
         );
     }
 }
