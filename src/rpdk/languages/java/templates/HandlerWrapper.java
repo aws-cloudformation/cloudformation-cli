@@ -93,8 +93,8 @@ public final class HandlerWrapper extends LambdaWrapper<{{ pojo_name }}> {
 
         return new ResourceHandlerRequest<>(
             request.getAwsAccountId(),
-            request.getRegion(),
             request.getNextToken(),
+            request.getRegion(),
             request.getResourceType(),
             request.getResourceTypeVersion(),
             request.getRequestData().getCredentials(),
