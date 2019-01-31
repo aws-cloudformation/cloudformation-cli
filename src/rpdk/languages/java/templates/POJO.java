@@ -5,7 +5,9 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.Map;
 import java.util.List;
 import java.util.Set;
+import lombok.Setter;
 
+@Setter
 public class {{ pojo_name|uppercase_first_letter }} {
     {% for name, type in properties.items() %}
     private {{ type }} {{ name|lowercase_first_letter }};
