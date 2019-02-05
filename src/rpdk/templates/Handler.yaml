@@ -57,6 +57,16 @@ Resources:
       Action: lambda:InvokeFunction
       Principal: cloudformation.amazonaws.com
 
+  CloudWatchPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName:
+        Ref: ResourceHandler
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn:
+        Fn::Sub: "arn:aws:events:${AWS::Region}:${AWS::AccountId}:*"
+
 Outputs:
   ResourceHandlerArn:
     Value:
