@@ -152,6 +152,10 @@ class Project:  # pylint: disable=too-many-instance-attributes
 
     def register(self, handler_arn):
         handler_arns = {op: handler_arn for op in HANDLER_OPS}
+        self.schema["identifiers"] = [
+            [identifier] if isinstance(identifier, str) else identifier
+            for identifier in self.schema["identifiers"]
+        ]
 
         registry_args = {
             "TypeName": self.type_name,

@@ -18,7 +18,7 @@ LANGUAGE = "BQHDBC"
 CONTENTS_UTF8 = "💣"
 TYPE_NAME = "AWS::Color::Red"
 ARN = "SOMEARN"
-SCHEMA = {}
+SCHEMA = {"identifiers": []}
 EXPECTED_REGISTRY_ARGS = {
     "TypeName": TYPE_NAME,
     "Schema": json.dumps(SCHEMA),

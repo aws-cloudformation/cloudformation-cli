@@ -50,6 +50,14 @@ Resources:
                   - "events:PutRule"
                   - "events:RemoveTargets"
                 Resource: "*"
+        - PolicyName: "CloudFormationProgressPolicy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: "Allow"
+                Action:
+                  - "cloudformation:RecordHandlerProgress"
+                Resource: "*"
 
   EncryptionKey:
     Type: AWS::KMS::Key
