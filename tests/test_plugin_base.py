@@ -4,8 +4,8 @@ from unittest.mock import patch
 
 import pytest
 
-from rpdk.filters import FILTER_REGISTRY
-from rpdk.plugin_base import LanguagePlugin
+from rpdk.core.filters import FILTER_REGISTRY
+from rpdk.core.plugin_base import LanguagePlugin
 
 
 class TestLanguagePlugin(LanguagePlugin):

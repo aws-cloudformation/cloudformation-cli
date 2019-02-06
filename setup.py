@@ -2,7 +2,7 @@
 import os.path
 import re
 
-from setuptools import find_packages, setup
+from setuptools import setup
 
 HERE = os.path.abspath(os.path.dirname(__file__))
 
@@ -23,12 +23,13 @@ def find_version(*file_paths):
 
 setup(
     name="aws-cloudformation-rpdk",
-    version=find_version("src", "rpdk", "__init__.py"),
+    version=find_version("src", "rpdk", "core", "__init__.py"),
     description=__doc__,
     long_description=read("README.rst"),
     author="Amazon Web Services",
     url="https://aws.amazon.com/cloudformation/",
-    packages=find_packages(where="src"),
+    # https://packaging.python.org/guides/packaging-namespace-packages/
+    packages=["rpdk.core"],
     package_dir={"": "src"},
     # package_data -> use MANIFEST.in instead
     include_package_data=True,
@@ -43,7 +44,7 @@ setup(
         "PyYAML>=3.13",
         "requests>=2.20",
     ],
-    entry_points={"console_scripts": ["uluru-cli = rpdk.cli:main"]},
+    entry_points={"console_scripts": ["uluru-cli = rpdk.core.cli:main"]},
     license="Apache License 2.0",
     classifiers=(
         "Development Status :: 2 - Pre-Alpha",

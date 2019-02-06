@@ -11,8 +11,13 @@ import pytest
 from botocore.stub import Stubber
 from jsonschema.exceptions import ValidationError
 
-from rpdk.cli import EXIT_UNHANDLED_EXCEPTION
-from rpdk.project import HANDLER_OPS, RESOURCE_EXISTS_MSG, InvalidSettingsError, Project
+from rpdk.core.cli import EXIT_UNHANDLED_EXCEPTION
+from rpdk.core.project import (
+    HANDLER_OPS,
+    RESOURCE_EXISTS_MSG,
+    InvalidSettingsError,
+    Project,
+)
 
 LANGUAGE = "BQHDBC"
 CONTENTS_UTF8 = "💣"
@@ -64,7 +69,9 @@ def test_load_settings_invalid_settings(project):
 def test_load_settings_valid_json(project):
     plugin = object()
     data = json.dumps({"typeName": TYPE_NAME, "language": LANGUAGE})
-    patch_load = patch("rpdk.project.load_plugin", autospec=True, return_value=plugin)
+    patch_load = patch(
+        "rpdk.core.project.load_plugin", autospec=True, return_value=plugin
+    )
 
     with patch_settings(project, data) as mock_open, patch_load as mock_load:
         project.load_settings()
@@ -146,7 +153,7 @@ def test_init(tmpdir):
 
     mock_plugin = MagicMock(spec=["init"])
     patch_load_plugin = patch(
-        "rpdk.project.load_plugin", autospec=True, return_value=mock_plugin
+        "rpdk.core.project.load_plugin", autospec=True, return_value=mock_plugin
     )
 
     project = Project(root=tmpdir)
@@ -174,7 +181,7 @@ def test_submit(project):
     mock_plugin.NAME = LANGUAGE
     patch_plugin = patch.object(project, "_plugin", mock_plugin)
     patch_package = patch(
-        "rpdk.project.package_handler", autospec=True, return_value=ARN
+        "rpdk.core.project.package_handler", autospec=True, return_value=ARN
     )
     patch_register = patch.object(project, "register")
 
@@ -191,7 +198,7 @@ def test_only_package_submit(project):
     mock_plugin.NAME = LANGUAGE
     patch_plugin = patch.object(project, "_plugin", mock_plugin)
     patch_package = patch(
-        "rpdk.project.package_handler", autospec=True, return_value=ARN
+        "rpdk.core.project.package_handler", autospec=True, return_value=ARN
     )
     patch_register = patch.object(project, "register")
 
@@ -207,7 +214,9 @@ def test_register(register_project):
     stubber = Stubber(client)
     stubber.add_response("create_resource_type", {"Arn": ARN}, EXPECTED_REGISTRY_ARGS)
 
-    with patch("rpdk.project.create_registry_client", return_value=client), stubber:
+    with patch(
+        "rpdk.core.project.create_registry_client", return_value=client
+    ), stubber:
         arn = register_project.register(ARN)
     stubber.assert_no_pending_responses()
 
@@ -223,7 +232,9 @@ def test_update_register(register_project):
         service_message=RESOURCE_EXISTS_MSG,
     )
     stubber.add_response("update_resource_type", {"Arn": ARN}, EXPECTED_REGISTRY_ARGS)
-    with patch("rpdk.project.create_registry_client", return_value=client), stubber:
+    with patch(
+        "rpdk.core.project.create_registry_client", return_value=client
+    ), stubber:
         arn = register_project.register(ARN)
     stubber.assert_no_pending_responses()
 
@@ -240,7 +251,7 @@ def test_fail_register(register_project):
         service_message="Unhandled Exception",
     )
     with patch(
-        "rpdk.project.create_registry_client", return_value=client
+        "rpdk.core.project.create_registry_client", return_value=client
     ), stubber, pytest.raises(client.exceptions.CFNRegistryException):
         register_project.register(ARN)
     stubber.assert_no_pending_responses()

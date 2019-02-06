@@ -12,7 +12,7 @@ tool.)
 
 .. code-block:: bash
 
-    virtualenv -p python3 env
+    python3 -m venv env
     source env/bin/activate
     pip install -e .
     pip install -r requirements.txt
@@ -20,6 +20,7 @@ tool.)
 You will also need to install a language plugin, such as [the Java language plugin](https://github.com/aws-cloudformation/aws-cloudformation-rpdk-java-plugin), also via `pip install`. For example, assuming the plugin is checked out in the same parent directory as this repository:
 
 .. code-block:: bash
+
     pip install -e ../aws-cloudformation-rpdk-java-plugin
 
 Before committing code, please execute the ``run_lint`` script. This performs
@@ -112,7 +113,7 @@ have the following entry point:
 .. code-block:: python
 
     entry_points={
-        "rpdk.languages": ["groovy = rpdk-groovy:GroovyLanguagePlugin"],
+        "rpdk.v1.languages": ["groovy = rpdk.groovy:GroovyLanguagePlugin"],
     },
 
 Plugins must provide the same interface as ``LanguagePlugin`` (in

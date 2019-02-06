@@ -126,19 +126,19 @@ def schema_merge(target, src, path):
     >>> schema_merge({'type': 'a'}, {'type': 'b'}, ()) # doctest: +NORMALIZE_WHITESPACE
     Traceback (most recent call last):
     ...
-    rpdk.jsonutils.utils.ConstraintError:
+    core.jsonutils.utils.ConstraintError:
     Object at path '#' declared multiple values for 'type': found 'a' and 'b'
     >>> a, b = {'$ref': 'a'}, {'$ref': 'b'}
     >>> schema_merge(a, b, ('foo',)) # doctest: +NORMALIZE_WHITESPACE
     Traceback (most recent call last):
     ...
-    rpdk.jsonutils.utils.ConstraintError:
+    core.jsonutils.utils.ConstraintError:
     Object at path '#/foo' declared multiple values for '$ref': found 'a' and 'b'
     >>> a, b = {'Foo': {'$ref': 'a'}}, {'Foo': {'$ref': 'b'}}
     >>> schema_merge(a, b, ('foo',)) # doctest: +NORMALIZE_WHITESPACE
     Traceback (most recent call last):
     ...
-    rpdk.jsonutils.utils.ConstraintError: Object at path '#/foo/Foo'
+    core.jsonutils.utils.ConstraintError: Object at path '#/foo/Foo'
     declared multiple values for '$ref': found 'a' and 'b'
     >>> schema_merge('', {}, ())
     Traceback (most recent call last):

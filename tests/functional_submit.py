@@ -2,8 +2,8 @@ import json
 import logging
 from contextlib import contextmanager
 
-from rpdk.boto_helpers import create_client
-from rpdk.project import HANDLER_OPS, Project
+from rpdk.core.boto_helpers import create_client
+from rpdk.core.project import HANDLER_OPS, Project
 
 from .utils import random_name, random_type_name
 
