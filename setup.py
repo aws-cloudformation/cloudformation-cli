@@ -28,9 +28,7 @@ setup(
     long_description=read("README.rst"),
     author="Amazon Web Services",
     url="https://aws.amazon.com/cloudformation/",
-    packages=find_packages(
-        where="src", exclude=["*.tests", "*.tests.*", "tests.*", "tests"]
-    ),
+    packages=find_packages(where="src"),
     package_dir={"": "src"},
     # package_data -> use MANIFEST.in instead
     include_package_data=True,
@@ -45,10 +43,7 @@ setup(
         "PyYAML>=3.13",
         "requests>=2.20",
     ],
-    entry_points={
-        "console_scripts": ["uluru-cli = rpdk.cli:main"],
-        "rpdk.v1.languages": ["java = rpdk.languages.java:JavaLanguagePlugin"],
-    },
+    entry_points={"console_scripts": ["uluru-cli = rpdk.cli:main"]},
     license="Apache License 2.0",
     classifiers=(
         "Development Status :: 2 - Pre-Alpha",
