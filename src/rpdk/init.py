@@ -50,7 +50,11 @@ class ValidatePluginChoice:
         pretty = "\n".join(
             "[{}] {}".format(i, choice) for i, choice in enumerate(self.choices, 1)
         )
-        self.message = "Select a language for code generation:\n" + pretty
+        self.message = (
+            "Select a language for code generation:\n"
+            + pretty
+            + "\n(enter an integer): "
+        )
 
     def __call__(self, value):
         try:
