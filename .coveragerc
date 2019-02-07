@@ -1,6 +1,6 @@
 [run]
 branch = True
-omit = */tests/*,*/contract/suite/*
+omit = */contract/suite/*
 
 [report]
 fail_under = 100
