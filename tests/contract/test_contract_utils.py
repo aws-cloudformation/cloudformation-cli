@@ -4,7 +4,7 @@ from unittest.mock import Mock, patch
 import pytest
 from requests import post
 
-from rpdk.contract.contract_utils import (
+from rpdk.core.contract.contract_utils import (
     COMPLETE,
     CREATE,
     FAILED,
@@ -12,8 +12,8 @@ from rpdk.contract.contract_utils import (
     CallbackServer,
     ResourceClient,
 )
-from rpdk.contract.transports import LocalLambdaTransport
-from rpdk.jsonutils.pointer import fragment_decode
+from rpdk.core.contract.transports import LocalLambdaTransport
+from rpdk.core.jsonutils.pointer import fragment_decode
 
 RESOURCE_MODEL = {"type": "Some::Resource::Type", "properties": {"identifier": "value"}}
 UPDATED_RESOURCE_MODEL = {
@@ -46,7 +46,7 @@ def test_send_async_request(resource_client):
     mock_listener = Mock(
         spec=CallbackServer, events=listener_events, server_address=("url", "port")
     )
-    with patch("rpdk.contract.contract_utils.CallbackServer") as mock_context:
+    with patch("rpdk.core.contract.contract_utils.CallbackServer") as mock_context:
         mock_context.return_value.__enter__.return_value = mock_listener
         returned_events = resource_client.send_async_request(None, "token", COMPLETE)
     assert returned_events == EXPECTED_EVENTS

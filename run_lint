@@ -11,7 +11,7 @@ flake8 "${files[@]}"
 pylint "${files[@]}"
 # have to skip B101, contract tests use it and there's no way to skip for specific files
 # have to skip B322, as bandit apparently isn't clever enough to detect we're running Python 3
-bandit -r "src/" --skip "B101,B322" --exclude "tests"
+bandit -r "src/" --skip "B101,B322"
 # although we mock SDK calls, these must be set, otherwise the credential-checking code
 # in boto_helpers.py fails. this probably needs fixing properly in future.
 # on the other hand, this means that exported creds aren't honoured when running tests,
@@ -19,4 +19,4 @@ bandit -r "src/" --skip "B101,B322" --exclude "tests"
 AWS_ACCESS_KEY_ID="" \
 AWS_SECRET_ACCESS_KEY="" \
 AWS_SESSION_TOKEN="" \
-pytest --cov="src/" --doctest-modules --random-order-bucket="parent" "src/" "tests/"
+pytest --cov="rpdk.core" --doctest-modules --random-order-bucket="parent" "tests/" --pyargs "rpdk.core"

@@ -12,8 +12,8 @@ from awscli.customizations.cloudformation.package import PackageCommand
 from botocore.stub import ANY, Stubber
 from dateutil.tz import tzutc
 
-from rpdk.boto_helpers import create_client
-from rpdk.packager import (
+from rpdk.core.boto_helpers import create_client
+from rpdk.core.packager import (
     HANDLER_ARN_KEY,
     HANDLER_PARAMS,
     HANDLER_TEMPLATE_PATH,
@@ -238,7 +238,7 @@ def test_package(packager):
         packager.package("stackName")
 
     raw_template = pkg_resources.resource_string(
-        "rpdk", "data/CloudFormationHandlerInfrastructure.yaml"
+        "rpdk.core", "data/CloudFormationHandlerInfrastructure.yaml"
     )
     mock_create_update.assert_called_once_with(
         INFRA_STACK_NAME, raw_template.decode("utf-8")
@@ -258,9 +258,9 @@ def test_package(packager):
 def test_helper_func_package_handler():
     handler_stack_name = object()
     client = object()
-    patch_packager = patch("rpdk.packager.Packager", autospec=True)
+    patch_packager = patch("rpdk.core.packager.Packager", autospec=True)
     patch_client = patch(
-        "rpdk.packager.create_client", autospec=True, return_value=client
+        "rpdk.core.packager.create_client", autospec=True, return_value=client
     )
     with patch_packager as mock_packager, patch_client as mock_client:
         package_handler(handler_stack_name)

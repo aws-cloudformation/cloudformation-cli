@@ -1,12 +1,12 @@
 from unittest.mock import Mock, patch
 
-from rpdk.plugin_registry import load_plugin
+from rpdk.core.plugin_registry import load_plugin
 
 
 def test_load_plugin():
     plugin = Mock()
     with patch.dict(
-        "rpdk.plugin_registry.PLUGIN_REGISTRY", {"test": plugin}, clear=True
+        "rpdk.core.plugin_registry.PLUGIN_REGISTRY", {"test": plugin}, clear=True
     ):
         load_plugin("test")
     plugin.assert_called_once_with()

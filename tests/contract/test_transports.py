@@ -4,7 +4,7 @@ from unittest.mock import patch
 
 import pytest
 
-from rpdk.contract.transports import LocalLambdaTransport
+from rpdk.core.contract.transports import LocalLambdaTransport
 
 FUNCTION_NAME = "WGTIDN"
 DUMMY = "GCCIKL"
