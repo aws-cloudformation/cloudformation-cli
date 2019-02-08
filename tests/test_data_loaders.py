@@ -13,7 +13,7 @@ import yaml
 from jsonschema.exceptions import ValidationError
 from pytest_localserver.http import Request, Response, WSGIServer
 
-from rpdk.data_loaders import (
+from rpdk.core.data_loaders import (
     STDIN_NAME,
     InternalError,
     get_file_base_uri,
@@ -23,7 +23,7 @@ from rpdk.data_loaders import (
     resource_stream,
     resource_yaml,
 )
-from rpdk.plugin_base import LanguagePlugin
+from rpdk.core.plugin_base import LanguagePlugin
 
 BASEDIR = Path(__file__).parent  # tests/test_data_loaders.py -> tests/
 
@@ -142,7 +142,7 @@ def test_load_resource_spec_file_object_has_name(tmpdir):
 
 
 def test_load_resource_spec_inliner_produced_invalid_schema():
-    with patch("rpdk.data_loaders.RefInliner", autospec=True) as mock_inliner:
+    with patch("rpdk.core.data_loaders.RefInliner", autospec=True) as mock_inliner:
         mock_inliner.return_value.inline.return_value = {}
         with pytest.raises(InternalError) as excinfo:
             load_resource_spec(yaml_s(BASIC_SCHEMA))
@@ -194,7 +194,7 @@ def test_make_validator_handlers_time_out():
 
 def mock_pkg_resource_stream(bytes_in, func=resource_stream):
     resource_name = "data/test.utf-8"
-    target = "rpdk.data_loaders.pkg_resources.resource_stream"
+    target = "rpdk.core.data_loaders.pkg_resources.resource_stream"
     with patch(target, autospec=True, return_value=BytesIO(bytes_in)) as mock_stream:
         f = func(__name__, resource_name)
     mock_stream.assert_called_once_with(__name__, resource_name)

@@ -7,7 +7,7 @@ from unittest.mock import Mock
 import boto3
 import pytest
 
-from rpdk.packager import Packager
+from rpdk.core.packager import Packager
 
 from .utils import random_name
 

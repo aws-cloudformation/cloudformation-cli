@@ -3,7 +3,10 @@ from collections.abc import Sequence
 
 import pytest
 
-from rpdk.contract.resource_generator import STRING_FORMATS, generate_schema_strategy
+from rpdk.core.contract.resource_generator import (
+    STRING_FORMATS,
+    generate_schema_strategy,
+)
 
 
 @pytest.mark.parametrize("schema_type", ["integer", "number"])

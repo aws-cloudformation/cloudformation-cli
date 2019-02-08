@@ -3,7 +3,7 @@ from unittest.mock import patch
 
 import pytest
 
-from rpdk.cli import EXIT_UNHANDLED_EXCEPTION, main, setup_logging
+from rpdk.core.cli import EXIT_UNHANDLED_EXCEPTION, main, setup_logging
 
 from .utils import chdir
 
@@ -95,7 +95,9 @@ def test_setup_logging_console_overrides(tmpdir, capsys, verbosity):
 
 def test_main_unhandled_exception_before_logging(capsys):
     with patch(
-        "rpdk.cli.unittest_patch_setup_subparser", autospec=True, side_effect=Exception
+        "rpdk.core.cli.unittest_patch_setup_subparser",
+        autospec=True,
+        side_effect=Exception,
     ) as mock_hook:
         with pytest.raises(SystemExit) as excinfo:
             main(args_in=[])
@@ -117,7 +119,7 @@ def test_main_unhandled_exception_after_logging(capsys):
         parser.set_defaults(command=raise_exception)
 
     with patch(
-        "rpdk.cli.unittest_patch_setup_subparser",
+        "rpdk.core.cli.unittest_patch_setup_subparser",
         autospec=True,
         side_effect=setup_subparser,
     ) as mock_hook:

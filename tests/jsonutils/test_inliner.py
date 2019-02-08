@@ -4,7 +4,7 @@ from unittest.mock import patch
 
 import pytest
 
-from rpdk.jsonutils.inliner import RefInliner
+from rpdk.core.jsonutils.inliner import RefInliner
 
 BASE_URI = "http://localhost/"
 
