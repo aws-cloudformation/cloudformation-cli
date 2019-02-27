@@ -1,5 +1,4 @@
 {
-    "$id": "initech.tps.report.v1.json",
     "typeName": "Initech::TPS::Report",
     "description": "An example resource schema demonstrating some basic constructs and validation rules.",
     "sourceUrl": "git@github.com:awslabs/aws-cloudformation-rpdk.git",
