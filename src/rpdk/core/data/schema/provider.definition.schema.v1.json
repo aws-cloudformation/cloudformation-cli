@@ -284,8 +284,12 @@
             "$ref": "#/definitions/jsonPointerArray"
         },
         "identifiers": {
-            "description": "A list of JSON pointers to properties used to uniquely identify the resource. Note that multiple properties may serve as identifiers.",
-            "$ref": "#/definitions/jsonPointerArray"
+            "description": "A list of identifiers. An identifier is a list of JSON pointers to properties that uniquely identify the resource. An identifier can be a single or multiple properties.",
+            "type": "array",
+            "minItems": 1,
+            "items": {
+                "$ref": "#/definitions/jsonPointerArray"
+            }
         },
         "required": {
             "$ref": "https://json-schema.org/draft-07/schema#/properties/required"

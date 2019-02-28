@@ -1,5 +1,4 @@
 {
-    "$id": "aws-ec2-instance.json",
     "typeName": "AWS::EC2::Instance",
     "definitions": {
         "Ebs": {
@@ -565,7 +564,7 @@
         "/properties/InstanceId"
     ],
     "identifiers": [
-        "/properties/InstanceId"
+        ["/properties/InstanceId"]
     ],
     "additionalProperties": false
 }

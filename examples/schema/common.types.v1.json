@@ -1,6 +1,5 @@
 {
     "$schema": "http://json-schema.org/draft-07/schema#",
-    "$id": "common.types.v1.json",
     "definitions": {
         "cidrBlock": {
             "$comment": "TODO: regex could be more strict, for example this allows the cidr 999.999.999.999 and 999.999.999.999/32",

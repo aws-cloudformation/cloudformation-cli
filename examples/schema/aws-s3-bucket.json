@@ -1,5 +1,4 @@
 {
-    "$id": "aws-s3-bucket.json",
     "typeName": "AWS::S3::Bucket",
     "definitions": {
         "AccelerateConfiguration": {
@@ -952,9 +951,9 @@
         "/properties/WebsiteURL"
     ],
     "identifiers": [
-        "/properties/Arn",
-        "/properties/BucketName",
-        "/properties/URL"
+        ["/properties/Arn"],
+        ["/properties/BucketName"],
+        ["/properties/URL"]
     ],
     "additionalProperties": false
 }

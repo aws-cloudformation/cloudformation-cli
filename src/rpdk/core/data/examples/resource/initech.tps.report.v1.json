@@ -60,6 +60,6 @@
         "/properties/tps_code"
     ],
     "identifiers": [
-        "/properties/tps_code"
+        ["/properties/tps_code"]
     ]
 }
