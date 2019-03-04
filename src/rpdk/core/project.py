@@ -94,7 +94,6 @@ class Project:  # pylint: disable=too-many-instance-attributes
         self.schema = resource_json(
             __name__, "data/examples/resource/initech.tps.report.v1.json"
         )
-        self.schema["$id"] = self.schema_filename
         self.schema["typeName"] = self.type_name
         self.safewrite(self.schema_path, json.dumps(self.schema, indent=4))
 

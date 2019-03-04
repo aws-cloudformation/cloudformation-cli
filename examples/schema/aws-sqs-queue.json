@@ -1,5 +1,4 @@
 {
-    "$id": "aws-sqs-queue.json",
     "typeName": "AWS::SQS::Queue",
     "properties": {
         "Arn": {
@@ -104,9 +103,15 @@
         "/properties/URL"
     ],
     "identifiers": [
-        "/properties/Arn",
-        "/properties/QueueName",
-        "/properties/URL"
+        [
+            "/properties/Arn"
+        ],
+        [
+            "/properties/QueueName"
+        ],
+        [
+            "/properties/URL"
+        ]
     ],
     "additionalProperties": false
 }
