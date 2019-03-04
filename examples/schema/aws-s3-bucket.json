@@ -951,9 +951,15 @@
         "/properties/WebsiteURL"
     ],
     "identifiers": [
-        ["/properties/Arn"],
-        ["/properties/BucketName"],
-        ["/properties/URL"]
+        [
+            "/properties/Arn"
+        ],
+        [
+            "/properties/BucketName"
+        ],
+        [
+            "/properties/URL"
+        ]
     ],
     "additionalProperties": false
 }

@@ -103,9 +103,15 @@
         "/properties/URL"
     ],
     "identifiers": [
-        ["/properties/Arn"],
-        ["/properties/QueueName"],
-        ["/properties/URL"]
+        [
+            "/properties/Arn"
+        ],
+        [
+            "/properties/QueueName"
+        ],
+        [
+            "/properties/URL"
+        ]
     ],
     "additionalProperties": false
 }

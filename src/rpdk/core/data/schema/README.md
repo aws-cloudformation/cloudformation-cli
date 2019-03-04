@@ -40,7 +40,6 @@ The following (truncated) example shows some of the semantic definitions for an 
 
 ```
 {
-    "$id": "aws.s3.bucket.v1.json",
     "typeName": "AWS::S3::Bucket",
     "definitions": { ... },
     "properties": {

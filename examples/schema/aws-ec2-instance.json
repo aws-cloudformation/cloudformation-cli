@@ -564,7 +564,9 @@
         "/properties/InstanceId"
     ],
     "identifiers": [
-        ["/properties/InstanceId"]
+        [
+            "/properties/InstanceId"
+        ]
     ],
     "additionalProperties": false
 }
