@@ -38,7 +38,7 @@ setup(
         "awscli>=1.16",
         "boto3>=1.9.71,<1.10.0",
         "Jinja2>=2.10",
-        "jsonschema>=3.0.0a3",
+        "jsonschema>=3.0.1",
         "pytest>=4.0",
         "Werkzeug>=0.14",
         "PyYAML>=3.13",
