@@ -4,6 +4,38 @@
     "title": "CloudFormation Resource Provider Definition MetaSchema",
     "description": "This schema validates a CloudFormation resource provider definition.",
     "definitions": {
+        "handlerDefinition": {
+            "type": "object",
+            "properties": {
+                "ProtocolVersion": {
+                    "type": "string",
+                    "enum": [
+                        "1.0"
+                    ]
+                },
+                "RuntimeType": {
+                    "type": "string",
+                    "enum": [
+                        "Lambda",
+                        "Native"
+                    ]
+                },
+                "Permissions": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "minItems": 1,
+                    "additionalItems": false
+                }
+            },
+            "additionalItems": false,
+            "required": [
+                "protocolVersion",
+                "runtimeType",
+                "permissions"
+            ]
+        },
         "jsonPointerArray": {
             "type": "array",
             "minItems": 1,
@@ -247,6 +279,34 @@
             },
             "additionalProperties": false,
             "minProperties": 1
+        },
+        "handlers": {
+            "type": "object",
+            "properties": {
+                "create": {
+                    "$ref": "#/definitions/handlerDefinition"
+                },
+                "read": {
+                    "$ref": "#/definitions/handlerDefinition"
+                },
+                "update": {
+                    "$ref": "#/definitions/handlerDefinition"
+                },
+                "delete": {
+                    "$ref": "#/definitions/handlerDefinition"
+                },
+                "list": {
+                    "$ref": "#/definitions/handlerDefinition"
+                }
+            },
+            "additionalProperties": false,
+            "required": [
+                "create",
+                "read",
+                "update",
+                "delete",
+                "list"
+            ]
         },
         "remote": {
             "description": "Reserved for CloudFormation use. A namespace to inline remote schemas.",
