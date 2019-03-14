@@ -6,14 +6,12 @@
         }
     },
     "handlers": {
+        "protocolVersion": "1.0",
+        "runtimeType": "Native",
         "create": {
-            "protocolVersion": "1.0",
-            "runtimeType": "Native",
             "permissions": "test:permission"
         },
         "read": {
-            "protocolVersion": "1.0",
-            "runtimeType": "Native",
             "permissions": "test:permission"
         }
     }
