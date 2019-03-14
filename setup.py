@@ -41,7 +41,7 @@ setup(
         "jsonschema>=3.0.1",
         "pytest>=4.0",
         "Werkzeug>=0.14",
-        "PyYAML>=3.13",
+        "PyYAML<=3.13,>=3.10",
         "requests>=2.20",
     ],
     entry_points={"console_scripts": ["uluru-cli = rpdk.core.cli:main"]},
