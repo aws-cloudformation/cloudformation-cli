@@ -1,0 +1,27 @@
+{
+    "typeName": "AWS::Valid::TypeName",
+    "properties": {
+        "property1": {
+            "type": "array"
+        }
+    },
+    "handlers": {
+        "protocolVersion": "1.0",
+        "runtimeType": "Native",
+        "create": {
+            "permissions": "test:permission"
+        },
+        "read": {
+            "permissions": "test:permission"
+        },
+        "update": {
+            "permissions": "test:permission"
+        },
+        "delete": {
+            "permissions": "test:permission"
+        },
+        "list": {
+            "permissions": "test:permission"
+        }
+    }
+}

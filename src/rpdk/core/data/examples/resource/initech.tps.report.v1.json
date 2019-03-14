@@ -1,7 +1,7 @@
 {
     "typeName": "Initech::TPS::Report",
     "description": "An example resource schema demonstrating some basic constructs and validation rules.",
-    "sourceUrl": "git@github.com:awslabs/aws-cloudformation-rpdk.git",
+    "sourceUrl": "git@github.com:aws-cloudformation/aws-cloudformation-rpdk.git",
     "definitions": {
         "InitechDateFormat": {
             "$comment": "Use the `definitions` block to provide shared resource property schemas",
@@ -63,5 +63,42 @@
         [
             "/properties/tps_code"
         ]
-    ]
+    ],
+    "handlers": {
+        "create": {
+            "protocolVersion": "1.0",
+            "runtimeType": "Lambda",
+            "permissions": [
+                "initech:CreateReport"
+            ]
+        },
+        "read": {
+            "protocolVersion": "1.0",
+            "runtimeType": "Lambda",
+            "permissions": [
+                "initech:DescribeReport"
+            ]
+        },
+        "update": {
+            "protocolVersion": "1.0",
+            "runtimeType": "Lambda",
+            "permissions": [
+                "initech:UpdateReport"
+            ]
+        },
+        "delete": {
+            "protocolVersion": "1.0",
+            "runtimeType": "Lambda",
+            "permissions": [
+                "initech:DeleteReport"
+            ]
+        },
+        "list": {
+            "protocolVersion": "1.0",
+            "runtimeType": "Lambda",
+            "permissions": [
+                "initech:ListReports"
+            ]
+        }
+    }
 }
