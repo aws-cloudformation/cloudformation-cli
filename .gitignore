@@ -25,6 +25,7 @@ wheels/
 .installed.cfg
 *.egg
 .vscode
+*.code-workspace
 .project
 bin/
 
