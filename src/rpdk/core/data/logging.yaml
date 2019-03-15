@@ -4,7 +4,7 @@ formatters:
     format: "%(message)s"
   detailed:
     format: "[%(asctime)s] %(levelname)-8s - %(message)s"
-    datefmt: "%Y-%M-%dT%H:%M:%SZ"
+    datefmt: "%Y-%m-%dT%H:%M:%SZ"
     class: rpdk.core.cli.UTCFormatter
 handlers:
   console:
