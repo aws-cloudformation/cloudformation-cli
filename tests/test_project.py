@@ -9,9 +9,9 @@ from unittest.mock import MagicMock, patch
 import boto3
 import pytest
 from botocore.stub import Stubber
-from jsonschema.exceptions import ValidationError
 
 from rpdk.core.cli import EXIT_UNHANDLED_EXCEPTION
+from rpdk.core.exceptions import InternalError, SpecValidationError
 from rpdk.core.project import (
     HANDLER_OPS,
     RESOURCE_EXISTS_MSG,
@@ -85,7 +85,7 @@ def test_load_settings_valid_json(project):
 
 
 def test_load_schema_settings_not_loaded(project):
-    with pytest.raises(RuntimeError):
+    with pytest.raises(InternalError):
         project.load_schema()
 
 
@@ -259,7 +259,9 @@ def test_fail_register(register_project):
 
 def test_load_invalid_schema(project, caplog):
     patch_settings = patch.object(project, "load_settings")
-    patch_schema = patch.object(project, "load_schema", side_effect=ValidationError(""))
+    patch_schema = patch.object(
+        project, "load_schema", side_effect=SpecValidationError("")
+    )
     with patch_settings as mock_settings, patch_schema as mock_schema, pytest.raises(
         SystemExit
     ) as excinfo:

@@ -2,10 +2,9 @@ from unittest.mock import ANY, Mock, PropertyMock, patch
 
 import pytest
 
+from rpdk.core.exceptions import WizardAbortError, WizardValidationError
 from rpdk.core.init import (
-    AbortError,
     ValidatePluginChoice,
-    ValidationError,
     check_for_existing_project,
     ignore_abort,
     init,
@@ -63,7 +62,7 @@ def test_input_with_validation_valid_first_try():
 def test_input_with_validation_valid_second_try(capsys):
     def mock_validator(value):
         if value == ERROR:
-            raise ValidationError(ERROR)
+            raise WizardValidationError(ERROR)
         return value
 
     sentinel = object()
@@ -84,7 +83,7 @@ def test_validate_type_name_valid():
 
 
 def test_validate_type_name_invalid():
-    with pytest.raises(ValidationError):
+    with pytest.raises(WizardValidationError):
         validate_type_name("AWS-Color-Red")
 
 
@@ -100,14 +99,14 @@ def test_validate_yes_no(value):
 
 def test_validate_plugin_choice_not_an_int():
     validator = ValidatePluginChoice(["test"])
-    with pytest.raises(ValidationError) as excinfo:
+    with pytest.raises(WizardValidationError) as excinfo:
         validator("a")
     assert "integer" in str(excinfo.value)
 
 
 def test_validate_plugin_choice_less_than_zero():
     validator = ValidatePluginChoice(["test"])
-    with pytest.raises(ValidationError) as excinfo:
+    with pytest.raises(WizardValidationError) as excinfo:
         validator("-1")
     assert "select" in str(excinfo.value)
 
@@ -115,7 +114,7 @@ def test_validate_plugin_choice_less_than_zero():
 def test_validate_plugin_choice_greater_than_choice():
     choices = range(3)
     validator = ValidatePluginChoice(choices)
-    with pytest.raises(ValidationError) as excinfo:
+    with pytest.raises(WizardValidationError) as excinfo:
         validator(str(len(choices) + 1))  # index is 1 based for input
     assert "select" in str(excinfo.value)
 
@@ -172,7 +171,7 @@ def test_check_for_existing_project_bad_path_ask_no():
         "rpdk.core.init.input_with_validation", autospec=True, return_value=False
     )
     with patch_input as mock_input:
-        with pytest.raises(AbortError):
+        with pytest.raises(WizardAbortError):
             check_for_existing_project(project)
 
     mock_input.assert_called_once_with(ANY, validate_yes)
@@ -200,7 +199,7 @@ def test_ignore_abort_keyboard_interrupt():
 
 def test_ignore_abort_abort():
     sentinel = object()
-    function = Mock(side_effect=AbortError)
+    function = Mock(side_effect=WizardAbortError)
     wrapped = ignore_abort(function)
 
     with pytest.raises(SystemExit):
@@ -219,7 +218,7 @@ def test_input_typename():
 def test_input_language_no_plugins():
     validator = ValidatePluginChoice([])
     with patch("rpdk.core.init.validate_plugin_choice", validator):
-        with pytest.raises(AbortError):
+        with pytest.raises(WizardAbortError):
             input_language()
 
 

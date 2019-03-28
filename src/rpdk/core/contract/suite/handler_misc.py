@@ -9,4 +9,4 @@ def contract_check_asserts_work():
         "as much information about your system and runtime as possible."
     )
     with pytest.raises(AssertionError, message=message):
-        assert False
+        assert False  # noqa: B011

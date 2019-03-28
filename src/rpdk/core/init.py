@@ -4,6 +4,7 @@ import logging
 import re
 from functools import wraps
 
+from .exceptions import WizardAbortError, WizardValidationError
 from .plugin_registry import PLUGIN_CHOICES
 from .project import Project
 
@@ -13,20 +14,12 @@ LOG = logging.getLogger(__name__)
 TYPE_NAME_REGEX = r"^[a-zA-Z0-9]{2,64}::[a-zA-Z0-9]{2,64}::[a-zA-Z0-9]{2,64}$"
 
 
-class AbortError(Exception):
-    pass
-
-
-class ValidationError(Exception):
-    pass
-
-
 def input_with_validation(prompt, validate):
     while True:
         response = input(prompt)
         try:
             return validate(response)
-        except ValidationError as e:
+        except WizardValidationError as e:
             print(str(e))
 
 
@@ -35,7 +28,9 @@ def validate_type_name(value):
     if match:
         return value
     LOG.debug("'%s' did not match '%s'", value, TYPE_NAME_REGEX)
-    raise ValidationError("Please enter a value matching '{}'".format(TYPE_NAME_REGEX))
+    raise WizardValidationError(
+        "Please enter a value matching '{}'".format(TYPE_NAME_REGEX)
+    )
 
 
 def validate_yes(value):
@@ -60,10 +55,10 @@ class ValidatePluginChoice:
         try:
             choice = int(value)
         except ValueError:
-            raise ValidationError("Please enter an integer")
+            raise WizardValidationError("Please enter an integer")
         choice -= 1
         if choice < 0 or choice >= self.max:
-            raise ValidationError("Please select a choice")
+            raise WizardValidationError("Please select a choice")
         return self.choices[choice]
 
 
@@ -91,7 +86,7 @@ def check_for_existing_project(project):
         )
         LOG.debug("Overwrite response: %s", project.overwrite)
         if not project.overwrite:
-            raise AbortError()
+            raise WizardAbortError()
 
 
 def input_typename():
@@ -107,7 +102,7 @@ def input_language():
     # language/plugin
     if validate_plugin_choice.max < 1:
         LOG.critical("No language plugins found")
-        raise AbortError()
+        raise WizardAbortError()
 
     if validate_plugin_choice.max == 1:
         language = validate_plugin_choice.choices[0]
@@ -139,7 +134,7 @@ def ignore_abort(function):
     def wrapper(args):
         try:
             function(args)
-        except (KeyboardInterrupt, AbortError):
+        except (KeyboardInterrupt, WizardAbortError):
             print("\naborted")
             raise SystemExit(1)
 
