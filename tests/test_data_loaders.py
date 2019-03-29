@@ -34,16 +34,16 @@ INVALID_UTF8 = b"\x80"
 BASIC_SCHEMA = {"typeName": "AWS::FOO::BAR", "properties": {"foo": {"type": "string"}}}
 
 
-def json_s(obj):
-    return StringIO(json.dumps(obj))
+def yaml_s(obj):
+    return StringIO(yaml.dump(obj))
 
 
-def test_load_resource_spec_invalid_json():
+def test_load_resource_spec_invalid_yaml():
     with pytest.raises(SpecValidationError) as excinfo:
-        load_resource_spec(StringIO('{"a": 1, "b"}'))
+        load_resource_spec(StringIO("foo:\naaaaa"))
 
-    assert "delimiter" in str(excinfo.value)
-    assert "line 1 column 13" in str(excinfo.value)
+    assert "line 2" in str(excinfo.value)
+    assert "column 6" in str(excinfo.value)
 
 
 def test_load_resource_spec_empty_is_invalid():
@@ -53,12 +53,12 @@ def test_load_resource_spec_empty_is_invalid():
 
 def test_load_resource_spec_boolean_is_invalid():
     with pytest.raises(SpecValidationError):
-        load_resource_spec(json_s(True))
+        load_resource_spec(yaml_s(True))
 
 
 def test_load_resource_spec_empty_object_is_invalid():
     with pytest.raises(SpecValidationError):
-        load_resource_spec(json_s({}))
+        load_resource_spec(yaml_s({}))
 
 
 def json_files_params(path, glob="*.json"):
@@ -97,7 +97,7 @@ def test_load_resource_spec_remote_key_is_invalid():
         "remote": {},
     }
     with pytest.raises(SpecValidationError) as excinfo:
-        load_resource_spec(json_s(schema))
+        load_resource_spec(yaml_s(schema))
     assert "remote" in str(excinfo.value)
 
 
@@ -121,7 +121,7 @@ print(args.file.name)
 
 
 def test_get_file_base_uri_file_object_no_name():
-    f = json_s(BASIC_SCHEMA)
+    f = yaml_s(BASIC_SCHEMA)
     assert not hasattr(f, "name")
     expected = (Path.cwd() / "-").resolve().as_uri()
     actual = get_file_base_uri(f)
@@ -129,7 +129,7 @@ def test_get_file_base_uri_file_object_no_name():
 
 
 def test_load_resource_spec_file_object_stdin():
-    f = json_s(BASIC_SCHEMA)
+    f = yaml_s(BASIC_SCHEMA)
     f.name = STDIN_NAME
     expected = (Path.cwd() / "-").resolve().as_uri()
     actual = get_file_base_uri(f)
@@ -137,7 +137,7 @@ def test_load_resource_spec_file_object_stdin():
 
 
 def test_load_resource_spec_file_object_has_name(tmpdir):
-    f = json_s(BASIC_SCHEMA)
+    f = yaml_s(BASIC_SCHEMA)
     f.name = tmpdir.join("test.json")
     expected = Path(f.name).resolve().as_uri()
     actual = get_file_base_uri(f)
@@ -148,7 +148,7 @@ def test_load_resource_spec_inliner_produced_invalid_schema():
     with patch("rpdk.core.data_loaders.RefInliner", autospec=True) as mock_inliner:
         mock_inliner.return_value.inline.return_value = {}
         with pytest.raises(InternalError) as excinfo:
-            load_resource_spec(json_s(BASIC_SCHEMA))
+            load_resource_spec(yaml_s(BASIC_SCHEMA))
 
     mock_inliner.assert_called_once_with(ANY, BASIC_SCHEMA)
     cause = excinfo.value.__cause__

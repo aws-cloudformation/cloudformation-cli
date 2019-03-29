@@ -92,8 +92,8 @@ def get_file_base_uri(file):
 def load_resource_spec(resource_spec_file):
     """Load a resource provider definition from a file, and validate it."""
     try:
-        resource_spec = json.load(resource_spec_file)
-    except json.JSONDecodeError as e:
+        resource_spec = yaml.safe_load(resource_spec_file)
+    except yaml.YAMLError as e:
         LOG.debug("Resource spec decode failed", exc_info=True)
         raise SpecValidationError(str(e)) from e
 
