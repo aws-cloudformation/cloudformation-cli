@@ -60,7 +60,7 @@ CIRCULAR_SCHEMAS = (
 @pytest.mark.parametrize("primitive_type", PRIMITIVE_TYPES)
 def test_walk_primitive_type(primitive_type):
     flattener = JsonSchemaFlattener({})
-    result = flattener._walk((), primitive_type)
+    result = flattener._walk(primitive_type, ())
 
     assert result == primitive_type
     assert not flattener._schema_map
@@ -69,7 +69,7 @@ def test_walk_primitive_type(primitive_type):
 @pytest.mark.parametrize("primitive_type", PRIMITIVE_TYPES)
 def test_walk_ref_to_primitive(primitive_type):
     flattener = JsonSchemaFlattener({"a": primitive_type})
-    result = flattener._walk((), {"$ref": "#/a"})
+    result = flattener._walk({"$ref": "#/a"}, ())
 
     assert result == primitive_type
     assert not flattener._schema_map
@@ -79,7 +79,7 @@ def test_walk_ref_to_primitive(primitive_type):
 def test_walk_ref_to_ref_to_primitive(primitive_type):
     test_schema = {"b": {"$ref": "#/c"}, "c": primitive_type}
     flattener = JsonSchemaFlattener(test_schema)
-    result = flattener._walk((), {"$ref": "#/b"})
+    result = flattener._walk({"$ref": "#/b"}, ())
 
     assert result == primitive_type
     assert not flattener._schema_map
@@ -89,7 +89,7 @@ def test_walk_ref_to_ref_to_primitive(primitive_type):
 def test_walk_pattern_properties_with_primitive(primitive_type):
     test_schema = {"patternProperties": {"a": primitive_type}}
     flattener = JsonSchemaFlattener({})
-    result = flattener._walk((), test_schema)
+    result = flattener._walk(test_schema, ())
 
     assert result == test_schema
     assert not flattener._schema_map
@@ -99,7 +99,7 @@ def test_walk_pattern_properties_with_primitive(primitive_type):
 def test_walk_array_items_with_primitive(primitive_type):
     test_schema = {"type": "array", "items": primitive_type}
     flattener = JsonSchemaFlattener({})
-    result = flattener._walk((), test_schema)
+    result = flattener._walk(test_schema, ())
 
     assert result == test_schema
     assert not flattener._schema_map
@@ -109,7 +109,7 @@ def test_walk_array_items_with_primitive(primitive_type):
 def test_walk_object(path):
     test_schema = {"properties": {"a": {}}}
     flattener = JsonSchemaFlattener({})
-    result = flattener._walk(path, test_schema)
+    result = flattener._walk(test_schema, path)
 
     assert result == {"$ref": path}
     assert len(flattener._schema_map) == 1
@@ -120,7 +120,7 @@ def test_walk_object(path):
 def test_walk_pattern_properties_with_object(path):
     test_schema = {"patternProperties": {"a": {"properties": {"b": {}}}}}
     flattener = JsonSchemaFlattener({})
-    result = flattener._walk(path, test_schema)
+    result = flattener._walk(test_schema, path)
 
     ref_path = path + ("patternProperties", "a")
 
@@ -133,7 +133,7 @@ def test_walk_pattern_properties_with_object(path):
 def test_walk_array_items_with_object(path):
     test_schema = {"type": "array", "items": {"properties": {"b": {}}}}
     flattener = JsonSchemaFlattener({})
-    result = flattener._walk(path, test_schema)
+    result = flattener._walk(test_schema, path)
 
     ref_path = path + ("items",)
 
@@ -148,7 +148,7 @@ def test_walk_array_items_with_object(path):
 def test_walk_nested_properties(path):
     test_schema = {"properties": {"a": {"properties": {"b": {}}}}}
     flattener = JsonSchemaFlattener({})
-    result = flattener._walk(path, test_schema)
+    result = flattener._walk(test_schema, path)
 
     ref_path = path + ("properties", "a")
 
@@ -162,7 +162,7 @@ def test_walk_ref_to_object():
     test_schema = {"a": {"properties": {"b": {}}}}
 
     flattener = JsonSchemaFlattener(test_schema)
-    flattened = flattener._walk((), {"$ref": "#/a"})
+    flattened = flattener._walk({"$ref": "#/a"}, ())
 
     assert flattened == {"$ref": ("a",)}
     assert len(flattener._schema_map) == 1
@@ -172,7 +172,7 @@ def test_walk_ref_to_object():
 def test_walk_ref_to_ref_object():
     test_schema = {"b": {"$ref": "#/c"}, "c": {"properties": {"a": {}}}}
     flattener = JsonSchemaFlattener(test_schema)
-    result = flattener._walk((), {"$ref": "#/b"})
+    result = flattener._walk({"$ref": "#/b"}, ())
 
     assert result == {"$ref": ("c",)}
     assert len(flattener._schema_map) == 1
@@ -183,7 +183,7 @@ def test_walk_ref_to_ref_object():
 def test_walk_path_already_processed(path):
     flattener = JsonSchemaFlattener({})
     flattener._schema_map = {path: {}}
-    result = flattener._walk(path, {})
+    result = flattener._walk({}, path)
 
     assert result == {"$ref": path}
     assert len(flattener._schema_map) == 1
@@ -212,7 +212,7 @@ def test_find_schema_from_ref_invalid_path():
 def test_flatten_combiners_single_level(combiner):
     test_schema = {"a": None, combiner: [{"b": None}, {"c": None}, {"d": None}]}
     flattener = JsonSchemaFlattener({})
-    flattened = flattener._flatten_combiners((), test_schema)
+    flattened = flattener._flatten_combiners(test_schema, ())
     assert flattened == {"a": None, "b": None, "c": None, "d": None}
 
 
@@ -224,7 +224,7 @@ def test_flatten_multiple_combiners():
         expected[letter] = None
 
     flattener = JsonSchemaFlattener({})
-    flattened = flattener._flatten_combiners((), test_schema)
+    flattened = flattener._flatten_combiners(test_schema, ())
     assert flattened == expected
 
 
@@ -232,7 +232,7 @@ def test_flatten_multiple_combiners():
 def test_flatten_combiners_nested(combiner):
     test_schema = {"a": {"Foo": None}, combiner: [{"a": {"Bar": None}}]}
     flattener = JsonSchemaFlattener({})
-    flattened = flattener._flatten_combiners((), test_schema)
+    flattened = flattener._flatten_combiners(test_schema, ())
     assert flattened == {"a": {"Foo": None, "Bar": None}}
 
 
@@ -240,7 +240,7 @@ def test_flatten_combiners_nested(combiner):
 def test_flatten_combiners_overwrites(combiner):
     test_schema = {"a": None, combiner: [{"a": "Foo"}]}
     flattener = JsonSchemaFlattener({})
-    flattened = flattener._flatten_combiners((), test_schema)
+    flattened = flattener._flatten_combiners(test_schema, ())
     assert flattened == {"a": "Foo"}
 
 
@@ -269,7 +269,7 @@ def test_flatten_combiners_no_clobber(combiner):
 def test_contraint_array_additional_items_valid():
     flattener = JsonSchemaFlattener({})
     schema = {}
-    result = flattener._flatten_array_type((UNIQUE_KEY,), schema)
+    result = flattener._flatten_array_type(schema, (UNIQUE_KEY,))
     assert result == schema
 
 
@@ -277,14 +277,14 @@ def test_contraint_array_additional_items_invalid():
     flattener = JsonSchemaFlattener({})
     schema = {"additionalItems": {"type": "string"}}
     with pytest.raises(ConstraintError) as excinfo:
-        flattener._flatten_array_type((UNIQUE_KEY,), schema)
+        flattener._flatten_array_type(schema, (UNIQUE_KEY,))
     assert UNIQUE_KEY in str(excinfo.value)
 
 
 def test_contraint_object_additional_properties_valid():
     flattener = JsonSchemaFlattener({})
     schema = {}
-    result = flattener._flatten_object_type((UNIQUE_KEY,), schema)
+    result = flattener._flatten_object_type(schema, (UNIQUE_KEY,))
     assert result == schema
 
 
@@ -292,7 +292,7 @@ def test_contraint_object_additional_properties_invalid():
     flattener = JsonSchemaFlattener({})
     schema = {"additionalProperties": {"type": "string"}}
     with pytest.raises(ConstraintError) as excinfo:
-        flattener._flatten_object_type((UNIQUE_KEY,), schema)
+        flattener._flatten_object_type(schema, (UNIQUE_KEY,))
     assert UNIQUE_KEY in str(excinfo.value)
 
 
@@ -303,7 +303,7 @@ def test_contraint_object_properties_and_pattern_properties():
         "patternProperties": {"type": "string"},
     }
     with pytest.raises(ConstraintError) as excinfo:
-        flattener._flatten_object_type((UNIQUE_KEY,), schema)
+        flattener._flatten_object_type(schema, (UNIQUE_KEY,))
     assert UNIQUE_KEY in str(excinfo.value)
 
 
