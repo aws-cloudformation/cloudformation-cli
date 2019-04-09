@@ -10,13 +10,10 @@ import yaml
 from jsonschema import Draft7Validator, RefResolver
 from jsonschema.exceptions import ValidationError
 
+from .exceptions import InternalError, SpecValidationError
 from .jsonutils.inliner import RefInliner
 
 LOG = logging.getLogger(__name__)
-
-
-class InternalError(Exception):
-    pass
 
 
 TIMEOUT_IN_SECONDS = 10
@@ -97,27 +94,20 @@ def load_resource_spec(resource_spec_file):
     try:
         resource_spec = yaml.safe_load(resource_spec_file)
     except yaml.YAMLError as e:
-        LOG.error("Could not load the resource provider definition: %s", e)
-        raise
-        # TODO: error handling, decode errors have 'msg', 'doc', 'pos'
+        LOG.debug("Resource spec decode failed", exc_info=True)
+        raise SpecValidationError(str(e)) from e
 
     validator = make_resource_validator()
     try:
         validator.validate(resource_spec)
     except ValidationError as e:
-        LOG.error(
-            "The resource provider definition is invalid: %s", e.message  # noqa: B306
-        )
-        raise
+        LOG.debug("Resource spec validation failed", exc_info=True)
+        raise SpecValidationError(str(e)) from e
 
     # TODO: more general validation framework
     if "remote" in resource_spec:
-        raise ValidationError(
-            message="Property 'remote' is reserved for CloudFormation use",
-            validator="cloudFormation",
-            validator_value=False,
-            instance=resource_spec,
-            schema=resource_spec,
+        raise SpecValidationError(
+            "Property 'remote' is reserved for CloudFormation use"
         )
 
     base_uri = get_file_base_uri(resource_spec_file)

@@ -7,6 +7,7 @@ from jsonschema.exceptions import ValidationError
 
 from .boto_helpers import create_registry_client
 from .data_loaders import load_resource_spec, resource_json
+from .exceptions import InternalError, InvalidSettingsError, SpecValidationError
 from .packager import package_handler
 from .plugin_registry import load_plugin
 
@@ -28,10 +29,6 @@ SETTINGS_VALIDATOR = Draft6Validator(
         "additionalProperties": False,
     }
 )
-
-
-class InvalidSettingsError(Exception):
-    pass
 
 
 class Project:  # pylint: disable=too-many-instance-attributes
@@ -118,7 +115,7 @@ class Project:  # pylint: disable=too-many-instance-attributes
         if not self.type_info:
             msg = "Internal error (Must load settings first)"
             LOG.critical(msg)
-            raise RuntimeError(msg)
+            raise InternalError(msg)
 
         with self.schema_path.open("r", encoding="utf-8") as f:
             self.schema = load_resource_spec(f)
@@ -191,6 +188,6 @@ class Project:  # pylint: disable=too-many-instance-attributes
         except FileNotFoundError:
             LOG.error("Resource specification not found.")
             raise SystemExit(1)
-        except ValidationError:
-            LOG.error("Resource specification is invalid.")
+        except SpecValidationError as e:
+            LOG.error("Resource specification is invalid: %s", str(e))
             raise SystemExit(1)

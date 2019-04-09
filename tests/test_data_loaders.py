@@ -15,7 +15,6 @@ from pytest_localserver.http import Request, Response, WSGIServer
 
 from rpdk.core.data_loaders import (
     STDIN_NAME,
-    InternalError,
     get_file_base_uri,
     load_resource_spec,
     make_validator,
@@ -23,6 +22,7 @@ from rpdk.core.data_loaders import (
     resource_stream,
     resource_yaml,
 )
+from rpdk.core.exceptions import InternalError, SpecValidationError
 from rpdk.core.plugin_base import LanguagePlugin
 
 BASEDIR = Path(__file__).parent  # tests/test_data_loaders.py -> tests/
@@ -38,23 +38,26 @@ def yaml_s(obj):
     return StringIO(yaml.dump(obj))
 
 
-def test_load_resource_spec_not_yaml():
-    with pytest.raises(yaml.YAMLError):
-        load_resource_spec(StringIO("}"))
+def test_load_resource_spec_invalid_yaml():
+    with pytest.raises(SpecValidationError) as excinfo:
+        load_resource_spec(StringIO("foo:\naaaaa"))
+
+    assert "line 2" in str(excinfo.value)
+    assert "column 6" in str(excinfo.value)
 
 
 def test_load_resource_spec_empty_is_invalid():
-    with pytest.raises(jsonschema.exceptions.ValidationError):
+    with pytest.raises(SpecValidationError):
         load_resource_spec(StringIO(""))
 
 
 def test_load_resource_spec_boolean_is_invalid():
-    with pytest.raises(jsonschema.exceptions.ValidationError):
+    with pytest.raises(SpecValidationError):
         load_resource_spec(yaml_s(True))
 
 
 def test_load_resource_spec_empty_object_is_invalid():
-    with pytest.raises(jsonschema.exceptions.ValidationError):
+    with pytest.raises(SpecValidationError):
         load_resource_spec(yaml_s({}))
 
 
@@ -83,7 +86,7 @@ def test_load_resource_spec_valid_snippets(example):
 )
 def test_load_resource_spec_invalid_snippets(example):
     with example.open("r", encoding="utf-8") as f:
-        with pytest.raises(jsonschema.exceptions.ValidationError):
+        with pytest.raises(SpecValidationError):
             load_resource_spec(f)
 
 
@@ -93,9 +96,9 @@ def test_load_resource_spec_remote_key_is_invalid():
         "properties": {"foo": {"type": "string"}},
         "remote": {},
     }
-    with pytest.raises(jsonschema.exceptions.ValidationError) as excinfo:
+    with pytest.raises(SpecValidationError) as excinfo:
         load_resource_spec(yaml_s(schema))
-    assert "remote" in excinfo.value.message
+    assert "remote" in str(excinfo.value)
 
 
 def test_argparse_stdin_name():
