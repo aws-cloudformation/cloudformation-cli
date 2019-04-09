@@ -1,4 +1,7 @@
-"""This sub command validates a resource provider definition."""
+"""This sub command validates a project's resource specification.
+
+Projects can be created via the 'init' sub command.
+"""
 import logging
 
 from .project import Project

@@ -1,4 +1,4 @@
-"""This sub command generates code from the provider definition for a project.
+"""This sub command generates code from the project and resource specification.
 
 Projects can be created via the 'init' sub command.
 """

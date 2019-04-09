@@ -38,3 +38,7 @@ class LanguagePlugin(ABC):
     @abstractmethod
     def generate(self, project):
         pass
+
+    @abstractmethod
+    def package(self, project, zip_file):
+        pass

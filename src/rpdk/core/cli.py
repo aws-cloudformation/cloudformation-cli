@@ -7,6 +7,7 @@ import time
 from logging.config import dictConfig
 
 from .data_loaders import resource_yaml
+from .exceptions import SysExitRecommendedError
 from .generate import setup_subparser as generate_setup_subparser
 from .init import setup_subparser as init_setup_subparser
 from .submit import setup_subparser as submit_setup_subparser
@@ -76,6 +77,13 @@ def main(args_in=None):
         log.debug("Logging set up successfully")
 
         args.command(args)
+    except SysExitRecommendedError as e:
+        # This is to unify exit messages, and avoid throwing SystemExit in
+        # library code, which is hard to catch for consumers. (There are still
+        # some cases where it makes sense for the commands to raise SystemExit.)
+        log.debug("Caught exit recommendation", exc_info=e)
+        log.critical(str(e))
+        raise SystemExit(1)
     except Exception:  # pylint: disable=broad-except
         print("=== Unhandled exception ===", file=sys.stderr)
         print("Please report this issue to the team.", file=sys.stderr)

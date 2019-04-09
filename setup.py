@@ -35,7 +35,6 @@ setup(
     include_package_data=True,
     zip_safe=True,
     install_requires=[
-        "awscli>=1.16",
         "boto3>=1.9.71,<1.10.0",
         "Jinja2>=2.10",
         "jsonschema>=3.0.1",
