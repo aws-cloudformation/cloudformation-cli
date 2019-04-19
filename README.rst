@@ -14,8 +14,8 @@ tool.)
 
     python3 -m venv env
     source env/bin/activate
-    pip install -e .
-    pip install -r requirements.txt
+    pip install -e . -r requirements.txt
+    pre-commit install
 
 You will also need to install a language plugin, such as [the Java language plugin](https://github.com/aws-cloudformation/aws-cloudformation-rpdk-java-plugin), also via `pip install`. For example, assuming the plugin is checked out in the same parent directory as this repository:
 
@@ -23,12 +23,14 @@ You will also need to install a language plugin, such as [the Java language plug
 
     pip install -e ../aws-cloudformation-rpdk-java-plugin
 
-Before committing code, please execute the ``run_lint`` script. This performs
-several steps for your convenience:
+Linting and running unit tests is done via [pre-commit](https://pre-commit.com/), and so is performed automatically on commit. The continuous integration also runs these checks. Manual options are available so you don't have to commit):
 
-* Auto-formatting of all code to make it uniform and PEP8 compliant
-* Linting for issues the auto-formatter doesn't catch
-* Run all tests and confirm coverage is over a threshold
+```
+# run all hooks on all files, mirrors what the CI runs
+pre-commit run --all-files
+# run unit tests only. can also be used for other hooks, e.g. black, flake8, pylint-local
+pre-commit run pytest-local
+```
 
 If you want to generate an HTML coverage report afterwards, run
 ``coverage html``. The report is output to ``htmlcov/index.html``.
@@ -36,14 +38,7 @@ If you want to generate an HTML coverage report afterwards, run
 Usage
 -----
 
-Quickstart
-^^^^^^^^^^
-
-.. code-block:: bash
-
-    pip3 install uluru-cli
-    uluru-cli generate \
-        examples/aws-kinesis-stream.yaml
+WARNING: Future Information; we have *not* published to PyPI yet.
 
 Installation
 ^^^^^^^^^^^^
@@ -55,52 +50,23 @@ the Python Package Index (PyPI). It requires Python 3.
 
     pip3 install uluru-cli
 
-Command: project-settings
-^^^^^^^^^^^^^^^^^^^^^^^^^
-
-To output the default project settings for a given language, use the
-``project-settings`` command.
-
-.. code-block:: bash
-
-    uluru-cli project-settings \
-        --language java \
-        --output project.yaml
-
 Command: init
 ^^^^^^^^^^^^^
 
-To create project files such as build files and autocomplete for your specific language and IDE,
-use the ``init`` command. An output directory can be set with the optional ``output-directory`` argument
-(Defaults to the current directory). You can customize certain, language-specific project settings, otherwise the
-default settings are used.
+To create a project in the current directory, use the ``init`` command. A wizard will guide you through the creation.
 
 .. code-block:: bash
 
-    uluru-cli init \
-        --language java \
-        --project-settings examples/java_project.yaml
+    uluru-cli init
 
 Command: generate
 ^^^^^^^^^^^^^^^^^
 
-To generate code, a resource provider definition is required. You can customize
-certain, language-specific project settings, otherwise the default settings
-are used.
+To refresh auto-generated code, use the ``generate`` command. Usually, plugins try to integrate this command in the native build flow, so please consult a plugin's README to see if this is necessary.
 
 .. code-block:: bash
 
-    uluru-cli generate \
-        examples/aws-kinesis-stream.yaml \
-        --language java \
-        --project-settings examples/java_project.yaml \
-        --output-directory projects/resource-provider/
-
-Encoding
---------
-
-This tool expects input files to be UTF-8 encoded (without a byte order mark (BOM)), and will
-output UTF-8 encoded files (without a BOM).
+    uluru-cli generate
 
 Plugin system
 -------------

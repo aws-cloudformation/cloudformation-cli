@@ -1,22 +1,4 @@
 #!/bin/bash
-set -xeuo pipefail
-IFS=$'\n\t'
-
-declare -a files=("setup.py" "json_lint" "newline_lint" "src/" "tests/")
-./json_lint --check
-./newline_lint --check
-isort --check-only --verbose --recursive "${files[@]}"
-black --check "${files[@]}"
-flake8 "${files[@]}"
-pylint "${files[@]}"
-# have to skip B101, contract tests use it and there's no way to skip for specific files
-# have to skip B322, as bandit apparently isn't clever enough to detect we're running Python 3
-bandit -r "src/" --skip "B101,B322"
-# although we mock SDK calls, these must be set, otherwise the credential-checking code
-# in boto_helpers.py fails. this probably needs fixing properly in future.
-# on the other hand, this means that exported creds aren't honoured when running tests,
-# also a good thing
-AWS_ACCESS_KEY_ID="" \
-AWS_SECRET_ACCESS_KEY="" \
-AWS_SESSION_TOKEN="" \
-pytest --cov="rpdk.core" --doctest-modules --random-order-bucket="parent" "tests/" --pyargs "rpdk.core"
+echo "run_lint is deprecated, provided for muscle memory only"
+echo "please use 'pre-commit run --all-files'"
+pre-commit run --all-files
