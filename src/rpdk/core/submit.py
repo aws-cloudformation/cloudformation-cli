@@ -1,4 +1,6 @@
-"""This sub command sets up infrastructure and uploads the resource handler.
+"""This sub command uploads the resource type to CloudFormation.
+
+Projects can be created via the 'init' sub command.
 """
 import logging
 
@@ -10,16 +12,14 @@ LOG = logging.getLogger(__name__)
 def submit(args):
     project = Project()
     project.load()
-    project.submit(args.only_package)
+    project.submit(args.dry_run)
 
 
 def setup_subparser(subparsers, parents):
     # see docstring of this file
     parser = subparsers.add_parser("submit", description=__doc__, parents=parents)
     parser.set_defaults(command=submit)
+
     parser.add_argument(
-        "--only-package",
-        default=None,
-        help="Skips registering the resource type.",
-        action="store_true",
+        "--dry-run", action="store_true", help="Package the project, but do not submit."
     )

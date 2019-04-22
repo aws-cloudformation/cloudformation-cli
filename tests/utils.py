@@ -1,6 +1,9 @@
 import os
 from contextlib import contextmanager
+from io import BytesIO
 from random import sample
+
+CONTENTS_UTF8 = "💣"
 
 NAMES = [
     "Apple",
@@ -62,3 +65,13 @@ def chdir(path):
     os.chdir(path)
     yield path
     os.chdir(old)
+
+
+class UnclosingBytesIO(BytesIO):
+    _was_closed = False
+
+    def close(self):
+        self._was_closed = True
+
+    def _close(self):
+        super().close()

@@ -1,0 +1,52 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  This CloudFormation template provisions all the infrastructure that is
+  required to upload artifacts to CloudFormation's managed experience.
+
+Conditions:
+  # https://docs.amazonaws.cn/en_us/aws/latest/userguide/s3.html
+  # Server-side encryption with AWS KMS-managed encryption keys (SSE-KMS) is not supported in the Beijing and Ningxia Regions.
+  KMSSupported: !Not [!Equals [!Ref "AWS::Partition", aws-cn]]
+
+Resources:
+  ArtifactBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      AccessControl: BucketOwnerFullControl
+      BucketEncryption:
+        !If
+          - KMSSupported
+          - ServerSideEncryptionConfiguration:
+            - ServerSideEncryptionByDefault:
+                SSEAlgorithm: aws:kms
+          - ServerSideEncryptionConfiguration:
+            - ServerSideEncryptionByDefault:
+                SSEAlgorithm: AES256
+      LifecycleConfiguration:
+        Rules:
+          - Id: MultipartUploadLifecycleRule
+            Status: Enabled
+            AbortIncompleteMultipartUpload:
+              DaysAfterInitiation: 1
+
+  ArtifactCopyPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref ArtifactBucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: Allow CloudFormation to copy artifacts from the bucket
+            Effect: Allow
+            Principal:
+              Service: cloudformation.amazonaws.com
+            Action:
+              - s3:ListBucket
+              - s3:GetObject
+            Resource:
+              - !Sub "arn:${AWS::Partition}:s3:::${ArtifactBucket}"
+              - !Sub "arn:${AWS::Partition}:s3:::${ArtifactBucket}/*"
+
+Outputs:
+  CloudFormationManagedUploadBucketName:
+    Value: !Ref ArtifactBucket

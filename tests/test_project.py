@@ -1,48 +1,27 @@
 # fixture and parameter have the same name
 # pylint: disable=redefined-outer-name,useless-super-delegation,protected-access
 import json
+import zipfile
 from contextlib import contextmanager
 from io import StringIO
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import ANY, MagicMock, patch
 
-import boto3
 import pytest
-from botocore.stub import Stubber
 
-from rpdk.core.cli import EXIT_UNHANDLED_EXCEPTION
-from rpdk.core.exceptions import InternalError, SpecValidationError
-from rpdk.core.project import (
-    HANDLER_OPS,
-    RESOURCE_EXISTS_MSG,
-    InvalidSettingsError,
-    Project,
-)
+from rpdk.core.exceptions import InternalError, InvalidProjectError, SpecValidationError
+from rpdk.core.plugin_base import LanguagePlugin
+from rpdk.core.project import SCHEMA_UPLOAD_FILENAME, Project
+
+from .utils import CONTENTS_UTF8, UnclosingBytesIO
 
 LANGUAGE = "BQHDBC"
-CONTENTS_UTF8 = "💣"
 TYPE_NAME = "AWS::Color::Red"
-ARN = "SOMEARN"
-SCHEMA = {"identifiers": []}
-EXPECTED_REGISTRY_ARGS = {
-    "TypeName": TYPE_NAME,
-    "Schema": json.dumps(SCHEMA),
-    "Handlers": {op: ARN for op in HANDLER_OPS},
-    "Documentation": "Docs",
-}
 
 
 @pytest.fixture
 def project():
     return Project()
-
-
-@pytest.fixture
-def register_project():
-    project = Project()
-    project.type_name = TYPE_NAME
-    project.schema = SCHEMA
-    return project
 
 
 @contextmanager
@@ -54,14 +33,14 @@ def patch_settings(project, data):
 
 def test_load_settings_invalid_json(project):
     with patch_settings(project, "") as mock_open:
-        with pytest.raises(InvalidSettingsError):
+        with pytest.raises(InvalidProjectError):
             project.load_settings()
     mock_open.assert_called_once_with("r", encoding="utf-8")
 
 
 def test_load_settings_invalid_settings(project):
     with patch_settings(project, "{}") as mock_open:
-        with pytest.raises(InvalidSettingsError):
+        with pytest.raises(InvalidProjectError):
             project.load_settings()
     mock_open.assert_called_once_with("r", encoding="utf-8")
 
@@ -175,138 +154,138 @@ def test_init(tmpdir):
         assert json.load(f)
 
 
-def test_submit(project):
-    project.type_name = TYPE_NAME
-    mock_plugin = MagicMock(spec=["package"])
-    mock_plugin.NAME = LANGUAGE
-    patch_plugin = patch.object(project, "_plugin", mock_plugin)
-    patch_package = patch(
-        "rpdk.core.project.package_handler", autospec=True, return_value=ARN
-    )
-    patch_register = patch.object(project, "register")
-
-    with patch_plugin, patch_package as mock_package, patch_register as mock_register:
-        project.submit(False)
-    stack_name = "{}-stack".format(project.hypenated_name)
-    mock_package.assert_called_once_with(stack_name)
-    mock_register.assert_called_once_with(ARN)
-
-
-def test_only_package_submit(project):
-    project.type_name = TYPE_NAME
-    mock_plugin = MagicMock(spec=["package"])
-    mock_plugin.NAME = LANGUAGE
-    patch_plugin = patch.object(project, "_plugin", mock_plugin)
-    patch_package = patch(
-        "rpdk.core.project.package_handler", autospec=True, return_value=ARN
-    )
-    patch_register = patch.object(project, "register")
-
-    with patch_plugin, patch_package as mock_package, patch_register as mock_register:
-        project.submit(True)
-    stack_name = "{}-stack".format(project.hypenated_name)
-    mock_package.assert_called_once_with(stack_name)
-    mock_register.assert_not_called()
-
-
-def test_register(register_project):
-    client = boto3.client("cloudformation")
-    stubber = Stubber(client)
-    stubber.add_response("create_resource_type", {"Arn": ARN}, EXPECTED_REGISTRY_ARGS)
-
-    with patch(
-        "rpdk.core.project.create_registry_client", return_value=client
-    ), stubber:
-        arn = register_project.register(ARN)
-    stubber.assert_no_pending_responses()
-
-    assert arn == ARN
-
-
-def test_update_register(register_project):
-    client = boto3.client("cloudformation")
-    stubber = Stubber(client)
-    stubber.add_client_error(
-        "create_resource_type",
-        service_error_code="CFNRegistryException",
-        service_message=RESOURCE_EXISTS_MSG,
-    )
-    stubber.add_response("update_resource_type", {"Arn": ARN}, EXPECTED_REGISTRY_ARGS)
-    with patch(
-        "rpdk.core.project.create_registry_client", return_value=client
-    ), stubber:
-        arn = register_project.register(ARN)
-    stubber.assert_no_pending_responses()
-
-    assert arn == ARN
-
-
-def test_fail_register(register_project):
-    client = boto3.client("cloudformation")
-    stubber = Stubber(client)
-
-    stubber.add_client_error(
-        "create_resource_type",
-        service_error_code="CFNRegistryException",
-        service_message="Unhandled Exception",
-    )
-    with patch(
-        "rpdk.core.project.create_registry_client", return_value=client
-    ), stubber, pytest.raises(client.exceptions.CFNRegistryException):
-        register_project.register(ARN)
-    stubber.assert_no_pending_responses()
-
-
-def test_load_invalid_schema(project, caplog):
+def test_load_invalid_schema(project):
     patch_settings = patch.object(project, "load_settings")
     patch_schema = patch.object(
         project, "load_schema", side_effect=SpecValidationError("")
     )
     with patch_settings as mock_settings, patch_schema as mock_schema, pytest.raises(
-        SystemExit
+        InvalidProjectError
     ) as excinfo:
         project.load()
 
-    last_record = caplog.records[-1]
     mock_settings.assert_called_once_with()
     mock_schema.assert_called_once_with()
 
-    assert excinfo.value.code != EXIT_UNHANDLED_EXCEPTION
-    assert "invalid" in last_record.message
+    assert "invalid" in str(excinfo.value)
 
 
-def test_schema_not_found(project, caplog):
+def test_schema_not_found(project):
     patch_settings = patch.object(project, "load_settings")
     patch_schema = patch.object(project, "load_schema", side_effect=FileNotFoundError)
     with patch_settings as mock_settings, patch_schema as mock_schema, pytest.raises(
-        SystemExit
+        InvalidProjectError
     ) as excinfo:
         project.load()
 
-    last_record = caplog.records[-1]
     mock_settings.assert_called_once_with()
     mock_schema.assert_called_once_with()
 
-    assert excinfo.value.code != EXIT_UNHANDLED_EXCEPTION
-    assert all(
-        keyword in last_record.message for keyword in ("not found", "specification")
-    )
+    assert "not found" in str(excinfo.value)
 
 
-def test_settings_not_found(project, caplog):
+def test_settings_not_found(project):
     patch_settings = patch.object(
         project, "load_settings", side_effect=FileNotFoundError
     )
     patch_schema = patch.object(project, "load_schema")
 
     with patch_settings as mock_settings, patch_schema as mock_schema, pytest.raises(
-        SystemExit
+        InvalidProjectError
     ) as excinfo:
         project.load()
 
-    assert excinfo.value.code != EXIT_UNHANDLED_EXCEPTION
     mock_settings.assert_called_once_with()
     mock_schema.assert_not_called()
-    last_record = caplog.records[-1]
 
-    assert all(keyword in last_record.message for keyword in ("not found", "init"))
+    assert "not found" in str(excinfo.value)
+    assert "init" in str(excinfo.value)
+
+
+def test_submit_dry_run(project, tmpdir):
+    project.type_name = TYPE_NAME
+    project.root = Path(tmpdir).resolve()
+    zip_path = project.root / "test.zip"
+
+    with project.schema_path.open("w", encoding="utf-8") as f:
+        f.write(CONTENTS_UTF8)
+
+    patch_plugin = patch.object(project, "_plugin", spec=LanguagePlugin)
+    patch_upload = patch.object(project, "_upload", autospec=True)
+    patch_path = patch("rpdk.core.project.Path", return_value=zip_path)
+    patch_temp = patch("rpdk.core.project.TemporaryFile", autospec=True)
+
+    # fmt: off
+    # these context managers can't be wrapped by black, but it removes the \
+    with patch_plugin as mock_plugin, patch_path as mock_path, \
+            patch_temp as mock_temp, patch_upload as mock_upload:
+        project.submit(True)
+    # fmt: on
+
+    mock_temp.assert_not_called()
+    mock_path.assert_called_once_with("{}.zip".format(project.hypenated_name))
+    mock_plugin.package.assert_called_once_with(project, ANY)
+    mock_upload.assert_not_called()
+
+    with zipfile.ZipFile(zip_path, mode="r") as zip_file:
+        assert zip_file.namelist() == [SCHEMA_UPLOAD_FILENAME]
+        schema_contents = zip_file.read(SCHEMA_UPLOAD_FILENAME).decode("utf-8")
+        assert schema_contents == CONTENTS_UTF8
+        # https://docs.python.org/3/library/zipfile.html#zipfile.ZipFile.testzip
+        assert zip_file.testzip() is None
+
+
+def test_submit_live_run(project, tmpdir):
+    project.type_name = TYPE_NAME
+    project.root = Path(tmpdir).resolve()
+
+    with project.schema_path.open("w", encoding="utf-8") as f:
+        f.write(CONTENTS_UTF8)
+
+    temp_file = UnclosingBytesIO()
+
+    patch_plugin = patch.object(project, "_plugin", spec=LanguagePlugin)
+    patch_upload = patch.object(project, "_upload", autospec=True)
+    patch_path = patch("rpdk.core.project.Path", autospec=True)
+    patch_temp = patch("rpdk.core.project.TemporaryFile", return_value=temp_file)
+
+    # fmt: off
+    # these context managers can't be wrapped by black, but it removes the \
+    with patch_plugin as mock_plugin, patch_path as mock_path, \
+            patch_temp as mock_temp, patch_upload as mock_upload:
+        project.submit(False)
+    # fmt: on
+
+    mock_path.assert_not_called()
+    mock_temp.assert_called_once_with("w+b")
+    mock_plugin.package.assert_called_once_with(project, ANY)
+
+    # zip file construction is tested by the dry-run test
+
+    assert temp_file.tell() == 0  # file was rewound before upload
+    mock_upload.assert_called_once_with(temp_file)
+
+    assert temp_file._was_closed
+    temp_file._close()
+
+
+def test__upload(project):
+    project.type_name = TYPE_NAME
+
+    cfn_client = object()
+    s3_client = object()
+    fileobj = object()
+
+    patch_sdk = patch("rpdk.core.project.create_sdk_session", autospec=True)
+    patch_uploader = patch("rpdk.core.project.Uploader", autospec=True)
+
+    with patch_sdk as mock_sdk, patch_uploader as mock_uploader:
+        mock_session = mock_sdk.return_value
+        mock_session.client.side_effect = [cfn_client, s3_client]
+        project._upload(fileobj)
+
+    mock_sdk.assert_called_once_with()
+    mock_uploader.assert_called_once_with(cfn_client, s3_client)
+    mock_uploader.return_value.upload.assert_called_once_with(
+        project.hypenated_name, fileobj
+    )

@@ -4,6 +4,7 @@ from unittest.mock import patch
 import pytest
 
 from rpdk.core.cli import EXIT_UNHANDLED_EXCEPTION, main, setup_logging
+from rpdk.core.exceptions import SysExitRecommendedError
 
 from .utils import chdir
 
@@ -132,3 +133,25 @@ def test_main_unhandled_exception_after_logging(capsys):
     assert "Unhandled exception" in err
     assert "Traceback" not in err
     assert "rpdk.log" in err
+
+
+def test_main_sysexit_exception_after_logging(capsys):
+    def raise_exception(_args):
+        raise SysExitRecommendedError(ERROR_MSG)
+
+    def setup_subparser(subparsers, parents):
+        parser = subparsers.add_parser("fail", parents=parents)
+        parser.set_defaults(command=raise_exception)
+
+    with patch(
+        "rpdk.core.cli.unittest_patch_setup_subparser",
+        autospec=True,
+        side_effect=setup_subparser,
+    ) as mock_hook:
+        with pytest.raises(SystemExit) as excinfo:
+            main(args_in=["fail"])
+    assert excinfo.value.code == 1
+    mock_hook.assert_called_once()
+    out, err = capsys.readouterr()
+    assert ERROR_MSG in out
+    assert not err
