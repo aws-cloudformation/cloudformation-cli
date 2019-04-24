@@ -19,6 +19,7 @@ Resources:
           - ServerSideEncryptionConfiguration:
             - ServerSideEncryptionByDefault:
                 SSEAlgorithm: aws:kms
+                KMSMasterKeyID: !Ref EncryptionKey
           - ServerSideEncryptionConfiguration:
             - ServerSideEncryptionByDefault:
                 SSEAlgorithm: AES256
@@ -46,6 +47,34 @@ Resources:
             Resource:
               - !Sub "arn:${AWS::Partition}:s3:::${ArtifactBucket}"
               - !Sub "arn:${AWS::Partition}:s3:::${ArtifactBucket}/*"
+
+  EncryptionKey:
+    Condition: KMSSupported
+    Type: AWS::KMS::Key
+    DeletionPolicy: Retain
+    Properties:
+      Description: KMS key used to encrypt the resource type artifacts
+      EnableKeyRotation: true
+      KeyPolicy:
+        Version: 2012-10-17
+        Statement:
+        - Sid: Enable full access for owning account
+          Effect: Allow
+          Principal:
+            AWS: !Ref AWS::AccountId
+          Action: kms:*
+          Resource: "*"
+        - Sid: Enable access for cloudformation to copy encrypted objects
+          Effect: Allow
+          Principal:
+            Service: cloudformation.amazonaws.com
+          Action:
+            - "kms:Encrypt"
+            - "kms:Decrypt"
+            - "kms:ReEncrypt*"
+            - "kms:GenerateDataKey*"
+            - "kms:DescribeKey"
+          Resource: "*"
 
 Outputs:
   CloudFormationManagedUploadBucketName:
