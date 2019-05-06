@@ -53,8 +53,8 @@
         }
     },
     "required": [
-        "/properties/Title",
-        "/properties/DueDate"
+        "Title",
+        "DueDate"
     ],
     "readOnlyProperties": [
         "/properties/tps_code"
