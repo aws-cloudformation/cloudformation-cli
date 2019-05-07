@@ -3,7 +3,7 @@
 from datetime import datetime
 from io import StringIO
 from unittest.mock import ANY, Mock, patch
-from urllib.parse import unquote_plus, urlsplit
+from urllib.parse import urlsplit
 
 import pytest
 from botocore.exceptions import ClientError, WaiterError
@@ -163,7 +163,7 @@ def test_upload_s3_success(uploader):
     assert result.fragment == ""
     assert result.scheme == "s3"
     assert result.netloc == BUCKET_OUTPUT_VALUE
-    _empty, key = unquote_plus(result.path).split("/")
+    key = result.path.lstrip("/")
     assert key == expected_key
 
 

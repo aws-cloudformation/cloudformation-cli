@@ -159,7 +159,7 @@ class Project:  # pylint: disable=too-many-instance-attributes
             msg = "Resource specification is invalid: " + str(e)
             self._raise_invalid_project(msg, e)
 
-    def submit(self, dry_run, endpoint_url=None, region_name=None):
+    def submit(self, dry_run, endpoint_url, region_name):
         # if it's a dry run, keep the file; otherwise can delete after upload
         if dry_run:
             path = Path("{}.zip".format(self.hypenated_name))
@@ -180,7 +180,7 @@ class Project:  # pylint: disable=too-many-instance-attributes
                 f.seek(0)
                 self._upload(f, endpoint_url=endpoint_url, region_name=region_name)
 
-    def _upload(self, fileobj, endpoint_url=None, region_name=None):
+    def _upload(self, fileobj, endpoint_url, region_name):
         LOG.debug("Packaging complete, uploading...")
         session = create_sdk_session()
         cfn_client = session.client(
@@ -188,7 +188,7 @@ class Project:  # pylint: disable=too-many-instance-attributes
         )
         s3_client = session.client("s3", region_name=region_name)
         s3_url = Uploader(cfn_client, s3_client).upload(self.hypenated_name, fileobj)
-        LOG.info("Got S3 URL: %s", s3_url)
+        LOG.debug("Got S3 URL: %s", s3_url)
 
         response = cfn_client.register_resource_type(
             SchemaHandlerPackage=s3_url, TypeName=self.type_name

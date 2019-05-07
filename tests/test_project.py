@@ -222,7 +222,7 @@ def test_submit_dry_run(project, tmpdir):
     # these context managers can't be wrapped by black, but it removes the \
     with patch_plugin as mock_plugin, patch_path as mock_path, \
             patch_temp as mock_temp, patch_upload as mock_upload:
-        project.submit(True, REGION, ENDPOINT)
+        project.submit(True, endpoint_url=ENDPOINT, region_name=REGION)
     # fmt: on
 
     mock_temp.assert_not_called()
@@ -256,7 +256,7 @@ def test_submit_live_run(project, tmpdir):
     # these context managers can't be wrapped by black, but it removes the \
     with patch_plugin as mock_plugin, patch_path as mock_path, \
             patch_temp as mock_temp, patch_upload as mock_upload:
-        project.submit(False, region_name=REGION, endpoint_url=ENDPOINT)
+        project.submit(False, endpoint_url=ENDPOINT, region_name=REGION)
     # fmt: on
 
     mock_path.assert_not_called()
@@ -287,7 +287,7 @@ def test__upload(project):
     with patch_sdk as mock_sdk, patch_uploader as mock_upload_method:
         mock_session = mock_sdk.return_value
         mock_session.client.side_effect = [mock_cfn_client, s3_client]
-        project._upload(fileobj)
+        project._upload(fileobj, endpoint_url=None, region_name=None)
 
     mock_sdk.assert_called_once_with()
     mock_upload_method.assert_called_once_with(project.hypenated_name, fileobj)

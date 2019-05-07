@@ -1,6 +1,5 @@
 import logging
 from datetime import datetime
-from urllib.parse import quote_plus
 
 from botocore.exceptions import ClientError, WaiterError
 
@@ -145,4 +144,4 @@ class Uploader:
 
         LOG.debug("Upload complete")
 
-        return "s3://{0}/{1}".format(quote_plus(bucket), quote_plus(key))
+        return "s3://{0}/{1}".format(bucket, key)
