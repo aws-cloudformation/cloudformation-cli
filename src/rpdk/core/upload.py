@@ -145,6 +145,4 @@ class Uploader:
 
         LOG.debug("Upload complete")
 
-        return "{0}/{1}/{2}".format(
-            self.s3_client.meta.endpoint_url, quote_plus(bucket), quote_plus(key)
-        )
+        return "s3://{0}/{1}".format(quote_plus(bucket), quote_plus(key))

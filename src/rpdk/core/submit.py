@@ -12,7 +12,7 @@ LOG = logging.getLogger(__name__)
 def submit(args):
     project = Project()
     project.load()
-    project.submit(args.dry_run)
+    project.submit(args.dry_run, args.endpoint_url, args.region)
 
 
 def setup_subparser(subparsers, parents):
@@ -22,4 +22,12 @@ def setup_subparser(subparsers, parents):
 
     parser.add_argument(
         "--dry-run", action="store_true", help="Package the project, but do not submit."
+    )
+
+    parser.add_argument(
+        "--endpoint-url", type=str, help="Package the project, but do not submit."
+    )
+
+    parser.add_argument(
+        "--region", type=str, help="Package the project, but do not submit."
     )

@@ -141,7 +141,6 @@ def test_upload_s3_success(uploader):
     uploader.cfn_client.describe_stacks.return_value = describe_stacks_result(
         [{"OutputKey": BUCKET_OUTPUT_NAME, "OutputValue": BUCKET_OUTPUT_VALUE}]
     )
-    uploader.s3_client.meta.endpoint_url = "https://example.com"
     patch_stack = patch.object(
         uploader, "_create_or_update_stack", return_value="stack-foo"
     )
@@ -162,12 +161,9 @@ def test_upload_s3_success(uploader):
 
     assert result.query == ""
     assert result.fragment == ""
-
-    assert result.scheme == "https"
-    assert result.netloc == "example.com"
-    empty, bucket, key = unquote_plus(result.path).split("/")
-    assert empty == ""
-    assert bucket == BUCKET_OUTPUT_VALUE
+    assert result.scheme == "s3"
+    assert result.netloc == BUCKET_OUTPUT_VALUE
+    _empty, key = unquote_plus(result.path).split("/")
     assert key == expected_key
 
 
