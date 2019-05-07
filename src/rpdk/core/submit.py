@@ -24,6 +24,6 @@ def setup_subparser(subparsers, parents):
         "--dry-run", action="store_true", help="Package the project, but do not submit."
     )
 
-    parser.add_argument("--endpoint-url", help="Cloudformation endpoint to use.")
+    parser.add_argument("--endpoint-url", help="CloudFormation endpoint to use.")
 
     parser.add_argument("--region", help="AWS Region to submit the resource type.")
