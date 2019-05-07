@@ -193,6 +193,6 @@ class Project:  # pylint: disable=too-many-instance-attributes
         response = cfn_client.register_resource_type(
             SchemaHandlerPackage=s3_url, TypeName=self.type_name
         )
-        LOG.critical(
+        LOG.warning(
             "Registration in progress with token: %s", response["RegistrationToken"]
         )
