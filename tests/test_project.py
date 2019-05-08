@@ -12,11 +12,14 @@ import pytest
 from rpdk.core.exceptions import InternalError, InvalidProjectError, SpecValidationError
 from rpdk.core.plugin_base import LanguagePlugin
 from rpdk.core.project import SCHEMA_UPLOAD_FILENAME, Project
+from rpdk.core.upload import Uploader
 
 from .utils import CONTENTS_UTF8, UnclosingBytesIO
 
 LANGUAGE = "BQHDBC"
 TYPE_NAME = "AWS::Color::Red"
+REGION = "us-east-1"
+ENDPOINT = "cloudformation.beta.com"
 
 
 @pytest.fixture
@@ -219,7 +222,7 @@ def test_submit_dry_run(project, tmpdir):
     # these context managers can't be wrapped by black, but it removes the \
     with patch_plugin as mock_plugin, patch_path as mock_path, \
             patch_temp as mock_temp, patch_upload as mock_upload:
-        project.submit(True)
+        project.submit(True, endpoint_url=ENDPOINT, region_name=REGION)
     # fmt: on
 
     mock_temp.assert_not_called()
@@ -253,7 +256,7 @@ def test_submit_live_run(project, tmpdir):
     # these context managers can't be wrapped by black, but it removes the \
     with patch_plugin as mock_plugin, patch_path as mock_path, \
             patch_temp as mock_temp, patch_upload as mock_upload:
-        project.submit(False)
+        project.submit(False, endpoint_url=ENDPOINT, region_name=REGION)
     # fmt: on
 
     mock_path.assert_not_called()
@@ -263,7 +266,9 @@ def test_submit_live_run(project, tmpdir):
     # zip file construction is tested by the dry-run test
 
     assert temp_file.tell() == 0  # file was rewound before upload
-    mock_upload.assert_called_once_with(temp_file)
+    mock_upload.assert_called_once_with(
+        temp_file, region_name=REGION, endpoint_url=ENDPOINT
+    )
 
     assert temp_file._was_closed
     temp_file._close()
@@ -272,20 +277,20 @@ def test_submit_live_run(project, tmpdir):
 def test__upload(project):
     project.type_name = TYPE_NAME
 
-    cfn_client = object()
+    mock_cfn_client = MagicMock(spec=["register_resource_type"])
     s3_client = object()
     fileobj = object()
 
     patch_sdk = patch("rpdk.core.project.create_sdk_session", autospec=True)
-    patch_uploader = patch("rpdk.core.project.Uploader", autospec=True)
+    patch_uploader = patch.object(Uploader, "upload", return_value="url")
 
-    with patch_sdk as mock_sdk, patch_uploader as mock_uploader:
+    with patch_sdk as mock_sdk, patch_uploader as mock_upload_method:
         mock_session = mock_sdk.return_value
-        mock_session.client.side_effect = [cfn_client, s3_client]
-        project._upload(fileobj)
+        mock_session.client.side_effect = [mock_cfn_client, s3_client]
+        project._upload(fileobj, endpoint_url=None, region_name=None)
 
     mock_sdk.assert_called_once_with()
-    mock_uploader.assert_called_once_with(cfn_client, s3_client)
-    mock_uploader.return_value.upload.assert_called_once_with(
-        project.hypenated_name, fileobj
+    mock_upload_method.assert_called_once_with(project.hypenated_name, fileobj)
+    mock_cfn_client.register_resource_type.assert_called_once_with(
+        SchemaHandlerPackage="url", TypeName=project.type_name
     )

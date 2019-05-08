@@ -159,7 +159,7 @@ class Project:  # pylint: disable=too-many-instance-attributes
             msg = "Resource specification is invalid: " + str(e)
             self._raise_invalid_project(msg, e)
 
-    def submit(self, dry_run):
+    def submit(self, dry_run, endpoint_url, region_name):
         # if it's a dry run, keep the file; otherwise can delete after upload
         if dry_run:
             path = Path("{}.zip".format(self.hypenated_name))
@@ -178,14 +178,21 @@ class Project:  # pylint: disable=too-many-instance-attributes
                 LOG.error("Dry run complete: %s", path.resolve())
             else:
                 f.seek(0)
-                self._upload(f)
+                self._upload(f, endpoint_url=endpoint_url, region_name=region_name)
 
-    def _upload(self, fileobj):
+    def _upload(self, fileobj, endpoint_url, region_name):
         LOG.debug("Packaging complete, uploading...")
         session = create_sdk_session()
-        cfn_client = session.client("cloudformation")
-        s3_client = session.client("s3")
+        cfn_client = session.client(
+            "cloudformation", region_name=region_name, endpoint_url=endpoint_url
+        )
+        s3_client = session.client("s3", region_name=region_name)
         s3_url = Uploader(cfn_client, s3_client).upload(self.hypenated_name, fileobj)
+        LOG.debug("Got S3 URL: %s", s3_url)
 
-        LOG.critical("Got S3 URL: %s", s3_url)
-        # TODO: lower message to debug, call RegisterResourceType
+        response = cfn_client.register_resource_type(
+            SchemaHandlerPackage=s3_url, TypeName=self.type_name
+        )
+        LOG.warning(
+            "Registration in progress with token: %s", response["RegistrationToken"]
+        )
