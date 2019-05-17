@@ -128,6 +128,8 @@ def init(args):
     project.init(type_name, language)
     project.generate()
 
+    LOG.warning("Initialized a new project in %s", project.root.resolve())
+
 
 def ignore_abort(function):
     @wraps(function)
