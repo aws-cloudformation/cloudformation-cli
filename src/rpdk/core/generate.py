@@ -14,6 +14,8 @@ def generate(_args):
     project.load()
     project.generate()
 
+    LOG.warning("Generated files for %s", project.type_name)
+
 
 def setup_subparser(subparsers, parents):
     # see docstring of this file
