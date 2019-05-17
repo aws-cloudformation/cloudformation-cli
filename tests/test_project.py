@@ -1,11 +1,12 @@
 # fixture and parameter have the same name
 # pylint: disable=redefined-outer-name,useless-super-delegation,protected-access
 import json
+import random
+import string
 import zipfile
 from contextlib import contextmanager
 from io import StringIO
 from pathlib import Path
-from random import choice
 from unittest.mock import ANY, MagicMock, patch
 
 import pytest
@@ -26,12 +27,13 @@ LANGUAGE = "BQHDBC"
 TYPE_NAME = "AWS::Color::Red"
 REGION = "us-east-1"
 ENDPOINT = "cloudformation.beta.com"
-RUNTIME = choice(list(LAMBDA_RUNTIMES))
+RUNTIME = random.choice(list(LAMBDA_RUNTIMES))
 
 
 @pytest.fixture
-def project():
-    return Project()
+def project(tmpdir):
+    unique_dir = "".join(random.choices(string.ascii_uppercase, k=12))
+    return Project(root=tmpdir.mkdir(unique_dir))
 
 
 @contextmanager
@@ -85,8 +87,7 @@ def test_load_schema_settings_not_loaded(project):
         project.load_schema()
 
 
-def test_load_schema_example(tmpdir):
-    project = Project(root=tmpdir)
+def test_load_schema_example(project):
     project.type_name = "AWS::Color::Blue"
     project._write_example_schema()
     project.load_schema()
@@ -144,7 +145,7 @@ def test_generate(project):
     mock_plugin.generate.assert_called_once_with(project)
 
 
-def test_init(tmpdir):
+def test_init(project):
     type_name = "AWS::Color::Red"
 
     mock_plugin = MagicMock(spec=["init"])
@@ -152,7 +153,6 @@ def test_init(tmpdir):
         "rpdk.core.project.load_plugin", autospec=True, return_value=mock_plugin
     )
 
-    project = Project(root=tmpdir)
     with patch_load_plugin as mock_load_plugin:
         project.init(type_name, LANGUAGE)
 
@@ -219,10 +219,9 @@ def test_settings_not_found(project):
     assert "init" in str(excinfo.value)
 
 
-def test_submit_dry_run(project, tmpdir):
+def test_submit_dry_run(project):
     project.type_name = TYPE_NAME
     project.runtime = RUNTIME
-    project.root = Path(tmpdir).resolve()
     zip_path = project.root / "test.zip"
 
     with project.schema_path.open("w", encoding="utf-8") as f:
@@ -257,12 +256,14 @@ def test_submit_dry_run(project, tmpdir):
         assert zip_file.testzip() is None
 
 
-def test_submit_live_run(project, tmpdir):
+def test_submit_live_run(project):
     project.type_name = TYPE_NAME
-    project.root = Path(tmpdir).resolve()
+    project.runtime = RUNTIME
 
     with project.schema_path.open("w", encoding="utf-8") as f:
         f.write(CONTENTS_UTF8)
+
+    project._write_settings("foo")
 
     temp_file = UnclosingBytesIO()
 

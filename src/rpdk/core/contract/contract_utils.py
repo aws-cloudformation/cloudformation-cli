@@ -180,7 +180,9 @@ class CallbackServer(threading.Thread):
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.stop()
 
-    def __del__(self):
+    def __del__(self):  # pragma: no cover
+        # don't cover finalizers in tests, you'd have to force garbage collection.
+        # this is a fallback in case somebody forgets to use a with statement.
         self.stop()
 
     def stop(self):
