@@ -1,6 +1,8 @@
 # fixture and parameter have the same name
 # pylint: disable=redefined-outer-name,useless-super-delegation,protected-access
 import json
+import random
+import string
 import zipfile
 from contextlib import contextmanager
 from io import StringIO
@@ -11,7 +13,12 @@ import pytest
 
 from rpdk.core.exceptions import InternalError, InvalidProjectError, SpecValidationError
 from rpdk.core.plugin_base import LanguagePlugin
-from rpdk.core.project import SCHEMA_UPLOAD_FILENAME, Project
+from rpdk.core.project import (
+    LAMBDA_RUNTIMES,
+    SCHEMA_UPLOAD_FILENAME,
+    SETTINGS_FILENAME,
+    Project,
+)
 from rpdk.core.upload import Uploader
 
 from .utils import CONTENTS_UTF8, UnclosingBytesIO
@@ -20,11 +27,13 @@ LANGUAGE = "BQHDBC"
 TYPE_NAME = "AWS::Color::Red"
 REGION = "us-east-1"
 ENDPOINT = "cloudformation.beta.com"
+RUNTIME = random.choice(list(LAMBDA_RUNTIMES))
 
 
 @pytest.fixture
-def project():
-    return Project()
+def project(tmpdir):
+    unique_dir = "".join(random.choices(string.ascii_uppercase, k=12))
+    return Project(root=tmpdir.mkdir(unique_dir))
 
 
 @contextmanager
@@ -50,7 +59,14 @@ def test_load_settings_invalid_settings(project):
 
 def test_load_settings_valid_json(project):
     plugin = object()
-    data = json.dumps({"typeName": TYPE_NAME, "language": LANGUAGE})
+    data = json.dumps(
+        {
+            "typeName": TYPE_NAME,
+            "language": LANGUAGE,
+            "runtime": RUNTIME,
+            "entrypoint": None,
+        }
+    )
     patch_load = patch(
         "rpdk.core.project.load_plugin", autospec=True, return_value=plugin
     )
@@ -71,8 +87,7 @@ def test_load_schema_settings_not_loaded(project):
         project.load_schema()
 
 
-def test_load_schema_example(tmpdir):
-    project = Project(root=tmpdir)
+def test_load_schema_example(project):
     project.type_name = "AWS::Color::Blue"
     project._write_example_schema()
     project.load_schema()
@@ -130,7 +145,7 @@ def test_generate(project):
     mock_plugin.generate.assert_called_once_with(project)
 
 
-def test_init(tmpdir):
+def test_init(project):
     type_name = "AWS::Color::Red"
 
     mock_plugin = MagicMock(spec=["init"])
@@ -138,7 +153,6 @@ def test_init(tmpdir):
         "rpdk.core.project.load_plugin", autospec=True, return_value=mock_plugin
     )
 
-    project = Project(root=tmpdir)
     with patch_load_plugin as mock_load_plugin:
         project.init(type_name, LANGUAGE)
 
@@ -205,13 +219,15 @@ def test_settings_not_found(project):
     assert "init" in str(excinfo.value)
 
 
-def test_submit_dry_run(project, tmpdir):
+def test_submit_dry_run(project):
     project.type_name = TYPE_NAME
-    project.root = Path(tmpdir).resolve()
+    project.runtime = RUNTIME
     zip_path = project.root / "test.zip"
 
     with project.schema_path.open("w", encoding="utf-8") as f:
         f.write(CONTENTS_UTF8)
+
+    project._write_settings("foo")
 
     patch_plugin = patch.object(project, "_plugin", spec=LanguagePlugin)
     patch_upload = patch.object(project, "_upload", autospec=True)
@@ -231,19 +247,23 @@ def test_submit_dry_run(project, tmpdir):
     mock_upload.assert_not_called()
 
     with zipfile.ZipFile(zip_path, mode="r") as zip_file:
-        assert zip_file.namelist() == [SCHEMA_UPLOAD_FILENAME]
+        assert set(zip_file.namelist()) == {SCHEMA_UPLOAD_FILENAME, SETTINGS_FILENAME}
         schema_contents = zip_file.read(SCHEMA_UPLOAD_FILENAME).decode("utf-8")
         assert schema_contents == CONTENTS_UTF8
+        settings = json.loads(zip_file.read(SETTINGS_FILENAME).decode("utf-8"))
+        assert settings["runtime"] == RUNTIME
         # https://docs.python.org/3/library/zipfile.html#zipfile.ZipFile.testzip
         assert zip_file.testzip() is None
 
 
-def test_submit_live_run(project, tmpdir):
+def test_submit_live_run(project):
     project.type_name = TYPE_NAME
-    project.root = Path(tmpdir).resolve()
+    project.runtime = RUNTIME
 
     with project.schema_path.open("w", encoding="utf-8") as f:
         f.write(CONTENTS_UTF8)
+
+    project._write_settings("foo")
 
     temp_file = UnclosingBytesIO()
 
@@ -294,3 +314,9 @@ def test__upload(project):
     mock_cfn_client.register_resource_type.assert_called_once_with(
         SchemaHandlerPackage="url", TypeName=project.type_name
     )
+
+
+def test__write_settings_invalid_runtime(project):
+    project.runtime = "foo"
+    with pytest.raises(InternalError):
+        project._write_settings("foo")

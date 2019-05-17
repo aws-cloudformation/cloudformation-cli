@@ -19,14 +19,30 @@ SETTINGS_FILENAME = ".rpdk-config"
 SCHEMA_UPLOAD_FILENAME = "schema.json"
 TYPE_NAME_REGEX = "^[a-zA-Z0-9]{2,64}::[a-zA-Z0-9]{2,64}::[a-zA-Z0-9]{2,64}$"
 
+
+LAMBDA_RUNTIMES = {
+    "noexec",  # cannot be executed, schema only
+    "java8",
+    "go1.x",
+    # python2.7 is EOL soon (2020-01-01)
+    "python3.6",
+    "python3.7",
+    # dotnetcore1.0 is EOL soon (2019-06-27)
+    "dotnetcore2.1",
+    # nodejs8.10 is EOL soon (2019-12-??)
+    "nodejs10.x",
+}
+
 SETTINGS_VALIDATOR = Draft6Validator(
     {
         "properties": {
             "language": {"type": "string"},
             "typeName": {"type": "string", "pattern": TYPE_NAME_REGEX},
+            "runtime": {"type": "string", "enum": list(LAMBDA_RUNTIMES)},
+            "entrypoint": {"type": ["string", "null"]},
             "settings": {"type": "object"},
         },
-        "required": ["language", "typeName"],
+        "required": ["language", "typeName", "runtime", "entrypoint"],
         "additionalProperties": False,
     }
 )
@@ -41,6 +57,8 @@ class Project:  # pylint: disable=too-many-instance-attributes
         self._plugin = None
         self.settings = None
         self.schema = None
+        self.runtime = "noexec"
+        self.entrypoint = None
 
         LOG.debug("Root directory: %s", self.root)
 
@@ -87,6 +105,8 @@ class Project:  # pylint: disable=too-many-instance-attributes
             )
 
         self.type_name = raw_settings["typeName"]
+        self.runtime = raw_settings["runtime"]
+        self.entrypoint = raw_settings["entrypoint"]
         self._plugin = load_plugin(raw_settings["language"])
         self.settings = raw_settings.get("settings", {})
 
@@ -98,9 +118,17 @@ class Project:  # pylint: disable=too-many-instance-attributes
         self.safewrite(self.schema_path, json.dumps(self.schema, indent=4))
 
     def _write_settings(self, language):
+        if self.runtime not in LAMBDA_RUNTIMES:
+            LOG.critical(
+                "Plugin returned invalid runtime: %s (%s)", self.runtime, language
+            )
+            raise InternalError("Internal error (Plugin returned invalid runtime)")
+
         raw_settings = {
             "typeName": self.type_name,
             "language": language,
+            "runtime": self.runtime,
+            "entrypoint": self.entrypoint,
             "settings": self.settings,
         }
         self.overwrite(self.settings_path, json.dumps(raw_settings, indent=4))
@@ -172,6 +200,7 @@ class Project:  # pylint: disable=too-many-instance-attributes
             # file-size check on upload
             with zipfile.ZipFile(f, mode="w") as zip_file:
                 zip_file.write(self.schema_path, SCHEMA_UPLOAD_FILENAME)
+                zip_file.write(self.settings_path, SETTINGS_FILENAME)
                 self._plugin.package(self, zip_file)
 
             if dry_run:
