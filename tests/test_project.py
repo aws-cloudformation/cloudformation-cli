@@ -5,13 +5,19 @@ import zipfile
 from contextlib import contextmanager
 from io import StringIO
 from pathlib import Path
+from random import choice
 from unittest.mock import ANY, MagicMock, patch
 
 import pytest
 
 from rpdk.core.exceptions import InternalError, InvalidProjectError, SpecValidationError
 from rpdk.core.plugin_base import LanguagePlugin
-from rpdk.core.project import SCHEMA_UPLOAD_FILENAME, Project
+from rpdk.core.project import (
+    LAMBDA_RUNTIMES,
+    SCHEMA_UPLOAD_FILENAME,
+    SETTINGS_FILENAME,
+    Project,
+)
 from rpdk.core.upload import Uploader
 
 from .utils import CONTENTS_UTF8, UnclosingBytesIO
@@ -20,6 +26,7 @@ LANGUAGE = "BQHDBC"
 TYPE_NAME = "AWS::Color::Red"
 REGION = "us-east-1"
 ENDPOINT = "cloudformation.beta.com"
+RUNTIME = choice(list(LAMBDA_RUNTIMES))
 
 
 @pytest.fixture
@@ -50,7 +57,14 @@ def test_load_settings_invalid_settings(project):
 
 def test_load_settings_valid_json(project):
     plugin = object()
-    data = json.dumps({"typeName": TYPE_NAME, "language": LANGUAGE})
+    data = json.dumps(
+        {
+            "typeName": TYPE_NAME,
+            "language": LANGUAGE,
+            "runtime": RUNTIME,
+            "entrypoint": None,
+        }
+    )
     patch_load = patch(
         "rpdk.core.project.load_plugin", autospec=True, return_value=plugin
     )
@@ -207,11 +221,14 @@ def test_settings_not_found(project):
 
 def test_submit_dry_run(project, tmpdir):
     project.type_name = TYPE_NAME
+    project.runtime = RUNTIME
     project.root = Path(tmpdir).resolve()
     zip_path = project.root / "test.zip"
 
     with project.schema_path.open("w", encoding="utf-8") as f:
         f.write(CONTENTS_UTF8)
+
+    project._write_settings("foo")
 
     patch_plugin = patch.object(project, "_plugin", spec=LanguagePlugin)
     patch_upload = patch.object(project, "_upload", autospec=True)
@@ -231,9 +248,11 @@ def test_submit_dry_run(project, tmpdir):
     mock_upload.assert_not_called()
 
     with zipfile.ZipFile(zip_path, mode="r") as zip_file:
-        assert zip_file.namelist() == [SCHEMA_UPLOAD_FILENAME]
+        assert set(zip_file.namelist()) == {SCHEMA_UPLOAD_FILENAME, SETTINGS_FILENAME}
         schema_contents = zip_file.read(SCHEMA_UPLOAD_FILENAME).decode("utf-8")
         assert schema_contents == CONTENTS_UTF8
+        settings = json.loads(zip_file.read(SETTINGS_FILENAME).decode("utf-8"))
+        assert settings["runtime"] == RUNTIME
         # https://docs.python.org/3/library/zipfile.html#zipfile.ZipFile.testzip
         assert zip_file.testzip() is None
 
@@ -294,3 +313,9 @@ def test__upload(project):
     mock_cfn_client.register_resource_type.assert_called_once_with(
         SchemaHandlerPackage="url", TypeName=project.type_name
     )
+
+
+def test__write_settings_invalid_runtime(project):
+    project.runtime = "foo"
+    with pytest.raises(InternalError):
+        project._write_settings("foo")
