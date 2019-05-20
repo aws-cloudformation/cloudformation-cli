@@ -12,7 +12,8 @@ LOG = logging.getLogger(__name__)
 def validate(_args):
     project = Project()
     project.load()
-    LOG.info("Resource specification is valid.")
+
+    LOG.warning("Resource specification for %s is valid", project.type_name)
 
 
 def setup_subparser(subparsers, parents):

@@ -1,3 +1,4 @@
+from pathlib import Path
 from unittest.mock import ANY, Mock, PropertyMock, patch
 
 import pytest
@@ -30,6 +31,7 @@ def test_init_method():
     mock_project = Mock(spec=Project)
     mock_project.load_settings.side_effect = FileNotFoundError
     mock_project.settings_path = ""
+    mock_project.root = Path(".")
 
     patch_project = patch("rpdk.core.init.Project", return_value=mock_project)
     patch_tn = patch("rpdk.core.init.input_typename", return_value=type_name)

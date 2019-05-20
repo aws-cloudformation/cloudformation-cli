@@ -6,6 +6,7 @@ from rpdk.core.project import Project
 
 def test_generate_command_generate(capsys):
     mock_project = Mock(spec=Project)
+    mock_project.type_name = "foo"
 
     with patch("rpdk.core.generate.Project", autospec=True, return_value=mock_project):
         main(args_in=["generate"])
@@ -15,4 +16,4 @@ def test_generate_command_generate(capsys):
 
     out, err = capsys.readouterr()
     assert not err
-    assert not out
+    assert "foo" in out
