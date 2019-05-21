@@ -211,7 +211,7 @@ class Project:  # pylint: disable=too-many-instance-attributes
 
     def _upload(self, fileobj, endpoint_url, region_name):
         LOG.debug("Packaging complete, uploading...")
-        session = create_sdk_session()
+        session = create_sdk_session(region_name)
         cfn_client = session.client(
             "cloudformation", region_name=region_name, endpoint_url=endpoint_url
         )

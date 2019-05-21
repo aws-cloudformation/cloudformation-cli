@@ -309,7 +309,7 @@ def test__upload(project):
         mock_session.client.side_effect = [mock_cfn_client, s3_client]
         project._upload(fileobj, endpoint_url=None, region_name=None)
 
-    mock_sdk.assert_called_once_with()
+    mock_sdk.assert_called_once_with(None)
     mock_upload_method.assert_called_once_with(project.hypenated_name, fileobj)
     mock_cfn_client.register_resource_type.assert_called_once_with(
         SchemaHandlerPackage="url", TypeName=project.type_name

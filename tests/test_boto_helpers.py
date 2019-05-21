@@ -29,6 +29,19 @@ def test_create_sdk_session_no_region():
     mock_boto3.assert_called_once_with()
 
 
+def test_create_sdk_session_region_param():
+    patch_boto3 = patch("rpdk.core.boto_helpers.Boto3Session", autospec=True)
+
+    with patch_boto3 as mock_boto3:
+        mock_boto3.return_value.region_name = None
+        boto3_session = create_sdk_session("us-east-1")
+
+    assert boto3_session is mock_boto3.return_value
+
+    mock_boto3.assert_called_once_with()
+    mock_boto3.return_value.get_credentials.assert_called_once_with()
+
+
 def test_create_sdk_session_no_creds():
     patch_boto3 = patch("rpdk.core.boto_helpers.Boto3Session", autospec=True)
 
