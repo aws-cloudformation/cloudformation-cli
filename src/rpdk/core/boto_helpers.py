@@ -14,9 +14,9 @@ def create_sdk_session(region_name=None):
             "https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-configure.html"
         )
 
-    session = Boto3Session()
+    session = Boto3Session(region_name=region_name)
 
-    if region_name is None and session.region_name is None:
+    if session.region_name is None:
         _known_error("No region specified")
 
     if session.get_credentials() is None:
