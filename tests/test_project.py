@@ -106,7 +106,7 @@ def test_safewrite_overwrite(project):
     path = object()
     contents = object()
 
-    patch_attr = patch.object(project, "_overwrite", True)
+    patch_attr = patch.object(project, "overwrite_enabled", True)
     patch_meth = patch.object(project, "overwrite", autospec=True)
     with patch_attr, patch_meth as mock_overwrite:
         project.safewrite(path, contents)
@@ -117,7 +117,7 @@ def test_safewrite_overwrite(project):
 def test_safewrite_doesnt_exist(project, tmpdir):
     path = Path(tmpdir.join("test")).resolve()
 
-    with patch.object(project, "_overwrite", False):
+    with patch.object(project, "overwrite_enabled", False):
         project.safewrite(path, CONTENTS_UTF8)
 
     with path.open("r", encoding="utf-8") as f:
@@ -130,7 +130,7 @@ def test_safewrite_exists(project, tmpdir, caplog):
     with path.open("w", encoding="utf-8") as f:
         f.write(CONTENTS_UTF8)
 
-    with patch.object(project, "_overwrite", False):
+    with patch.object(project, "overwrite_enabled", False):
         project.safewrite(path, CONTENTS_UTF8)
 
     last_record = caplog.records[-1]

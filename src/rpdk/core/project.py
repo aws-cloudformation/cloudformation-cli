@@ -49,8 +49,8 @@ SETTINGS_VALIDATOR = Draft6Validator(
 
 
 class Project:  # pylint: disable=too-many-instance-attributes
-    def __init__(self, overwrite=False, root=None):
-        self._overwrite = overwrite
+    def __init__(self, overwrite_enabled=False, root=None):
+        self.overwrite_enabled = overwrite_enabled
         self.root = Path(root) if root else Path.cwd()
         self.settings_path = self.root / SETTINGS_FILENAME
         self.type_info = None
@@ -158,7 +158,7 @@ class Project:  # pylint: disable=too-many-instance-attributes
             f.write(contents)
 
     def safewrite(self, path, contents):
-        if self._overwrite:
+        if self.overwrite_enabled:
             self.overwrite(path, contents)
         else:
             try:

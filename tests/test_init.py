@@ -130,7 +130,7 @@ def test_validate_plugin_choice_valid():
 def test_check_for_existing_project_good_path():
     project = Mock(spec=Project)
     project.load_settings.side_effect = FileNotFoundError
-    type(project).overwrite = mock_overwrite = PropertyMock()
+    type(project).overwrite_enabled = mock_overwrite = PropertyMock()
 
     check_for_existing_project(project)
 
@@ -140,7 +140,7 @@ def test_check_for_existing_project_good_path():
 
 def test_check_for_existing_project_bad_path_overwrite():
     project = Mock(spec=Project)
-    project.overwrite = True
+    project.overwrite_enabled = True
     project.settings_path = ""  # not sure why this doesn't get specced?
 
     with patch("rpdk.core.init.input_with_validation", autospec=True) as mock_input:
@@ -151,7 +151,7 @@ def test_check_for_existing_project_bad_path_overwrite():
 
 def test_check_for_existing_project_bad_path_ask_yes():
     project = Mock(spec=Project)
-    project.overwrite = False
+    project.overwrite_enabled = False
     project.settings_path = ""
 
     patch_input = patch(
@@ -161,12 +161,12 @@ def test_check_for_existing_project_bad_path_ask_yes():
         check_for_existing_project(project)
 
     mock_input.assert_called_once_with(ANY, validate_yes)
-    assert project.overwrite
+    assert project.overwrite_enabled
 
 
 def test_check_for_existing_project_bad_path_ask_no():
     project = Mock(spec=Project)
-    project.overwrite = False
+    project.overwrite_enabled = False
     project.settings_path = ""
 
     patch_input = patch(
@@ -177,7 +177,7 @@ def test_check_for_existing_project_bad_path_ask_no():
             check_for_existing_project(project)
 
     mock_input.assert_called_once_with(ANY, validate_yes)
-    assert not project.overwrite
+    assert not project.overwrite_enabled
 
 
 def test_ignore_abort_ok():

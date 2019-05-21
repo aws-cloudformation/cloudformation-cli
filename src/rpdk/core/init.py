@@ -73,7 +73,7 @@ def check_for_existing_project(project):
     except FileNotFoundError:
         return  # good path
 
-    if project.overwrite:
+    if project.overwrite_enabled:
         LOG.warning("Overwriting settings file: %s", project.settings_path)
     else:
         LOG.debug(
@@ -81,11 +81,11 @@ def check_for_existing_project(project):
             project.type_name,
             project.settings_path,
         )
-        project.overwrite = input_with_validation(
+        project.overwrite_enabled = input_with_validation(
             "Overwrite existing settings (y/N)? ", validate_yes
         )
-        LOG.debug("Overwrite response: %s", project.overwrite)
-        if not project.overwrite:
+        LOG.debug("Overwrite response: %s", project.overwrite_enabled)
+        if not project.overwrite_enabled:
             raise WizardAbortError()
 
 
