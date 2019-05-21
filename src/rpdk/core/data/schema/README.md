@@ -34,7 +34,7 @@ Certain properties of a resource are _semantic_ and have special meaning when us
 
 #### Application
 
-When defining resource semantics like `createOnly`, `identifiers` you are expected to use a `$ref` to a property definition in the same resource document. This is not enforced directly by the meta-schema but is enforced at runtime and can be checked with the RPDK CLI `validate` command.
+When defining resource semantics like `createOnly`, `identifiers` you are expected to use a `$ref` to a property definition in the same resource document. This is not enforced directly by the meta-schema but is enforced at runtime and can be checked with the CloudFormation CLI `validate` command.
 
 The following (truncated) example shows some of the semantic definitions for an `AWS::S3::Bucket` resource type;
 
