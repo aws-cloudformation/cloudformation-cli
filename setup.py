@@ -43,7 +43,7 @@ setup(
         "PyYAML<=3.13,>=3.10",
         "requests>=2.20",
     ],
-    entry_points={"console_scripts": ["uluru-cli = rpdk.core.cli:main"]},
+    entry_points={"console_scripts": ["cfn-cli = rpdk.core.cli:main"]},
     license="Apache License 2.0",
     classifiers=(
         "Development Status :: 2 - Pre-Alpha",
