@@ -53,7 +53,7 @@ def main(args_in=None):
 
         def no_command(args):
             if args.version:
-                print("uluru-cli", __version__)
+                print("cfn-cli", __version__)
             else:
                 parser.print_help()
 
