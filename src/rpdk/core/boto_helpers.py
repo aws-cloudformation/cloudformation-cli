@@ -7,14 +7,14 @@ from .exceptions import CLIMisconfiguredError
 LOG = logging.getLogger(__name__)
 
 
-def create_sdk_session():
+def create_sdk_session(region_name=None):
     def _known_error(msg):
         raise CLIMisconfiguredError(
             msg + ". Please ensure your AWS CLI is configured correctly: "
             "https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-configure.html"
         )
 
-    session = Boto3Session()
+    session = Boto3Session(region_name=region_name)
 
     if session.region_name is None:
         _known_error("No region specified")

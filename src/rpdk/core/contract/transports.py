@@ -10,7 +10,7 @@ class LocalLambdaTransport:
     def __init__(self, endpoint, function_name):
         self.endpoint = endpoint
         self.function_name = function_name
-        self.client = create_sdk_session().client(
+        self.client = create_sdk_session("us-east-1").client(
             "lambda",
             endpoint_url=self.endpoint,
             use_ssl=False,

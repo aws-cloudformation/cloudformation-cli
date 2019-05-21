@@ -211,11 +211,9 @@ class Project:  # pylint: disable=too-many-instance-attributes
 
     def _upload(self, fileobj, endpoint_url, region_name):
         LOG.debug("Packaging complete, uploading...")
-        session = create_sdk_session()
-        cfn_client = session.client(
-            "cloudformation", region_name=region_name, endpoint_url=endpoint_url
-        )
-        s3_client = session.client("s3", region_name=region_name)
+        session = create_sdk_session(region_name)
+        cfn_client = session.client("cloudformation", endpoint_url=endpoint_url)
+        s3_client = session.client("s3")
         s3_url = Uploader(cfn_client, s3_client).upload(self.hypenated_name, fileobj)
         LOG.debug("Got S3 URL: %s", s3_url)
 
