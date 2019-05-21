@@ -6,6 +6,7 @@ import sys
 import time
 from logging.config import dictConfig
 
+from .__init__ import __version__
 from .data_loaders import resource_yaml
 from .exceptions import SysExitRecommendedError
 from .generate import setup_subparser as generate_setup_subparser
@@ -49,7 +50,19 @@ def main(args_in=None):
         # subparsers should set their own default commands
         # also need to set verbose here because now it only gets set if a
         # subcommand is run (which is okay, the help doesn't need it)
-        parser.set_defaults(command=lambda args: parser.print_help(), verbose=0)
+
+        def no_command(args):
+            if args.version:
+                print("uluru-cli", __version__)
+            else:
+                parser.print_help()
+
+        parser.set_defaults(command=no_command, verbose=0)
+        parser.add_argument(
+            "--version",
+            action="store_true",
+            help="Show the executable version and exit.",
+        )
 
         base_subparser = argparse.ArgumentParser(add_help=False)
         # shared arguments

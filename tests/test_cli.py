@@ -3,6 +3,7 @@ from unittest.mock import patch
 
 import pytest
 
+from rpdk.core import __version__
 from rpdk.core.cli import EXIT_UNHANDLED_EXCEPTION, main, setup_logging
 from rpdk.core.exceptions import SysExitRecommendedError
 
@@ -74,6 +75,13 @@ def test_main_no_args_prints_help(capsys):
     out, err = capsys.readouterr()
     assert not err
     assert "--help" in out
+
+
+def test_main_version_arg_prints_version(capsys):
+    main(args_in=["--version"])
+    out, err = capsys.readouterr()
+    assert not err
+    assert __version__ in out
 
 
 @pytest.mark.parametrize("verbosity", (0, 1, 2))
