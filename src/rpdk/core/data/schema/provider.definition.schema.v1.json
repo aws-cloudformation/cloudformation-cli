@@ -341,6 +341,10 @@
             "description": "A list of JSON pointers to properties that are only able to be specified by the customer when creating a resource. Conversely, any property *not* in this list can be applied to an Update request.",
             "$ref": "#/definitions/jsonPointerArray"
         },
+        "deprecatedProperties": {
+            "description": "A list of JSON pointers to properties that have been deprecated by the underlying service provider. These properties are still accepted in create & update operations, however they may be ignored, or converted to a consistent model on application. Deprecated properties are not guaranteed to be present in read paths.",
+            "$ref": "#/definitions/jsonPointerArray"
+        },
         "identifiers": {
             "description": "A list of identifiers. An identifier is a list of JSON pointers to properties that uniquely identify the resource. An identifier can be a single or multiple properties.",
             "type": "array",
