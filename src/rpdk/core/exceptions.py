@@ -36,3 +36,7 @@ class InvalidProjectError(SysExitRecommendedError):
 
 class CLIMisconfiguredError(SysExitRecommendedError):
     pass
+
+
+class DownstreamError(RPDKBaseException):
+    pass
