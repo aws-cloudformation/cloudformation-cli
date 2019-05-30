@@ -104,10 +104,6 @@ def main(args_in=None):  # pylint: disable=too-many-statements
         print(str(e.__cause__), file=sys.stderr)
         print("---", file=sys.stderr)
         print(
-            "This error may be a result of your AWS account or AWS CLI configuration.",
-            file=sys.stderr,
-        )
-        print(
             "If debugging indicates this is a possible error with this program,",
             file=sys.stderr,
         )
