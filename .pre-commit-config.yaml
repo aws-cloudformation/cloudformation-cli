@@ -58,7 +58,7 @@ repos:
     entry: pylint "setup.py" "src/" "tests/"
     language: system
     # ignore all files, run on hard-coded modules instead
-    exclude: "^."
+    pass_filenames: false
     always_run: true
   - id: pytest-local
     name: pytest-local
@@ -71,8 +71,14 @@ repos:
       env AWS_ACCESS_KEY_ID=""
       AWS_SECRET_ACCESS_KEY=""
       AWS_SESSION_TOKEN=""
-      pytest --cov="rpdk.core" --doctest-modules --random-order-bucket="parent" "tests/" --pyargs "rpdk.core"
+      pytest
+      --cov="rpdk.core"
+      --doctest-modules
+      --random-order-bucket="parent"
+      "tests/"
+      --pyargs "rpdk.core"
+      --verbose
     language: system
     # ignore all files, run on hard-coded modules instead
-    exclude: "^."
+    pass_filenames: false
     always_run: true
