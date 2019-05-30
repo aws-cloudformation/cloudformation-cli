@@ -8,7 +8,7 @@ from urllib.parse import urlsplit
 import pytest
 from botocore.exceptions import ClientError, WaiterError
 
-from rpdk.core.exceptions import InternalError, UploadError
+from rpdk.core.exceptions import DownstreamError, InternalError, UploadError
 from rpdk.core.upload import BUCKET_OUTPUT_NAME, INFRA_STACK_NAME, Uploader
 
 from .utils import CONTENTS_UTF8
@@ -237,7 +237,7 @@ def test__create_or_update_stack_create_unknown_failure(uploader):
     )
 
     with patch.object(uploader, "_wait_for_stack", autospec=True) as mock_wait:
-        with pytest.raises(InternalError):
+        with pytest.raises(DownstreamError):
             uploader._create_or_update_stack(CONTENTS_UTF8)
 
     uploader.cfn_client.create_stack.assert_called_once_with(
@@ -256,7 +256,7 @@ def test__create_or_update_stack_update_unknown_failure(uploader):
     )
 
     with patch.object(uploader, "_wait_for_stack", autospec=True) as mock_wait:
-        with pytest.raises(InternalError):
+        with pytest.raises(DownstreamError):
             uploader._create_or_update_stack(CONTENTS_UTF8)
 
     uploader.cfn_client.create_stack.assert_called_once_with(

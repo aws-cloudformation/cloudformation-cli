@@ -4,7 +4,7 @@ from datetime import datetime
 from botocore.exceptions import ClientError, WaiterError
 
 from .data_loaders import resource_stream
-from .exceptions import InternalError, UploadError
+from .exceptions import DownstreamError, InternalError, UploadError
 
 LOG = logging.getLogger(__name__)
 
@@ -101,7 +101,7 @@ class Uploader:
                         "resulted in unknown ClientError",
                         exc_info=e,
                     )
-                    raise InternalError("Unknown CloudFormation error") from e
+                    raise DownstreamError("Unknown CloudFormation error") from e
             else:
                 stack_id = result["StackId"]
                 self._wait_for_stack(
@@ -115,7 +115,7 @@ class Uploader:
                 "resulted in unknown ClientError",
                 exc_info=e,
             )
-            raise InternalError("Unknown CloudFormation error") from e
+            raise DownstreamError("Unknown CloudFormation error") from e
         else:
             stack_id = result["StackId"]
             self._wait_for_stack(

@@ -8,7 +8,7 @@ from logging.config import dictConfig
 
 from .__init__ import __version__
 from .data_loaders import resource_yaml
-from .exceptions import SysExitRecommendedError
+from .exceptions import DownstreamError, SysExitRecommendedError
 from .generate import setup_subparser as generate_setup_subparser
 from .init import setup_subparser as init_setup_subparser
 from .submit import setup_subparser as submit_setup_subparser
@@ -40,7 +40,7 @@ def unittest_patch_setup_subparser(_subparsers, _parents):
     pass
 
 
-def main(args_in=None):
+def main(args_in=None):  # pylint: disable=too-many-statements
     """The entry point for the CLI."""
     log = None
     try:
@@ -97,12 +97,32 @@ def main(args_in=None):
         log.debug("Caught exit recommendation", exc_info=e)
         log.critical(str(e))
         raise SystemExit(1)
+    except DownstreamError as e:
+        # For these operations, we don't want to swallow the exception
+        log.debug("Caught downstream error", exc_info=e)
+        print("=== Caught downstream error ===", file=sys.stderr)
+        print(str(e.__cause__), file=sys.stderr)
+        print("---", file=sys.stderr)
+        print(
+            "If debugging indicates this is a possible error with this program,",
+            file=sys.stderr,
+        )
+        print(
+            "please report the issue to the team and include the log file 'rpdk.log'.",
+            file=sys.stderr,
+        )
+        print(
+            "Issue tracker: "
+            "https://github.com/aws-cloudformation/aws-cloudformation-rpdk/issues",
+            file=sys.stderr,
+        )
+        raise SystemExit(2)
     except Exception:  # pylint: disable=broad-except
         print("=== Unhandled exception ===", file=sys.stderr)
         print("Please report this issue to the team.", file=sys.stderr)
         print(
             "Issue tracker: "
-            "https://github.com/awslabs/aws-cloudformation-rpdk/issues",
+            "https://github.com/aws-cloudformation/aws-cloudformation-rpdk/issues",
             file=sys.stderr,
         )
 
