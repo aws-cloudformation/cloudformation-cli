@@ -3,17 +3,12 @@ from unittest.mock import Mock, patch
 import pytest
 
 from rpdk.core.contract.contract_plugin import ContractPlugin
-from rpdk.core.contract.contract_utils import (
-    COMPLETE,
-    FAILED,
-    NOT_FOUND,
-    ResourceClient,
-)
+from rpdk.core.contract.resource_client import ResourceClient
 
 RESOURCE = {"type": "AWS::Foo::Bar", "properties": {"number": 1}}
 
-CREATE_EVENT = {"status": COMPLETE, "resources": [RESOURCE]}
-DELETE_EVENT = {"status": COMPLETE}
+CREATE_EVENT = {"status": ResourceClient.COMPLETE, "resources": [RESOURCE]}
+DELETE_EVENT = {"status": ResourceClient.COMPLETE}
 
 
 def test_contract_plugin_fixtures():
@@ -37,7 +32,11 @@ def test_contract_plugin_create_from_fixture():
 
 
 @pytest.mark.parametrize(
-    "delete_event", [{"status": COMPLETE}, {"status": FAILED, "errorCode": NOT_FOUND}]
+    "delete_event",
+    [
+        {"status": ResourceClient.COMPLETE},
+        {"status": ResourceClient.FAILED, "errorCode": ResourceClient.NOT_FOUND},
+    ],
 )
 def test_contract_plugin_create_delete_success(delete_event):
     resource_client = Mock(spec=ResourceClient)
@@ -51,7 +50,7 @@ def test_contract_plugin_create_delete_success(delete_event):
 
 
 def test_resource_fixture_create_fail():
-    failed_create_event = {"status": FAILED}
+    failed_create_event = {"status": ResourceClient.FAILED}
     resource_client = Mock(spec=ResourceClient)
     resource_client.create_resource.return_value = failed_create_event
     plugin = ContractPlugin(resource_client, RESOURCE, None)
@@ -62,7 +61,7 @@ def test_resource_fixture_create_fail():
 
 
 def test_resource_fixture_delete_fail():
-    delete_event = {"status": FAILED, "errorCode": "InternalError"}
+    delete_event = {"status": ResourceClient.FAILED, "errorCode": "InternalError"}
     resource_client = Mock(spec=ResourceClient)
     resource_client.create_resource.return_value = CREATE_EVENT
     resource_client.delete_resource.return_value = delete_event

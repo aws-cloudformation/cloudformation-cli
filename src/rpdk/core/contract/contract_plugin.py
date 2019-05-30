@@ -3,7 +3,7 @@ from contextlib import contextmanager
 
 import pytest
 
-from .contract_utils import COMPLETE, FAILED, NOT_FOUND
+from .resource_client import ResourceClient
 
 JSON_MIME = "application/json"
 LOG = logging.getLogger(__name__)
@@ -38,7 +38,7 @@ class ContractPlugin:
             create_terminal_event = self._resource_client.create_resource(
                 self._test_resource
             )
-            assert create_terminal_event["status"] == COMPLETE
+            assert create_terminal_event["status"] == ResourceClient.COMPLETE
             resource = create_terminal_event["resources"][0]
         except Exception:
             LOG.exception("Could not create resource with given handler.")
@@ -49,10 +49,10 @@ class ContractPlugin:
             try:
                 error_code = delete_terminal_event["errorCode"]
             except KeyError:
-                assert delete_terminal_event["status"] == COMPLETE
+                assert delete_terminal_event["status"] == ResourceClient.COMPLETE
             else:
-                assert delete_terminal_event["status"] == FAILED
-                assert error_code == NOT_FOUND
+                assert delete_terminal_event["status"] == ResourceClient.FAILED
+                assert error_code == ResourceClient.NOT_FOUND
         except Exception:
             LOG.exception("Could not delete resource with given handler")
             raise
