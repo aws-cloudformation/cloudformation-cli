@@ -1,5 +1,15 @@
 exclude: ^(buildspec.yml|.pre-commit-config.yaml)$
+fail_fast: true
 repos:
+- repo: https://github.com/pre-commit/mirrors-isort
+  rev: v4.3.17
+  hooks:
+  - id: isort
+    # language_version: python3.6
+- repo: https://github.com/ambv/black
+  rev: stable
+  hooks:
+  - id: black
 - repo: https://github.com/pre-commit/pre-commit-hooks
   rev: v2.0.0
   hooks:
@@ -25,15 +35,6 @@ repos:
     - --no-sort-keys
   - id: check-merge-conflict
   # - id: check-yaml  # doesn't work with CloudFormation templates/intrinsics, should use cfn-lint instead
-- repo: https://github.com/pre-commit/mirrors-isort
-  rev: v4.3.17
-  hooks:
-  - id: isort
-    # language_version: python3.6
-- repo: https://github.com/ambv/black
-  rev: stable
-  hooks:
-  - id: black
     # language_version: python3.6
 - repo: https://github.com/pre-commit/pygrep-hooks
   rev: v1.3.0
@@ -57,7 +58,7 @@ repos:
     entry: pylint "setup.py" "src/" "tests/"
     language: system
     # ignore all files, run on hard-coded modules instead
-    exclude: "^."
+    pass_filenames: false
     always_run: true
   - id: pytest-local
     name: pytest-local
@@ -70,8 +71,14 @@ repos:
       env AWS_ACCESS_KEY_ID=""
       AWS_SECRET_ACCESS_KEY=""
       AWS_SESSION_TOKEN=""
-      pytest --cov="rpdk.core" --doctest-modules --random-order-bucket="parent" "tests/" --pyargs "rpdk.core"
+      pytest
+      --cov="rpdk.core"
+      --doctest-modules
+      --random-order-bucket="parent"
+      "tests/"
+      --pyargs "rpdk.core"
+      --verbose
     language: system
     # ignore all files, run on hard-coded modules instead
-    exclude: "^."
+    pass_filenames: false
     always_run: true

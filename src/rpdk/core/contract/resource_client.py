@@ -1,34 +1,29 @@
-import json
 import logging
-import threading
 import time
-from collections import deque
 from uuid import uuid4
 
-from werkzeug.serving import make_server
-from werkzeug.wrappers import Request, Response
-
 from ..jsonutils.pointer import fragment_decode
+from .callback import CallbackServer
 
 LOG = logging.getLogger(__name__)
 
-CREATE = "CREATE"
-READ = "READ"
-UPDATE = "UPDATE"
-DELETE = "DELETE"
-LIST = "LIST"
-ALREADY_EXISTS = "AlreadyExists"
-NOT_UPDATABLE = "NotUpdatable"
-NOT_FOUND = "NotFound"
-NO_OP = "NoOperationToPerform"
-IN_PROGRESS = "IN_PROGRESS"
-COMPLETE = "COMPLETE"
-FAILED = "FAILED"
-JSON_MIME = "application/json"
-ACK_TIMEOUT = 3
-
 
 class ResourceClient:
+
+    CREATE = "CREATE"
+    READ = "READ"
+    UPDATE = "UPDATE"
+    DELETE = "DELETE"
+    LIST = "LIST"
+    ALREADY_EXISTS = "AlreadyExists"
+    NOT_UPDATABLE = "NotUpdatable"
+    NOT_FOUND = "NotFound"
+    NO_OP = "NoOperationToPerform"
+    IN_PROGRESS = "IN_PROGRESS"
+    COMPLETE = "COMPLETE"
+    FAILED = "FAILED"
+    ACK_TIMEOUT = 3
+
     def __init__(self, transport, resource_def):
         self._transport = transport
         self._resource_def = resource_def
@@ -54,8 +49,9 @@ class ResourceClient:
             identifier = None
         return identifier
 
-    @staticmethod
-    def wait_for_specified_event(listener, specified_event, timeout_in_seconds=60):
+    def wait_for_specified_event(
+        self, listener, specified_event, timeout_in_seconds=60
+    ):
         events = []
         start_time = time.time()
         specified = False
@@ -64,7 +60,7 @@ class ResourceClient:
             while listener.events:
                 event = listener.events.popleft()
                 events.append(event)
-                if event.get("status", "") in (specified_event, FAILED):
+                if event.get("status", "") in (specified_event, self.FAILED):
                     specified = True
         return events
 
@@ -99,40 +95,40 @@ class ResourceClient:
 
     def create_resource(self, resource):
         request, token = self.prepare_request(
-            CREATE, resource["type"], resource=resource
+            self.CREATE, resource["type"], resource=resource
         )
-        events = self.send_async_request(request, token, COMPLETE)
+        events = self.send_async_request(request, token, self.COMPLETE)
         return events[-1]
 
     def read_resource(self, resource):
         id_key = self.get_identifier_property(resource)
         id_resource = {"type": resource["type"]}
         id_resource["properties"] = {id_key: resource["properties"][id_key]}
-        request, token = self.prepare_request(READ, resource=id_resource)
+        request, token = self.prepare_request(self.READ, resource=id_resource)
         return self.send_sync_request(request, token)
 
     def update_resource(self, resource, updated_resource):
         request, token = self.prepare_request(
-            UPDATE, resource=updated_resource, previous_resource=resource
+            self.UPDATE, resource=updated_resource, previous_resource=resource
         )
-        events = self.send_async_request(request, token, COMPLETE)
+        events = self.send_async_request(request, token, self.COMPLETE)
         return events[-1]
 
     def delete_resource(self, resource):
         id_key = self.get_identifier_property(resource)
         id_resource = {"type": resource["type"]}
         id_resource["properties"] = {id_key: resource["properties"][id_key]}
-        request, token = self.prepare_request(DELETE, resource=id_resource)
-        events = self.send_async_request(request, token, COMPLETE)
+        request, token = self.prepare_request(self.DELETE, resource=id_resource)
+        events = self.send_async_request(request, token, self.COMPLETE)
         return events[-1]
 
     def list_resources(self):
-        request, token = self.prepare_request(LIST)
+        request, token = self.prepare_request(self.LIST)
         return self.send_sync_request(request, token)
 
     def send_request_for_ack(self, operation):
         request, token = self.prepare_request(operation)
-        events = self.send_async_request(request, token, IN_PROGRESS)
+        events = self.send_async_request(request, token, self.IN_PROGRESS)
         return events[0]
 
     def compare_requested_model(self, requested_model, returned_model):
@@ -161,42 +157,3 @@ class ResourceClient:
         return_event = self._transport(request, None)
         self.verify_events_contain_token([return_event], token)
         return return_event
-
-
-class CallbackServer(threading.Thread):
-    def __init__(self, host="127.0.0.1", port=0):
-        self.events = deque()
-        self._server = make_server(host, port, self, ssl_context=None)
-        self.server_address = self._server.server_address
-        super().__init__(name=self.__class__, target=self._server.serve_forever)
-
-    def __enter__(self):
-        self.start()
-        LOG.debug(
-            "Started callback server at address %s on port %s", *self.server_address
-        )
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self.stop()
-
-    def __del__(self):  # pragma: no cover
-        # don't cover finalizers in tests, you'd have to force garbage collection.
-        # this is a fallback in case somebody forgets to use a with statement.
-        self.stop()
-
-    def stop(self):
-        self._server.shutdown()
-
-    @Request.application
-    def __call__(self, request):
-        content_type = request.headers.get("content-type")
-        if content_type != JSON_MIME:
-            err_msg = "callback with invalid content type '{}'".format(content_type)
-            LOG.error(err_msg)
-            event = {"error": err_msg}
-        else:
-            LOG.debug("Received event %s", request.data)
-            event = json.loads(request.data)
-        self.events.append(event)
-        return Response("", mimetype=JSON_MIME)

@@ -2,16 +2,9 @@ from collections import deque
 from unittest.mock import Mock, patch
 
 import pytest
-from requests import post
 
-from rpdk.core.contract.contract_utils import (
-    COMPLETE,
-    CREATE,
-    FAILED,
-    IN_PROGRESS,
-    CallbackServer,
-    ResourceClient,
-)
+from rpdk.core.contract.callback import CallbackServer
+from rpdk.core.contract.resource_client import ResourceClient
 from rpdk.core.contract.transports import LocalLambdaTransport
 from rpdk.core.jsonutils.pointer import fragment_decode
 
@@ -30,8 +23,8 @@ RESOURCE_DEF = {
     },
 }
 EXPECTED_EVENTS = [
-    {"status": IN_PROGRESS, "clientRequestToken": "token"},
-    {"status": COMPLETE, "clientRequestToken": "token"},
+    {"status": ResourceClient.IN_PROGRESS, "clientRequestToken": "token"},
+    {"status": ResourceClient.COMPLETE, "clientRequestToken": "token"},
 ]
 
 
@@ -46,9 +39,11 @@ def test_send_async_request(resource_client):
     mock_listener = Mock(
         spec=CallbackServer, events=listener_events, server_address=("url", "port")
     )
-    with patch("rpdk.core.contract.contract_utils.CallbackServer") as mock_context:
+    with patch("rpdk.core.contract.resource_client.CallbackServer") as mock_context:
         mock_context.return_value.__enter__.return_value = mock_listener
-        returned_events = resource_client.send_async_request(None, "token", COMPLETE)
+        returned_events = resource_client.send_async_request(
+            None, "token", ResourceClient.COMPLETE
+        )
     assert returned_events == EXPECTED_EVENTS
     resource_client._transport.assert_called_once()
 
@@ -62,11 +57,13 @@ def test_send_sync_request(resource_client):
 
 def test_prepare_request_all_positional_args(resource_client):
     returned_request, token = resource_client.prepare_request(
-        CREATE, resource=UPDATED_RESOURCE_MODEL, previous_resource=RESOURCE_MODEL
+        ResourceClient.CREATE,
+        resource=UPDATED_RESOURCE_MODEL,
+        previous_resource=RESOURCE_MODEL,
     )
     returned_context = returned_request["requestContext"]
     returned_request_data = returned_request["requestData"]
-    assert returned_context["operation"] == CREATE
+    assert returned_context["operation"] == ResourceClient.CREATE
     assert returned_context["resourceType"] == RESOURCE_MODEL["type"]
     assert (
         returned_request_data["resourceProperties"]
@@ -79,9 +76,11 @@ def test_prepare_request_all_positional_args(resource_client):
 
 
 def test_prepare_request_no_resources(resource_client):
-    returned_request, token = resource_client.prepare_request(CREATE, token="token")
+    returned_request, token = resource_client.prepare_request(
+        ResourceClient.CREATE, token="token"
+    )
     returned_context = returned_request["requestContext"]
-    assert returned_context["operation"] == CREATE
+    assert returned_context["operation"] == ResourceClient.CREATE
     assert returned_context["resourceType"] == RESOURCE_MODEL["type"]
     assert returned_context["clientRequestToken"] == "token"
 
@@ -89,15 +88,22 @@ def test_prepare_request_no_resources(resource_client):
 def test_wait_for_complete_event(resource_client):
     listener_events = deque(EXPECTED_EVENTS)
     mock_listener = Mock(spec=CallbackServer, events=listener_events)
-    returned_events = resource_client.wait_for_specified_event(mock_listener, COMPLETE)
+    returned_events = resource_client.wait_for_specified_event(
+        mock_listener, ResourceClient.COMPLETE
+    )
     assert returned_events == EXPECTED_EVENTS
 
 
 def test_wait_for_failed_event(resource_client):
-    expected_failed_events = [{"status": IN_PROGRESS}, {"status": FAILED}]
+    expected_failed_events = [
+        {"status": ResourceClient.IN_PROGRESS},
+        {"status": ResourceClient.FAILED},
+    ]
     listener_events = deque(expected_failed_events)
     mock_listener = Mock(spec=CallbackServer, events=listener_events)
-    returned_events = resource_client.wait_for_specified_event(mock_listener, COMPLETE)
+    returned_events = resource_client.wait_for_specified_event(
+        mock_listener, ResourceClient.COMPLETE
+    )
     assert returned_events == expected_failed_events
 
 
@@ -176,18 +182,3 @@ def test_compare_requested_model(resource_client):
     requested_model = RESOURCE_MODEL.copy()
     requested_model["properties"]["readOnlyProp"] = "value"
     resource_client.compare_requested_model(requested_model, RESOURCE_MODEL)
-
-
-def test_callback_server_valid():
-    posted_event = {"event": "test"}
-    with CallbackServer() as listener:
-        post("http://{}:{}".format(*listener.server_address), json=posted_event)
-    recorded_event = listener.events.popleft()
-    assert recorded_event == posted_event
-
-
-def test_callback_server_fail():
-    with CallbackServer() as listener:
-        post("http://{}:{}".format(*listener.server_address), data="Just Text")
-    event = listener.events.popleft()
-    assert "callback with invalid content type" in event["error"]

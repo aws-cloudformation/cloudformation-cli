@@ -13,7 +13,7 @@ from botocore.exceptions import ClientError, EndpointConnectionError
 
 from .argutils import TextFileType
 from .contract.contract_plugin import ContractPlugin
-from .contract.contract_utils import ResourceClient
+from .contract.resource_client import ResourceClient
 from .contract.transports import LocalLambdaTransport
 from .data_loaders import copy_resource
 
