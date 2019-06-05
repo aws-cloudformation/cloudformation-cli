@@ -23,8 +23,8 @@ RESOURCE_DEF = {
     },
 }
 EXPECTED_EVENTS = [
-    {"status": ResourceClient.IN_PROGRESS, "clientRequestToken": "token"},
-    {"status": ResourceClient.COMPLETE, "clientRequestToken": "token"},
+    {"OperationStatus": ResourceClient.IN_PROGRESS, "BearerToken": "token"},
+    {"OperationStatus": ResourceClient.COMPLETE, "BearerToken": "token"},
 ]
 
 
@@ -89,32 +89,32 @@ def test_wait_for_complete_event(resource_client):
     listener_events = deque(EXPECTED_EVENTS)
     mock_listener = Mock(spec=CallbackServer, events=listener_events)
     returned_events = resource_client.wait_for_specified_event(
-        mock_listener, ResourceClient.COMPLETE
+        mock_listener, ResourceClient.COMPLETE, timeout_in_seconds=1
     )
     assert returned_events == EXPECTED_EVENTS
 
 
 def test_wait_for_failed_event(resource_client):
     expected_failed_events = [
-        {"status": ResourceClient.IN_PROGRESS},
-        {"status": ResourceClient.FAILED},
+        {"OperationStatus": ResourceClient.IN_PROGRESS},
+        {"OperationStatus": ResourceClient.FAILED},
     ]
     listener_events = deque(expected_failed_events)
     mock_listener = Mock(spec=CallbackServer, events=listener_events)
     returned_events = resource_client.wait_for_specified_event(
-        mock_listener, ResourceClient.COMPLETE
+        mock_listener, ResourceClient.COMPLETE, timeout_in_seconds=1
     )
     assert returned_events == expected_failed_events
 
 
 def test_verify_events_contain_token_fail(resource_client):
-    events = [{"clientRequestToken": "someToken"}]
+    events = [{"BearerToken": "someToken"}]
     with pytest.raises(AssertionError):
         resource_client.verify_events_contain_token(events, "token")
 
 
 def test_verify_events_contain_token_pass(resource_client):
-    events = [{"clientRequestToken": "token"}]
+    events = [{"BearerToken": "token"}]
     resource_client.verify_events_contain_token(events, "token")
 
 

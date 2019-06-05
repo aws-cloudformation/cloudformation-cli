@@ -40,3 +40,11 @@ class CLIMisconfiguredError(SysExitRecommendedError):
 
 class DownstreamError(RPDKBaseException):
     pass
+
+
+class ContractTestError(RPDKBaseException):
+    pass
+
+
+class InvalidRequestError(ContractTestError):
+    pass
