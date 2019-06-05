@@ -60,7 +60,7 @@ class ResourceClient:
             while listener.events:
                 event = listener.events.popleft()
                 events.append(event)
-                if event.get("status", "") in (specified_event, self.FAILED):
+                if event.get("OperationStatus", "") in (specified_event, self.FAILED):
                     specified = True
         return events
 
@@ -87,10 +87,10 @@ class ResourceClient:
 
     @staticmethod
     def verify_events_contain_token(events, token):
-        if any(event["clientRequestToken"] != token for event in events):
+        if any(event["BearerToken"] != token for event in events):
             raise AssertionError(
                 "Request tokens:\n"
-                + "\n".join(event["clientRequestToken"] for event in events)
+                + "\n".join(event["BearerToken"] for event in events)
             )
 
     def create_resource(self, resource):

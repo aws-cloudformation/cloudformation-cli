@@ -5,7 +5,6 @@ import pytest
 
 from .resource_client import ResourceClient
 
-JSON_MIME = "application/json"
 LOG = logging.getLogger(__name__)
 
 
