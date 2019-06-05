@@ -34,11 +34,11 @@ class JsonSchemaFlattener:
         self._full_schema = schema
 
     def flatten_schema(self):
-        self._walk((), self._full_schema)
+        self._walk(self._full_schema, ())
 
         return self._schema_map
 
-    def _walk(self, property_path, sub_schema):
+    def _walk(self, sub_schema, property_path):
         # have we already seen this path?
         try:
             if self._schema_map[property_path] is None:
@@ -62,10 +62,10 @@ class JsonSchemaFlattener:
             json_type = sub_schema.get("type", "object")
 
             if json_type == "array":
-                sub_schema = self._flatten_array_type(property_path, sub_schema)
+                sub_schema = self._flatten_array_type(sub_schema, property_path)
 
             elif json_type == "object":
-                sub_schema = self._flatten_object_type(property_path, sub_schema)
+                sub_schema = self._flatten_object_type(sub_schema, property_path)
         else:
             sub_schema = self._flatten_ref_type(ref_path)
 
@@ -93,9 +93,9 @@ class JsonSchemaFlattener:
                 )
 
         ref_schema, ref_parts = self._find_subschema_by_ref(ref_parts)
-        return self._walk(ref_parts, ref_schema)
+        return self._walk(ref_schema, ref_parts)
 
-    def _flatten_array_type(self, path, sub_schema):
+    def _flatten_array_type(self, sub_schema, path):
         # if "additionalItems" is truthy (e.g. a non-empty object), then fail
         if sub_schema.get("additionalItems"):
             raise ConstraintError("Object at '{path}' has 'additionalItems'", path)
@@ -106,12 +106,12 @@ class JsonSchemaFlattener:
         except KeyError:
             pass
         else:
-            sub_schema["items"] = self._walk(path + ("items",), items_schema)
+            sub_schema["items"] = self._walk(items_schema, path + ("items",))
         return sub_schema
 
-    def _flatten_object_type(self, path, sub_schema):
+    def _flatten_object_type(self, sub_schema, path):
         # we only care about allOf, anyOf, oneOf for object types
-        sub_schema = self._flatten_combiners(path, sub_schema)
+        sub_schema = self._flatten_combiners(sub_schema, path)
 
         # if "additionalProperties" is truthy (e.g. a non-empty object), then fail
         if sub_schema.get("additionalProperties"):
@@ -135,7 +135,7 @@ class JsonSchemaFlattener:
             new_properties = {}
             for prop_name, prop_schema in properties.items():
                 new_properties[prop_name] = self._walk(
-                    path + ("properties", prop_name), prop_schema
+                    prop_schema, path + ("properties", prop_name)
                 )
 
             # replace properties with resolved properties
@@ -152,13 +152,13 @@ class JsonSchemaFlattener:
             new_pattern_properties = {}
             for pattern, prop_schema in pattern_properties.items():
                 new_pattern_properties[pattern] = self._walk(
-                    path + ("patternProperties", pattern), prop_schema
+                    prop_schema, path + ("patternProperties", pattern)
                 )
             sub_schema["patternProperties"] = new_pattern_properties
 
         return sub_schema
 
-    def _flatten_combiners(self, path, sub_schema):
+    def _flatten_combiners(self, sub_schema, path):
         """This method iterates through allOf, anyOf, and oneOf schemas and
         merges them all into the surrounding sub_schema"""
 
@@ -170,7 +170,7 @@ class JsonSchemaFlattener:
             for i, nested_schema in enumerate(schema_array):
                 ref_path = path + (arr_key, i)
                 ref_path_is_used = ref_path in self._schema_map
-                walked_schema = self._walk(ref_path, nested_schema)
+                walked_schema = self._walk(nested_schema, ref_path)
 
                 # if no other schema is referencing the ref_path,
                 # we no longer need the refkey since the properties will be squashed
