@@ -1,5 +1,6 @@
 {
     "typeName": "AWS::SQS::Queue",
+    "description": "Definition of AWS::SQS::Queue Resource Type",
     "properties": {
         "Arn": {
             "description": "The Amazon Resource Name (ARN) of the queue.",
@@ -102,12 +103,12 @@
         "/properties/Arn",
         "/properties/URL"
     ],
-    "identifiers": [
+    "primaryIdentifier": [
+        "/properties/QueueName"
+    ],
+    "additionalIdentifiers": [
         [
             "/properties/Arn"
-        ],
-        [
-            "/properties/QueueName"
         ],
         [
             "/properties/URL"

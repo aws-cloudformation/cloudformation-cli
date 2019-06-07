@@ -1,8 +1,12 @@
 {
     "typeName": "a:b:c",
+    "description": "a test schema",
     "properties": {
         "property1": {
             "type": "integer"
         }
-    }
+    },
+    "primaryIdentifier": [
+        "/properties/property1"
+    ]
 }

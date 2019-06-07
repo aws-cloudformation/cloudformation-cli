@@ -3,11 +3,14 @@
     "description": "a test schema",
     "properties": {
         "property1": {
-            "type": "number",
-            "const": 1
+            "type": "array"
         }
     },
     "primaryIdentifier": [
         "/properties/property1"
-    ]
+    ],
+    "remote": {
+        "type": "object",
+        "description": "reserved word"
+    }
 }

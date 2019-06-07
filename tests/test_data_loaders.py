@@ -31,7 +31,12 @@ BASEDIR = Path(__file__).parent  # tests/test_data_loaders.py -> tests/
 # https://www.cl.cam.ac.uk/~mgk25/ucs/examples/UTF-8-test.txt
 INVALID_UTF8 = b"\x80"
 
-BASIC_SCHEMA = {"typeName": "AWS::FOO::BAR", "properties": {"foo": {"type": "string"}}}
+BASIC_SCHEMA = {
+    "typeName": "AWS::FOO::BAR",
+    "description": "test schema",
+    "properties": {"foo": {"type": "string"}},
+    "primaryIdentifier": ["/properties/foo"],
+}
 
 
 def yaml_s(obj):
@@ -93,7 +98,9 @@ def test_load_resource_spec_invalid_snippets(example):
 def test_load_resource_spec_remote_key_is_invalid():
     schema = {
         "typeName": "AWS::FOO::BAR",
+        "description": "test schema",
         "properties": {"foo": {"type": "string"}},
+        "primaryIdentifier": ["/properties/foo"],
         "remote": {},
     }
     with pytest.raises(SpecValidationError) as excinfo:

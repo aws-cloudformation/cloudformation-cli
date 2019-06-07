@@ -1,5 +1,6 @@
 {
     "$schema": "http://json-schema.org/draft-07/schema#",
+    "description": "Common Resource Type Schemas",
     "definitions": {
         "Arn": {
             "type": "string",
@@ -43,5 +44,8 @@
             "type": "string",
             "pattern": "^[0-9]{12}$"
         }
-    }
+    },
+    "primaryIdentifier": [
+        "#/"
+    ]
 }

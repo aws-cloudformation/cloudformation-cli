@@ -18,5 +18,8 @@
         "property1": {
             "type": "string"
         }
-    }
+    },
+    "primaryIdentifier": [
+        "/properties/property1"
+    ]
 }

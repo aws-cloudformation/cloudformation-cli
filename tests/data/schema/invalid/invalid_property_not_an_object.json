@@ -2,5 +2,8 @@
     "typeName": "AWS::Valid::TypeName",
     "properties": {
         "property1": 1
-    }
+    },
+    "primaryIdentifier": [
+        "/properties/property1"
+    ]
 }
