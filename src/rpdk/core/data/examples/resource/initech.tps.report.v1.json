@@ -57,11 +57,11 @@
         "DueDate"
     ],
     "readOnlyProperties": [
-        "/properties/tps_code"
+        "/properties/TPSCode"
     ],
     "identifiers": [
         [
-            "/properties/tps_code"
+            "/properties/TPSCode"
         ]
     ],
     "handlers": {
