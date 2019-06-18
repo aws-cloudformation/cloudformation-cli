@@ -1,0 +1,11 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: AWS SAM template for the {{ resource_type }} resource type
+
+Resources:
+  TypeFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      {% for key, value in handler_params.items() %}
+      {{ key }}: {{ value }}
+      {% endfor %}
