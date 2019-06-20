@@ -305,6 +305,26 @@
             ],
             "idempotent": true
         },
+        "DeregisterType": {
+            "name": "DeregisterType",
+            "http": {
+                "method": "POST",
+                "requestUri": "/"
+            },
+            "input": {
+                "shape": "DeregisterTypeInput"
+            },
+            "output": {
+                "shape": "DeregisterTypeOutput",
+                "resultWrapper": "DeregisterTypeResult"
+            },
+            "errors": [
+                {
+                    "shape": "CFNRegistryException"
+                }
+            ],
+            "idempotent": true
+        },
         "DescribeAccountLimits": {
             "name": "DescribeAccountLimits",
             "http": {
@@ -580,6 +600,46 @@
                 "resultWrapper": "DescribeStacksResult"
             },
             "documentation": "<p>Returns the description for the specified stack; if no stack name was specified, then it returns the description for all the stacks created.</p> <note> <p>If the stack does not exist, an <code>AmazonCloudFormationException</code> is returned.</p> </note>"
+        },
+        "DescribeType": {
+            "name": "DescribeType",
+            "http": {
+                "method": "POST",
+                "requestUri": "/"
+            },
+            "input": {
+                "shape": "DescribeTypeInput"
+            },
+            "output": {
+                "shape": "DescribeTypeOutput",
+                "resultWrapper": "DescribeTypeResult"
+            },
+            "errors": [
+                {
+                    "shape": "CFNRegistryException"
+                }
+            ],
+            "idempotent": true
+        },
+        "DescribeTypeRegistration": {
+            "name": "DescribeTypeRegistration",
+            "http": {
+                "method": "POST",
+                "requestUri": "/"
+            },
+            "input": {
+                "shape": "DescribeTypeRegistrationInput"
+            },
+            "output": {
+                "shape": "DescribeTypeRegistrationOutput",
+                "resultWrapper": "DescribeTypeRegistrationResult"
+            },
+            "errors": [
+                {
+                    "shape": "CFNRegistryException"
+                }
+            ],
+            "idempotent": true
         },
         "DetectStackDrift": {
             "name": "DetectStackDrift",
@@ -965,6 +1025,66 @@
             },
             "documentation": "<p>Returns the summary information for stacks whose status matches the specified StackStatusFilter. Summary information for stacks that have been deleted is kept for 90 days after the stack is deleted. If no StackStatusFilter is specified, summary information for all stacks is returned (including existing stacks and stacks that have been deleted).</p>"
         },
+        "ListTypeRegistrations": {
+            "name": "ListTypeRegistrations",
+            "http": {
+                "method": "POST",
+                "requestUri": "/"
+            },
+            "input": {
+                "shape": "ListTypeRegistrationsInput"
+            },
+            "output": {
+                "shape": "ListTypeRegistrationsOutput",
+                "resultWrapper": "ListTypeRegistrationsResult"
+            },
+            "errors": [
+                {
+                    "shape": "CFNRegistryException"
+                }
+            ],
+            "idempotent": true
+        },
+        "ListTypeVersions": {
+            "name": "ListTypeVersions",
+            "http": {
+                "method": "POST",
+                "requestUri": "/"
+            },
+            "input": {
+                "shape": "ListTypeVersionsInput"
+            },
+            "output": {
+                "shape": "ListTypeVersionsOutput",
+                "resultWrapper": "ListTypeVersionsResult"
+            },
+            "errors": [
+                {
+                    "shape": "CFNRegistryException"
+                }
+            ],
+            "idempotent": true
+        },
+        "ListTypes": {
+            "name": "ListTypes",
+            "http": {
+                "method": "POST",
+                "requestUri": "/"
+            },
+            "input": {
+                "shape": "ListTypesInput"
+            },
+            "output": {
+                "shape": "ListTypesOutput",
+                "resultWrapper": "ListTypesResult"
+            },
+            "errors": [
+                {
+                    "shape": "CFNRegistryException"
+                }
+            ],
+            "idempotent": true
+        },
         "RecordCustomResourceResponse": {
             "name": "RecordCustomResourceResponse",
             "http": {
@@ -1039,6 +1159,26 @@
             ],
             "idempotent": true
         },
+        "RegisterType": {
+            "name": "RegisterType",
+            "http": {
+                "method": "POST",
+                "requestUri": "/"
+            },
+            "input": {
+                "shape": "RegisterTypeInput"
+            },
+            "output": {
+                "shape": "RegisterTypeOutput",
+                "resultWrapper": "RegisterTypeResult"
+            },
+            "errors": [
+                {
+                    "shape": "CFNRegistryException"
+                }
+            ],
+            "idempotent": true
+        },
         "SetResourceTypeDefaultVersion": {
             "name": "SetResourceTypeDefaultVersion",
             "http": {
@@ -1069,6 +1209,26 @@
                 "shape": "SetStackPolicyInput"
             },
             "documentation": "<p>Sets a stack policy for a specified stack.</p>"
+        },
+        "SetTypeDefaultVersion": {
+            "name": "SetTypeDefaultVersion",
+            "http": {
+                "method": "POST",
+                "requestUri": "/"
+            },
+            "input": {
+                "shape": "SetTypeDefaultVersionInput"
+            },
+            "output": {
+                "shape": "SetTypeDefaultVersionOutput",
+                "resultWrapper": "SetTypeDefaultVersionResult"
+            },
+            "errors": [
+                {
+                    "shape": "CFNRegistryException"
+                }
+            ],
+            "idempotent": true
         },
         "SignalResource": {
             "name": "SignalResource",
@@ -1316,6 +1476,9 @@
             "member": {
                 "shape": "Account"
             }
+        },
+        "AccountsS3URL": {
+            "type": "string"
         },
         "AllowedValue": {
             "type": "string",
@@ -1805,7 +1968,6 @@
             "type": "structure",
             "required": [
                 "StackSetName",
-                "Accounts",
                 "Regions"
             ],
             "members": {
@@ -1816,6 +1978,9 @@
                 "Accounts": {
                     "shape": "AccountList",
                     "documentation": "<p>The names of one or more AWS accounts that you want to create stack instances in the specified region(s) for.</p>"
+                },
+                "AccountsS3URL": {
+                    "shape": "AccountsS3URL"
                 },
                 "Regions": {
                     "shape": "RegionList",
@@ -2015,7 +2180,6 @@
             "type": "structure",
             "required": [
                 "StackSetName",
-                "Accounts",
                 "Regions",
                 "RetainStacks"
             ],
@@ -2027,6 +2191,9 @@
                 "Accounts": {
                     "shape": "AccountList",
                     "documentation": "<p>The names of the AWS accounts that you want to delete stack instances for.</p>"
+                },
+                "AccountsS3URL": {
+                    "shape": "AccountsS3URL"
                 },
                 "Regions": {
                     "shape": "RegionList",
@@ -2097,6 +2264,27 @@
             }
         },
         "DeregisterResourceTypeOutput": {
+            "type": "structure",
+            "members": {}
+        },
+        "DeregisterTypeInput": {
+            "type": "structure",
+            "members": {
+                "Arn": {
+                    "shape": "TypeArn"
+                },
+                "Type": {
+                    "shape": "RegistryType"
+                },
+                "TypeName": {
+                    "shape": "TypeName"
+                },
+                "VersionId": {
+                    "shape": "TypeVersionId"
+                }
+            }
+        },
+        "DeregisterTypeOutput": {
             "type": "structure",
             "members": {}
         },
@@ -2628,6 +2816,92 @@
             },
             "documentation": "<p>The output for a <a>DescribeStacks</a> action.</p>"
         },
+        "DescribeTypeInput": {
+            "type": "structure",
+            "members": {
+                "Type": {
+                    "shape": "RegistryType"
+                },
+                "TypeName": {
+                    "shape": "TypeName"
+                },
+                "Arn": {
+                    "shape": "TypeArn"
+                },
+                "VersionId": {
+                    "shape": "TypeVersionId"
+                }
+            }
+        },
+        "DescribeTypeOutput": {
+            "type": "structure",
+            "members": {
+                "Arn": {
+                    "shape": "TypeArn"
+                },
+                "Type": {
+                    "shape": "RegistryType"
+                },
+                "TypeName": {
+                    "shape": "TypeName"
+                },
+                "Description": {
+                    "shape": "Description"
+                },
+                "Schema": {
+                    "shape": "TypeSchema"
+                },
+                "ProvisioningType": {
+                    "shape": "ProvisioningType"
+                },
+                "DeprecatedStatus": {
+                    "shape": "DeprecatedStatus"
+                },
+                "LoggingConfig": {
+                    "shape": "LoggingConfig"
+                },
+                "Visibility": {
+                    "shape": "Visibility"
+                },
+                "SourceUrl": {
+                    "shape": "TypeSourceUrl"
+                },
+                "LastUpdated": {
+                    "shape": "Timestamp"
+                },
+                "TimeCreated": {
+                    "shape": "Timestamp"
+                }
+            }
+        },
+        "DescribeTypeRegistrationInput": {
+            "type": "structure",
+            "required": [
+                "RegistrationToken"
+            ],
+            "members": {
+                "RegistrationToken": {
+                    "shape": "RegistrationToken"
+                }
+            }
+        },
+        "DescribeTypeRegistrationOutput": {
+            "type": "structure",
+            "members": {
+                "ProgressStatus": {
+                    "shape": "RegistrationStatus"
+                },
+                "Description": {
+                    "shape": "Description"
+                },
+                "TypeArn": {
+                    "shape": "TypeArn"
+                },
+                "TypeVersionArn": {
+                    "shape": "TypeArn"
+                }
+            }
+        },
         "Description": {
             "type": "string",
             "max": 1024,
@@ -3014,7 +3288,8 @@
                 "ServiceTimeout",
                 "ServiceException",
                 "NetworkFailure",
-                "InternalFailure"
+                "InternalFailure",
+                "AlreadyExists"
             ]
         },
         "Imports": {
@@ -3468,6 +3743,105 @@
             },
             "documentation": "<p>The output for <a>ListStacks</a> action.</p>"
         },
+        "ListTypeRegistrationsInput": {
+            "type": "structure",
+            "members": {
+                "Type": {
+                    "shape": "RegistryType"
+                },
+                "TypeName": {
+                    "shape": "TypeName"
+                },
+                "TypeArn": {
+                    "shape": "TypeArn"
+                },
+                "RegistrationStatusFilter": {
+                    "shape": "RegistrationStatus"
+                },
+                "MaxResults": {
+                    "shape": "MaxResults"
+                },
+                "NextToken": {
+                    "shape": "NextToken"
+                }
+            }
+        },
+        "ListTypeRegistrationsOutput": {
+            "type": "structure",
+            "members": {
+                "RegistrationTokenList": {
+                    "shape": "RegistrationTokenList"
+                },
+                "NextToken": {
+                    "shape": "NextToken"
+                }
+            }
+        },
+        "ListTypeVersionsInput": {
+            "type": "structure",
+            "members": {
+                "Type": {
+                    "shape": "RegistryType"
+                },
+                "TypeName": {
+                    "shape": "TypeName"
+                },
+                "Arn": {
+                    "shape": "TypeArn"
+                },
+                "MaxResults": {
+                    "shape": "MaxResults"
+                },
+                "NextToken": {
+                    "shape": "NextToken"
+                },
+                "DeprecatedStatus": {
+                    "shape": "DeprecatedStatus"
+                }
+            }
+        },
+        "ListTypeVersionsOutput": {
+            "type": "structure",
+            "members": {
+                "TypeVersionSummaries": {
+                    "shape": "TypeVersionSummaries"
+                },
+                "NextToken": {
+                    "shape": "NextToken"
+                }
+            }
+        },
+        "ListTypesInput": {
+            "type": "structure",
+            "members": {
+                "Visibility": {
+                    "shape": "Visibility"
+                },
+                "ProvisioningType": {
+                    "shape": "ProvisioningType"
+                },
+                "DeprecatedStatus": {
+                    "shape": "DeprecatedStatus"
+                },
+                "MaxResults": {
+                    "shape": "MaxResults"
+                },
+                "NextToken": {
+                    "shape": "NextToken"
+                }
+            }
+        },
+        "ListTypesOutput": {
+            "type": "structure",
+            "members": {
+                "TypeSummaries": {
+                    "shape": "TypeSummaries"
+                },
+                "NextToken": {
+                    "shape": "NextToken"
+                }
+            }
+        },
         "ListenerExpiredException": {
             "type": "structure",
             "members": {},
@@ -3490,6 +3864,29 @@
                 "senderFault": true
             },
             "exception": true
+        },
+        "LogGroupName": {
+            "type": "string",
+            "max": 512,
+            "min": 1,
+            "pattern": "[\\.\\-_/#A-Za-z0-9]+"
+        },
+        "LogRoleArn": {
+            "type": "string",
+            "max": 256,
+            "min": 1,
+            "pattern": "arn:.+:iam::[0-9]{12}:role/.+"
+        },
+        "LoggingConfig": {
+            "type": "structure",
+            "members": {
+                "LogRoleArn": {
+                    "shape": "LogRoleArn"
+                },
+                "LogGroupName": {
+                    "shape": "LogGroupName"
+                }
+            }
         },
         "LogicalResourceId": {
             "type": "string"
@@ -3959,6 +4356,44 @@
                 }
             }
         },
+        "RegisterTypeInput": {
+            "type": "structure",
+            "required": [
+                "TypeName",
+                "SchemaHandlerPackage"
+            ],
+            "members": {
+                "Type": {
+                    "shape": "RegistryType"
+                },
+                "TypeName": {
+                    "shape": "TypeName"
+                },
+                "SchemaHandlerPackage": {
+                    "shape": "S3Url"
+                },
+                "Description": {
+                    "shape": "Description"
+                },
+                "SourceUrl": {
+                    "shape": "TypeSourceUrl"
+                },
+                "LoggingConfig": {
+                    "shape": "LoggingConfig"
+                },
+                "ClientRequestToken": {
+                    "shape": "RequestToken"
+                }
+            }
+        },
+        "RegisterTypeOutput": {
+            "type": "structure",
+            "members": {
+                "RegistrationToken": {
+                    "shape": "RegistrationToken"
+                }
+            }
+        },
         "RegistrationStatus": {
             "type": "string",
             "enum": [
@@ -3978,6 +4413,12 @@
             "member": {
                 "shape": "RegistrationToken"
             }
+        },
+        "RegistryType": {
+            "type": "string",
+            "enum": [
+                "RESOURCE"
+            ]
         },
         "Replacement": {
             "type": "string",
@@ -4229,7 +4670,7 @@
         "ResourceTypeArn": {
             "type": "string",
             "max": 1024,
-            "pattern": "arn:aws[A-Za-z0-9-]{0,64}:cloudformation:[A-Za-z0-9-]{1,64}:[0-9]{12}:resourcetype/[A-Za-z0-9-]{8,196}/[A-Za-z0-9-]+"
+            "pattern": "arn:aws[A-Za-z0-9-]{0,64}:cloudformation:[A-Za-z0-9-]{1,64}:[0-9]{12}:type/resource/[A-Za-z0-9-]{8,196}(/[A-Za-z0-9-]+)?"
         },
         "ResourceTypeName": {
             "type": "string",
@@ -4480,6 +4921,27 @@
                 }
             },
             "documentation": "<p>The input for the <a>SetStackPolicy</a> action.</p>"
+        },
+        "SetTypeDefaultVersionInput": {
+            "type": "structure",
+            "members": {
+                "Arn": {
+                    "shape": "TypeArn"
+                },
+                "Type": {
+                    "shape": "RegistryType"
+                },
+                "TypeName": {
+                    "shape": "TypeName"
+                },
+                "VersionId": {
+                    "shape": "TypeVersionId"
+                }
+            }
+        },
+        "SetTypeDefaultVersionOutput": {
+            "type": "structure",
+            "members": {}
         },
         "SignalResourceInput": {
             "type": "structure",
@@ -5689,6 +6151,88 @@
         "Type": {
             "type": "string"
         },
+        "TypeArn": {
+            "type": "string",
+            "max": 1024,
+            "pattern": "arn:aws[A-Za-z0-9-]{0,64}:cloudformation:[A-Za-z0-9-]{1,64}:[0-9]{12}:type/.+"
+        },
+        "TypeName": {
+            "type": "string",
+            "max": 196,
+            "min": 10,
+            "pattern": "[A-Za-z0-9]{2,64}::[A-Za-z0-9]{2,64}::[A-Za-z0-9]{2,64}"
+        },
+        "TypeSchema": {
+            "type": "string",
+            "max": 16777216,
+            "min": 1
+        },
+        "TypeSourceUrl": {
+            "type": "string",
+            "max": 4096,
+            "min": 1
+        },
+        "TypeSummaries": {
+            "type": "list",
+            "member": {
+                "shape": "TypeSummary"
+            }
+        },
+        "TypeSummary": {
+            "type": "structure",
+            "members": {
+                "Type": {
+                    "shape": "RegistryType"
+                },
+                "TypeName": {
+                    "shape": "TypeName"
+                },
+                "TypeArn": {
+                    "shape": "TypeArn"
+                },
+                "LastUpdated": {
+                    "shape": "Timestamp"
+                },
+                "Description": {
+                    "shape": "Description"
+                }
+            }
+        },
+        "TypeVersionId": {
+            "type": "string",
+            "max": 128,
+            "min": 1,
+            "pattern": "[A-Za-z0-9-]+"
+        },
+        "TypeVersionSummaries": {
+            "type": "list",
+            "member": {
+                "shape": "TypeVersionSummary"
+            }
+        },
+        "TypeVersionSummary": {
+            "type": "structure",
+            "members": {
+                "Type": {
+                    "shape": "RegistryType"
+                },
+                "TypeName": {
+                    "shape": "TypeName"
+                },
+                "VersionId": {
+                    "shape": "TypeVersionId"
+                },
+                "Arn": {
+                    "shape": "TypeArn"
+                },
+                "TimeCreated": {
+                    "shape": "Timestamp"
+                },
+                "Description": {
+                    "shape": "Description"
+                }
+            }
+        },
         "UnidentifiableResources": {
             "type": "list",
             "member": {
@@ -5787,7 +6331,6 @@
             "type": "structure",
             "required": [
                 "StackSetName",
-                "Accounts",
                 "Regions"
             ],
             "members": {
@@ -5796,6 +6339,9 @@
                 },
                 "Accounts": {
                     "shape": "AccountList"
+                },
+                "AccountsS3URL": {
+                    "shape": "AccountsS3URL"
                 },
                 "Regions": {
                     "shape": "RegionList"
@@ -5885,6 +6431,9 @@
                 },
                 "Accounts": {
                     "shape": "AccountList"
+                },
+                "AccountsS3URL": {
+                    "shape": "AccountsS3URL"
                 },
                 "Regions": {
                     "shape": "RegionList"
