@@ -1,5 +1,6 @@
 {
     "typeName": "AWS::Valid::TypeName",
+    "description": "a test schema",
     "properties": {
         "property1": {
             "type": "array"
@@ -14,5 +15,8 @@
         "read": {
             "permissions": "test:permission"
         }
-    }
+    },
+    "primaryIdentifier": [
+        "/properties/property1"
+    ]
 }

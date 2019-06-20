@@ -1,8 +1,12 @@
 {
     "typeName": "AWS::Valid::TypeName",
+    "description": "a test schema",
     "properties": {
         "property1": {
             "const": true
         }
-    }
+    },
+    "primaryIdentifier": [
+        "/properties/property1"
+    ]
 }

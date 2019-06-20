@@ -1,5 +1,6 @@
 {
     "typeName": "AWS::S3::Bucket",
+    "description": "Definition of AWS::S3::Bucket Resource Type",
     "definitions": {
         "AccelerateConfiguration": {
             "type": "object",
@@ -950,12 +951,12 @@
         "/properties/DualStackDomainName",
         "/properties/WebsiteURL"
     ],
-    "identifiers": [
+    "primaryIdentifier": [
+        "/properties/BucketName"
+    ],
+    "additionalIdentifiers": [
         [
             "/properties/Arn"
-        ],
-        [
-            "/properties/BucketName"
         ],
         [
             "/properties/URL"

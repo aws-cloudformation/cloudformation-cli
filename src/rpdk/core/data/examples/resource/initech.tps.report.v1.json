@@ -59,43 +59,31 @@
     "readOnlyProperties": [
         "/properties/TPSCode"
     ],
-    "identifiers": [
-        [
-            "/properties/TPSCode"
-        ]
+    "primaryIdentifier": [
+        "/properties/TPSCode"
     ],
     "handlers": {
         "create": {
-            "protocolVersion": "1.0",
-            "runtimeType": "Lambda",
             "permissions": [
                 "initech:CreateReport"
             ]
         },
         "read": {
-            "protocolVersion": "1.0",
-            "runtimeType": "Lambda",
             "permissions": [
                 "initech:DescribeReport"
             ]
         },
         "update": {
-            "protocolVersion": "1.0",
-            "runtimeType": "Lambda",
             "permissions": [
                 "initech:UpdateReport"
             ]
         },
         "delete": {
-            "protocolVersion": "1.0",
-            "runtimeType": "Lambda",
             "permissions": [
                 "initech:DeleteReport"
             ]
         },
         "list": {
-            "protocolVersion": "1.0",
-            "runtimeType": "Lambda",
             "permissions": [
                 "initech:ListReports"
             ]

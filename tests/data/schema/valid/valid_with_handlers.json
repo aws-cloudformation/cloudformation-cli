@@ -1,27 +1,39 @@
 {
     "typeName": "AWS::Valid::TypeName",
+    "description": "a test schema",
     "properties": {
         "property1": {
             "type": "array"
         }
     },
+    "primaryIdentifier": [
+        "/properties/property1"
+    ],
     "handlers": {
-        "protocolVersion": "1.0",
-        "runtimeType": "Native",
         "create": {
-            "permissions": "test:permission"
+            "permissions": [
+                "test:permission"
+            ]
         },
         "read": {
-            "permissions": "test:permission"
+            "permissions": [
+                "test:permission"
+            ]
         },
         "update": {
-            "permissions": "test:permission"
+            "permissions": [
+                "test:permission"
+            ]
         },
         "delete": {
-            "permissions": "test:permission"
+            "permissions": [
+                "test:permission"
+            ]
         },
         "list": {
-            "permissions": "test:permission"
+            "permissions": [
+                "test:permission"
+            ]
         }
     }
 }
