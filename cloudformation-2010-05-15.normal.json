@@ -321,6 +321,9 @@
             "errors": [
                 {
                     "shape": "CFNRegistryException"
+                },
+                {
+                    "shape": "TypeNotFoundException"
                 }
             ],
             "idempotent": true
@@ -617,6 +620,9 @@
             "errors": [
                 {
                     "shape": "CFNRegistryException"
+                },
+                {
+                    "shape": "TypeNotFoundException"
                 }
             ],
             "idempotent": true
@@ -1226,6 +1232,9 @@
             "errors": [
                 {
                     "shape": "CFNRegistryException"
+                },
+                {
+                    "shape": "TypeNotFoundException"
                 }
             ],
             "idempotent": true
@@ -3276,20 +3285,20 @@
         "HandlerErrorCode": {
             "type": "string",
             "enum": [
+                "NotUpdatable",
                 "InvalidRequest",
                 "AccessDenied",
                 "InvalidCredentials",
-                "NoOperationToPerform",
-                "NotUpdatable",
+                "AlreadyExists",
                 "NotFound",
-                "NotReady",
+                "ResourceConflict",
                 "Throttling",
                 "ServiceLimitExceeded",
-                "ServiceTimeout",
-                "ServiceException",
+                "NotStabilized",
+                "GeneralServiceException",
+                "ServiceInternalError",
                 "NetworkFailure",
-                "InternalFailure",
-                "AlreadyExists"
+                "InternalFailure"
             ]
         },
         "Imports": {
@@ -3879,6 +3888,10 @@
         },
         "LoggingConfig": {
             "type": "structure",
+            "required": [
+                "LogRoleArn",
+                "LogGroupName"
+            ],
             "members": {
                 "LogRoleArn": {
                     "shape": "LogRoleArn"
@@ -6161,6 +6174,16 @@
             "max": 196,
             "min": 10,
             "pattern": "[A-Za-z0-9]{2,64}::[A-Za-z0-9]{2,64}::[A-Za-z0-9]{2,64}"
+        },
+        "TypeNotFoundException": {
+            "type": "structure",
+            "members": {},
+            "error": {
+                "code": "TypeNotFoundException",
+                "httpStatusCode": 404,
+                "senderFault": true
+            },
+            "exception": true
         },
         "TypeSchema": {
             "type": "string",
