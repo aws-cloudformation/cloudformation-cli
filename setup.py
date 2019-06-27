@@ -42,6 +42,7 @@ setup(
         "Werkzeug>=0.14",
         "PyYAML<=3.13,>=3.10",
         "requests>=2.20",
+        "hypothesis>=4.24",
     ],
     entry_points={"console_scripts": ["cfn-cli = rpdk.core.cli:main"]},
     license="Apache License 2.0",
