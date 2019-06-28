@@ -196,7 +196,7 @@ def test_walk_path_already_processed(path):
 def test_find_schema_from_ref_valid_path(path, subschema):
     test_schema = {"a": {"b": {"c": "d"}}}
     flattener = JsonSchemaFlattener(test_schema)
-    found, _ = flattener._find_subschema_by_ref(path)
+    found, _, _ = flattener._find_subschema_by_ref(path)
     assert found == subschema
 
 
