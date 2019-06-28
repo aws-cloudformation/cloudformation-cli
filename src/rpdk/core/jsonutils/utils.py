@@ -70,13 +70,13 @@ def traverse(document, path_parts):
     :raises ValueError, LookupError: the reference is invalid for this document
 
     >>> traverse({"foo": {"bar": [42]}}, tuple())
-    ({'foo': {'bar': [42]}}, ())
+    ({'foo': {'bar': [42]}}, (), None)
     >>> traverse({"foo": {"bar": [42]}}, ["foo"])
-    ({'bar': [42]}, ('foo',))
+    ({'bar': [42]}, ('foo',), {'foo': {'bar': [42]}})
     >>> traverse({"foo": {"bar": [42]}}, ("foo", "bar"))
-    ([42], ('foo', 'bar'))
+    ([42], ('foo', 'bar'), {'bar': [42]})
     >>> traverse({"foo": {"bar": [42]}}, ("foo", "bar", "0"))
-    (42, ('foo', 'bar', 0))
+    (42, ('foo', 'bar', 0), [42])
     >>> traverse({}, ["foo"])
     Traceback (most recent call last):
     ...
@@ -90,13 +90,15 @@ def traverse(document, path_parts):
     ...
     IndexError: list index out of range
     """
+    parent = None
     path = []
     for part in path_parts:
         if isinstance(document, Sequence):
             part = int(part)
+        parent = document
         document = document[part]
         path.append(part)
-    return document, tuple(path)
+    return document, tuple(path), parent
 
 
 def schema_merge(target, src, path):
