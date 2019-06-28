@@ -6,7 +6,7 @@ from rpdk.core.cli import EXIT_UNHANDLED_EXCEPTION, main
 from rpdk.core.project import Project
 
 
-@pytest.mark.parametrize("command", ["init", "generate", "submit", "validate"])
+@pytest.mark.parametrize("command", ["init", "generate", "submit", "validate", "test"])
 def test_command_help(capsys, command):
     with patch("rpdk.core.{0}.{0}".format(command), autospec=True) as mock_func:
         with pytest.raises(SystemExit) as excinfo:
