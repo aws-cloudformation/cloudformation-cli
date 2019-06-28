@@ -1,18 +1,12 @@
-import argparse
 from contextlib import contextmanager
-from tempfile import NamedTemporaryFile, TemporaryFile
+from pathlib import Path
 from unittest.mock import Mock, patch
 
 import pytest
-from botocore.exceptions import ClientError, EndpointConnectionError
 
 from rpdk.core.cli import main
-from rpdk.core.test import (
-    invoke_pytest,
-    local_lambda,
-    setup_subparser,
-    temporary_ini_file,
-)
+from rpdk.core.project import Project
+from rpdk.core.test import temporary_ini_file
 
 RANDOM_INI = "pytest_SOYPKR.ini"
 EXPECTED_PYTEST_ARGS = ["-c", RANDOM_INI]
@@ -23,214 +17,57 @@ def mock_temporary_ini_file():
     yield RANDOM_INI
 
 
-def test_test_command_help(capsys):
-    # also mock other transports here
-    with patch("rpdk.core.test.local_lambda", autospec=True) as mock_local_lambda:
-        main(args_in=["test"])
-    out, _ = capsys.readouterr()
-    assert "--help" in out
-    mock_local_lambda.assert_not_called()
+@pytest.mark.parametrize(
+    "args_in,pytest_args",
+    [
+        ([], []),
+        (["--test-types", "create"], ["-k", "create"]),
+        (["--collect-only"], ["--collect-only"]),
+        (
+            ["--collect-only", "--test-types", "create"],
+            ["-k", "create", "--collect-only"],
+        ),
+    ],
+)
+def test_test_command(capsys, args_in, pytest_args):
+    mock_project = Mock(spec=Project)
+    mock_project.schema = {}
 
-
-def test_test_command_local_lambda_help(capsys):
-    with patch("rpdk.core.test.local_lambda", autospec=True) as mock_local_lambda:
-        with pytest.raises(SystemExit):
-            main(args_in=["test", "local-lambda"])
-    _, err = capsys.readouterr()
-    assert "usage" in err
-    mock_local_lambda.assert_not_called()
-
-
-def test_test_command_args():
-    with patch("rpdk.core.test.local_lambda", autospec=True) as mock_lambda_command:
-        test_resource_file = NamedTemporaryFile()
-        test_updated_resource_file = NamedTemporaryFile()
-        test_resource_def_file = NamedTemporaryFile()
-        main(
-            args_in=[
-                "test",
-                "local-lambda",
-                test_resource_file.name,
-                test_updated_resource_file.name,
-                test_resource_def_file.name,
-            ]
-        )
-
-    mock_lambda_command.assert_called_once()
-    args, _ = mock_lambda_command.call_args
-    argparse_namespace = args[0]
-    assert argparse_namespace.endpoint == "http://127.0.0.1:3001"
-    assert argparse_namespace.function_name == "Handler"
-    assert argparse_namespace.resource_file.name == test_resource_file.name
-    assert (
-        argparse_namespace.updated_resource_file.name == test_updated_resource_file.name
+    patch_project = patch(
+        "rpdk.core.test.Project", autospec=True, return_value=mock_project
     )
-    assert argparse_namespace.resource_def_file.name == test_resource_def_file.name
-    assert argparse_namespace.subparser_name == "test"
-
-
-def test_invoke_pytest():
-    arg_namespace = argparse.Namespace(
-        endpoint="http://127.0.0.1:3001",
-        function_name="Handler",
-        resource_file=None,
-        updated_resource_file=None,
-        resource_def_file=None,
-        subparser_name="test",
-        test_types=None,
-        collect_only=False,
-    )
-    mock_init = patch(
+    patch_plugin = patch("rpdk.core.test.ContractPlugin", autospec=True)
+    patch_pytest = patch("rpdk.core.test.pytest.main", autospec=True)
+    patch_ini = patch(
         "rpdk.core.test.temporary_ini_file", side_effect=mock_temporary_ini_file
     )
-    mock_json = patch("json.load", return_value={}, autospec=True)
-    with mock_json, mock_init, patch("pytest.main") as mock_pytest:
-        invoke_pytest(None, arg_namespace)
-    args, kwargs = mock_pytest.call_args
-    assert len(args) == 1
-    assert args[0] == EXPECTED_PYTEST_ARGS
-    assert kwargs.keys() == {"plugins"}
+    # fmt: off
+    with patch_project, \
+            patch_plugin as mock_plugin, \
+            patch_pytest as mock_pytest, \
+            patch_ini as mock_ini:
+        main(args_in=["test"] + args_in)
+    # fmt: on
 
-
-def test_invoke_pytest_with_test_type():
-    arg_namespace = argparse.Namespace(
-        endpoint="http://127.0.0.1:3001",
-        function_name="Handler",
-        resource_file=None,
-        updated_resource_file=None,
-        resource_def_file=None,
-        subparser_name="test",
-        test_types="TEST_TYPES",
-        collect_only=False,
+    mock_project.load.assert_called_once_with()
+    mock_plugin.assert_called_once_with(
+        "TestEntrypoint", "http://127.0.0.1:3001", "us-east-1", mock_project.schema
     )
-    mock_init = patch(
-        "rpdk.core.test.temporary_ini_file", side_effect=mock_temporary_ini_file
-    )
-    mock_json = patch("json.load", return_value={}, autospec=True)
-    with mock_json, mock_init, patch("pytest.main") as mock_pytest:
-        invoke_pytest(None, arg_namespace)
-    args, kwargs = mock_pytest.call_args
-    assert len(args) == 1
-    assert args[0] == EXPECTED_PYTEST_ARGS + ["-k", "TEST_TYPES"]
-    assert kwargs.keys() == {"plugins"}
-
-
-def test_local_lambda_command():
-    with TemporaryFile() as test_file, patch(
-        "rpdk.core.contract.transports.LocalLambdaTransport.__call__"
-    ), patch("rpdk.core.test.invoke_pytest") as mock_invoke_pytest:
-        arg_namespace = argparse.Namespace(
-            endpoint="http://127.0.0.1:3001",
-            function_name="Handler",
-            resource_file=test_file,
-            updated_resource_file=test_file,
-            resource_def_file=test_file,
-            subparser_name="test",
-            test_types=None,
-        )
-        local_lambda(arg_namespace)
-    mock_invoke_pytest.assert_called_once()
-    args = mock_invoke_pytest.call_args[0]
-    assert args[0].endpoint == "http://127.0.0.1:3001"
-    assert args[0].function_name == "Handler"
-    assert args[1] == arg_namespace
-
-
-def test_local_lambda_fail_fast_endpoint():
-    arg_namespace = argparse.Namespace(
-        endpoint="http://127.0.0.1:3001", function_name="Handler"
+    mock_ini.assert_called_once_with()
+    mock_pytest.assert_called_once_with(
+        ["-c", RANDOM_INI] + pytest_args, plugins=[mock_plugin.return_value]
     )
 
-    e = EndpointConnectionError(endpoint_url="http://127.0.0.1:3001")
-    mock_transport_call = patch(
-        "rpdk.core.contract.transports.LocalLambdaTransport.__call__", side_effect=e
-    )
-    with mock_transport_call, patch("rpdk.core.test.invoke_pytest") as mock_pytest:
-        with pytest.raises(SystemExit):
-            local_lambda(arg_namespace)
-    mock_pytest.assert_not_called()
-
-
-def test_local_lambda_fail_fast_function_name():
-    arg_namespace = argparse.Namespace(
-        endpoint="http://127.0.0.1:3001", function_name="Handler"
-    )
-    e = ClientError(
-        {
-            "Error": {
-                "Code": "ResourceNotFound",
-                "Message": (
-                    "Function not found: ",
-                    "arn:aws:lambda:us-west-2:012345678901:function:Handler",
-                ),
-            }
-        },
-        "Invoke",
-    )
-    with patch("rpdk.core.test.invoke_pytest") as mock_pytest, patch(
-        "rpdk.core.contract.transports.LocalLambdaTransport.__call__", side_effect=e
-    ):
-        with pytest.raises(SystemExit):
-            local_lambda(arg_namespace)
-    mock_pytest.assert_not_called()
-
-
-def test_local_lambda_fail_fast_reraise():
-    arg_namespace = argparse.Namespace(
-        endpoint="http://127.0.0.1:3001", function_name="Handler"
-    )
-    e = ClientError(
-        {
-            "Error": {
-                "Code": "ResourceNotFound",
-                "Message": (
-                    "Function not found: "
-                    "arn:aws:lambda:us-west-2:012345678901:function:Handle",
-                ),
-            }
-        },
-        "Invoke",
-    )
-    with patch("rpdk.core.test.invoke_pytest") as mock_pytest, patch(
-        "rpdk.core.contract.transports.LocalLambdaTransport.__call__", side_effect=e
-    ):
-        with pytest.raises(ClientError):
-            local_lambda(arg_namespace)
-    mock_pytest.assert_not_called()
+    _out, err = capsys.readouterr()
+    assert not err
 
 
 def test_temporary_ini_file():
-    with temporary_ini_file() as path:
-        with open(path, "r", encoding="utf-8") as f:
+    with temporary_ini_file() as path_str:
+        assert isinstance(path_str, str)
+        path = Path(path_str)
+        assert path.name.startswith("pytest_")
+        assert path.name.endswith(".ini")
+
+        with path.open("r", encoding="utf-8") as f:
             assert "[pytest]" in f.read()
-
-
-def mock_transport_command(args):
-    transport = Mock()
-    invoke_pytest(transport, args)
-
-
-def patched_setup_subparser(subparsers, parents):
-    test_parsers, pytest_parents = setup_subparser(subparsers, parents)
-    mock_parser = test_parsers.add_parser("mock-transport", parents=pytest_parents)
-    mock_parser.set_defaults(command=mock_transport_command)
-
-
-def test_e2e_test_command(capsys):
-    with patch(
-        "rpdk.core.cli.test_setup_subparser", side_effect=patched_setup_subparser
-    ), NamedTemporaryFile(mode="w", encoding="utf-8") as temp:
-        temp.write("{}")
-        temp.flush()
-        main(
-            [
-                "test",
-                "mock-transport",
-                temp.name,
-                temp.name,
-                temp.name,
-                "--collect-only",
-            ]
-        )
-    out, _ = capsys.readouterr()
-    assert "collected" in out

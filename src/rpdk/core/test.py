@@ -1,21 +1,18 @@
-"""This sub command tests basic functionality of the
-resource handler given a test resource and an endpoint.
+"""This sub command tests basic functionality of the resource in the project.
+
+Projects can be created via the 'init' sub command.
 """
-import json
 import logging
-from argparse import SUPPRESS, ArgumentParser
+from argparse import SUPPRESS
 from contextlib import contextmanager
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 
 import pytest
-from botocore.exceptions import ClientError, EndpointConnectionError
 
-from .argutils import TextFileType
 from .contract.contract_plugin import ContractPlugin
-from .contract.resource_client import ResourceClient
-from .contract.transports import LocalLambdaTransport
 from .data_loaders import copy_resource
+from .project import Project
 
 LOG = logging.getLogger(__name__)
 
@@ -31,94 +28,48 @@ def temporary_ini_file():
         yield str(path)
 
 
-def invoke_pytest(transport, args):
+def test(args):
+    project = Project()
+    project.load()
 
-    resource_def = json.load(args.resource_def_file)
-    resource = json.load(args.resource_file)
-    updated_resource = json.load(args.updated_resource_file)
-    resource_client = ResourceClient(transport, resource_def)
+    plugin = ContractPlugin(
+        args.function_name, args.endpoint, args.region, project.schema
+    )
+
     with temporary_ini_file() as path:
         pytest_args = ["-c", path]
         if args.test_types:
             pytest_args.extend(["-k", args.test_types])
         if args.collect_only:
-            pytest_args.extend(["--collect-only"])
-        pytest.main(
-            pytest_args,
-            plugins=[ContractPlugin(resource_client, resource, updated_resource)],
-        )
-
-
-def local_lambda(args):
-    transport = LocalLambdaTransport(args.endpoint, args.function_name)
-    try:
-        transport({"requestContext": {}}, ("", ""))
-    except EndpointConnectionError:
-        LOG.error(
-            "Local Lambda Service endpoint %s could not be reached. "
-            "Verify that the local lambda service from SAM CLI is running",
-            args.endpoint,
-        )
-        raise SystemExit(1)
-    except ClientError as e:
-        msg = str(e)
-        if all(s in msg for s in ("ResourceNotFound", "Invoke", args.function_name)):
-            LOG.error(
-                "Function with name '%s' not found running on local lambda service. "
-                "Verify that the function name matches "
-                "the logical name in the SAM Template. ",
-                args.function_name,
-            )
-            raise SystemExit(1)
-        raise
-    invoke_pytest(transport, args)
+            pytest_args.append("--collect-only")
+        pytest.main(pytest_args, plugins=[plugin])
 
 
 def setup_subparser(subparsers, parents):
     # see docstring of this file
     parser = subparsers.add_parser("test", description=__doc__, parents=parents)
-    # need to set this, so the help of this specific subparser is printed,
-    # not the parent's help
-    parser.set_defaults(command=lambda args: parser.print_help())
+    parser.set_defaults(command=test)
 
-    # shared arguments
-    pytest_shared = ArgumentParser(add_help=False)
-    pytest_shared.add_argument(
-        "resource_file", help="Example resource model", type=TextFileType("r")
-    )
-    pytest_shared.add_argument(
-        "updated_resource_file",
-        help="Additional resource model to be used in update specific tests",
-        type=TextFileType("r"),
-    )
-    pytest_shared.add_argument(
-        "resource_def_file",
-        help="The definition of the resource that the handler provisions",
-        type=TextFileType("r"),
-    )
-    pytest_shared.add_argument(
-        "--test-types", default=None, help="The type of contract tests to be run."
-    )
-    pytest_shared.add_argument("--collect-only", action="store_true", help=SUPPRESS)
-    pytest_parents = [pytest_shared]
-
-    test_subparsers = parser.add_subparsers(help="Type of transport to use for testing")
-    _setup_local_lambda_subparser(test_subparsers, pytest_parents)
-    return test_subparsers, pytest_parents
-
-
-def _setup_local_lambda_subparser(test_subparsers, pytest_parents):
-    local_lambda_subparser = test_subparsers.add_parser(
-        "local-lambda", parents=pytest_parents
-    )
-    local_lambda_subparser.add_argument(
+    parser.add_argument(
         "--endpoint",
         default="http://127.0.0.1:3001",
-        help="The endpoint at which the handler can be invoked",
+        help=(
+            "The endpoint at which the type can be invoked "
+            "(Default: http://127.0.0.1:3001)"
+        ),
     )
-    local_lambda_subparser.add_argument(
+    parser.add_argument(
         "--function-name",
-        default="Handler",
-        help="The logical lambda function name in the SAM template",
+        default="TestEntrypoint",
+        help=(
+            "The logical lambda function name in the SAM template "
+            "(Default: TestEntrypoint)"
+        ),
     )
-    local_lambda_subparser.set_defaults(command=local_lambda)
+    parser.add_argument(
+        "--region",
+        default="us-east-1",
+        help=("The region used for temporary credentials. " "(Default: us-east-1)"),
+    )
+    parser.add_argument("--test-types", default=None, help=SUPPRESS)
+    parser.add_argument("--collect-only", action="store_true", help=SUPPRESS)
