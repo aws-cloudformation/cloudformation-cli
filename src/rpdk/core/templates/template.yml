@@ -2,7 +2,6 @@
   {{ name }}:
     Type: AWS::Serverless::Function
     Properties:
-      Timeout: 60  # docker start-up times can be long for SAM CLI
       {% for key, value in params.items() %}
       {{ key }}: {{ value }}
       {% endfor %}
@@ -10,6 +9,10 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Transform: AWS::Serverless-2016-10-31
 Description: AWS SAM template for the {{ resource_type }} resource type
+
+Globals:
+  Function:
+    Timeout: 60  # docker start-up times can be long for SAM CLI
 
 Resources:
 {% if functions %}
