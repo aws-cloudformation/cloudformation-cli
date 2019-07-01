@@ -50,26 +50,27 @@ def setup_subparser(subparsers, parents):
     parser = subparsers.add_parser("test", description=__doc__, parents=parents)
     parser.set_defaults(command=test)
 
+    endpoint = "http://127.0.0.1:3001"
     parser.add_argument(
         "--endpoint",
-        default="http://127.0.0.1:3001",
-        help=(
-            "The endpoint at which the type can be invoked "
-            "(Default: http://127.0.0.1:3001)"
+        default=endpoint,
+        help="The endpoint at which the type can be invoked (Default: {})".format(
+            endpoint
         ),
     )
+    function_name = "TestEntrypoint"
     parser.add_argument(
         "--function-name",
-        default="TestEntrypoint",
+        default=function_name,
         help=(
-            "The logical lambda function name in the SAM template "
-            "(Default: TestEntrypoint)"
-        ),
+            "The logical lambda function name in the SAM template (Default: {})"
+        ).format(function_name),
     )
+    region = "us-east-1"
     parser.add_argument(
         "--region",
-        default="us-east-1",
-        help=("The region used for temporary credentials. " "(Default: us-east-1)"),
+        default=region,
+        help="The region used for temporary credentials. (Default: {})".format(region),
     )
     parser.add_argument("--test-types", default=None, help=SUPPRESS)
     parser.add_argument("--collect-only", action="store_true", help=SUPPRESS)
