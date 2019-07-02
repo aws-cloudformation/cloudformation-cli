@@ -150,6 +150,8 @@ def schema_merge(target, src, path):
     Traceback (most recent call last):
     ...
     TypeError: Both schemas must be dictionaries
+    >>> schema_merge({'required': 'a'}, {'required': 'b'}, ())
+    {'required': ['a', 'b']}
     """
     if not (isinstance(target, Mapping) and isinstance(src, Mapping)):
         raise TypeError("Both schemas must be dictionaries")

@@ -13,25 +13,33 @@ from rpdk.core.contract.resource_generator import (
 def test_generate_number_strategy(schema_type):
     schema = {"type": schema_type, "minimum": 0, "maximum": 16}
     strategy = generate_schema_strategy(schema)
-    assert schema["minimum"] <= strategy.example() <= schema["maximum"]
+    for i in range(100):
+        assert schema["minimum"] <= strategy.example() <= schema["maximum"], i
 
 
-def test_generate_string_regex_strategy():
+def test_generate_string_strategy_regex():
     schema = {"type": "string", "pattern": "^foo+bar+\\Z$"}
     regex_strategy = generate_schema_strategy(schema)
     assert re.fullmatch(schema["pattern"], regex_strategy.example())
 
 
-def test_generate_string_format_strategy():
+def test_generate_string_strategy_format():
     schema = {"type": "string", "format": "arn"}
     strategy = generate_schema_strategy(schema)
     assert re.fullmatch(STRING_FORMATS["arn"], strategy.example())
 
 
-def test_generate_string_strategy():
+def test_generate_string_strategy_length():
     schema = {"type": "string", "minLength": 5, "maxLength": 10}
     strategy = generate_schema_strategy(schema)
-    assert schema["minLength"] <= len(strategy.example()) <= schema["maxLength"]
+    for i in range(100):
+        assert schema["minLength"] <= len(strategy.example()) <= schema["maxLength"], i
+
+
+def test_generate_string_strategy_no_constraints():
+    schema = {"type": "string"}
+    strategy = generate_schema_strategy(schema)
+    assert isinstance(strategy.example(), str)
 
 
 def test_generate_boolean_strategy():
@@ -51,6 +59,7 @@ def test_generate_array_strategy_items(item_constraint):
     schema = {"type": "array", item_constraint: {"type": "string"}, "minItems": 1}
     example = generate_schema_strategy(schema).example()
     assert isinstance(example, Sequence)
+    assert len(example) >= 1
     assert isinstance(example[0], str)
 
 
@@ -58,56 +67,50 @@ def test_generate_array_strategy_multiple_items():
     schema = {"type": "array", "items": [{"type": "string"}, {"type": "integer"}]}
     example = generate_schema_strategy(schema).example()
     assert isinstance(example, Sequence)
+    assert len(example) == 2
     assert isinstance(example[0], str)
     assert isinstance(example[1], int)
 
 
+@pytest.mark.parametrize("combiner", ["allOf", "oneOf", "anyOf"])
+def test_generate_object_strategy_simple_combiner(combiner):
+    schema = {
+        "type": "object",
+        "properties": {"foo": {"type": "string", combiner: [{"const": "bar"}]}},
+    }
+    example = generate_schema_strategy(schema).example()
+    assert example == {"foo": "bar"}
+
+
 @pytest.mark.parametrize("combiner", ["oneOf", "anyOf"])
-def test_generate_one_of_object_strategy(combiner):
+def test_generate_object_strategy_one_of(combiner):
     schema = {
         "type": "object",
-        combiner: [{"required": ["first"]}, {"required": ["second"]}],
-        "properties": {"first": {"type": "boolean"}, "second": {"type": "boolean"}},
+        "properties": {
+            "foo": {"type": "string", combiner: [{"const": "bar"}, {"enum": ["bar"]}]}
+        },
     }
     example = generate_schema_strategy(schema).example()
-    try:
-        value = example["first"]
-    except KeyError:
-        assert isinstance(example["second"], bool)
-    else:
-        assert isinstance(value, bool)
-        with pytest.raises(KeyError):
-            example["second"]
+    assert example == {"foo": "bar"}
 
 
-def test_generate_all_of_object_strategy():
+def test_generate_object_strategy_all_of():
     schema = {
         "type": "object",
-        "allOf": [{"required": ["first"]}, {"required": ["second"]}],
-        "properties": {"first": {"type": "boolean"}, "second": {"type": "boolean"}},
+        "properties": {"foo": {"allOf": [{"type": "string"}, {"const": "bar"}]}},
     }
     example = generate_schema_strategy(schema).example()
-    assert isinstance(example["second"], bool)
-    assert isinstance(example["first"], bool)
+    assert example == {"foo": "bar"}
 
 
-def test_generate_object_strategy():
-    schema = {
-        "type": "object",
-        "required": ["first"],
-        "properties": {"first": {"type": "boolean"}, "second": {"type": "object"}},
-    }
+def test_generate_object_strategy_properties():
+    schema = {"properties": {"foo": {"type": "string", "const": "bar"}}}
     example = generate_schema_strategy(schema).example()
-    assert isinstance(example["first"], bool)
-    with pytest.raises(KeyError):
-        example["second"]
+    assert example == {"foo": "bar"}
 
 
-def test_generate_empty_object_strategy():
-    schema = {
-        "type": "object",
-        "properties": {"first": {"type": "object"}, "second": {"type": "object"}},
-    }
+def test_generate_object_strategy_empty():
+    schema = {}
     example = generate_schema_strategy(schema).example()
     assert example == {}
 

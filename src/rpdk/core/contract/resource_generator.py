@@ -1,7 +1,9 @@
+import logging
 from collections.abc import Sequence
 
 from hypothesis.strategies import (
     booleans,
+    builds,
     characters,
     fixed_dictionaries,
     floats,
@@ -16,6 +18,8 @@ from hypothesis.strategies import (
 )
 
 from ..jsonutils.utils import schema_merge
+
+LOG = logging.getLogger(__name__)
 
 # TODO This resource generator handles simple cases for resource generation
 # List of outstanding issues available below
@@ -68,12 +72,7 @@ def generate_primitive_strategy(schema):
     elif json_type == "boolean":
         strategy = booleans()
     elif json_type == "string":
-        try:
-            regex = schema["pattern"]
-        except KeyError:
-            strategy = generate_string_strategy(schema)
-        else:
-            return from_regex(regex)
+        strategy = generate_string_strategy(schema)
     elif json_type == "array":
         strategy = generate_array_strategy(schema)
     else:
@@ -83,15 +82,16 @@ def generate_primitive_strategy(schema):
 
 def generate_object_strategy(schema):
     try:
-        required = schema["required"]
+        props = schema["properties"]
     except KeyError:
-        return just({})
-    else:
-        strategies = {
-            prop: generate_schema_strategy(schema["properties"][prop])
-            for prop in required
+        return builds(dict)
+
+    return fixed_dictionaries(
+        {
+            prop: generate_schema_strategy(sub_schema)
+            for prop, sub_schema in props.items()
         }
-        return fixed_dictionaries(strategies)
+    )
 
 
 def generate_array_strategy(schema):
@@ -124,13 +124,29 @@ def generate_string_strategy(schema):
     try:
         string_format = schema["format"]
     except KeyError:
-        min_length = schema.get("minLength", 0)
-        max_length = schema.get("maxLength")
-        strategy = text(
-            alphabet=characters(min_codepoint=1, blacklist_categories=("Cc", "Cs")),
-            min_size=min_length,
-            max_size=max_length,
-        )
-    else:
-        strategy = from_regex(STRING_FORMATS[string_format])
-    return strategy
+        try:
+            regex = schema["pattern"]
+        except KeyError:
+            min_length = schema.get("minLength", 0)
+            max_length = schema.get("maxLength")
+            return text(
+                alphabet=characters(min_codepoint=1, blacklist_categories=("Cc", "Cs")),
+                min_size=min_length,
+                max_size=max_length,
+            )
+
+        if "minLength" in schema:  # pragma: no cover
+            LOG.warning("found minLength used with pattern")
+        if "maxLength" in schema:  # pragma: no cover
+            LOG.warning("found maxLength used with pattern")
+        return from_regex(regex, fullmatch=True)
+
+    if "pattern" in schema:  # pragma: no cover
+        LOG.warning("found pattern used with format")
+    if "minLength" in schema:  # pragma: no cover
+        LOG.warning("found minLength used with format")
+    if "maxLength" in schema:  # pragma: no cover
+        LOG.warning("found maxLength used with format")
+
+    regex = STRING_FORMATS[string_format]
+    return from_regex(regex, fullmatch=True)
