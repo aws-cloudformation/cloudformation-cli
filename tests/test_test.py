@@ -49,6 +49,7 @@ def test_test_command_happy_path(
         "rpdk.core.test.Project", autospec=True, return_value=mock_project
     )
     patch_plugin = patch("rpdk.core.test.ContractPlugin", autospec=True)
+    patch_client = patch("rpdk.core.test.ResourceClient", autospec=True)
     patch_pytest = patch("rpdk.core.test.pytest.main", autospec=True, return_value=0)
     patch_ini = patch(
         "rpdk.core.test.temporary_ini_file", side_effect=mock_temporary_ini_file
@@ -56,6 +57,7 @@ def test_test_command_happy_path(
     # fmt: off
     with patch_project, \
             patch_plugin as mock_plugin, \
+            patch_client as mock_client, \
             patch_pytest as mock_pytest, \
             patch_ini as mock_ini:
         main(args_in=["test"] + args_in)
@@ -63,9 +65,10 @@ def test_test_command_happy_path(
 
     mock_project.load.assert_called_once_with()
     function_name, endpoint, region = plugin_args
-    mock_plugin.assert_called_once_with(
+    mock_client.assert_called_once_with(
         function_name, endpoint, region, mock_project.schema
     )
+    mock_plugin.assert_called_once_with(mock_client.return_value)
     mock_ini.assert_called_once_with()
     mock_pytest.assert_called_once_with(
         ["-c", RANDOM_INI] + pytest_args, plugins=[mock_plugin.return_value]
@@ -83,8 +86,9 @@ def test_test_command_return_code_on_error():
         "rpdk.core.test.Project", autospec=True, return_value=mock_project
     )
     patch_plugin = patch("rpdk.core.test.ContractPlugin", autospec=True)
+    patch_client = patch("rpdk.core.test.ResourceClient", autospec=True)
     patch_pytest = patch("rpdk.core.test.pytest.main", autospec=True, return_value=1)
-    with patch_project, patch_plugin, patch_pytest:
+    with patch_project, patch_plugin, patch_client, patch_pytest:
         with pytest.raises(SystemExit) as excinfo:
             main(args_in=["test"])
 
