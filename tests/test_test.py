@@ -6,10 +6,14 @@ import pytest
 
 from rpdk.core.cli import main
 from rpdk.core.project import Project
-from rpdk.core.test import temporary_ini_file
+from rpdk.core.test import (
+    DEFAULT_ENDPOINT,
+    DEFAULT_FUNCTION,
+    DEFAULT_REGION,
+    temporary_ini_file,
+)
 
 RANDOM_INI = "pytest_SOYPKR.ini"
-EXPECTED_PYTEST_ARGS = ["-c", RANDOM_INI]
 
 
 @contextmanager
@@ -18,18 +22,26 @@ def mock_temporary_ini_file():
 
 
 @pytest.mark.parametrize(
-    "args_in,pytest_args",
+    "args_in,pytest_args,plugin_args",
     [
-        ([], []),
-        (["--test-types", "create"], ["-k", "create"]),
-        (["--collect-only"], ["--collect-only"]),
+        ([], [], [DEFAULT_FUNCTION, DEFAULT_ENDPOINT, DEFAULT_REGION]),
+        (["--endpoint", "foo"], [], [DEFAULT_FUNCTION, "foo", DEFAULT_REGION]),
+        (["--function-name", "bar"], [], ["bar", DEFAULT_ENDPOINT, DEFAULT_REGION]),
         (
-            ["--collect-only", "--test-types", "create"],
-            ["-k", "create", "--collect-only"],
+            ["--", "-k", "create"],
+            ["-k", "create"],
+            [DEFAULT_FUNCTION, DEFAULT_ENDPOINT, DEFAULT_REGION],
+        ),
+        (
+            ["--region", "us-west-2", "--", "--collect-only"],
+            ["--collect-only"],
+            [DEFAULT_FUNCTION, DEFAULT_ENDPOINT, "us-west-2"],
         ),
     ],
 )
-def test_test_command(capsys, args_in, pytest_args):
+def test_test_command(
+    capsys, args_in, pytest_args, plugin_args
+):  # pylint: disable=too-many-locals
     mock_project = Mock(spec=Project)
     mock_project.schema = {}
 
@@ -50,8 +62,9 @@ def test_test_command(capsys, args_in, pytest_args):
     # fmt: on
 
     mock_project.load.assert_called_once_with()
+    function_name, endpoint, region = plugin_args
     mock_plugin.assert_called_once_with(
-        "TestEntrypoint", "http://127.0.0.1:3001", "us-east-1", mock_project.schema
+        function_name, endpoint, region, mock_project.schema
     )
     mock_ini.assert_called_once_with()
     mock_pytest.assert_called_once_with(

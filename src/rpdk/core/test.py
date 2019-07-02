@@ -16,6 +16,10 @@ from .project import Project
 
 LOG = logging.getLogger(__name__)
 
+DEFAULT_ENDPOINT = "http://127.0.0.1:3001"
+DEFAULT_FUNCTION = "TestEntrypoint"
+DEFAULT_REGION = "us-east-1"
+
 
 @contextmanager
 def temporary_ini_file():
@@ -38,10 +42,10 @@ def test(args):
 
     with temporary_ini_file() as path:
         pytest_args = ["-c", path]
-        if args.test_types:
-            pytest_args.extend(["-k", args.test_types])
-        if args.collect_only:
-            pytest_args.append("--collect-only")
+        if args.passed_to_pytest:
+            LOG.debug("extra args: %s", args.passed_to_pytest)
+            pytest_args.extend(args.passed_to_pytest)
+        LOG.debug("pytest args: %s", pytest_args)
         pytest.main(pytest_args, plugins=[plugin])
 
 
@@ -50,27 +54,27 @@ def setup_subparser(subparsers, parents):
     parser = subparsers.add_parser("test", description=__doc__, parents=parents)
     parser.set_defaults(command=test)
 
-    endpoint = "http://127.0.0.1:3001"
     parser.add_argument(
         "--endpoint",
-        default=endpoint,
+        default=DEFAULT_ENDPOINT,
         help="The endpoint at which the type can be invoked (Default: {})".format(
-            endpoint
+            DEFAULT_ENDPOINT
         ),
     )
-    function_name = "TestEntrypoint"
     parser.add_argument(
         "--function-name",
-        default=function_name,
+        default=DEFAULT_FUNCTION,
         help=(
             "The logical lambda function name in the SAM template (Default: {})"
-        ).format(function_name),
+        ).format(DEFAULT_FUNCTION),
     )
-    region = "us-east-1"
     parser.add_argument(
         "--region",
-        default=region,
-        help="The region used for temporary credentials. (Default: {})".format(region),
+        default=DEFAULT_REGION,
+        help="The region used for temporary credentials. (Default: {})".format(
+            DEFAULT_REGION
+        ),
     )
-    parser.add_argument("--test-types", default=None, help=SUPPRESS)
-    parser.add_argument("--collect-only", action="store_true", help=SUPPRESS)
+    # this parameter can be used to pass additional arguments to pytest after `--`
+    # for example,
+    parser.add_argument("passed_to_pytest", nargs="*", help=SUPPRESS)
