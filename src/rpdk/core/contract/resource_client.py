@@ -1,159 +1,196 @@
+import json
 import logging
-import time
+from time import sleep
 from uuid import uuid4
 
+from botocore import UNSIGNED
+from botocore.config import Config
+
+from rpdk.core.contract.interface import Action, HandlerErrorCode, OperationStatus
+
+from ..boto_helpers import (
+    LOWER_CAMEL_CRED_KEYS,
+    create_sdk_session,
+    get_temporary_credentials,
+)
 from ..jsonutils.pointer import fragment_decode
-from .callback import CallbackServer
+from ..jsonutils.utils import traverse
 
 LOG = logging.getLogger(__name__)
 
 
-class ResourceClient:
+def prune_properties(document, paths):
+    """Prune all properties from a document.
 
-    CREATE = "CREATE"
-    READ = "READ"
-    UPDATE = "UPDATE"
-    DELETE = "DELETE"
-    LIST = "LIST"
-    ALREADY_EXISTS = "AlreadyExists"
-    NOT_UPDATABLE = "NotUpdatable"
-    NOT_FOUND = "NotFound"
-    NO_OP = "NoOperationToPerform"
-    IN_PROGRESS = "IN_PROGRESS"
-    COMPLETE = "COMPLETE"
-    FAILED = "FAILED"
-    ACK_TIMEOUT = 3
-
-    def __init__(self, transport, resource_def):
-        self._transport = transport
-        self._resource_def = resource_def
-
-    def get_identifier_property(self, resource, writable=False):
-        encoded_writable_identifiers = set(self._resource_def["identifiers"]) - set(
-            self._resource_def.get("readOnly", ())
-        )
-        writable_identifiers = {
-            fragment_decode(identifier)[-1]
-            for identifier in encoded_writable_identifiers
-        }
-        writable_identifiers = resource["properties"].keys() & writable_identifiers
-        # If a writable identifier exists, this returns that, because
-        # writable identifiers are required in resource cleanup on tests
-        # where resources get deleted/updated in the test body
-        if writable_identifiers:
-            identifier = writable_identifiers.pop()
-        elif not writable:
-            id_reference = fragment_decode(self._resource_def["identifiers"][0])
-            identifier = id_reference[-1]
+    This assumes properties will always have an object (dict) as a parent.
+    The function modifies the document in-place, but also returns the document
+    for convenience. (The return value may be ignored.)
+    """
+    for path in paths:
+        try:
+            _prop, resolved_path, parent = traverse(document, path)
+        except LookupError:
+            pass  # not found means nothing to delete
         else:
-            identifier = None
-        return identifier
+            key = resolved_path[-1]
+            del parent[key]
+    return document
 
-    def wait_for_specified_event(
-        self, listener, specified_event, timeout_in_seconds=60
-    ):
-        events = []
-        start_time = time.time()
-        specified = False
-        while ((time.time() - start_time) < timeout_in_seconds) and not specified:
-            time.sleep(0.5)
-            while listener.events:
-                event = listener.events.popleft()
-                events.append(event)
-                if event.get("OperationStatus", "") in (specified_event, self.FAILED):
-                    specified = True
-        return events
 
-    def prepare_request(
-        self, operation, token=None, resource=None, previous_resource=None
-    ):
-        if not token:
-            token = str(uuid4())
-        request = {
-            "requestContext": {
-                "resourceType": self._resource_def["typeName"],
-                "operation": operation,
-                "clientRequestToken": token,
-            },
-            "requestData": {},
+class ResourceClient:  # pylint: disable=too-many-instance-attributes
+    def __init__(self, function_name, endpoint, region, schema):
+        self._session = create_sdk_session(region)
+        self._creds = get_temporary_credentials(self._session, LOWER_CAMEL_CRED_KEYS)
+        self._function_name = function_name
+        if endpoint.startswith("http://"):
+            self._client = self._session.client(
+                "lambda",
+                endpoint_url=endpoint,
+                use_ssl=False,
+                verify=False,
+                config=Config(
+                    signature_version=UNSIGNED,
+                    # needs to be long if docker is running on a slow machine
+                    read_timeout=60,
+                    retries={"max_attempts": 0},
+                    region_name=self._session.region_name,
+                ),
+            )
+        else:
+            self._client = self._session.client("lambda", endpoint_url=endpoint)
+
+        # TODO: resolve $ref
+        self._schema = schema
+        self._strategy = None
+
+        self._primary_identifier_paths = {
+            fragment_decode(prop, prefix="")
+            for prop in self._schema.get("primaryIdentifier", [])
         }
-        if resource:
-            request["requestData"]["resourceProperties"] = resource["properties"]
-        if previous_resource:
-            request["requestData"]["previousResourceProperties"] = previous_resource[
-                "properties"
-            ]
-        return request, token
+        self._read_only_paths = {
+            fragment_decode(prop, prefix="")
+            for prop in self._schema.get("readOnlyProperties", [])
+        }
+        self._write_only_paths = {
+            fragment_decode(prop, prefix="")
+            for prop in self._schema.get("writeOnlyProperties", [])
+        }
+        self._create_only_paths = {
+            fragment_decode(prop, prefix="")
+            for prop in self._schema.get("createOnlyProperties", [])
+        }
+
+    @property
+    def strategy(self):
+        # an empty strategy (i.e. false-y) is valid
+        if self._strategy is not None:
+            return self._strategy
+
+        # imported here to avoid hypothesis being loaded before pytest is loaded
+        from .resource_generator import generate_schema_strategy
+
+        self._strategy = generate_schema_strategy(self._schema)
+        return self._strategy
+
+    def generate_create_example(self):
+        return prune_properties(self.strategy.example(), self._read_only_paths)
 
     @staticmethod
-    def verify_events_contain_token(events, token):
-        if any(event["BearerToken"] != token for event in events):
-            raise AssertionError(
-                "Request tokens:\n"
-                + "\n".join(event["BearerToken"] for event in events)
-            )
+    def assert_in_progress(status, response):
+        assert status == OperationStatus.IN_PROGRESS, "status should be IN_PROGRESS"
+        assert (
+            response.get("errorCode", 0) == 0
+        ), "IN_PROGRESS events should have no error code set"
+        assert (
+            "callbackDelaySeconds" in response
+        ), "IN_PROGRESS events must include a callback delay"
+        assert (
+            response.get("message") is None
+        ), "IN_PROGRESS events should not include a message"
+        assert (
+            response.get("resourceModel") is None
+        ), "IN_PROGRESS events should not include a resource model"
+        assert (
+            response.get("resourceModels") is None
+        ), "IN_PROGRESS events should not include any resource models"
 
-    def create_resource(self, resource):
-        request, token = self.prepare_request(
-            self.CREATE, resource["type"], resource=resource
-        )
-        events = self.send_async_request(request, token, self.COMPLETE)
-        return events[-1]
+        return response["callbackDelaySeconds"]
 
-    def read_resource(self, resource):
-        id_key = self.get_identifier_property(resource)
-        id_resource = {"type": resource["type"]}
-        id_resource["properties"] = {id_key: resource["properties"][id_key]}
-        request, token = self.prepare_request(self.READ, resource=id_resource)
-        return self.send_sync_request(request, token)
+    @staticmethod
+    def assert_success(status, response):
+        assert status == OperationStatus.SUCCESS, "status should be SUCCESS"
+        assert (
+            response.get("errorCode", 0) == 0
+        ), "SUCCESS events should have no error code set"
+        assert (
+            response.get("callbackDelaySeconds", 0) == 0
+        ), "SUCCESS events should have no callback delay"
+        # assert response.get("callbackContext") is None
 
-    def update_resource(self, resource, updated_resource):
-        request, token = self.prepare_request(
-            self.UPDATE, resource=updated_resource, previous_resource=resource
-        )
-        events = self.send_async_request(request, token, self.COMPLETE)
-        return events[-1]
+    @staticmethod
+    def assert_failed(status, response):
+        assert status == OperationStatus.FAILED, "status should be FAILED"
+        assert "errorCode" in response, "FAILED events must have an error code set"
+        assert (
+            response.get("callbackDelaySeconds", 0) == 0
+        ), "FAILED events should have no callback delay"
+        assert (
+            response.get("resourceModel") is None
+        ), "FAILED events should not include a resource model"
+        assert (
+            response.get("resourceModels") is None
+        ), "FAILED events should not include any resource models"
+        # assert response.get("callbackContext") is None
 
-    def delete_resource(self, resource):
-        id_key = self.get_identifier_property(resource)
-        id_resource = {"type": resource["type"]}
-        id_resource["properties"] = {id_key: resource["properties"][id_key]}
-        request, token = self.prepare_request(self.DELETE, resource=id_resource)
-        events = self.send_async_request(request, token, self.COMPLETE)
-        return events[-1]
+        return HandlerErrorCode[response["errorCode"]]
 
-    def list_resources(self):
-        request, token = self.prepare_request(self.LIST)
-        return self.send_sync_request(request, token)
-
-    def send_request_for_ack(self, operation):
-        request, token = self.prepare_request(operation)
-        events = self.send_async_request(request, token, self.IN_PROGRESS)
-        return events[0]
-
-    def compare_requested_model(self, requested_model, returned_model):
-        # Do not need to check write only properties in requested model.
-        write_only_properties = {
-            fragment_decode(prop)[-1]
-            for prop in self._resource_def.get("writeOnly", ())
+    @staticmethod
+    def make_request(desired_resource_state, previous_resource_state, **kwargs):
+        return {
+            "desiredResourceState": desired_resource_state,
+            "previousResourceState": previous_resource_state,
+            "logicalResourceIdentifier": None,
+            **kwargs,
         }
-        comparable_properties = (
-            requested_model["properties"].keys() - write_only_properties
+
+    @staticmethod
+    def generate_token():
+        return str(uuid4())
+
+    def _make_payload(self, action, request):
+        return {
+            "credentials": self._creds.copy(),
+            "action": action,
+            "request": {"clientRequestToken": self.generate_token(), **request},
+            "callbackContext": None,
+        }
+
+    def _call(self, payload):
+        payload = json.dumps(payload, ensure_ascii=False, indent=2)
+        LOG.debug("Sending request\n%s", payload)
+        result = self._client.invoke(
+            FunctionName=self._function_name, Payload=payload.encode("utf-8")
         )
-        for key in comparable_properties:
-            assert (
-                returned_model["properties"][key] == requested_model["properties"][key]
-            )
+        payload = json.load(result["Payload"])
+        LOG.debug("Received response\n%s", payload)
+        return payload
 
-    def send_async_request(self, request, token, status):
-        with CallbackServer() as listener:
-            self._transport(request, callback_endpoint=listener.server_address)
-            events = self.wait_for_specified_event(listener, status)
-        self.verify_events_contain_token(events, token)
-        assert events
-        return events
+    def call(self, action, request):
+        payload = self._make_payload(action, request)
+        response = self._call(payload)
 
-    def send_sync_request(self, request, token):
-        return_event = self._transport(request, None)
-        self.verify_events_contain_token([return_event], token)
-        return return_event
+        # this throws a KeyError if status isn't present, or if it isn't a valid status
+        status = OperationStatus[response["status"]]
+
+        if action in (Action.READ, Action.LIST):
+            return status, response
+
+        while status == OperationStatus.IN_PROGRESS:
+            callback_delay_seconds = self.assert_in_progress(status, response)
+            sleep(callback_delay_seconds)
+
+            payload["callbackContext"] = response.get("callbackContext")
+            response = self._call(payload)
+            status = OperationStatus[response["status"]]
+
+        return status, response

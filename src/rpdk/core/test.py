@@ -11,6 +11,7 @@ from tempfile import NamedTemporaryFile
 import pytest
 
 from .contract.contract_plugin import ContractPlugin
+from .contract.resource_client import ResourceClient
 from .data_loaders import copy_resource
 from .exceptions import SysExitRecommendedError
 from .project import Project
@@ -38,7 +39,7 @@ def test(args):
     project.load()
 
     plugin = ContractPlugin(
-        args.function_name, args.endpoint, args.region, project.schema
+        ResourceClient(args.function_name, args.endpoint, args.region, project.schema)
     )
 
     with temporary_ini_file() as path:
