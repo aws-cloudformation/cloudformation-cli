@@ -12,6 +12,7 @@ import pytest
 
 from .contract.contract_plugin import ContractPlugin
 from .data_loaders import copy_resource
+from .exceptions import SysExitRecommendedError
 from .project import Project
 
 LOG = logging.getLogger(__name__)
@@ -46,7 +47,9 @@ def test(args):
             LOG.debug("extra args: %s", args.passed_to_pytest)
             pytest_args.extend(args.passed_to_pytest)
         LOG.debug("pytest args: %s", pytest_args)
-        pytest.main(pytest_args, plugins=[plugin])
+        ret = pytest.main(pytest_args, plugins=[plugin])
+        if ret:
+            raise SysExitRecommendedError("One or more contract tests failed")
 
 
 def setup_subparser(subparsers, parents):

@@ -4,7 +4,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from rpdk.core.cli import main
+from rpdk.core.cli import EXIT_UNHANDLED_EXCEPTION, main
 from rpdk.core.project import Project
 from rpdk.core.test import (
     DEFAULT_ENDPOINT,
@@ -39,7 +39,7 @@ def mock_temporary_ini_file():
         ),
     ],
 )
-def test_test_command(
+def test_test_command_happy_path(
     capsys, args_in, pytest_args, plugin_args
 ):  # pylint: disable=too-many-locals
     mock_project = Mock(spec=Project)
@@ -49,7 +49,7 @@ def test_test_command(
         "rpdk.core.test.Project", autospec=True, return_value=mock_project
     )
     patch_plugin = patch("rpdk.core.test.ContractPlugin", autospec=True)
-    patch_pytest = patch("rpdk.core.test.pytest.main", autospec=True)
+    patch_pytest = patch("rpdk.core.test.pytest.main", autospec=True, return_value=0)
     patch_ini = patch(
         "rpdk.core.test.temporary_ini_file", side_effect=mock_temporary_ini_file
     )
@@ -73,6 +73,22 @@ def test_test_command(
 
     _out, err = capsys.readouterr()
     assert not err
+
+
+def test_test_command_return_code_on_error():
+    mock_project = Mock(spec=Project)
+    mock_project.schema = {}
+
+    patch_project = patch(
+        "rpdk.core.test.Project", autospec=True, return_value=mock_project
+    )
+    patch_plugin = patch("rpdk.core.test.ContractPlugin", autospec=True)
+    patch_pytest = patch("rpdk.core.test.pytest.main", autospec=True, return_value=1)
+    with patch_project, patch_plugin, patch_pytest:
+        with pytest.raises(SystemExit) as excinfo:
+            main(args_in=["test"])
+
+    assert excinfo.value.code != EXIT_UNHANDLED_EXCEPTION
 
 
 def test_temporary_ini_file():
