@@ -166,7 +166,7 @@ def schema_merge(target, src, path):
                 target[key] = schema_merge(target_schema, src_schema, next_path)
             except TypeError:
                 if key == "required":
-                    target[key] = list(set(target_schema) | set(src_schema))
+                    target[key] = sorted(set(target_schema) | set(src_schema))
                 else:
                     if key in ("type", "$ref") and target_schema != src_schema:
                         msg = (
