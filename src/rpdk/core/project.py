@@ -3,6 +3,7 @@ import logging
 import zipfile
 from pathlib import Path
 from tempfile import TemporaryFile
+from uuid import uuid4
 
 from jsonschema import Draft6Validator
 from jsonschema.exceptions import ValidationError
@@ -217,8 +218,11 @@ class Project:  # pylint: disable=too-many-instance-attributes
         s3_url = Uploader(cfn_client, s3_client).upload(self.hypenated_name, fileobj)
         LOG.debug("Got S3 URL: %s", s3_url)
 
-        response = cfn_client.register_resource_type(
-            SchemaHandlerPackage=s3_url, TypeName=self.type_name
+        response = cfn_client.register_type(
+            Type="RESOURCE",
+            TypeName=self.type_name,
+            SchemaHandlerPackage=s3_url,
+            ClientRequestToken=str(uuid4()),
         )
         LOG.warning(
             "Registration in progress with token: %s", response["RegistrationToken"]

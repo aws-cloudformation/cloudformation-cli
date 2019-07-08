@@ -297,22 +297,28 @@ def test_submit_live_run(project):
 def test__upload(project):
     project.type_name = TYPE_NAME
 
-    mock_cfn_client = MagicMock(spec=["register_resource_type"])
+    mock_cfn_client = MagicMock(spec=["register_type"])
     s3_client = object()
     fileobj = object()
 
     patch_sdk = patch("rpdk.core.project.create_sdk_session", autospec=True)
     patch_uploader = patch.object(Uploader, "upload", return_value="url")
+    patch_uuid = patch("rpdk.core.project.uuid4", autospec=True, return_value="foo")
 
     with patch_sdk as mock_sdk, patch_uploader as mock_upload_method:
         mock_session = mock_sdk.return_value
         mock_session.client.side_effect = [mock_cfn_client, s3_client]
-        project._upload(fileobj, endpoint_url=None, region_name=None)
+        with patch_uuid as mock_uuid:
+            project._upload(fileobj, endpoint_url=None, region_name=None)
 
     mock_sdk.assert_called_once_with(None)
     mock_upload_method.assert_called_once_with(project.hypenated_name, fileobj)
-    mock_cfn_client.register_resource_type.assert_called_once_with(
-        SchemaHandlerPackage="url", TypeName=project.type_name
+    mock_uuid.assert_called_once_with()
+    mock_cfn_client.register_type.assert_called_once_with(
+        Type="RESOURCE",
+        TypeName=project.type_name,
+        SchemaHandlerPackage="url",
+        ClientRequestToken=mock_uuid.return_value,
     )
 
 
