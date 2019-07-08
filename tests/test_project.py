@@ -1,6 +1,7 @@
 # fixture and parameter have the same name
 # pylint: disable=redefined-outer-name,useless-super-delegation,protected-access
 import json
+import os
 import random
 import string
 import zipfile
@@ -167,8 +168,18 @@ def test_init(project):
     with project.settings_path.open("r", encoding="utf-8") as f:
         assert json.load(f)
 
+    # ends with newline
+    with project.settings_path.open("rb") as f:
+        f.seek(-1, os.SEEK_END)
+        assert f.read() == b"\n"
+
     with project.schema_path.open("r", encoding="utf-8") as f:
         assert json.load(f)
+
+    # ends with newline
+    with project.schema_path.open("rb") as f:
+        f.seek(-1, os.SEEK_END)
+        assert f.read() == b"\n"
 
 
 def test_load_invalid_schema(project):

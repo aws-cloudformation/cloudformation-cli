@@ -116,7 +116,12 @@ class Project:  # pylint: disable=too-many-instance-attributes
             __name__, "data/examples/resource/initech.tps.report.v1.json"
         )
         self.schema["typeName"] = self.type_name
-        self.safewrite(self.schema_path, json.dumps(self.schema, indent=4))
+
+        def _write(f):
+            json.dump(self.schema, f, indent=4)
+            f.write("\n")
+
+        self.safewrite(self.schema_path, _write)
 
     def _write_settings(self, language):
         if self.runtime not in LAMBDA_RUNTIMES:
@@ -125,14 +130,21 @@ class Project:  # pylint: disable=too-many-instance-attributes
             )
             raise InternalError("Internal error (Plugin returned invalid runtime)")
 
-        raw_settings = {
-            "typeName": self.type_name,
-            "language": language,
-            "runtime": self.runtime,
-            "entrypoint": self.entrypoint,
-            "settings": self.settings,
-        }
-        self.overwrite(self.settings_path, json.dumps(raw_settings, indent=4))
+        def _write(f):
+            json.dump(
+                {
+                    "typeName": self.type_name,
+                    "language": language,
+                    "runtime": self.runtime,
+                    "entrypoint": self.entrypoint,
+                    "settings": self.settings,
+                },
+                f,
+                indent=4,
+            )
+            f.write("\n")
+
+        self.overwrite(self.settings_path, _write)
 
     def init(self, type_name, language):
         self.type_name = type_name
@@ -156,7 +168,10 @@ class Project:  # pylint: disable=too-many-instance-attributes
     def overwrite(path, contents):
         LOG.debug("Overwriting '%s'", path)
         with path.open("w", encoding="utf-8") as f:
-            f.write(contents)
+            if callable(contents):
+                contents(f)
+            else:
+                f.write(contents)
 
     def safewrite(self, path, contents):
         if self.overwrite_enabled:
@@ -164,7 +179,10 @@ class Project:  # pylint: disable=too-many-instance-attributes
         else:
             try:
                 with path.open("x", encoding="utf-8") as f:
-                    f.write(contents)
+                    if callable(contents):
+                        contents(f)
+                    else:
+                        f.write(contents)
             except FileExistsError:
                 LOG.warning("File already exists, not overwriting '%s'", path)
 
