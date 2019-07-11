@@ -59,6 +59,11 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         else:
             self._client = self._session.client("lambda", endpoint_url=endpoint)
 
+        self._schema = None
+        self._strategy = None
+        self._update_schema(schema)
+
+    def _update_schema(self, schema):
         # TODO: resolve $ref
         self._schema = schema
         self._strategy = None
@@ -95,11 +100,15 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         # imported here to avoid hypothesis being loaded before pytest is loaded
         from .resource_generator import generate_schema_strategy
 
-        self._strategy = generate_schema_strategy(self._schema)
+        # make a copy so the original schema is never modified
+        schema = json.loads(json.dumps(self._schema))
+        prune_properties(schema, self._read_only_paths)
+
+        self._strategy = generate_schema_strategy(schema)
         return self._strategy
 
     def generate_create_example(self):
-        return prune_properties(self.strategy.example(), self._read_only_paths)
+        return self.strategy.example()
 
     @staticmethod
     def assert_in_progress(status, response):
