@@ -102,19 +102,10 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
             response.get("errorCode", 0) == 0
         ), "IN_PROGRESS events should have no error code set"
         assert (
-            "callbackDelaySeconds" in response
-        ), "IN_PROGRESS events must include a callback delay"
-        assert (
-            response.get("message") is None
-        ), "IN_PROGRESS events should not include a message"
-        assert (
-            response.get("resourceModel") is None
-        ), "IN_PROGRESS events should not include a resource model"
-        assert (
             response.get("resourceModels") is None
         ), "IN_PROGRESS events should not include any resource models"
 
-        return response["callbackDelaySeconds"]
+        return response.get("callbackDelaySeconds", 0)
 
     @staticmethod
     def assert_success(status, response):
@@ -125,12 +116,16 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         assert (
             response.get("callbackDelaySeconds", 0) == 0
         ), "SUCCESS events should have no callback delay"
-        # assert response.get("callbackContext") is None
+        assert (
+            response.get("callbackContext") is None
+        ), "SUCCESS events should not return a callback context"
 
     @staticmethod
     def assert_failed(status, response):
         assert status == OperationStatus.FAILED, "status should be FAILED"
         assert "errorCode" in response, "FAILED events must have an error code set"
+        # raises a KeyError if the error code is invalid
+        error_code = HandlerErrorCode[response["errorCode"]]
         assert (
             response.get("callbackDelaySeconds", 0) == 0
         ), "FAILED events should have no callback delay"
@@ -140,9 +135,11 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         assert (
             response.get("resourceModels") is None
         ), "FAILED events should not include any resource models"
-        # assert response.get("callbackContext") is None
+        assert (
+            response.get("callbackContext") is None
+        ), "FAILED events should not return a callback context"
 
-        return HandlerErrorCode[response["errorCode"]]
+        return error_code
 
     @staticmethod
     def make_request(desired_resource_state, previous_resource_state, **kwargs):
