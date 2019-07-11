@@ -80,6 +80,12 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
             for prop in self._schema.get("createOnlyProperties", [])
         }
 
+    def primary_identifier_is_read_only(self):
+        for path in self._primary_identifier_paths:
+            if path in self._read_only_paths:
+                return True
+        return False
+
     @property
     def strategy(self):
         # an empty strategy (i.e. false-y) is valid

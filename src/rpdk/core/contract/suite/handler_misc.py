@@ -1,8 +1,12 @@
+import logging
+
 import pytest
 
 # WARNING: contract tests should use fully qualified imports to avoid issues
 # when being loaded by pytest
 from rpdk.core.contract.interface import Action, HandlerErrorCode
+
+LOG = logging.getLogger(__name__)
 
 
 def contract_check_asserts_work():
@@ -32,13 +36,19 @@ def contract_crud_exerciser(resource_client):
         status, response = resource_client.call(Action.CREATE, request)
         resource_client.assert_success(status, response)
 
-        # CREATE (not idempotent, because different clientRequestToken)
-        second_request = resource_client.make_request(create_model, None)
-        status, response = resource_client.call(Action.CREATE, second_request)
-        error_code = resource_client.assert_failed(status, response)
-        assert (
-            error_code == HandlerErrorCode.AlreadyExists
-        ), "creating the same resource should not be possible"
+        # if the primary identifier is provided by the handler, then multiple
+        # requests with the same model can succeed
+        if resource_client.primary_identifier_is_read_only():
+            LOG.debug("primary identifier is read only; skipping CREATE test")
+        else:
+            LOG.debug("primary identifier is writeable; performing CREATE test")
+            # CREATE (not idempotent, because different clientRequestToken)
+            second_request = resource_client.make_request(create_model, None)
+            status, response = resource_client.call(Action.CREATE, second_request)
+            error_code = resource_client.assert_failed(status, response)
+            assert (
+                error_code == HandlerErrorCode.AlreadyExists
+            ), "creating the same resource should not be possible"
 
     finally:
         # DELETE
