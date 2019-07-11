@@ -1,6 +1,6 @@
 [run]
 branch = True
-omit = */contract/suite/*,*/contract/resource_client.py
+omit = */contract/suite/*
 
 [report]
 fail_under = 100
