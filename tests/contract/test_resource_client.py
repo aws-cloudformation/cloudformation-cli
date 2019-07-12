@@ -142,7 +142,7 @@ def test_generate_create_example(resource_client):
     assert example == {"a": 1}
 
 
-def test_primary_identifier_is_read_only(resource_client):
+def test_has_writable_identifier_primary_is_read_only(resource_client):
     resource_client._update_schema(
         {
             "primaryIdentifier": ["/properties/foo"],
@@ -150,13 +150,49 @@ def test_primary_identifier_is_read_only(resource_client):
         }
     )
 
-    assert resource_client.primary_identifier_is_read_only()
+    assert not resource_client.has_writable_identifier()
 
 
-def test_primary_identifier_is_not_read_only(resource_client):
+def test_has_writable_identifier_primary_is_writeable(resource_client):
     resource_client._update_schema({"primaryIdentifier": ["/properties/foo"]})
 
-    assert not resource_client.primary_identifier_is_read_only()
+    assert resource_client.has_writable_identifier()
+
+
+def test_has_writable_identifier_primary_and_additional_are_read_only(resource_client):
+    resource_client._update_schema(
+        {
+            "primaryIdentifier": ["/properties/foo"],
+            "additionalIdentifiers": [["/properties/bar"]],
+            "readOnlyProperties": ["/properties/foo", "/properties/bar"],
+        }
+    )
+
+    assert not resource_client.has_writable_identifier()
+
+
+def test_has_writable_identifier_additional_is_writeable(resource_client):
+    resource_client._update_schema(
+        {
+            "primaryIdentifier": ["/properties/foo"],
+            "additionalIdentifiers": [["/properties/bar"]],
+            "readOnlyProperties": ["/properties/foo"],
+        }
+    )
+
+    assert resource_client.has_writable_identifier()
+
+
+def test_has_writable_identifier_compound_is_writeable(resource_client):
+    resource_client._update_schema(
+        {
+            "primaryIdentifier": ["/properties/foo"],
+            "additionalIdentifiers": [["/properties/bar", "/properties/baz"]],
+            "readOnlyProperties": ["/properties/foo", "/properties/baz"],
+        }
+    )
+
+    assert resource_client.has_writable_identifier()
 
 
 def test__make_payload(resource_client):
