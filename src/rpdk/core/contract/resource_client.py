@@ -63,32 +63,33 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         self._strategy = None
         self._update_schema(schema)
 
+    def _properties_to_paths(self, key):
+        return {fragment_decode(prop, prefix="") for prop in self._schema.get(key, [])}
+
     def _update_schema(self, schema):
         # TODO: resolve $ref
         self._schema = schema
         self._strategy = None
 
-        self._primary_identifier_paths = {
-            fragment_decode(prop, prefix="")
-            for prop in self._schema.get("primaryIdentifier", [])
-        }
-        self._read_only_paths = {
-            fragment_decode(prop, prefix="")
-            for prop in self._schema.get("readOnlyProperties", [])
-        }
-        self._write_only_paths = {
-            fragment_decode(prop, prefix="")
-            for prop in self._schema.get("writeOnlyProperties", [])
-        }
-        self._create_only_paths = {
-            fragment_decode(prop, prefix="")
-            for prop in self._schema.get("createOnlyProperties", [])
-        }
+        self._primary_identifier_paths = self._properties_to_paths("primaryIdentifier")
+        self._read_only_paths = self._properties_to_paths("readOnlyProperties")
+        self._write_only_paths = self._properties_to_paths("writeOnlyProperties")
+        self._create_only_paths = self._properties_to_paths("createOnlyProperties")
 
-    def primary_identifier_is_read_only(self):
+        additional_identifiers = self._schema.get("additionalIdentifiers", [])
+        self._additional_identifiers_paths = [
+            {fragment_decode(prop, prefix="") for prop in identifier}
+            for identifier in additional_identifiers
+        ]
+
+    def has_writable_identifier(self):
         for path in self._primary_identifier_paths:
-            if path in self._read_only_paths:
+            if path not in self._read_only_paths:
                 return True
+        for identifier_paths in self._additional_identifiers_paths:
+            for path in identifier_paths:
+                if path not in self._read_only_paths:
+                    return True
         return False
 
     @property
