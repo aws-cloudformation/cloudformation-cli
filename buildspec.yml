@@ -4,6 +4,13 @@ phases:
     commands:
       - pip install --upgrade pip wheel awscli . -r requirements.txt
       - aws configure add-model --service-model "file://cloudformation-2010-05-15.normal.json" --service-name cloudformation
+      # setup git-secrets
+      - WD=$(pwd)
+      - cd /tmp
+      - git clone https://github.com/awslabs/git-secrets.git
+      - cd git-secrets
+      - make install
+      - cd ${WD}
   build:
     commands:
       - pre-commit run --all-files
