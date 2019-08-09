@@ -2,6 +2,7 @@ from unittest.mock import create_autospec, patch
 
 import pytest
 from boto3 import Session
+from botocore.exceptions import ClientError
 
 from rpdk.core.boto_helpers import (
     BOTO_CRED_KEYS,
@@ -9,7 +10,7 @@ from rpdk.core.boto_helpers import (
     create_sdk_session,
     get_temporary_credentials,
 )
-from rpdk.core.exceptions import CLIMisconfiguredError
+from rpdk.core.exceptions import CLIMisconfiguredError, DownstreamError
 
 
 def test_create_sdk_session_region():
@@ -92,3 +93,28 @@ def test_get_temporary_credentials_needs_token():
     assert len(creds) == 3
     assert tuple(creds.keys()) == LOWER_CAMEL_CRED_KEYS
     assert tuple(creds.values()) == (access_key, secret_key, token)
+
+
+def test_get_temporary_credentials_invalid_credentials():
+    session = create_autospec(spec=Session, spec_set=True)
+    frozen = session.get_credentials.return_value.get_frozen_credentials.return_value
+    frozen.token = None
+
+    client = session.client.return_value
+    client.get_session_token.side_effect = ClientError(
+        {
+            "Error": {
+                "Type": "Sender",
+                "Code": "InvalidClientTokenId",
+                "Message": "The security token included in the request is invalid.",
+            }
+        },
+        "GetSessionToken",
+    )
+
+    with pytest.raises(DownstreamError):
+        get_temporary_credentials(session)
+
+    session.get_credentials.assert_called_once_with()
+    session.client.assert_called_once_with("sts")
+    client.get_session_token.assert_called_once_with()
