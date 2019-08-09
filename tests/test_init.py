@@ -48,7 +48,7 @@ def test_init_method():
     mock_project.generate.assert_called_once_with()
 
 
-def test_input_with_validation_valid_first_try():
+def test_input_with_validation_valid_first_try(capsys):
     sentinel1 = object()
     sentinel2 = object()
 
@@ -56,9 +56,13 @@ def test_input_with_validation_valid_first_try():
     with patch("rpdk.core.init.input", return_value=sentinel2) as mock_input:
         ret = input_with_validation(PROMPT, validator)
 
-    mock_input.assert_called_once_with(PROMPT)
+    mock_input.assert_called_once()
     validator.assert_called_once_with(sentinel2)
     assert ret is sentinel1
+
+    out, err = capsys.readouterr()
+    assert not err
+    assert PROMPT in out
 
 
 def test_input_with_validation_valid_second_try(capsys):
@@ -142,6 +146,7 @@ def test_check_for_existing_project_bad_path_overwrite():
     project = Mock(spec=Project)
     project.overwrite_enabled = True
     project.settings_path = ""  # not sure why this doesn't get specced?
+    project.type_name = ""
 
     with patch("rpdk.core.init.input_with_validation", autospec=True) as mock_input:
         check_for_existing_project(project)
@@ -153,6 +158,7 @@ def test_check_for_existing_project_bad_path_ask_yes():
     project = Mock(spec=Project)
     project.overwrite_enabled = False
     project.settings_path = ""
+    project.type_name = ""
 
     patch_input = patch(
         "rpdk.core.init.input_with_validation", autospec=True, return_value=True
@@ -160,7 +166,7 @@ def test_check_for_existing_project_bad_path_ask_yes():
     with patch_input as mock_input:
         check_for_existing_project(project)
 
-    mock_input.assert_called_once_with(ANY, validate_yes)
+    mock_input.assert_called_once_with(ANY, validate_yes, ANY)
     assert project.overwrite_enabled
 
 
@@ -168,6 +174,7 @@ def test_check_for_existing_project_bad_path_ask_no():
     project = Mock(spec=Project)
     project.overwrite_enabled = False
     project.settings_path = ""
+    project.type_name = ""
 
     patch_input = patch(
         "rpdk.core.init.input_with_validation", autospec=True, return_value=False
@@ -176,7 +183,7 @@ def test_check_for_existing_project_bad_path_ask_no():
         with pytest.raises(WizardAbortError):
             check_for_existing_project(project)
 
-    mock_input.assert_called_once_with(ANY, validate_yes)
+    mock_input.assert_called_once_with(ANY, validate_yes, ANY)
     assert not project.overwrite_enabled
 
 

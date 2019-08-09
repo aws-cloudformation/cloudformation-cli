@@ -6,6 +6,8 @@ import sys
 import time
 from logging.config import dictConfig
 
+from colorama import colorama_text
+
 from .__init__ import __version__
 from .data_loaders import resource_yaml
 from .exceptions import DownstreamError, SysExitRecommendedError
@@ -89,7 +91,8 @@ def main(args_in=None):  # pylint: disable=too-many-statements
         log = logging.getLogger(__name__)
         log.debug("Logging set up successfully")
 
-        args.command(args)
+        with colorama_text():
+            args.command(args)
     except SysExitRecommendedError as e:
         # This is to unify exit messages, and avoid throwing SystemExit in
         # library code, which is hard to catch for consumers. (There are still

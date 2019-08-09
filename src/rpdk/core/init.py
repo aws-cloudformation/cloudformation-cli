@@ -4,6 +4,8 @@ import logging
 import re
 from functools import wraps
 
+from colorama import Fore, Style
+
 from .exceptions import WizardAbortError, WizardValidationError
 from .plugin_registry import PLUGIN_CHOICES
 from .project import Project
@@ -14,13 +16,22 @@ LOG = logging.getLogger(__name__)
 TYPE_NAME_REGEX = r"^[a-zA-Z0-9]{2,64}::[a-zA-Z0-9]{2,64}::[a-zA-Z0-9]{2,64}$"
 
 
-def input_with_validation(prompt, validate):
+def input_with_validation(prompt, validate, description=""):
     while True:
-        response = input(prompt)
+        print(
+            Style.BRIGHT,
+            Fore.WHITE,
+            prompt,
+            Style.RESET_ALL,
+            description,
+            Style.RESET_ALL,
+            sep="",
+        )
+        response = input("{}>> {}".format(Fore.YELLOW, Style.RESET_ALL))
         try:
             return validate(response)
         except WizardValidationError as e:
-            print(str(e))
+            print(Style.BRIGHT, Fore.RED, str(e), Style.RESET_ALL, sep="")
 
 
 def validate_type_name(value):
@@ -82,7 +93,9 @@ def check_for_existing_project(project):
             project.settings_path,
         )
         project.overwrite_enabled = input_with_validation(
-            "Overwrite existing settings (y/N)? ", validate_yes
+            "Found existing settings - overwrite (y/N)?",
+            validate_yes,
+            "\n" + project.type_name,
         )
         LOG.debug("Overwrite response: %s", project.overwrite_enabled)
         if not project.overwrite_enabled:
@@ -91,8 +104,9 @@ def check_for_existing_project(project):
 
 def input_typename():
     type_name = input_with_validation(
-        "Enter resource type identifier (Organization::Service::Resource): ",
+        "What's the name of your resource type?",
         validate_type_name,
+        "\n(Organization::Service::Resource)",
     )
     LOG.debug("Resource type identifier: %s", type_name)
     return type_name
