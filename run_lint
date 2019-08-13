@@ -1,4 +1,0 @@
-#!/bin/bash
-echo "run_lint is deprecated, provided for muscle memory only"
-echo "please use 'pre-commit run --all-files'"
-pre-commit run --all-files
