@@ -117,38 +117,52 @@ def generate_array_strategy(schema):
     return lists(item_strategy, min_size=min_items, max_size=max_items)
 
 
-def generate_float_strategy(schema):
-    kwargs = {}
+def _float_minimum(schema):
+    try:
+        minimum = schema["minimum"]
+    except KeyError:
+        exclude_min = True
+        minimum = schema.get("exclusiveMinimum", NEG_INF)
+    else:
+        exclude_min = False
+        if "exclusiveMinimum" in schema:  # pragma: no cover
+            LOG.warning("found exclusiveMinimum used with minimum")
+    return minimum, exclude_min
 
+
+def _float_maximum(schema):
+    try:
+        maximum = schema["maximum"]
+    except KeyError:
+        exclude_max = True
+        maximum = schema.get("exclusiveMaximum", POS_INF)
+    else:
+        exclude_max = False
+        if "exclusiveMaximum" in schema:  # pragma: no cover
+            LOG.warning("found exclusiveMaximum used with maximum")
+    return maximum, exclude_max
+
+
+def generate_float_strategy(schema):
     # minimum and/or maximum are set to -inf/+inf (exclusive) if they are not
     # supplied, to avoid generating -inf/inf/NaN values. these are not
     # serialize-able according to JSON, but Python will and this causes
     # downstream errors
-
-    try:
-        minimum = schema["minimum"]
-    except KeyError:
-        kwargs["exclude_min"] = True
-        minimum = schema.get("exclusiveMinimum", NEG_INF)
-    else:
-        if "exclusiveMinimum" in schema:  # pragma: no cover
-            LOG.warning("found exclusiveMinimum used with minimum")
-
-    try:
-        maximum = schema["maximum"]
-    except KeyError:
-        kwargs["exclude_max"] = True
-        maximum = schema.get("exclusiveMaximum", POS_INF)
-    else:
-        if "exclusiveMaximum" in schema:  # pragma: no cover
-            LOG.warning("found exclusiveMaximum used with maximum")
+    minimum, exclude_min = _float_minimum(schema)
+    maximum, exclude_max = _float_maximum(schema)
 
     # TODO: multipleOf
     # https://github.com/aws-cloudformation/aws-cloudformation-rpdk/issues/118
     if "multipleOf" in schema:  # pragma: no cover
         LOG.warning("found multipleOf, which is currently unsupported")
 
-    return floats(min_value=minimum, max_value=maximum, **kwargs)
+    return floats(
+        min_value=minimum,
+        exclude_min=exclude_min,
+        max_value=maximum,
+        exclude_max=exclude_max,
+        allow_nan=False,
+    )
 
 
 def _integer_minimum(schema):
