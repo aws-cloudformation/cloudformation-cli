@@ -1,17 +1,18 @@
 # better interactive session, debugger
-ipython>=7.4.0
+ipython>=7.7.0
 ipdb>=0.12
 # for previewing the README.rst
 docutils>=0.14
 
 # testing tools
 pylint>=2.3.1
-coverage>=4.5.3
+coverage>=4.5.4
+# https://github.com/pytest-dev/pytest/issues/5392
 pytest==4.5.0
-pytest-cov>=2.6.1
+pytest-cov>=2.7.1
 pytest-random-order>=1.0.4
-hypothesis>=3.83.1
+hypothesis>=4.32.3
 pytest-localserver>=0.5.0
 
 # commit hooks
-pre-commit>=1.15.2
+pre-commit>=1.18.1
