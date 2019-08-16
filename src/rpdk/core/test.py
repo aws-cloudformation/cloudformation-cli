@@ -2,6 +2,7 @@
 
 Projects can be created via the 'init' sub command.
 """
+import json
 import logging
 from argparse import SUPPRESS
 from contextlib import contextmanager
@@ -9,6 +10,10 @@ from pathlib import Path
 from tempfile import NamedTemporaryFile
 
 import pytest
+from jsonschema import Draft6Validator
+from jsonschema.exceptions import ValidationError
+
+from rpdk.core.jsonutils.pointer import fragment_decode
 
 from .contract.contract_plugin import ContractPlugin
 from .contract.resource_client import ResourceClient
@@ -22,6 +27,18 @@ DEFAULT_ENDPOINT = "http://127.0.0.1:3001"
 DEFAULT_FUNCTION = "TestEntrypoint"
 DEFAULT_REGION = "us-east-1"
 
+OVERRIDES_VALIDATOR = Draft6Validator(
+    {
+        "properties": {"CREATE": {"type": "object"}},
+        "required": ["CREATE"],
+        "additionalProperties": False,
+    }
+)
+
+
+def empty_override():
+    return {"CREATE": {}}
+
 
 @contextmanager
 def temporary_ini_file():
@@ -34,12 +51,49 @@ def temporary_ini_file():
         yield str(path)
 
 
+def get_overrides(root):
+    if not root:
+        return empty_override()
+
+    path = root / "overrides.json"
+    try:
+        with path.open("r", encoding="utf-8") as f:
+            overrides_raw = json.load(f)
+    except FileNotFoundError:
+        LOG.debug("Override file '%s' not found. No overrides will be applied", path)
+        return empty_override()
+
+    try:
+        OVERRIDES_VALIDATOR.validate(overrides_raw)
+    except ValidationError as e:
+        LOG.warning("Override file invalid: %s\n" "No overrides will be applied", e)
+        return empty_override()
+
+    overrides = empty_override()
+    for operation, items_raw in overrides_raw.items():
+        items = {}
+        for pointer, obj in items_raw.items():
+            try:
+                pointer = fragment_decode(pointer, prefix="")
+            except ValueError:
+                LOG.warning("%s pointer '%s' is invalid. Skipping", operation, pointer)
+            else:
+                items[pointer] = obj
+        overrides[operation] = items
+
+    return overrides
+
+
 def test(args):
     project = Project()
     project.load()
 
+    overrides = get_overrides(project.root)
+
     plugin = ContractPlugin(
-        ResourceClient(args.function_name, args.endpoint, args.region, project.schema)
+        ResourceClient(
+            args.function_name, args.endpoint, args.region, project.schema, overrides
+        )
     )
 
     with temporary_ini_file() as path:

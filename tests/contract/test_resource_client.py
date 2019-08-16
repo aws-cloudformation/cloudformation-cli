@@ -7,8 +7,19 @@ import pytest
 
 from rpdk.core.boto_helpers import LOWER_CAMEL_CRED_KEYS
 from rpdk.core.contract.interface import Action, HandlerErrorCode, OperationStatus
-from rpdk.core.contract.resource_client import ResourceClient, prune_properties
-from rpdk.core.test import DEFAULT_ENDPOINT, DEFAULT_FUNCTION, DEFAULT_REGION
+from rpdk.core.contract.resource_client import (
+    ResourceClient,
+    override_properties,
+    prune_properties,
+)
+from rpdk.core.test import (
+    DEFAULT_ENDPOINT,
+    DEFAULT_FUNCTION,
+    DEFAULT_REGION,
+    empty_override,
+)
+
+EMPTY_OVERRIDE = empty_override()
 
 
 @pytest.fixture
@@ -25,7 +36,9 @@ def resource_client():
     with patch_sesh as mock_create_sesh, patch_creds as mock_creds:
         mock_sesh = mock_create_sesh.return_value
         mock_sesh.region_name = DEFAULT_REGION
-        client = ResourceClient(DEFAULT_FUNCTION, endpoint, DEFAULT_REGION, {})
+        client = ResourceClient(
+            DEFAULT_FUNCTION, endpoint, DEFAULT_REGION, {}, EMPTY_OVERRIDE
+        )
 
     mock_sesh.client.assert_called_once_with("lambda", endpoint_url=endpoint)
     mock_creds.assert_called_once_with(mock_sesh, LOWER_CAMEL_CRED_KEYS)
@@ -33,6 +46,7 @@ def resource_client():
     assert client._creds == {}
     assert client._function_name == DEFAULT_FUNCTION
     assert client._schema == {}
+    assert client._overrides == EMPTY_OVERRIDE
 
     return client
 
@@ -58,7 +72,9 @@ def test_init_sam_cli_client():
     with patch_sesh as mock_create_sesh, patch_creds as mock_creds:
         mock_sesh = mock_create_sesh.return_value
         mock_sesh.region_name = DEFAULT_REGION
-        ResourceClient(DEFAULT_FUNCTION, DEFAULT_ENDPOINT, DEFAULT_REGION, {})
+        ResourceClient(
+            DEFAULT_FUNCTION, DEFAULT_ENDPOINT, DEFAULT_REGION, {}, EMPTY_OVERRIDE
+        )
 
     mock_sesh.client.assert_called_once_with(
         "lambda", endpoint_url=DEFAULT_ENDPOINT, use_ssl=False, verify=False, config=ANY
@@ -358,3 +374,22 @@ def test_assert_failed_returns_error_code():
         OperationStatus.FAILED, {"errorCode": HandlerErrorCode.AccessDenied.value}
     )
     assert error_code == HandlerErrorCode.AccessDenied
+
+
+def test_override_properties():
+    document = {
+        "foo": "bar",
+        "spam": "eggs",
+        "one": "two",
+        "array": ["first", "second"],
+    }
+    override_properties(
+        document,
+        {("foo",): "baz", ("spam",): {}, ("not_found",): None, ("array", "1"): "last"},
+    )
+    assert document == {
+        "foo": "baz",
+        "spam": {},
+        "one": "two",
+        "array": ["first", "last"],
+    }

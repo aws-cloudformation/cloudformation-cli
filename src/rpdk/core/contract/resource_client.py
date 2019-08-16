@@ -20,7 +20,7 @@ LOG = logging.getLogger(__name__)
 
 
 def prune_properties(document, paths):
-    """Prune all properties from a document.
+    """Prune given properties from a document.
 
     This assumes properties will always have an object (dict) as a parent.
     The function modifies the document in-place, but also returns the document
@@ -37,8 +37,26 @@ def prune_properties(document, paths):
     return document
 
 
+def override_properties(document, overrides):
+    """Override given properties from a document."""
+    for path, obj in overrides.items():
+        try:
+            _prop, resolved_path, parent = traverse(document, path)
+        except LookupError:
+            LOG.debug(
+                "Override failed.\nPath %s\nObject %s\nDocument %s", path, obj, document
+            )
+            LOG.warning("Override with path %s not found, skipping", path)
+        else:
+            key = resolved_path[-1]
+            parent[key] = obj
+    return document
+
+
 class ResourceClient:  # pylint: disable=too-many-instance-attributes
-    def __init__(self, function_name, endpoint, region, schema):
+    def __init__(
+        self, function_name, endpoint, region, schema, overrides
+    ):  # pylint: disable=too-many-arguments
         self._session = create_sdk_session(region)
         self._creds = get_temporary_credentials(self._session, LOWER_CAMEL_CRED_KEYS)
         self._function_name = function_name
@@ -61,6 +79,7 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
 
         self._schema = None
         self._strategy = None
+        self._overrides = overrides
         self._update_schema(schema)
 
     def _properties_to_paths(self, key):
@@ -109,7 +128,8 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         return self._strategy
 
     def generate_create_example(self):
-        return self.strategy.example()
+        example = self.strategy.example()
+        return override_properties(example, self._overrides.get("CREATE", {}))
 
     @staticmethod
     def assert_in_progress(status, response):
