@@ -139,8 +139,7 @@ class Uploader:
             self.s3_client.upload_fileobj(fileobj, bucket, key)
         except ClientError as e:
             LOG.debug("S3 upload resulted in unknown ClientError", exc_info=e)
-            LOG.critical("Failed to upload artifacts to S3")
-            raise UploadError("Failed to upload artifacts to S3: " + str(e)) from e
+            raise DownstreamError("Failed to upload artifacts to S3") from e
 
         LOG.debug("Upload complete")
 

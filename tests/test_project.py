@@ -11,8 +11,14 @@ from pathlib import Path
 from unittest.mock import ANY, MagicMock, patch
 
 import pytest
+from botocore.exceptions import ClientError
 
-from rpdk.core.exceptions import InternalError, InvalidProjectError, SpecValidationError
+from rpdk.core.exceptions import (
+    DownstreamError,
+    InternalError,
+    InvalidProjectError,
+    SpecValidationError,
+)
 from rpdk.core.plugin_base import LanguagePlugin
 from rpdk.core.project import (
     LAMBDA_RUNTIMES,
@@ -29,6 +35,7 @@ TYPE_NAME = "AWS::Color::Red"
 REGION = "us-east-1"
 ENDPOINT = "cloudformation.beta.com"
 RUNTIME = random.choice(list(LAMBDA_RUNTIMES))
+BLANK_CLIENT_ERROR = {"Error": {"Code": "", "Message": ""}}
 
 
 @pytest.fixture
@@ -305,7 +312,7 @@ def test_submit_live_run(project):
     temp_file._close()
 
 
-def test__upload(project):
+def test__upload_good_path(project):
     project.type_name = TYPE_NAME
 
     mock_cfn_client = MagicMock(spec=["register_type"])
@@ -320,6 +327,37 @@ def test__upload(project):
         mock_session = mock_sdk.return_value
         mock_session.client.side_effect = [mock_cfn_client, s3_client]
         with patch_uuid as mock_uuid:
+            project._upload(fileobj, endpoint_url=None, region_name=None)
+
+    mock_sdk.assert_called_once_with(None)
+    mock_upload_method.assert_called_once_with(project.hypenated_name, fileobj)
+    mock_uuid.assert_called_once_with()
+    mock_cfn_client.register_type.assert_called_once_with(
+        Type="RESOURCE",
+        TypeName=project.type_name,
+        SchemaHandlerPackage="url",
+        ClientRequestToken=mock_uuid.return_value,
+    )
+
+
+def test__upload_clienterror(project):
+    project.type_name = TYPE_NAME
+
+    mock_cfn_client = MagicMock(spec=["register_type"])
+    mock_cfn_client.register_type.side_effect = ClientError(
+        BLANK_CLIENT_ERROR, "RegisterType"
+    )
+    s3_client = object()
+    fileobj = object()
+
+    patch_sdk = patch("rpdk.core.project.create_sdk_session", autospec=True)
+    patch_uploader = patch.object(Uploader, "upload", return_value="url")
+    patch_uuid = patch("rpdk.core.project.uuid4", autospec=True, return_value="foo")
+
+    with patch_sdk as mock_sdk, patch_uploader as mock_upload_method:
+        mock_session = mock_sdk.return_value
+        mock_session.client.side_effect = [mock_cfn_client, s3_client]
+        with patch_uuid as mock_uuid, pytest.raises(DownstreamError):
             project._upload(fileobj, endpoint_url=None, region_name=None)
 
     mock_sdk.assert_called_once_with(None)
