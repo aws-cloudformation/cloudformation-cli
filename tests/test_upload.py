@@ -127,7 +127,7 @@ def test_upload_s3_clienterror(uploader):
     )
 
     with patch_stack as mock_stack:
-        with pytest.raises(UploadError):
+        with pytest.raises(DownstreamError):
             uploader.upload("foo", fileobj)
 
     mock_stack.assert_called_once_with(ANY)

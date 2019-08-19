@@ -5,12 +5,18 @@ from pathlib import Path
 from tempfile import TemporaryFile
 from uuid import uuid4
 
+from botocore.exceptions import ClientError
 from jsonschema import Draft6Validator
 from jsonschema.exceptions import ValidationError
 
 from .boto_helpers import create_sdk_session
 from .data_loaders import load_resource_spec, resource_json
-from .exceptions import InternalError, InvalidProjectError, SpecValidationError
+from .exceptions import (
+    DownstreamError,
+    InternalError,
+    InvalidProjectError,
+    SpecValidationError,
+)
 from .plugin_registry import load_plugin
 from .upload import Uploader
 
@@ -236,12 +242,16 @@ class Project:  # pylint: disable=too-many-instance-attributes
         s3_url = Uploader(cfn_client, s3_client).upload(self.hypenated_name, fileobj)
         LOG.debug("Got S3 URL: %s", s3_url)
 
-        response = cfn_client.register_type(
-            Type="RESOURCE",
-            TypeName=self.type_name,
-            SchemaHandlerPackage=s3_url,
-            ClientRequestToken=str(uuid4()),
-        )
+        try:
+            response = cfn_client.register_type(
+                Type="RESOURCE",
+                TypeName=self.type_name,
+                SchemaHandlerPackage=s3_url,
+                ClientRequestToken=str(uuid4()),
+            )
+        except ClientError as e:
+            LOG.debug("Registering type resulted in unknown ClientError", exc_info=e)
+            raise DownstreamError("Unknown CloudFormation error") from e
         LOG.warning(
             "Registration in progress with token: %s", response["RegistrationToken"]
         )
