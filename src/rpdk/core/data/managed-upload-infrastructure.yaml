@@ -3,26 +3,16 @@ Description: >
   This CloudFormation template provisions all the infrastructure that is
   required to upload artifacts to CloudFormation's managed experience.
 
-Conditions:
-  # https://docs.amazonaws.cn/en_us/aws/latest/userguide/s3.html
-  # Server-side encryption with AWS KMS-managed encryption keys (SSE-KMS) is not supported in the Beijing and Ningxia Regions.
-  KMSSupported: !Not [!Equals [!Ref "AWS::Partition", aws-cn]]
-
 Resources:
   ArtifactBucket:
     Type: AWS::S3::Bucket
     Properties:
       AccessControl: BucketOwnerFullControl
       BucketEncryption:
-        !If
-          - KMSSupported
-          - ServerSideEncryptionConfiguration:
-            - ServerSideEncryptionByDefault:
-                SSEAlgorithm: aws:kms
-                KMSMasterKeyID: !Ref EncryptionKey
-          - ServerSideEncryptionConfiguration:
-            - ServerSideEncryptionByDefault:
-                SSEAlgorithm: AES256
+        ServerSideEncryptionConfiguration:
+        - ServerSideEncryptionByDefault:
+            SSEAlgorithm: aws:kms
+            KMSMasterKeyID: !Ref EncryptionKey
       LifecycleConfiguration:
         Rules:
           - Id: MultipartUploadLifecycleRule
@@ -49,7 +39,6 @@ Resources:
               - !Sub "arn:${AWS::Partition}:s3:::${ArtifactBucket}/*"
 
   EncryptionKey:
-    Condition: KMSSupported
     Type: AWS::KMS::Key
     DeletionPolicy: Retain
     Properties:
