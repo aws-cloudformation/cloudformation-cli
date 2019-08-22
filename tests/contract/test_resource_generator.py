@@ -1,20 +1,50 @@
 import re
 from collections.abc import Sequence
+from math import isnan
 
 import pytest
 
 from rpdk.core.contract.resource_generator import (
+    NEG_INF,
+    POS_INF,
     STRING_FORMATS,
     generate_schema_strategy,
 )
 
 
 @pytest.mark.parametrize("schema_type", ["integer", "number"])
-def test_generate_number_strategy(schema_type):
-    schema = {"type": schema_type, "minimum": 0, "maximum": 16}
+def test_generate_number_strategy_inclusive(schema_type):
+    inc_min = 0
+    inc_max = 16
+    schema = {"type": schema_type, "minimum": inc_min, "maximum": inc_max}
     strategy = generate_schema_strategy(schema)
     for i in range(100):
-        assert schema["minimum"] <= strategy.example() <= schema["maximum"], i
+        example = strategy.example()
+        assert inc_min <= example <= inc_max, i
+
+
+@pytest.mark.parametrize("schema_type", ["integer", "number"])
+def test_generate_number_strategy_exclusive(schema_type):
+    exc_min = 0
+    exc_max = 16
+    schema = {
+        "type": schema_type,
+        "exclusiveMinimum": exc_min,
+        "exclusiveMaximum": exc_max,
+    }
+    strategy = generate_schema_strategy(schema)
+    for i in range(100):
+        assert exc_min < strategy.example() < exc_max, i
+
+
+def test_generate_number_strategy_no_inf_or_nan():
+    schema = {"type": "number"}
+    strategy = generate_schema_strategy(schema)
+    for i in range(100):
+        example = strategy.example()
+        assert example != POS_INF, i
+        assert example != NEG_INF, i
+        assert not isnan(example), i
 
 
 def test_generate_string_strategy_regex():

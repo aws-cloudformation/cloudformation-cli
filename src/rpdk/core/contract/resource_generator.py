@@ -23,12 +23,15 @@ LOG = logging.getLogger(__name__)
 
 # TODO This resource generator handles simple cases for resource generation
 # List of outstanding issues available below
-# TODO https://github.com/awslabs/aws-cloudformation-rpdk/issues/118
+# https://github.com/aws-cloudformation/aws-cloudformation-rpdk/issues/118
 
 # Arn is just a placeholder for testing
 STRING_FORMATS = {
     "arn": "^arn:aws(-(cn|gov))?:[a-z-]+:(([a-z]+-)+[0-9])?:([0-9]{12})?:[^.]+$"
 }
+
+NEG_INF = float("-inf")
+POS_INF = float("inf")
 
 
 def generate_schema_strategy(schema):
@@ -66,9 +69,9 @@ def generate_primitive_strategy(schema):
         strategies = [just(item) for item in schema["enum"]]
         strategy = one_of(*strategies)
     elif json_type == "integer":
-        strategy = generate_number_strategy(schema, integers)
+        strategy = generate_integer_strategy(schema)
     elif json_type == "number":
-        strategy = generate_number_strategy(schema, floats)
+        strategy = generate_float_strategy(schema)
     elif json_type == "boolean":
         strategy = booleans()
     elif json_type == "string":
@@ -114,10 +117,94 @@ def generate_array_strategy(schema):
     return lists(item_strategy, min_size=min_items, max_size=max_items)
 
 
-def generate_number_strategy(schema, strategy):
-    minimum = schema.get("minimum")
-    maximum = schema.get("maximum")
-    return strategy(min_value=minimum, max_value=maximum)
+def _float_minimum(schema):
+    try:
+        minimum = schema["minimum"]
+    except KeyError:
+        exclude_min = True
+        minimum = schema.get("exclusiveMinimum", NEG_INF)
+    else:
+        exclude_min = False
+        if "exclusiveMinimum" in schema:  # pragma: no cover
+            LOG.warning("found exclusiveMinimum used with minimum")
+    return minimum, exclude_min
+
+
+def _float_maximum(schema):
+    try:
+        maximum = schema["maximum"]
+    except KeyError:
+        exclude_max = True
+        maximum = schema.get("exclusiveMaximum", POS_INF)
+    else:
+        exclude_max = False
+        if "exclusiveMaximum" in schema:  # pragma: no cover
+            LOG.warning("found exclusiveMaximum used with maximum")
+    return maximum, exclude_max
+
+
+def generate_float_strategy(schema):
+    # minimum and/or maximum are set to -inf/+inf (exclusive) if they are not
+    # supplied, to avoid generating -inf/inf/NaN values. these are not
+    # serialize-able according to JSON, but Python will and this causes
+    # downstream errors
+    minimum, exclude_min = _float_minimum(schema)
+    maximum, exclude_max = _float_maximum(schema)
+
+    # TODO: multipleOf
+    # https://github.com/aws-cloudformation/aws-cloudformation-rpdk/issues/118
+    if "multipleOf" in schema:  # pragma: no cover
+        LOG.warning("found multipleOf, which is currently unsupported")
+
+    return floats(
+        min_value=minimum,
+        exclude_min=exclude_min,
+        max_value=maximum,
+        exclude_max=exclude_max,
+        allow_nan=False,
+    )
+
+
+def _integer_minimum(schema):
+    try:
+        minimum = schema["minimum"]
+    except KeyError:
+        try:
+            # for exclusive, value > min, or value >= (min + 1)
+            minimum = schema["exclusiveMinimum"] + 1
+        except KeyError:
+            minimum = None
+    else:
+        if "exclusiveMinimum" in schema:  # pragma: no cover
+            LOG.warning("found exclusiveMinimum used with minimum")
+    return minimum
+
+
+def _integer_maximum(schema):
+    try:
+        maximum = schema["maximum"]
+    except KeyError:
+        try:
+            # for exclusive, value < min, or value <= (min - 1)
+            maximum = schema["exclusiveMaximum"] - 1
+        except KeyError:
+            maximum = None
+    else:
+        if "exclusiveMaximum" in schema:  # pragma: no cover
+            LOG.warning("found exclusiveMaximum used with maximum")
+    return maximum
+
+
+def generate_integer_strategy(schema):
+    minimum = _integer_minimum(schema)
+    maximum = _integer_maximum(schema)
+
+    # TODO: multipleOf
+    # https://github.com/aws-cloudformation/aws-cloudformation-rpdk/issues/118
+    if "multipleOf" in schema:  # pragma: no cover
+        LOG.warning("found multipleOf, which is currently unsupported")
+
+    return integers(min_value=minimum, max_value=maximum)
 
 
 def generate_string_strategy(schema):
@@ -135,11 +222,15 @@ def generate_string_strategy(schema):
                 max_size=max_length,
             )
 
+        # Issues in regex patterns can lead to subtle bugs. Also log `repr`,
+        # which makes escaped characters more obvious (unicode, whitespace)
+        LOG.debug("regex pattern %s/'%s'", repr(regex), regex)
+
         if "minLength" in schema:  # pragma: no cover
             LOG.warning("found minLength used with pattern")
         if "maxLength" in schema:  # pragma: no cover
             LOG.warning("found maxLength used with pattern")
-        return from_regex(regex, fullmatch=True)
+        return from_regex(regex)
 
     if "pattern" in schema:  # pragma: no cover
         LOG.warning("found pattern used with format")
@@ -149,4 +240,4 @@ def generate_string_strategy(schema):
         LOG.warning("found maxLength used with format")
 
     regex = STRING_FORMATS[string_format]
-    return from_regex(regex, fullmatch=True)
+    return from_regex(regex)
