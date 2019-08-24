@@ -239,8 +239,11 @@ class Project:  # pylint: disable=too-many-instance-attributes
         session = create_sdk_session(region_name)
         cfn_client = session.client("cloudformation", endpoint_url=endpoint_url)
         s3_client = session.client("s3")
-        s3_url = Uploader(cfn_client, s3_client).upload(self.hypenated_name, fileobj)
+        uploader = Uploader(cfn_client, s3_client)
+        s3_url = uploader.upload(self.hypenated_name, fileobj)
         LOG.debug("Got S3 URL: %s", s3_url)
+        log_delivery_role = uploader.get_log_delivery_role_arn()
+        LOG.debug("Got Log Role: %s", log_delivery_role)
 
         try:
             response = cfn_client.register_type(
@@ -248,6 +251,12 @@ class Project:  # pylint: disable=too-many-instance-attributes
                 TypeName=self.type_name,
                 SchemaHandlerPackage=s3_url,
                 ClientRequestToken=str(uuid4()),
+                LoggingConfig=(
+                    {
+                        "LogRoleArn": log_delivery_role,
+                        "LogGroupName": "{}-logs".format(self.hypenated_name),
+                    }
+                ),
             )
         except ClientError as e:
             LOG.debug("Registering type resulted in unknown ClientError", exc_info=e)
