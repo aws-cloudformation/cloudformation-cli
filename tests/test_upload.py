@@ -9,11 +9,17 @@ import pytest
 from botocore.exceptions import ClientError, WaiterError
 
 from rpdk.core.exceptions import DownstreamError, InternalError, UploadError
-from rpdk.core.upload import BUCKET_OUTPUT_NAME, INFRA_STACK_NAME, Uploader
+from rpdk.core.upload import (
+    BUCKET_OUTPUT_NAME,
+    INFRA_STACK_NAME,
+    LOG_DELIVERY_ROLE_ARN_OUTPUT_NAME,
+    Uploader,
+)
 
 from .utils import CONTENTS_UTF8
 
 BUCKET_OUTPUT_VALUE = "cloudformationmanageduploadinfrast-artifactbucket-154zq5ecxpp2u"
+LOG_DELIVERY_ROLE_ARN_OUTPUT_VALUE = "arn:aws:iam::123456789012:role/CloudFormationManagedUplo-LogAndMetricsDeliveryRol-7HGNMUOAABC1"  # noqa: B950 as it conflicts with formatting rules # pylint: disable=C0301
 STACK_ID = (
     "arn:aws:cloudformation:us-east-1:xxxxxxxxxxxx:stack/"
     + INFRA_STACK_NAME
@@ -117,7 +123,13 @@ def test__get_stack_output_output_not_found_wrong_key(uploader):
 def test_upload_s3_clienterror(uploader):
     fileobj = object()
     uploader.cfn_client.describe_stacks.return_value = describe_stacks_result(
-        [{"OutputKey": BUCKET_OUTPUT_NAME, "OutputValue": BUCKET_OUTPUT_VALUE}]
+        [
+            {"OutputKey": BUCKET_OUTPUT_NAME, "OutputValue": BUCKET_OUTPUT_VALUE},
+            {
+                "OutputKey": LOG_DELIVERY_ROLE_ARN_OUTPUT_NAME,
+                "OutputValue": LOG_DELIVERY_ROLE_ARN_OUTPUT_VALUE,
+            },
+        ]
     )
     patch_stack = patch.object(
         uploader, "_create_or_update_stack", return_value="stack-foo"
@@ -139,7 +151,13 @@ def test_upload_s3_clienterror(uploader):
 def test_upload_s3_success(uploader):
     fileobj = object()
     uploader.cfn_client.describe_stacks.return_value = describe_stacks_result(
-        [{"OutputKey": BUCKET_OUTPUT_NAME, "OutputValue": BUCKET_OUTPUT_VALUE}]
+        [
+            {"OutputKey": BUCKET_OUTPUT_NAME, "OutputValue": BUCKET_OUTPUT_VALUE},
+            {
+                "OutputKey": LOG_DELIVERY_ROLE_ARN_OUTPUT_NAME,
+                "OutputValue": LOG_DELIVERY_ROLE_ARN_OUTPUT_VALUE,
+            },
+        ]
     )
     patch_stack = patch.object(
         uploader, "_create_or_update_stack", return_value="stack-foo"
@@ -156,6 +174,8 @@ def test_upload_s3_success(uploader):
     uploader.s3_client.upload_fileobj.assert_called_once_with(
         fileobj, BUCKET_OUTPUT_VALUE, expected_key
     )
+
+    assert uploader.get_log_delivery_role_arn() == LOG_DELIVERY_ROLE_ARN_OUTPUT_VALUE
 
     result = urlsplit(s3_url)
 
@@ -175,6 +195,7 @@ def test__create_or_update_stack_stack_doesnt_exist(uploader):
     assert stack_id == STACK_ID
 
     uploader.cfn_client.create_stack.assert_called_once_with(
+        Capabilities=["CAPABILITY_IAM"],
         StackName=INFRA_STACK_NAME,
         TemplateBody=CONTENTS_UTF8,
         EnableTerminationProtection=True,
@@ -199,12 +220,15 @@ def test__create_or_update_stack_stack_exists_and_no_changes(uploader):
     assert stack_id == INFRA_STACK_NAME
 
     uploader.cfn_client.create_stack.assert_called_once_with(
+        Capabilities=["CAPABILITY_IAM"],
         StackName=INFRA_STACK_NAME,
         TemplateBody=CONTENTS_UTF8,
         EnableTerminationProtection=True,
     )
     uploader.cfn_client.update_stack.assert_called_once_with(
-        StackName=INFRA_STACK_NAME, TemplateBody=CONTENTS_UTF8
+        Capabilities=["CAPABILITY_IAM"],
+        StackName=INFRA_STACK_NAME,
+        TemplateBody=CONTENTS_UTF8,
     )
 
     mock_wait.assert_not_called()
@@ -220,12 +244,15 @@ def test__create_or_update_stack_stack_exists_and_needs_changes(uploader):
     assert stack_id == STACK_ID
 
     uploader.cfn_client.create_stack.assert_called_once_with(
+        Capabilities=["CAPABILITY_IAM"],
         StackName=INFRA_STACK_NAME,
         TemplateBody=CONTENTS_UTF8,
         EnableTerminationProtection=True,
     )
     uploader.cfn_client.update_stack.assert_called_once_with(
-        StackName=INFRA_STACK_NAME, TemplateBody=CONTENTS_UTF8
+        Capabilities=["CAPABILITY_IAM"],
+        StackName=INFRA_STACK_NAME,
+        TemplateBody=CONTENTS_UTF8,
     )
 
     mock_wait.assert_called_once_with(STACK_ID, "stack_update_complete", ANY)
@@ -241,10 +268,13 @@ def test__create_or_update_stack_create_unknown_failure(uploader):
             uploader._create_or_update_stack(CONTENTS_UTF8)
 
     uploader.cfn_client.create_stack.assert_called_once_with(
+        Capabilities=["CAPABILITY_IAM"],
         StackName=INFRA_STACK_NAME,
         TemplateBody=CONTENTS_UTF8,
         EnableTerminationProtection=True,
     )
+
+    assert uploader.get_log_delivery_role_arn() == ""
 
     mock_wait.assert_not_called()
 
@@ -260,12 +290,15 @@ def test__create_or_update_stack_update_unknown_failure(uploader):
             uploader._create_or_update_stack(CONTENTS_UTF8)
 
     uploader.cfn_client.create_stack.assert_called_once_with(
+        Capabilities=["CAPABILITY_IAM"],
         StackName=INFRA_STACK_NAME,
         TemplateBody=CONTENTS_UTF8,
         EnableTerminationProtection=True,
     )
     uploader.cfn_client.update_stack.assert_called_once_with(
-        StackName=INFRA_STACK_NAME, TemplateBody=CONTENTS_UTF8
+        Capabilities=["CAPABILITY_IAM"],
+        StackName=INFRA_STACK_NAME,
+        TemplateBody=CONTENTS_UTF8,
     )
 
     mock_wait.assert_not_called()

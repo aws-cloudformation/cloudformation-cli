@@ -9,6 +9,7 @@ from .exceptions import DownstreamError, InternalError, UploadError
 LOG = logging.getLogger(__name__)
 
 BUCKET_OUTPUT_NAME = "CloudFormationManagedUploadBucketName"
+LOG_DELIVERY_ROLE_ARN_OUTPUT_NAME = "LogAndMetricsDeliveryRoleArn"
 INFRA_STACK_NAME = "CloudFormationManagedUploadInfrastructure"
 
 
@@ -16,6 +17,8 @@ class Uploader:
     def __init__(self, cfn_client, s3_client):
         self.cfn_client = cfn_client
         self.s3_client = s3_client
+        self.bucket_name = ""
+        self.log_delivery_role_arn = ""
 
     @staticmethod
     def _get_template():
@@ -23,15 +26,17 @@ class Uploader:
             template = f.read()
 
         # sanity test! it's super easy to rename one but not the other
-        if BUCKET_OUTPUT_NAME not in template:
-            LOG.debug(
-                "Output '%s' not found in managed upload infrastructure template:\n%s",
-                BUCKET_OUTPUT_NAME,
-                template,
-            )
-            raise InternalError(
-                "Output not found in managed upload infrastructure template"
-            )
+        for output_name in [BUCKET_OUTPUT_NAME, LOG_DELIVERY_ROLE_ARN_OUTPUT_NAME]:
+            if output_name not in template:
+                LOG.debug(
+                    "Output '%s' not found in managed upload "
+                    "infrastructure template:\n%s",
+                    output_name,
+                    template,
+                )
+                raise InternalError(
+                    "Output not found in managed upload infrastructure template"
+                )
 
         return template
 
@@ -80,7 +85,9 @@ class Uploader:
         LOG.info("Creating managed upload infrastructure stack")
         try:
             result = self.cfn_client.create_stack(
-                **args, EnableTerminationProtection=True
+                **args,
+                EnableTerminationProtection=True,
+                Capabilities=["CAPABILITY_IAM"],
             )
         except self.cfn_client.exceptions.AlreadyExistsException:
             LOG.info(
@@ -88,7 +95,9 @@ class Uploader:
                 "Attempting to update"
             )
             try:
-                result = self.cfn_client.update_stack(**args)
+                result = self.cfn_client.update_stack(
+                    **args, Capabilities=["CAPABILITY_IAM"]
+                )
             except ClientError as e:
                 # if the update is a noop, don't do anything else
                 msg = str(e)
@@ -129,18 +138,24 @@ class Uploader:
     def upload(self, file_prefix, fileobj):
         template = self._get_template()
         stack_id = self._create_or_update_stack(template)
-        bucket = self._get_stack_output(stack_id, BUCKET_OUTPUT_NAME)
+        self.bucket_name = self._get_stack_output(stack_id, BUCKET_OUTPUT_NAME)
+        self.log_delivery_role_arn = self._get_stack_output(
+            stack_id, LOG_DELIVERY_ROLE_ARN_OUTPUT_NAME
+        )
 
         timestamp = datetime.utcnow().isoformat(timespec="seconds").replace(":", "-")
         key = "{}-{}.zip".format(file_prefix, timestamp)
 
-        LOG.debug("Uploading to '%s/%s'...", bucket, key)
+        LOG.debug("Uploading to '%s/%s'...", self.bucket_name, key)
         try:
-            self.s3_client.upload_fileobj(fileobj, bucket, key)
+            self.s3_client.upload_fileobj(fileobj, self.bucket_name, key)
         except ClientError as e:
             LOG.debug("S3 upload resulted in unknown ClientError", exc_info=e)
             raise DownstreamError("Failed to upload artifacts to S3") from e
 
         LOG.debug("Upload complete")
 
-        return "s3://{0}/{1}".format(bucket, key)
+        return "s3://{0}/{1}".format(self.bucket_name, key)
+
+    def get_log_delivery_role_arn(self):
+        return self.log_delivery_role_arn

@@ -321,9 +321,12 @@ def test__upload_good_path(project):
 
     patch_sdk = patch("rpdk.core.project.create_sdk_session", autospec=True)
     patch_uploader = patch.object(Uploader, "upload", return_value="url")
+    patch_role_arn = patch.object(
+        Uploader, "get_log_delivery_role_arn", return_value="some-log-role-arn"
+    )
     patch_uuid = patch("rpdk.core.project.uuid4", autospec=True, return_value="foo")
 
-    with patch_sdk as mock_sdk, patch_uploader as mock_upload_method:
+    with patch_sdk as mock_sdk, patch_uploader as mock_upload_method, patch_role_arn as mock_role_arn_method:  # noqa: B950 as it conflicts with formatting rules # pylint: disable=C0301
         mock_session = mock_sdk.return_value
         mock_session.client.side_effect = [mock_cfn_client, s3_client]
         with patch_uuid as mock_uuid:
@@ -331,12 +334,17 @@ def test__upload_good_path(project):
 
     mock_sdk.assert_called_once_with(None)
     mock_upload_method.assert_called_once_with(project.hypenated_name, fileobj)
+    mock_role_arn_method.assert_called_once_with()
     mock_uuid.assert_called_once_with()
     mock_cfn_client.register_type.assert_called_once_with(
         Type="RESOURCE",
         TypeName=project.type_name,
         SchemaHandlerPackage="url",
         ClientRequestToken=mock_uuid.return_value,
+        LoggingConfig={
+            "LogRoleArn": "some-log-role-arn",
+            "LogGroupName": "aws-color-red-logs",
+        },
     )
 
 
@@ -352,9 +360,12 @@ def test__upload_clienterror(project):
 
     patch_sdk = patch("rpdk.core.project.create_sdk_session", autospec=True)
     patch_uploader = patch.object(Uploader, "upload", return_value="url")
+    patch_role_arn = patch.object(
+        Uploader, "get_log_delivery_role_arn", return_value="some-log-role-arn"
+    )
     patch_uuid = patch("rpdk.core.project.uuid4", autospec=True, return_value="foo")
 
-    with patch_sdk as mock_sdk, patch_uploader as mock_upload_method:
+    with patch_sdk as mock_sdk, patch_uploader as mock_upload_method, patch_role_arn as mock_role_arn_method:  # noqa: B950 as it conflicts with formatting rules # pylint: disable=C0301
         mock_session = mock_sdk.return_value
         mock_session.client.side_effect = [mock_cfn_client, s3_client]
         with patch_uuid as mock_uuid, pytest.raises(DownstreamError):
@@ -362,12 +373,17 @@ def test__upload_clienterror(project):
 
     mock_sdk.assert_called_once_with(None)
     mock_upload_method.assert_called_once_with(project.hypenated_name, fileobj)
+    mock_role_arn_method.assert_called_once_with()
     mock_uuid.assert_called_once_with()
     mock_cfn_client.register_type.assert_called_once_with(
         Type="RESOURCE",
         TypeName=project.type_name,
         SchemaHandlerPackage="url",
         ClientRequestToken=mock_uuid.return_value,
+        LoggingConfig={
+            "LogRoleArn": "some-log-role-arn",
+            "LogGroupName": "aws-color-red-logs",
+        },
     )
 
 
