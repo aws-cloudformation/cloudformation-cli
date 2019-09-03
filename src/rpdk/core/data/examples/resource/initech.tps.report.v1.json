@@ -7,6 +7,17 @@
             "$comment": "Use the `definitions` block to provide shared resource property schemas",
             "type": "string",
             "format": "date-time"
+        },
+        "Memo": {
+            "type": "object",
+            "properties": {
+                "Heading": {
+                    "type": "string"
+                },
+                "Body": {
+                    "type": "string"
+                }
+            }
         }
     },
     "properties": {
@@ -32,11 +43,11 @@
             "$ref": "#/definitions/InitechDateFormat"
         },
         "Memo": {
-            "type": "string"
+            "$ref": "#/definitions/Memo"
         },
         "SecondCopyOfMemo": {
             "description": "In case you didn't get the first one.",
-            "type": "string"
+            "$ref": "#/definitions/Memo"
         },
         "TestCode": {
             "type": "string",

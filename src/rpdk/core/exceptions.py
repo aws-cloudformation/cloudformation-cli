@@ -48,3 +48,7 @@ class ContractTestError(RPDKBaseException):
 
 class InvalidRequestError(ContractTestError):
     pass
+
+
+class ModelResolverError(RPDKBaseException):
+    pass
