@@ -26,38 +26,18 @@ def contract_crud_exerciser(resource_client):
     request = create_request = resource_client.make_request(
         create_model, None, clientRequestToken=resource_client.generate_token()
     )
-    _exercise_creation_tests_and_cleanup(resource_client, request, create_model)
-
-    _setup_deletion_tests_and_exercise(resource_client)
-
-    request = create_request
 
     input_for_cleanup = request
-    try:
-        # CREATE the same resource after DELETE
-        input_for_cleanup = _request_from_result(
-            resource_client,
-            _invoke_resource_action(resource_client, Action.CREATE, request),
-        )
-    finally:
-        # DELETE
-        _invoke_resource_action(resource_client, Action.DELETE, input_for_cleanup)
 
-
-def _exercise_creation_tests_and_cleanup(resource_client, request, create_model):
-    input_for_cleanup = request
     try:
         # CREATE
-        input_for_cleanup = _request_from_result(
-            resource_client,
-            _invoke_resource_action(resource_client, Action.CREATE, request),
-        )
+        status, response = resource_client.call(Action.CREATE, request)
+        resource_client.assert_success(status, response)
+        input_for_cleanup = _request_from_result(resource_client, response)
 
         # CREATE (idempotent, because same clientRequestToken)
-        input_for_cleanup = _request_from_result(
-            resource_client,
-            _invoke_resource_action(resource_client, Action.CREATE, request),
-        )
+        status, response = resource_client.call(Action.CREATE, request)
+        resource_client.assert_success(status, response)
 
         # if no identifiers are writeable, then multiple requests with the same
         # model can succeed
@@ -80,33 +60,26 @@ def _exercise_creation_tests_and_cleanup(resource_client, request, create_model)
 
     finally:
         # DELETE
-        _invoke_resource_action(resource_client, Action.DELETE, input_for_cleanup)
+        status, response = resource_client.call(Action.DELETE, input_for_cleanup)
+        resource_client.assert_success(status, response)
 
+    # DELETE
+    status, response = resource_client.call(Action.DELETE, input_for_cleanup)
+    error_code = resource_client.assert_failed(status, response)
+    assert error_code == HandlerErrorCode.NotFound
 
-def _setup_deletion_tests_and_exercise(resource_client):
-    create_model = resource_client.generate_create_example()
-    request = resource_client.make_request(
-        create_model, None, clientRequestToken=resource_client.generate_token()
-    )
-
-    creation_response = _invoke_resource_action(resource_client, Action.CREATE, request)
-
-    _invoke_resource_action(
-        resource_client,
-        Action.DELETE,
-        _request_from_result(resource_client, creation_response),
-    )
+    request = create_request
+    input_for_cleanup = request
+    try:
+        # CREATE the same resource after DELETE
+        status, response = resource_client.call(Action.CREATE, request)
+        resource_client.assert_success(status, response)
+        input_for_cleanup = _request_from_result(resource_client, response)
+    finally:
+        # DELETE
+        status, response = resource_client.call(Action.DELETE, input_for_cleanup)
+        resource_client.assert_success(status, response)
 
 
 def _request_from_result(resource_client, result):
-    return resource_client.make_request(
-        result["resourceModel"],
-        None,
-        clientRequestToken=resource_client.generate_token(),
-    )
-
-
-def _invoke_resource_action(resource_client, action, request):
-    status, response = resource_client.call(action, request)
-    resource_client.assert_success(status, response)
-    return response
+    return resource_client.make_request(result["resourceModel"], None)
