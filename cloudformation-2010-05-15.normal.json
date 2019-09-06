@@ -285,26 +285,6 @@
             ],
             "documentation": "<p>Deletes a stack set. Before you can delete a stack set, all of its member stack instances must be deleted. For more information about how to do this, see <a>DeleteStackInstances</a>. </p>"
         },
-        "DeregisterResourceType": {
-            "name": "DeregisterResourceType",
-            "http": {
-                "method": "POST",
-                "requestUri": "/"
-            },
-            "input": {
-                "shape": "DeregisterResourceTypeInput"
-            },
-            "output": {
-                "shape": "DeregisterResourceTypeOutput",
-                "resultWrapper": "DeregisterResourceTypeResult"
-            },
-            "errors": [
-                {
-                    "shape": "CFNRegistryException"
-                }
-            ],
-            "idempotent": true
-        },
         "DeregisterType": {
             "name": "DeregisterType",
             "http": {
@@ -390,46 +370,6 @@
                     "shape": "DescribeResourceFailedException"
                 }
             ]
-        },
-        "DescribeResourceType": {
-            "name": "DescribeResourceType",
-            "http": {
-                "method": "POST",
-                "requestUri": "/"
-            },
-            "input": {
-                "shape": "DescribeResourceTypeInput"
-            },
-            "output": {
-                "shape": "DescribeResourceTypeOutput",
-                "resultWrapper": "DescribeResourceTypeResult"
-            },
-            "errors": [
-                {
-                    "shape": "CFNRegistryException"
-                }
-            ],
-            "idempotent": true
-        },
-        "DescribeResourceTypeRegistration": {
-            "name": "DescribeResourceTypeRegistration",
-            "http": {
-                "method": "POST",
-                "requestUri": "/"
-            },
-            "input": {
-                "shape": "DescribeResourceTypeRegistrationInput"
-            },
-            "output": {
-                "shape": "DescribeResourceTypeRegistrationOutput",
-                "resultWrapper": "DescribeResourceTypeRegistrationResult"
-            },
-            "errors": [
-                {
-                    "shape": "CFNRegistryException"
-                }
-            ],
-            "idempotent": true
         },
         "DescribeResourcesSnapshot": {
             "name": "DescribeResourcesSnapshot",
@@ -863,66 +803,6 @@
             },
             "documentation": "<p>Lists all stacks that are importing an exported output value. To modify or remove an exported output value, first use this action to see which stacks are using it. To see the exported output values in your account, see <a>ListExports</a>. </p> <p>For more information about importing an exported output value, see the <a href=\"https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/intrinsic-function-reference-importvalue.html\"> <code>Fn::ImportValue</code> </a> function. </p>"
         },
-        "ListResourceTypeRegistrations": {
-            "name": "ListResourceTypeRegistrations",
-            "http": {
-                "method": "POST",
-                "requestUri": "/"
-            },
-            "input": {
-                "shape": "ListResourceTypeRegistrationsInput"
-            },
-            "output": {
-                "shape": "ListResourceTypeRegistrationsOutput",
-                "resultWrapper": "ListResourceTypeRegistrationsResult"
-            },
-            "errors": [
-                {
-                    "shape": "CFNRegistryException"
-                }
-            ],
-            "idempotent": true
-        },
-        "ListResourceTypeVersions": {
-            "name": "ListResourceTypeVersions",
-            "http": {
-                "method": "POST",
-                "requestUri": "/"
-            },
-            "input": {
-                "shape": "ListResourceTypeVersionsInput"
-            },
-            "output": {
-                "shape": "ListResourceTypeVersionsOutput",
-                "resultWrapper": "ListResourceTypeVersionsResult"
-            },
-            "errors": [
-                {
-                    "shape": "CFNRegistryException"
-                }
-            ],
-            "idempotent": true
-        },
-        "ListResourceTypes": {
-            "name": "ListResourceTypes",
-            "http": {
-                "method": "POST",
-                "requestUri": "/"
-            },
-            "input": {
-                "shape": "ListResourceTypesInput"
-            },
-            "output": {
-                "shape": "ListResourceTypesOutput",
-                "resultWrapper": "ListResourceTypesResult"
-            },
-            "errors": [
-                {
-                    "shape": "CFNRegistryException"
-                }
-            ],
-            "idempotent": true
-        },
         "ListStackInstances": {
             "name": "ListStackInstances",
             "http": {
@@ -1091,26 +971,6 @@
             ],
             "idempotent": true
         },
-        "RecordCustomResourceResponse": {
-            "name": "RecordCustomResourceResponse",
-            "http": {
-                "method": "POST",
-                "requestUri": "/"
-            },
-            "input": {
-                "shape": "RecordCustomResourceResponseInput"
-            },
-            "output": {
-                "shape": "RecordCustomResourceResponseOutput",
-                "resultWrapper": "RecordCustomResourceResponseResult"
-            },
-            "errors": [
-                {
-                    "shape": "TerminalStateAlreadyRecorded"
-                }
-            ],
-            "idempotent": true
-        },
         "RecordHandlerProgress": {
             "name": "RecordHandlerProgress",
             "http": {
@@ -1126,7 +986,10 @@
             },
             "errors": [
                 {
-                    "shape": "TerminalStateAlreadyRecorded"
+                    "shape": "InvalidStateTransitionException"
+                },
+                {
+                    "shape": "OperationStatusCheckFailedException"
                 }
             ],
             "idempotent": true
@@ -1145,26 +1008,6 @@
                 "resultWrapper": "RegisterListenerResult"
             }
         },
-        "RegisterResourceType": {
-            "name": "RegisterResourceType",
-            "http": {
-                "method": "POST",
-                "requestUri": "/"
-            },
-            "input": {
-                "shape": "RegisterResourceTypeInput"
-            },
-            "output": {
-                "shape": "RegisterResourceTypeOutput",
-                "resultWrapper": "RegisterResourceTypeResult"
-            },
-            "errors": [
-                {
-                    "shape": "CFNRegistryException"
-                }
-            ],
-            "idempotent": true
-        },
         "RegisterType": {
             "name": "RegisterType",
             "http": {
@@ -1177,26 +1020,6 @@
             "output": {
                 "shape": "RegisterTypeOutput",
                 "resultWrapper": "RegisterTypeResult"
-            },
-            "errors": [
-                {
-                    "shape": "CFNRegistryException"
-                }
-            ],
-            "idempotent": true
-        },
-        "SetResourceTypeDefaultVersion": {
-            "name": "SetResourceTypeDefaultVersion",
-            "http": {
-                "method": "POST",
-                "requestUri": "/"
-            },
-            "input": {
-                "shape": "SetResourceTypeDefaultVersionInput"
-            },
-            "output": {
-                "shape": "SetResourceTypeDefaultVersionOutput",
-                "resultWrapper": "SetResourceTypeDefaultVersionResult"
             },
             "errors": [
                 {
@@ -1596,7 +1419,8 @@
             "enum": [
                 "Add",
                 "Modify",
-                "Remove"
+                "Remove",
+                "Import"
             ]
         },
         "ChangeSetId": {
@@ -1692,7 +1516,8 @@
             "type": "string",
             "enum": [
                 "CREATE",
-                "UPDATE"
+                "UPDATE",
+                "IMPORT"
             ]
         },
         "ChangeSource": {
@@ -1853,6 +1678,9 @@
                 },
                 "EnablePropertyValidation": {
                     "shape": "EnablePropertyValidation"
+                },
+                "ResourcesToImport": {
+                    "shape": "ResourcesToImport"
                 }
             },
             "documentation": "<p>The input for the <a>CreateChangeSet</a> action.</p>"
@@ -2127,17 +1955,6 @@
                 }
             }
         },
-        "CustomResourceResponseData": {
-            "type": "string",
-            "max": 4096
-        },
-        "CustomResourceStatus": {
-            "type": "string",
-            "enum": [
-                "SUCCESS",
-                "FAILED"
-            ]
-        },
         "DeleteChangeSetInput": {
             "type": "structure",
             "required": [
@@ -2258,29 +2075,11 @@
                 "DEPRECATED"
             ]
         },
-        "DeregisterResourceTypeInput": {
-            "type": "structure",
-            "members": {
-                "Arn": {
-                    "shape": "ResourceTypeArn"
-                },
-                "TypeName": {
-                    "shape": "ResourceTypeName"
-                },
-                "VersionId": {
-                    "shape": "ResourceTypeVersionId"
-                }
-            }
-        },
-        "DeregisterResourceTypeOutput": {
-            "type": "structure",
-            "members": {}
-        },
         "DeregisterTypeInput": {
             "type": "structure",
             "members": {
                 "Arn": {
-                    "shape": "TypeArn"
+                    "shape": "PrivateTypeArn"
                 },
                 "Type": {
                     "shape": "RegistryType"
@@ -2450,80 +2249,6 @@
                 },
                 "UnresolvedPaths": {
                     "shape": "UnresolvedPaths"
-                }
-            }
-        },
-        "DescribeResourceTypeInput": {
-            "type": "structure",
-            "members": {
-                "TypeName": {
-                    "shape": "ResourceTypeName"
-                },
-                "Arn": {
-                    "shape": "ResourceTypeArn"
-                },
-                "VersionId": {
-                    "shape": "ResourceTypeVersionId"
-                }
-            }
-        },
-        "DescribeResourceTypeOutput": {
-            "type": "structure",
-            "members": {
-                "Arn": {
-                    "shape": "ResourceTypeArn"
-                },
-                "TypeName": {
-                    "shape": "ResourceTypeName"
-                },
-                "Description": {
-                    "shape": "Description"
-                },
-                "Schema": {
-                    "shape": "ResourceTypeSchema"
-                },
-                "ProvisioningType": {
-                    "shape": "ProvisioningType"
-                },
-                "Visibility": {
-                    "shape": "Visibility"
-                },
-                "SourceUrl": {
-                    "shape": "ResourceTypeSourceUrl"
-                },
-                "LastUpdated": {
-                    "shape": "Timestamp"
-                },
-                "TimeCreated": {
-                    "shape": "Timestamp"
-                }
-            }
-        },
-        "DescribeResourceTypeRegistrationInput": {
-            "type": "structure",
-            "required": [
-                "RegistrationToken"
-            ],
-            "members": {
-                "RegistrationToken": {
-                    "shape": "RegistrationToken"
-                }
-            }
-        },
-        "DescribeResourceTypeRegistrationOutput": {
-            "type": "structure",
-            "members": {
-                "ProgressStatus": {
-                    "shape": "RegistrationStatus"
-                },
-                "Description": {
-                    "shape": "Description"
-                },
-                "ResourceTypeArn": {
-                    "shape": "ResourceTypeArn"
-                },
-                "ResourceTypeVersionArn": {
-                    "shape": "ResourceTypeArn"
                 }
             }
         },
@@ -2854,6 +2579,9 @@
                 "TypeName": {
                     "shape": "TypeName"
                 },
+                "DefaultVersionId": {
+                    "shape": "TypeVersionId"
+                },
                 "Description": {
                     "shape": "Description"
                 },
@@ -2873,7 +2601,10 @@
                     "shape": "Visibility"
                 },
                 "SourceUrl": {
-                    "shape": "TypeSourceUrl"
+                    "shape": "OptionalSecureUrl"
+                },
+                "DocumentationUrl": {
+                    "shape": "OptionalSecureUrl"
                 },
                 "LastUpdated": {
                     "shape": "Timestamp"
@@ -3278,6 +3009,9 @@
                 "DeclaredTransforms": {
                     "shape": "TransformsList",
                     "documentation": "<p>A list of the transforms that are declared in the template.</p>"
+                },
+                "ResourceIdentifierSummaries": {
+                    "shape": "ResourceIdentifierSummaries"
                 }
             },
             "documentation": "<p>The output for the <a>GetTemplateSummary</a> action.</p>"
@@ -3345,6 +3079,16 @@
             "members": {},
             "error": {
                 "code": "InvalidResourcesSnapshotStatus",
+                "httpStatusCode": 400,
+                "senderFault": true
+            },
+            "exception": true
+        },
+        "InvalidStateTransitionException": {
+            "type": "structure",
+            "members": {},
+            "error": {
+                "code": "InvalidStateTransition",
                 "httpStatusCode": 400,
                 "senderFault": true
             },
@@ -3455,99 +3199,6 @@
                 "NextToken": {
                     "shape": "NextToken",
                     "documentation": "<p>A string that identifies the next page of exports. If there is no additional page, this value is null.</p>"
-                }
-            }
-        },
-        "ListResourceTypeRegistrationsInput": {
-            "type": "structure",
-            "members": {
-                "TypeName": {
-                    "shape": "ResourceTypeName"
-                },
-                "ResourceTypeArn": {
-                    "shape": "ResourceTypeArn"
-                },
-                "RegistrationStatusFilter": {
-                    "shape": "RegistrationStatus"
-                },
-                "MaxResults": {
-                    "shape": "MaxResults"
-                },
-                "NextToken": {
-                    "shape": "NextToken"
-                }
-            }
-        },
-        "ListResourceTypeRegistrationsOutput": {
-            "type": "structure",
-            "members": {
-                "RegistrationTokenList": {
-                    "shape": "RegistrationTokenList"
-                },
-                "NextToken": {
-                    "shape": "NextToken"
-                }
-            }
-        },
-        "ListResourceTypeVersionsInput": {
-            "type": "structure",
-            "members": {
-                "TypeName": {
-                    "shape": "ResourceTypeName"
-                },
-                "Arn": {
-                    "shape": "ResourceTypeArn"
-                },
-                "MaxResults": {
-                    "shape": "MaxResults"
-                },
-                "NextToken": {
-                    "shape": "NextToken"
-                },
-                "DeprecatedStatus": {
-                    "shape": "DeprecatedStatus"
-                }
-            }
-        },
-        "ListResourceTypeVersionsOutput": {
-            "type": "structure",
-            "members": {
-                "ResourceTypeVersionSummaries": {
-                    "shape": "ResourceTypeVersionSummaries"
-                },
-                "NextToken": {
-                    "shape": "NextToken"
-                }
-            }
-        },
-        "ListResourceTypesInput": {
-            "type": "structure",
-            "members": {
-                "Visibility": {
-                    "shape": "Visibility"
-                },
-                "ProvisioningType": {
-                    "shape": "ProvisioningType"
-                },
-                "MaxResults": {
-                    "shape": "MaxResults"
-                },
-                "NextToken": {
-                    "shape": "NextToken"
-                },
-                "DeprecatedStatus": {
-                    "shape": "DeprecatedStatus"
-                }
-            }
-        },
-        "ListResourceTypesOutput": {
-            "type": "structure",
-            "members": {
-                "ResourceTypeSummaries": {
-                    "shape": "ResourceTypeSummaries"
-                },
-                "NextToken": {
-                    "shape": "NextToken"
                 }
             }
         },
@@ -3796,7 +3447,7 @@
                     "shape": "TypeName"
                 },
                 "Arn": {
-                    "shape": "TypeArn"
+                    "shape": "PrivateTypeArn"
                 },
                 "MaxResults": {
                     "shape": "MaxResults"
@@ -4033,10 +3684,25 @@
         "OperationStatus": {
             "type": "string",
             "enum": [
+                "PENDING",
                 "IN_PROGRESS",
                 "SUCCESS",
                 "FAILED"
             ]
+        },
+        "OperationStatusCheckFailedException": {
+            "type": "structure",
+            "members": {},
+            "error": {
+                "code": "ConditionalCheckFailed",
+                "httpStatusCode": 400,
+                "senderFault": true
+            },
+            "exception": true
+        },
+        "OptionalSecureUrl": {
+            "type": "string",
+            "max": 4096
         },
         "Output": {
             "type": "structure",
@@ -4179,6 +3845,11 @@
                 }
             }
         },
+        "PrivateTypeArn": {
+            "type": "string",
+            "max": 1024,
+            "pattern": "arn:aws[A-Za-z0-9-]{0,64}:cloudformation:[A-Za-z0-9-]{1,64}:[0-9]{12}:type/.+"
+        },
         "Properties": {
             "type": "string"
         },
@@ -4234,46 +3905,6 @@
         "Reason": {
             "type": "string"
         },
-        "RecordCustomResourceResponseInput": {
-            "type": "structure",
-            "required": [
-                "Status",
-                "PhysicalResourceId",
-                "StackId",
-                "RequestId",
-                "LogicalResourceId"
-            ],
-            "members": {
-                "Status": {
-                    "shape": "CustomResourceStatus"
-                },
-                "Reason": {
-                    "shape": "StatusMessage"
-                },
-                "PhysicalResourceId": {
-                    "shape": "PhysicalResourceId"
-                },
-                "StackId": {
-                    "shape": "StackId"
-                },
-                "RequestId": {
-                    "shape": "ClientToken"
-                },
-                "LogicalResourceId": {
-                    "shape": "LogicalResourceId"
-                },
-                "NoEcho": {
-                    "shape": "NoEcho"
-                },
-                "Data": {
-                    "shape": "CustomResourceResponseData"
-                }
-            }
-        },
-        "RecordCustomResourceResponseOutput": {
-            "type": "structure",
-            "members": {}
-        },
         "RecordHandlerProgressInput": {
             "type": "structure",
             "required": [
@@ -4287,6 +3918,9 @@
                 "OperationStatus": {
                     "shape": "OperationStatus"
                 },
+                "CurrentOperationStatus": {
+                    "shape": "OperationStatus"
+                },
                 "StatusMessage": {
                     "shape": "StatusMessage"
                 },
@@ -4295,6 +3929,9 @@
                 },
                 "ResourceModel": {
                     "shape": "ResourceModel"
+                },
+                "ClientRequestToken": {
+                    "shape": "ClientRequestToken"
                 }
             }
         },
@@ -4334,41 +3971,6 @@
                 }
             }
         },
-        "RegisterResourceTypeInput": {
-            "type": "structure",
-            "required": [
-                "TypeName",
-                "SchemaHandlerPackage"
-            ],
-            "members": {
-                "TypeName": {
-                    "shape": "ResourceTypeName"
-                },
-                "SchemaHandlerPackage": {
-                    "shape": "S3Url"
-                },
-                "DocumentationUrl": {
-                    "shape": "S3Url"
-                },
-                "Description": {
-                    "shape": "Description"
-                },
-                "SourceUrl": {
-                    "shape": "ResourceTypeSourceUrl"
-                },
-                "ClientRequestToken": {
-                    "shape": "RequestToken"
-                }
-            }
-        },
-        "RegisterResourceTypeOutput": {
-            "type": "structure",
-            "members": {
-                "RegistrationToken": {
-                    "shape": "RegistrationToken"
-                }
-            }
-        },
         "RegisterTypeInput": {
             "type": "structure",
             "required": [
@@ -4384,12 +3986,6 @@
                 },
                 "SchemaHandlerPackage": {
                     "shape": "S3Url"
-                },
-                "Description": {
-                    "shape": "Description"
-                },
-                "SourceUrl": {
-                    "shape": "TypeSourceUrl"
                 },
                 "LoggingConfig": {
                     "shape": "LoggingConfig"
@@ -4546,6 +4142,53 @@
                 "shape": "ResourceChangeDetail"
             }
         },
+        "ResourceIdentifierProperties": {
+            "type": "map",
+            "key": {
+                "shape": "ResourceIdentifierPropertyKey"
+            },
+            "value": {
+                "shape": "ResourceIdentifierPropertyValue"
+            },
+            "max": 256,
+            "min": 1
+        },
+        "ResourceIdentifierPropertyKey": {
+            "type": "string",
+            "max": 2048,
+            "min": 1
+        },
+        "ResourceIdentifierPropertyValue": {
+            "type": "string",
+            "max": 2048,
+            "min": 1
+        },
+        "ResourceIdentifierSummaries": {
+            "type": "list",
+            "member": {
+                "shape": "ResourceIdentifierSummary"
+            }
+        },
+        "ResourceIdentifierSummary": {
+            "type": "structure",
+            "members": {
+                "ResourceType": {
+                    "shape": "ResourceType"
+                },
+                "LogicalResourceIds": {
+                    "shape": "LogicalResourceIds"
+                },
+                "ResourceIdentifiers": {
+                    "shape": "ResourceIdentifiers"
+                }
+            }
+        },
+        "ResourceIdentifiers": {
+            "type": "list",
+            "member": {
+                "shape": "ResourceIdentifierPropertyKey"
+            }
+        },
         "ResourceModel": {
             "type": "string",
             "max": 16384,
@@ -4608,7 +4251,13 @@
                 "DELETE_SKIPPED",
                 "UPDATE_IN_PROGRESS",
                 "UPDATE_FAILED",
-                "UPDATE_COMPLETE"
+                "UPDATE_COMPLETE",
+                "IMPORT_FAILED",
+                "IMPORT_COMPLETE",
+                "IMPORT_IN_PROGRESS",
+                "IMPORT_ROLLBACK_IN_PROGRESS",
+                "IMPORT_ROLLBACK_FAILED",
+                "IMPORT_ROLLBACK_COMPLETE"
             ]
         },
         "ResourceStatusReason": {
@@ -4650,6 +4299,25 @@
                 }
             }
         },
+        "ResourceToImport": {
+            "type": "structure",
+            "required": [
+                "ResourceType",
+                "LogicalResourceId",
+                "ResourceIdentifier"
+            ],
+            "members": {
+                "ResourceType": {
+                    "shape": "ResourceType"
+                },
+                "LogicalResourceId": {
+                    "shape": "LogicalResourceId"
+                },
+                "ResourceIdentifier": {
+                    "shape": "ResourceIdentifierProperties"
+                }
+            }
+        },
         "ResourceToSkip": {
             "type": "string",
             "pattern": "[a-zA-Z0-9]+|[a-zA-Z][-a-zA-Z0-9]*\\.[a-zA-Z0-9]+"
@@ -4680,17 +4348,6 @@
             "max": 256,
             "min": 1
         },
-        "ResourceTypeArn": {
-            "type": "string",
-            "max": 1024,
-            "pattern": "arn:aws[A-Za-z0-9-]{0,64}:cloudformation:[A-Za-z0-9-]{1,64}:[0-9]{12}:type/resource/[A-Za-z0-9-]{8,196}(/[A-Za-z0-9-]+)?"
-        },
-        "ResourceTypeName": {
-            "type": "string",
-            "max": 196,
-            "min": 10,
-            "pattern": "[A-Za-z0-9]{2,64}::[A-Za-z0-9]{2,64}::[A-Za-z0-9]{2,64}"
-        },
         "ResourceTypeNotFoundException": {
             "type": "structure",
             "members": {},
@@ -4700,71 +4357,6 @@
                 "senderFault": true
             },
             "exception": true
-        },
-        "ResourceTypeSchema": {
-            "type": "string",
-            "max": 16777216,
-            "min": 1
-        },
-        "ResourceTypeSourceUrl": {
-            "type": "string",
-            "max": 4096,
-            "min": 1
-        },
-        "ResourceTypeSummaries": {
-            "type": "list",
-            "member": {
-                "shape": "ResourceTypeSummary"
-            }
-        },
-        "ResourceTypeSummary": {
-            "type": "structure",
-            "members": {
-                "TypeName": {
-                    "shape": "ResourceTypeName"
-                },
-                "ResourceTypeArn": {
-                    "shape": "ResourceTypeArn"
-                },
-                "LastUpdated": {
-                    "shape": "Timestamp"
-                },
-                "Description": {
-                    "shape": "Description"
-                }
-            }
-        },
-        "ResourceTypeVersionId": {
-            "type": "string",
-            "max": 128,
-            "min": 1,
-            "pattern": "[A-Za-z0-9-]+"
-        },
-        "ResourceTypeVersionSummaries": {
-            "type": "list",
-            "member": {
-                "shape": "ResourceTypeVersionSummary"
-            }
-        },
-        "ResourceTypeVersionSummary": {
-            "type": "structure",
-            "members": {
-                "TypeName": {
-                    "shape": "ResourceTypeName"
-                },
-                "VersionId": {
-                    "shape": "ResourceTypeVersionId"
-                },
-                "Arn": {
-                    "shape": "ResourceTypeArn"
-                },
-                "TimeCreated": {
-                    "shape": "Timestamp"
-                },
-                "Description": {
-                    "shape": "Description"
-                }
-            }
         },
         "ResourceTypes": {
             "type": "list",
@@ -4804,6 +4396,13 @@
             "member": {
                 "shape": "ResourceToAdopt"
             }
+        },
+        "ResourcesToImport": {
+            "type": "list",
+            "member": {
+                "shape": "ResourceToImport"
+            },
+            "max": 200
         },
         "ResourcesToSkip": {
             "type": "list",
@@ -4896,24 +4495,6 @@
         "SessionToken": {
             "type": "string"
         },
-        "SetResourceTypeDefaultVersionInput": {
-            "type": "structure",
-            "members": {
-                "Arn": {
-                    "shape": "ResourceTypeArn"
-                },
-                "TypeName": {
-                    "shape": "ResourceTypeName"
-                },
-                "VersionId": {
-                    "shape": "ResourceTypeVersionId"
-                }
-            }
-        },
-        "SetResourceTypeDefaultVersionOutput": {
-            "type": "structure",
-            "members": {}
-        },
         "SetStackPolicyInput": {
             "type": "structure",
             "required": [
@@ -4939,7 +4520,7 @@
             "type": "structure",
             "members": {
                 "Arn": {
-                    "shape": "TypeArn"
+                    "shape": "PrivateTypeArn"
                 },
                 "Type": {
                     "shape": "RegistryType"
@@ -5875,7 +5456,12 @@
                 "UPDATE_ROLLBACK_FAILED",
                 "UPDATE_ROLLBACK_COMPLETE_CLEANUP_IN_PROGRESS",
                 "UPDATE_ROLLBACK_COMPLETE",
-                "REVIEW_IN_PROGRESS"
+                "REVIEW_IN_PROGRESS",
+                "IMPORT_IN_PROGRESS",
+                "IMPORT_COMPLETE",
+                "IMPORT_ROLLBACK_IN_PROGRESS",
+                "IMPORT_ROLLBACK_FAILED",
+                "IMPORT_ROLLBACK_COMPLETE"
             ]
         },
         "StackStatusFilter": {
@@ -6124,16 +5710,6 @@
             "max": 5120,
             "min": 1
         },
-        "TerminalStateAlreadyRecorded": {
-            "type": "structure",
-            "members": {},
-            "error": {
-                "code": "TerminalStateAlreadyRecorded",
-                "httpStatusCode": 400,
-                "senderFault": true
-            },
-            "exception": true
-        },
         "TimeoutMinutes": {
             "type": "integer",
             "min": 1
@@ -6167,7 +5743,7 @@
         "TypeArn": {
             "type": "string",
             "max": 1024,
-            "pattern": "arn:aws[A-Za-z0-9-]{0,64}:cloudformation:[A-Za-z0-9-]{1,64}:[0-9]{12}:type/.+"
+            "pattern": "arn:aws[A-Za-z0-9-]{0,64}:cloudformation:[A-Za-z0-9-]{1,64}:([0-9]{12})?:type/.+"
         },
         "TypeName": {
             "type": "string",
@@ -6190,11 +5766,6 @@
             "max": 16777216,
             "min": 1
         },
-        "TypeSourceUrl": {
-            "type": "string",
-            "max": 4096,
-            "min": 1
-        },
         "TypeSummaries": {
             "type": "list",
             "member": {
@@ -6209,6 +5780,9 @@
                 },
                 "TypeName": {
                     "shape": "TypeName"
+                },
+                "DefaultVersionId": {
+                    "shape": "TypeVersionId"
                 },
                 "TypeArn": {
                     "shape": "TypeArn"
