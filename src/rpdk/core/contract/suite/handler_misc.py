@@ -27,10 +27,13 @@ def contract_crud_exerciser(resource_client):
         create_model, None, clientRequestToken=resource_client.generate_token()
     )
 
+    input_for_cleanup = request
+
     try:
         # CREATE
         status, response = resource_client.call(Action.CREATE, request)
         resource_client.assert_success(status, response)
+        input_for_cleanup = _request_from_result(resource_client, response)
 
         # CREATE (idempotent, because same clientRequestToken)
         status, response = resource_client.call(Action.CREATE, request)
@@ -57,20 +60,26 @@ def contract_crud_exerciser(resource_client):
 
     finally:
         # DELETE
-        status, response = resource_client.call(Action.DELETE, request)
+        status, response = resource_client.call(Action.DELETE, input_for_cleanup)
         resource_client.assert_success(status, response)
 
     # DELETE
-    status, response = resource_client.call(Action.DELETE, request)
+    status, response = resource_client.call(Action.DELETE, input_for_cleanup)
     error_code = resource_client.assert_failed(status, response)
     assert error_code == HandlerErrorCode.NotFound
 
     request = create_request
+    input_for_cleanup = request
     try:
         # CREATE the same resource after DELETE
         status, response = resource_client.call(Action.CREATE, request)
         resource_client.assert_success(status, response)
+        input_for_cleanup = _request_from_result(resource_client, response)
     finally:
         # DELETE
-        status, response = resource_client.call(Action.DELETE, request)
+        status, response = resource_client.call(Action.DELETE, input_for_cleanup)
         resource_client.assert_success(status, response)
+
+
+def _request_from_result(resource_client, result):
+    return resource_client.make_request(result["resourceModel"], None)
