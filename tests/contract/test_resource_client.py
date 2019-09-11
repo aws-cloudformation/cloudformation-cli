@@ -103,6 +103,13 @@ def test_make_request():
     }
 
 
+def test_primary_identifiers_for(resource_client):
+    schema = {"primaryIdentifier": ["/properties/foo/bar/baz", "/properties/foo/bar2"]}
+    resource_client._update_schema(schema)
+    model = {"foo": {"bar": {"baz": "value1"}, "bar2": "value2"}}
+    assert resource_client.primary_identifiers_for(model) == ("value1", "value2")
+
+
 def test__update_schema(resource_client):
     resource_client._strategy = object()
 
@@ -127,7 +134,11 @@ def test_strategy(resource_client):
         "properties": {
             "a": {"type": "number", "const": 1},
             "b": {"type": "number", "const": 2},
-        }
+            "c": {"type": "number", "const": 3},
+            "d": {"type": "number", "const": 4},
+        },
+        "readOnlyProperties": ["/properties/c"],
+        "createOnlyProperties": ["/properties/d"],
     }
     resource_client._update_schema(schema)
 
@@ -137,12 +148,39 @@ def test_strategy(resource_client):
     strategy = resource_client.strategy
 
     assert resource_client._strategy is strategy
-    assert strategy.example() == {"a": 1, "b": 2}
+    assert strategy.example() == {"a": 1, "b": 2, "d": 4}
 
     cached = resource_client.strategy
 
     assert cached is strategy
     assert resource_client._strategy is strategy
+
+
+def test_update_strategy(resource_client):
+    schema = {
+        "properties": {
+            "a": {"type": "number", "const": 1},
+            "b": {"type": "number", "const": 2},
+            "c": {"type": "number", "const": 3},
+            "d": {"type": "number", "const": 4},
+        },
+        "readOnlyProperties": ["/properties/c"],
+        "createOnlyProperties": ["/properties/d"],
+    }
+    resource_client._update_schema(schema)
+
+    assert resource_client._schema is schema
+    assert resource_client._update_strategy is None
+
+    update_strategy = resource_client.update_strategy
+
+    assert resource_client._update_strategy is update_strategy
+    assert update_strategy.example() == {"a": 1, "b": 2}
+
+    cached = resource_client.update_strategy
+
+    assert cached is update_strategy
+    assert resource_client._update_strategy is update_strategy
 
 
 def test_generate_create_example(resource_client):
@@ -156,6 +194,22 @@ def test_generate_create_example(resource_client):
     resource_client._update_schema(schema)
     example = resource_client.generate_create_example()
     assert example == {"a": 1}
+
+
+def test_generate_update_example(resource_client):
+    schema = {
+        "properties": {
+            "a": {"type": "number", "const": 1},
+            "b": {"type": "number", "const": 2},
+            "c": {"type": "number", "const": 3},
+        },
+        "readOnlyProperties": ["/properties/b"],
+        "createOnlyProperties": ["/properties/c"],
+    }
+    resource_client._update_schema(schema)
+    model_from_created_resource = {"b": 2, "a": 4}
+    example = resource_client.generate_update_example(model_from_created_resource)
+    assert example == {"a": 1, "b": 2}
 
 
 def test_has_writable_identifier_primary_is_read_only(resource_client):
@@ -249,6 +303,46 @@ def test_call_async(resource_client, action):
 
     assert status == OperationStatus.SUCCESS
     assert response == {"status": OperationStatus.SUCCESS.value}
+
+
+def test_call_and_assert_success(resource_client):
+    mock_client = resource_client._client
+    mock_client.invoke.return_value = {"Payload": StringIO('{"status": "SUCCESS"}')}
+    status, response, error_code = resource_client.call_and_assert(
+        Action.CREATE, {}, OperationStatus.SUCCESS, None
+    )
+    assert status == OperationStatus.SUCCESS
+    assert response == {"status": OperationStatus.SUCCESS.value}
+    assert error_code is None
+
+
+def test_call_and_assert_failed(resource_client):
+    mock_client = resource_client._client
+    mock_client.invoke.return_value = {
+        "Payload": StringIO('{"status": "FAILED","errorCode": "NotFound"}')
+    }
+    status, response, error_code = resource_client.call_and_assert(
+        Action.DELETE, {}, OperationStatus.FAILED, None
+    )
+    assert status == OperationStatus.FAILED
+    assert response == {"status": OperationStatus.FAILED.value, "errorCode": "NotFound"}
+    assert error_code == HandlerErrorCode.NotFound
+
+
+def test_call_and_assert_exception_unsupported_status(resource_client):
+    mock_client = resource_client._client
+    mock_client.invoke.return_value = {
+        "Payload": StringIO('{"status": "FAILED","errorCode": "NotFound"}')
+    }
+    with pytest.raises(ValueError):
+        resource_client.call_and_assert(Action.DELETE, {}, "OtherStatus", None)
+
+
+def test_call_and_assert_exception_assertion_mismatch(resource_client):
+    mock_client = resource_client._client
+    mock_client.invoke.return_value = {"Payload": StringIO('{"status": "SUCCESS"}')}
+    with pytest.raises(AssertionError):
+        resource_client.call_and_assert(Action.CREATE, {}, OperationStatus.FAILED, None)
 
 
 @pytest.mark.parametrize("status", [OperationStatus.SUCCESS, OperationStatus.FAILED])
