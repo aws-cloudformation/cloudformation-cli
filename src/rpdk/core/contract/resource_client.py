@@ -88,21 +88,10 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
 
     def primary_identifiers_for(self, model):
         schema_primary_id_paths = [
-            fragment_decode(prop, prefix="", output=list)[1:]
+            fragment_decode(prop, prefix="")[1:]
             for prop in self._schema.get("primaryIdentifier", [])
         ]
-        primary_ids = [
-            self._extract_values_from_path(path, model)
-            for path in schema_primary_id_paths
-        ]
-        return tuple(primary_ids)
-
-    @staticmethod
-    def _extract_values_from_path(path_list, model):
-        current_value = model
-        for key in path_list:
-            current_value = current_value[key]
-        return current_value
+        return tuple(traverse(model, path)[0] for path in schema_primary_id_paths)
 
     def _update_schema(self, schema):
         # TODO: resolve $ref
@@ -254,12 +243,7 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         return payload
 
     def call_and_assert(
-        self,
-        action,
-        current_model,
-        assert_status,
-        previous_model=None,
-        **kwargs  # noqa: C816
+        self, action, assert_status, current_model, previous_model=None, **kwargs
     ):
         if assert_status not in [OperationStatus.SUCCESS, OperationStatus.FAILED]:
             raise ValueError("Assert status {} not supported.".format(assert_status))

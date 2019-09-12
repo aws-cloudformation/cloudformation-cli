@@ -41,11 +41,9 @@ def contract_crud_exerciser(resource_client):
 
         _test_read_success(resource_client, updated_model)
 
-        list_response = _test_list_success(resource_client, updated_model)
+        list_models = _test_list_success(resource_client, updated_model)
 
-        _test_model_in_resource_models(
-            resource_client, updated_model, list_response["resourceModels"]
-        )
+        _test_model_in_resource_models(resource_client, updated_model, list_models)
 
         update_response = _test_update_success(resource_client, updated_model)
 
@@ -54,11 +52,9 @@ def contract_crud_exerciser(resource_client):
         # Read and list operations should work as expected after an update.
         _test_read_success(resource_client, updated_model)
 
-        list_response = _test_list_success(resource_client, updated_model)
+        list_models = _test_list_success(resource_client, updated_model)
 
-        _test_model_in_resource_models(
-            resource_client, updated_model, list_response["resourceModels"]
-        )
+        _test_model_in_resource_models(resource_client, updated_model, list_models)
     finally:
         _test_delete_success(resource_client, updated_model)
 
@@ -67,10 +63,8 @@ def contract_crud_exerciser(resource_client):
     # LIST: Should not fail after deletion, since it is a list of all
     #       current resources of the resource type. Deletion should
     #       remove the model from the list, however.
-    list_response = _test_list_success(resource_client, updated_model)
-    _test_model_not_in_resource_models(
-        resource_client, updated_model, list_response["resourceModels"]
-    )
+    list_models = _test_list_success(resource_client, updated_model)
+    _test_model_not_in_resource_models(resource_client, updated_model, list_models)
 
     _test_update_failure_not_found(resource_client, updated_model)
     # DELETE: Should fail with NotFound because we've already deleted the resource.
@@ -92,7 +86,7 @@ def contract_crud_exerciser(resource_client):
 
 def _test_create_success(resource_client, current_resource_model):
     _status, response, _error_code = resource_client.call_and_assert(
-        Action.CREATE, current_resource_model, OperationStatus.SUCCESS
+        Action.CREATE, OperationStatus.SUCCESS, current_resource_model
     )
     return response
 
@@ -109,7 +103,7 @@ def _test_create_failure_if_repeat_writeable_id(
         # resource model means that the same resource is trying to be
         # created twice.
         _status, _response, error_code = resource_client.call_and_assert(
-            Action.CREATE, current_resource_model, OperationStatus.FAILED
+            Action.CREATE, OperationStatus.FAILED, current_resource_model
         )
         assert (
             error_code == HandlerErrorCode.AlreadyExists
@@ -121,7 +115,7 @@ def _test_create_failure_if_repeat_writeable_id(
 
 def _test_read_success(resource_client, current_resource_model):
     _status, response, _error_code = resource_client.call_and_assert(
-        Action.READ, current_resource_model, OperationStatus.SUCCESS
+        Action.READ, OperationStatus.SUCCESS, current_resource_model
     )
     assert response["resourceModel"] == current_resource_model
     return response
@@ -129,29 +123,26 @@ def _test_read_success(resource_client, current_resource_model):
 
 def _test_read_failure_not_found(resource_client, current_resource_model):
     _status, _response, error_code = resource_client.call_and_assert(
-        Action.READ, current_resource_model, OperationStatus.FAILED
+        Action.READ, OperationStatus.FAILED, current_resource_model
     )
     assert error_code == HandlerErrorCode.NotFound
 
 
 def _test_list_success(resource_client, current_resource_model):
     _status, response, _error_code = resource_client.call_and_assert(
-        Action.LIST, current_resource_model, OperationStatus.SUCCESS
+        Action.LIST, OperationStatus.SUCCESS, current_resource_model
     )
     next_token = response.get("nextToken")
+    resource_models = response["resourceModels"]
     while next_token is not None:
         _status, next_response, _error_code = resource_client.call_and_assert(
             Action.LIST,
-            current_resource_model,
             OperationStatus.SUCCESS,
-            next_token=next_token,
+            current_resource_model,
+            nextToken=next_token,
         )
-        next_response["resourceModels"] = (
-            response["resourceModels"] + next_response["resourceModels"]
-        )
-        next_token = next_response.get("nextToken")
-        response = next_response
-    return response
+        resource_models.extend(next_response["resourceModels"])
+    return resource_models
 
 
 def _test_model_in_resource_models(
@@ -181,10 +172,7 @@ def _test_model_not_in_resource_models(
 def _test_update_success(resource_client, current_resource_model):
     update_model = resource_client.generate_update_example(current_resource_model)
     _status, response, _error_code = resource_client.call_and_assert(
-        Action.UPDATE,
-        current_resource_model,
-        OperationStatus.SUCCESS,
-        previous_model=update_model,
+        Action.UPDATE, OperationStatus.SUCCESS, update_model, current_resource_model
     )
     # The response model should be the same as the create output model,
     # except the update-able properties should be overridden.
@@ -193,25 +181,22 @@ def _test_update_success(resource_client, current_resource_model):
 
 
 def _test_update_failure_not_found(resource_client, current_resource_model):
-    post_delete_update_model = resource_client.generate_create_example()
+    update_model = resource_client.generate_update_example(current_resource_model)
     _status, _response, error_code = resource_client.call_and_assert(
-        Action.UPDATE,
-        current_resource_model,
-        OperationStatus.FAILED,
-        previous_model=post_delete_update_model,
+        Action.UPDATE, OperationStatus.FAILED, update_model, current_resource_model
     )
     assert error_code == HandlerErrorCode.NotFound
 
 
 def _test_delete_success(resource_client, current_resource_model):
     _status, response, _error_code = resource_client.call_and_assert(
-        Action.DELETE, current_resource_model, OperationStatus.SUCCESS
+        Action.DELETE, OperationStatus.SUCCESS, current_resource_model
     )
     return response
 
 
 def _test_delete_failure_not_found(resource_client, current_resource_model):
     _status, _response, error_code = resource_client.call_and_assert(
-        Action.DELETE, current_resource_model, OperationStatus.FAILED
+        Action.DELETE, OperationStatus.FAILED, current_resource_model
     )
     assert error_code == HandlerErrorCode.NotFound

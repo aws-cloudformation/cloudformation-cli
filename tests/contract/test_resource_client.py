@@ -309,7 +309,7 @@ def test_call_and_assert_success(resource_client):
     mock_client = resource_client._client
     mock_client.invoke.return_value = {"Payload": StringIO('{"status": "SUCCESS"}')}
     status, response, error_code = resource_client.call_and_assert(
-        Action.CREATE, {}, OperationStatus.SUCCESS, None
+        Action.CREATE, OperationStatus.SUCCESS, {}, None
     )
     assert status == OperationStatus.SUCCESS
     assert response == {"status": OperationStatus.SUCCESS.value}
@@ -322,7 +322,7 @@ def test_call_and_assert_failed(resource_client):
         "Payload": StringIO('{"status": "FAILED","errorCode": "NotFound"}')
     }
     status, response, error_code = resource_client.call_and_assert(
-        Action.DELETE, {}, OperationStatus.FAILED, None
+        Action.DELETE, OperationStatus.FAILED, {}, None
     )
     assert status == OperationStatus.FAILED
     assert response == {"status": OperationStatus.FAILED.value, "errorCode": "NotFound"}
@@ -335,14 +335,14 @@ def test_call_and_assert_exception_unsupported_status(resource_client):
         "Payload": StringIO('{"status": "FAILED","errorCode": "NotFound"}')
     }
     with pytest.raises(ValueError):
-        resource_client.call_and_assert(Action.DELETE, {}, "OtherStatus", None)
+        resource_client.call_and_assert(Action.DELETE, "OtherStatus", {}, None)
 
 
 def test_call_and_assert_exception_assertion_mismatch(resource_client):
     mock_client = resource_client._client
     mock_client.invoke.return_value = {"Payload": StringIO('{"status": "SUCCESS"}')}
     with pytest.raises(AssertionError):
-        resource_client.call_and_assert(Action.CREATE, {}, OperationStatus.FAILED, None)
+        resource_client.call_and_assert(Action.CREATE, OperationStatus.FAILED, {}, None)
 
 
 @pytest.mark.parametrize("status", [OperationStatus.SUCCESS, OperationStatus.FAILED])
