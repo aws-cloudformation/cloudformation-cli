@@ -86,13 +86,6 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
     def _properties_to_paths(self, key):
         return {fragment_decode(prop, prefix="") for prop in self._schema.get(key, [])}
 
-    def primary_identifiers_for(self, model):
-        schema_primary_id_paths = [
-            fragment_decode(prop, prefix="")[1:]
-            for prop in self._schema.get("primaryIdentifier", [])
-        ]
-        return tuple(traverse(model, path)[0] for path in schema_primary_id_paths)
-
     def _update_schema(self, schema):
         # TODO: resolve $ref
         self._schema = schema

@@ -103,13 +103,6 @@ def test_make_request():
     }
 
 
-def test_primary_identifiers_for(resource_client):
-    schema = {"primaryIdentifier": ["/properties/foo/bar/baz", "/properties/foo/bar2"]}
-    resource_client._update_schema(schema)
-    model = {"foo": {"bar": {"baz": "value1"}, "bar2": "value2"}}
-    assert resource_client.primary_identifiers_for(model) == ("value1", "value2")
-
-
 def test__update_schema(resource_client):
     resource_client._strategy = object()
 

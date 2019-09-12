@@ -43,7 +43,7 @@ def contract_crud_exerciser(resource_client):
 
         list_models = _test_list_success(resource_client, updated_model)
 
-        _test_model_in_resource_models(resource_client, updated_model, list_models)
+        assert updated_model in list_models
 
         update_response = _test_update_success(resource_client, updated_model)
 
@@ -54,7 +54,7 @@ def contract_crud_exerciser(resource_client):
 
         list_models = _test_list_success(resource_client, updated_model)
 
-        _test_model_in_resource_models(resource_client, updated_model, list_models)
+        assert updated_model in list_models
     finally:
         _test_delete_success(resource_client, updated_model)
 
@@ -64,7 +64,7 @@ def contract_crud_exerciser(resource_client):
     #       current resources of the resource type. Deletion should
     #       remove the model from the list, however.
     list_models = _test_list_success(resource_client, updated_model)
-    _test_model_not_in_resource_models(resource_client, updated_model, list_models)
+    assert updated_model not in list_models
 
     _test_update_failure_not_found(resource_client, updated_model)
     # DELETE: Should fail with NotFound because we've already deleted the resource.
@@ -143,30 +143,6 @@ def _test_list_success(resource_client, current_resource_model):
         )
         resource_models.extend(next_response["resourceModels"])
     return resource_models
-
-
-def _test_model_in_resource_models(
-    resource_client, current_resource_model, resource_models
-):
-    expected_primary_ids = resource_client.primary_identifiers_for(
-        current_resource_model
-    )
-    actual_primary_ids = [
-        resource_client.primary_identifiers_for(model) for model in resource_models
-    ]
-    assert expected_primary_ids in actual_primary_ids
-
-
-def _test_model_not_in_resource_models(
-    resource_client, current_resource_model, resource_models
-):
-    expected_primary_ids = resource_client.primary_identifiers_for(
-        current_resource_model
-    )
-    actual_primary_ids = [
-        resource_client.primary_identifiers_for(model) for model in resource_models
-    ]
-    assert expected_primary_ids not in actual_primary_ids
 
 
 def _test_update_success(resource_client, current_resource_model):
