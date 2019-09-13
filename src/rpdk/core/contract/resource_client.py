@@ -79,6 +79,7 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
 
         self._schema = None
         self._strategy = None
+        self._update_strategy = None
         self._overrides = overrides
         self._update_schema(schema)
 
@@ -89,6 +90,7 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         # TODO: resolve $ref
         self._schema = schema
         self._strategy = None
+        self._update_strategy = None
 
         self._primary_identifier_paths = self._properties_to_paths("primaryIdentifier")
         self._read_only_paths = self._properties_to_paths("readOnlyProperties")
@@ -122,14 +124,39 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
 
         # make a copy so the original schema is never modified
         schema = json.loads(json.dumps(self._schema))
+
         prune_properties(schema, self._read_only_paths)
 
         self._strategy = generate_schema_strategy(schema)
         return self._strategy
 
+    @property
+    def update_strategy(self):
+        # an empty strategy (i.e. false-y) is valid
+        if self._update_strategy is not None:
+            return self._update_strategy
+
+        # imported here to avoid hypothesis being loaded before pytest is loaded
+        from .resource_generator import generate_schema_strategy
+
+        # make a copy so the original schema is never modified
+        schema = json.loads(json.dumps(self._schema))
+
+        prune_properties(schema, self._read_only_paths)
+        prune_properties(schema, self._create_only_paths)
+
+        self._update_strategy = generate_schema_strategy(schema)
+        return self._update_strategy
+
     def generate_create_example(self):
         example = self.strategy.example()
         return override_properties(example, self._overrides.get("CREATE", {}))
+
+    def generate_update_example(self, create_model):
+        example = override_properties(
+            self.update_strategy.example(), self._overrides.get("CREATE", {})
+        )
+        return {**create_model, **example}
 
     @staticmethod
     def assert_in_progress(status, response):
@@ -207,6 +234,20 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         payload = json.load(result["Payload"])
         LOG.debug("Received response\n%s", payload)
         return payload
+
+    def call_and_assert(
+        self, action, assert_status, current_model, previous_model=None, **kwargs
+    ):
+        if assert_status not in [OperationStatus.SUCCESS, OperationStatus.FAILED]:
+            raise ValueError("Assert status {} not supported.".format(assert_status))
+        request = self.make_request(current_model, previous_model, **kwargs)
+        status, response = self.call(action, request)
+        if assert_status == OperationStatus.SUCCESS:
+            self.assert_success(status, response)
+            error_code = None
+        else:
+            error_code = self.assert_failed(status, response)
+        return status, response, error_code
 
     def call(self, action, request):
         payload = self._make_payload(action, request)
