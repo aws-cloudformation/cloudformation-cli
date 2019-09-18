@@ -142,6 +142,7 @@ def _test_list_success(resource_client, current_resource_model):
             nextToken=next_token,
         )
         resource_models.extend(next_response["resourceModels"])
+        next_token = next_response.get("nextToken")
     return resource_models
 
 
