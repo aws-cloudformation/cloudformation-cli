@@ -45,16 +45,17 @@ def contract_crud_exerciser(resource_client):
 
         assert updated_model in list_models
 
-        update_response = _test_update_success(resource_client, updated_model)
+        if resource_client.has_update_handler():
+            update_response = _test_update_success(resource_client, updated_model)
 
-        updated_model = update_response["resourceModel"]
+            updated_model = update_response["resourceModel"]
 
-        # Read and list operations should work as expected after an update.
-        _test_read_success(resource_client, updated_model)
+            # Read and list operations should work as expected after an update.
+            _test_read_success(resource_client, updated_model)
 
-        list_models = _test_list_success(resource_client, updated_model)
+            list_models = _test_list_success(resource_client, updated_model)
 
-        assert updated_model in list_models
+            assert updated_model in list_models
     finally:
         _test_delete_success(resource_client, updated_model)
 
