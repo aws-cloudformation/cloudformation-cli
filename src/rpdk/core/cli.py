@@ -13,6 +13,7 @@ from .data_loaders import resource_yaml
 from .exceptions import DownstreamError, SysExitRecommendedError
 from .generate import setup_subparser as generate_setup_subparser
 from .init import setup_subparser as init_setup_subparser
+from .invoke import setup_subparser as invoke_setup_subparser
 from .submit import setup_subparser as submit_setup_subparser
 from .test import setup_subparser as test_setup_subparser
 from .validate import setup_subparser as validate_setup_subparser
@@ -83,6 +84,7 @@ def main(args_in=None):  # pylint: disable=too-many-statements
         submit_setup_subparser(subparsers, parents)
         generate_setup_subparser(subparsers, parents)
         test_setup_subparser(subparsers, parents)
+        invoke_setup_subparser(subparsers, parents)
         unittest_patch_setup_subparser(subparsers, parents)
         args = parser.parse_args(args=args_in)
 
