@@ -47,6 +47,7 @@ SETTINGS_VALIDATOR = Draft6Validator(
             "typeName": {"type": "string", "pattern": TYPE_NAME_REGEX},
             "runtime": {"type": "string", "enum": list(LAMBDA_RUNTIMES)},
             "entrypoint": {"type": ["string", "null"]},
+            "testEntrypoint": {"type": ["string", "null"]},
             "settings": {"type": "object"},
         },
         "required": ["language", "typeName", "runtime", "entrypoint"],
@@ -66,6 +67,7 @@ class Project:  # pylint: disable=too-many-instance-attributes
         self.schema = None
         self.runtime = "noexec"
         self.entrypoint = None
+        self.test_entrypoint = None
 
         LOG.debug("Root directory: %s", self.root)
 
@@ -114,6 +116,7 @@ class Project:  # pylint: disable=too-many-instance-attributes
         self.type_name = raw_settings["typeName"]
         self.runtime = raw_settings["runtime"]
         self.entrypoint = raw_settings["entrypoint"]
+        self.test_entrypoint = raw_settings["testEntrypoint"]
         self._plugin = load_plugin(raw_settings["language"])
         self.settings = raw_settings.get("settings", {})
 
@@ -143,6 +146,7 @@ class Project:  # pylint: disable=too-many-instance-attributes
                     "language": language,
                     "runtime": self.runtime,
                     "entrypoint": self.entrypoint,
+                    "testEntrypoint": self.test_entrypoint,
                     "settings": self.settings,
                 },
                 f,

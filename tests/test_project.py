@@ -73,6 +73,7 @@ def test_load_settings_valid_json(project):
             "language": LANGUAGE,
             "runtime": RUNTIME,
             "entrypoint": None,
+            "testEntrypoint": None,
         }
     )
     patch_load = patch(
