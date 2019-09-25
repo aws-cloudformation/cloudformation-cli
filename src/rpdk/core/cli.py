@@ -134,7 +134,7 @@ def main(args_in=None):  # pylint: disable=too-many-statements
             log.debug("Unhandled exception", exc_info=True)
         else:
             print("Please include this information:", file=sys.stderr)
-            import traceback
+            import traceback  # pylint: disable=import-outside-toplevel
 
             traceback.print_exc()
         raise SystemExit(EXIT_UNHANDLED_EXCEPTION)
