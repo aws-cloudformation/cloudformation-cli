@@ -268,3 +268,6 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
             status = OperationStatus[response["status"]]
 
         return status, response
+
+    def has_update_handler(self):
+        return "update" in self._schema["handlers"]

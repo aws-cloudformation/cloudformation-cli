@@ -480,3 +480,15 @@ def test_override_properties():
         "one": "two",
         "array": ["first", "last"],
     }
+
+
+def test_has_update_handler(resource_client):
+    schema = {"handlers": {"update": {"permissions": ["permission"]}}}
+    resource_client._update_schema(schema)
+    assert resource_client.has_update_handler()
+
+
+def test_has_update_handler_false(resource_client):
+    schema = {"handlers": {"create": {"permissions": ["permission"]}}}
+    resource_client._update_schema(schema)
+    assert not resource_client.has_update_handler()
