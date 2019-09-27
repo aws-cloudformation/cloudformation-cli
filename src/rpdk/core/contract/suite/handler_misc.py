@@ -71,7 +71,7 @@ def contract_crud_exerciser(resource_client):
         _test_update_failure_not_found(resource_client, updated_model)
 
     # DELETE: Should fail with NotFound because we've already deleted the resource.
-    _test_delete_failure_not_found(resource_client, create_model)
+    _test_delete_failure_not_found(resource_client, updated_model)
 
     new_create_model = create_model
     try:
