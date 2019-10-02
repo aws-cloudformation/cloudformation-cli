@@ -3,8 +3,6 @@ function. The function is re-invoked while the IN_PROGRESS status is returned.
 
 Projects can be created via the 'init' sub command.
 """
-# fmt: off
-import json
 # pylint: disable=protected-access
 import logging
 from argparse import FileType
@@ -16,12 +14,12 @@ from .exceptions import SysExitRecommendedError
 from .project import Project
 from .test import _sam_arguments
 
-# fmt: on
-
 LOG = logging.getLogger(__name__)
 
 
 def invoke(args):
+    import json  # pylint: disable=import-outside-toplevel
+
     project = Project()
     project.load()
 
