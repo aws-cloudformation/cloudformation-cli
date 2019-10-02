@@ -4,6 +4,7 @@ function. The function is re-invoked while the IN_PROGRESS status is returned.
 Projects can be created via the 'init' sub command.
 """
 # pylint: disable=protected-access
+import json
 import logging
 from argparse import FileType
 from time import sleep
@@ -18,8 +19,6 @@ LOG = logging.getLogger(__name__)
 
 
 def invoke(args):
-    import json  # pylint: disable=import-outside-toplevel
-
     project = Project()
     project.load()
 
