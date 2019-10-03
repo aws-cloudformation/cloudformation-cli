@@ -112,27 +112,33 @@ def setup_subparser(subparsers, parents):
     parser = subparsers.add_parser("test", description=__doc__, parents=parents)
     parser.set_defaults(command=test)
 
+    _sam_arguments(parser)
+    # this parameter can be used to pass additional arguments to pytest after `--`
+    # for example,
+    parser.add_argument("passed_to_pytest", nargs="*", help=SUPPRESS)
+
+
+def _sam_arguments(parser):
     parser.add_argument(
         "--endpoint",
         default=DEFAULT_ENDPOINT,
-        help="The endpoint at which the type can be invoked (Default: {})".format(
-            DEFAULT_ENDPOINT
+        help=(
+            "The endpoint at which the type can be invoked "
+            f"(Default: {DEFAULT_ENDPOINT})"
         ),
     )
     parser.add_argument(
         "--function-name",
         default=DEFAULT_FUNCTION,
         help=(
-            "The logical lambda function name in the SAM template (Default: {})"
-        ).format(DEFAULT_FUNCTION),
+            "The logical lambda function name in the SAM template "
+            f"(Default: {DEFAULT_FUNCTION})"
+        ),
     )
     parser.add_argument(
         "--region",
         default=DEFAULT_REGION,
-        help="The region used for temporary credentials. (Default: {})".format(
-            DEFAULT_REGION
+        help=(
+            "The region used for temporary credentials " f"(Default: {DEFAULT_REGION})"
         ),
     )
-    # this parameter can be used to pass additional arguments to pytest after `--`
-    # for example,
-    parser.add_argument("passed_to_pytest", nargs="*", help=SUPPRESS)
