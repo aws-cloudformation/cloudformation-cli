@@ -48,22 +48,23 @@ def contract_create_delete(resource_client):
 def contract_create_duplicate(created_resource, resource_client):
     _created_model, request = created_resource
     if resource_client.has_writable_identifier():
+        LOG.warning(
+            "at least one identifier is writeable; "
+            "performing duplicate-CREATE-failed test"
+        )
+        # Should fail, because different clientRequestToken for the same
+        # resource model means that the same resource is trying to be
+        # created twice.
+        _status, _response, error_code = resource_client.call_and_assert(
+            Action.CREATE, OperationStatus.FAILED, request
+        )
+        assert (
+            error_code == HandlerErrorCode.AlreadyExists
+        ), "creating the same resource should not be possible"
+    else:
         pytest.skip(
             "no identifiers are writeable; skipping duplicate-CREATE-failed test"
         )
-    LOG.warning(
-        "at least one identifier is writeable; "
-        "performing duplicate-CREATE-failed test"
-    )
-    # Should fail, because different clientRequestToken for the same
-    # resource model means that the same resource is trying to be
-    # created twice.
-    _status, _response, error_code = resource_client.call_and_assert(
-        Action.CREATE, OperationStatus.FAILED, request
-    )
-    assert (
-        error_code == HandlerErrorCode.AlreadyExists
-    ), "creating the same resource should not be possible"
 
 
 @pytest.mark.create
