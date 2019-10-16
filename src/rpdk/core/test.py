@@ -16,6 +16,7 @@ from jsonschema.exceptions import ValidationError
 from rpdk.core.jsonutils.pointer import fragment_decode
 
 from .contract.contract_plugin import ContractPlugin
+from .contract.interface import Action
 from .contract.resource_client import ResourceClient
 from .data_loaders import copy_resource
 from .exceptions import SysExitRecommendedError
@@ -84,6 +85,13 @@ def get_overrides(root):
     return overrides
 
 
+def get_marker_options(schema):
+    lowercase_actions = {action.lower() for action in Action}
+    excluded_actions = lowercase_actions - schema.get("handlers", {}).keys()
+    marker_list = ["not " + action for action in excluded_actions]
+    return " and ".join(marker_list)
+
+
 def test(args):
     project = Project()
     project.load()
@@ -97,7 +105,7 @@ def test(args):
     )
 
     with temporary_ini_file() as path:
-        pytest_args = ["-c", path]
+        pytest_args = ["-c", path, "-m", get_marker_options(project.schema)]
         if args.passed_to_pytest:
             LOG.debug("extra args: %s", args.passed_to_pytest)
             pytest_args.extend(args.passed_to_pytest)

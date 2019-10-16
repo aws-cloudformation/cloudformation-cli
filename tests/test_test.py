@@ -8,18 +8,23 @@ from unittest.mock import Mock, patch
 import pytest
 
 from rpdk.core.cli import EXIT_UNHANDLED_EXCEPTION, main
+from rpdk.core.contract.interface import Action
 from rpdk.core.project import Project
 from rpdk.core.test import (
     DEFAULT_ENDPOINT,
     DEFAULT_FUNCTION,
     DEFAULT_REGION,
     empty_override,
+    get_marker_options,
     get_overrides,
     temporary_ini_file,
 )
 
 RANDOM_INI = "pytest_SOYPKR.ini"
 EMPTY_OVERRIDE = empty_override()
+
+
+SCHEMA = {"handlers": {action.lower(): [] for action in Action}}
 
 
 @contextmanager
@@ -49,7 +54,7 @@ def test_test_command_happy_path(
     capsys, args_in, pytest_args, plugin_args
 ):  # pylint: disable=too-many-locals
     mock_project = Mock(spec=Project)
-    mock_project.schema = {}
+    mock_project.schema = SCHEMA
     mock_project.root = None
 
     patch_project = patch(
@@ -78,7 +83,7 @@ def test_test_command_happy_path(
     mock_plugin.assert_called_once_with(mock_client.return_value)
     mock_ini.assert_called_once_with()
     mock_pytest.assert_called_once_with(
-        ["-c", RANDOM_INI] + pytest_args, plugins=[mock_plugin.return_value]
+        ["-c", RANDOM_INI, "-m", ""] + pytest_args, plugins=[mock_plugin.return_value]
     )
 
     _out, err = capsys.readouterr()
@@ -87,9 +92,9 @@ def test_test_command_happy_path(
 
 def test_test_command_return_code_on_error():
     mock_project = Mock(spec=Project)
-    mock_project.schema = {}
-    mock_project.root = None
 
+    mock_project.root = None
+    mock_project.schema = SCHEMA
     patch_project = patch(
         "rpdk.core.test.Project", autospec=True, return_value=mock_project
     )
@@ -163,3 +168,22 @@ def test_get_overrides_good_path(base):
     with path.open("w", encoding="utf-8") as f:
         json.dump(overrides, f)
     assert get_overrides(base) == {"CREATE": {("foo", "bar"): {}}}
+
+
+@pytest.mark.parametrize(
+    "schema,expected_marker_keywords",
+    [
+        (SCHEMA, ""),
+        (
+            {"handlers": {"create": [], "read": [], "update": [], "delete": []}},
+            ("not list",),
+        ),
+        (
+            {"handlers": {"create": []}},
+            ("not read", "not update", "not delete", "not list", " and "),
+        ),
+    ],
+)
+def test_get_marker_options(schema, expected_marker_keywords):
+    marker_options = get_marker_options(schema)
+    assert all(keyword in marker_options for keyword in expected_marker_keywords)
