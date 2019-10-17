@@ -6,8 +6,14 @@ import pytest
 
 # WARNING: contract tests should use fully qualified imports to avoid issues
 # when being loaded by pytest
-from rpdk.core.contract.interface import Action, HandlerErrorCode, OperationStatus
-from rpdk.core.contract.suite.handler_commons import test_list_success
+from rpdk.core.contract.interface import Action, OperationStatus
+from rpdk.core.contract.suite.handler_commons import (
+    test_create_success,
+    test_delete_failure_not_found,
+    test_list_success,
+    test_read_failure_not_found,
+    test_update_failure_not_found,
+)
 
 LOG = logging.getLogger(__name__)
 
@@ -33,10 +39,7 @@ def deleted_resource(resource_client):
 @pytest.mark.read
 def contract_delete_read(resource_client, deleted_resource):
     deleted_model, _request = deleted_resource
-    _status, _response, error_code = resource_client.call_and_assert(
-        Action.READ, OperationStatus.FAILED, deleted_model
-    )
-    assert error_code == HandlerErrorCode.NotFound
+    test_read_failure_not_found(resource_client, deleted_model)
 
 
 @pytest.mark.delete
@@ -54,28 +57,19 @@ def contract_delete_list(resource_client, deleted_resource):
 @pytest.mark.delete
 @pytest.mark.update
 def contract_delete_update(resource_client, deleted_resource):
-    deleted_model, request = deleted_resource
-    update_model = resource_client.generate_update_example(deleted_model)
-    _status, _response, error_code = resource_client.call_and_assert(
-        Action.UPDATE, OperationStatus.FAILED, update_model, request
-    )
-    assert error_code == HandlerErrorCode.NotFound
+    deleted_model, _request = deleted_resource
+    test_update_failure_not_found(resource_client, deleted_model)
 
 
 @pytest.mark.delete
 def contract_delete_delete(resource_client, deleted_resource):
     deleted_model, _request = deleted_resource
-    _status, _response, error_code = resource_client.call_and_assert(
-        Action.DELETE, OperationStatus.FAILED, deleted_model
-    )
-    assert error_code == HandlerErrorCode.NotFound
+    test_delete_failure_not_found(resource_client, deleted_model)
 
 
 @pytest.mark.create
 @pytest.mark.delete
 def contract_delete_create(resource_client, deleted_resource):
     deleted_model, request = deleted_resource
-    _status, response, _error_code = resource_client.call_and_assert(
-        Action.CREATE, OperationStatus.SUCCESS, request
-    )
+    response = test_create_success(resource_client, request)
     assert deleted_model == response["resourceModel"]

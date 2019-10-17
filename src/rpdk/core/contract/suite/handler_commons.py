@@ -1,5 +1,8 @@
+import logging
+
 from rpdk.core.contract.interface import Action, HandlerErrorCode, OperationStatus
-from rpdk.core.contract.suite.handler_misc import LOG
+
+LOG = logging.getLogger(__name__)
 
 
 def test_create_success(resource_client, current_resource_model):

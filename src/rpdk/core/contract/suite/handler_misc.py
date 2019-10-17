@@ -1,8 +1,4 @@
-import logging
-
 import pytest
-
-LOG = logging.getLogger(__name__)
 
 
 def contract_check_asserts_work():
