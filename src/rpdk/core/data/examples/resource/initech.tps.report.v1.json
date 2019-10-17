@@ -1,7 +1,7 @@
 {
     "typeName": "Initech::TPS::Report",
     "description": "An example resource schema demonstrating some basic constructs and validation rules.",
-    "sourceUrl": "git@github.com:aws-cloudformation/aws-cloudformation-rpdk.git",
+    "sourceUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
     "definitions": {
         "InitechDateFormat": {
             "$comment": "Use the `definitions` block to provide shared resource property schemas",
@@ -64,8 +64,8 @@
         }
     },
     "required": [
-        "Title",
-        "DueDate"
+        "TestCode",
+        "Title"
     ],
     "readOnlyProperties": [
         "/properties/TPSCode"
