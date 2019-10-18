@@ -68,6 +68,7 @@ Resources:
   LogAndMetricsDeliveryRole:
     Type: AWS::IAM::Role
     Properties:
+      MaxSessionDuration: 8400
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
