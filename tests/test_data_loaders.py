@@ -1,5 +1,6 @@
 # fixture and parameter have the same name
 # pylint: disable=redefined-outer-name
+# pylint: disable=import-outside-toplevel
 import json
 from contextlib import contextmanager
 from io import BytesIO, StringIO
