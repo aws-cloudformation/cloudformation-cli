@@ -13,7 +13,6 @@ disable=
     duplicate-code,             # finds dupes between tests and plugins
     too-few-public-methods,     # triggers when inheriting
     ungrouped-imports,          # clashes with isort
-    import-outside-toplevel,    # we do this intentionally in resource_client
 
 [BASIC]
 
