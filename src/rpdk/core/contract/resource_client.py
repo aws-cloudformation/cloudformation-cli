@@ -120,7 +120,9 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
             return self._strategy
 
         # imported here to avoid hypothesis being loaded before pytest is loaded
-        from .resource_generator import generate_schema_strategy
+        from .resource_generator import (
+            generate_schema_strategy,
+        )  # pylint: disable=import-outside-toplevel
 
         # make a copy so the original schema is never modified
         schema = json.loads(json.dumps(self._schema))
@@ -137,7 +139,9 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
             return self._update_strategy
 
         # imported here to avoid hypothesis being loaded before pytest is loaded
-        from .resource_generator import generate_schema_strategy
+        from .resource_generator import (
+            generate_schema_strategy,
+        )  # pylint: disable=import-outside-toplevel
 
         # make a copy so the original schema is never modified
         schema = json.loads(json.dumps(self._schema))
