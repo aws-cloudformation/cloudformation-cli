@@ -200,9 +200,46 @@ def test_generate_update_example(resource_client):
         "createOnlyProperties": ["/properties/c"],
     }
     resource_client._update_schema(schema)
+    resource_client._overrides = {}
     model_from_created_resource = {"b": 2, "a": 4}
     example = resource_client.generate_update_example(model_from_created_resource)
     assert example == {"a": 1, "b": 2}
+
+
+def test_generate_update_example_update_override(resource_client):
+    schema = {
+        "properties": {
+            "a": {"type": "number", "const": 1},
+            "b": {"type": "number", "const": 2},
+            "c": {"type": "number", "const": 3},
+        },
+        "readOnlyProperties": ["/properties/b"],
+        "createOnlyProperties": ["/properties/c"],
+    }
+    resource_client._update_schema(schema)
+    overrides = {"UPDATE": {"a": 2}, "CREATE": {"a": 5}}
+    resource_client._overrides = overrides
+    model_from_created_resource = {"b": 2, "a": 4}
+    example = resource_client.generate_update_example(model_from_created_resource)
+    assert example == {"a": 2, "b": 2}
+
+
+def test_generate_update_example_create_override(resource_client):
+    schema = {
+        "properties": {
+            "a": {"type": "number", "const": 1},
+            "b": {"type": "number", "const": 2},
+            "c": {"type": "number", "const": 3},
+        },
+        "readOnlyProperties": ["/properties/b"],
+        "createOnlyProperties": ["/properties/c"],
+    }
+    resource_client._update_schema(schema)
+    overrides = {"CREATE": {"a": 5}}
+    resource_client._overrides = overrides
+    model_from_created_resource = {"b": 2, "a": 4}
+    example = resource_client.generate_update_example(model_from_created_resource)
+    assert example == {"a": 5, "b": 2}
 
 
 def test_has_writable_identifier_primary_is_read_only(resource_client):

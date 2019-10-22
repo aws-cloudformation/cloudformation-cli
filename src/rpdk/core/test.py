@@ -30,8 +30,8 @@ DEFAULT_REGION = "us-east-1"
 
 OVERRIDES_VALIDATOR = Draft6Validator(
     {
-        "properties": {"CREATE": {"type": "object"}},
-        "required": ["CREATE"],
+        "properties": {"CREATE": {"type": "object"}, "UPDATE": {"type": "object"}},
+        "anyOf": [{"required": ["CREATE"]}, {"required": ["UPDATE"]}],
         "additionalProperties": False,
     }
 )
