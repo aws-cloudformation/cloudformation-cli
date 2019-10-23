@@ -1,3 +1,4 @@
+# pylint: disable=import-outside-toplevel
 import json
 import logging
 from time import sleep
@@ -153,9 +154,8 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         return override_properties(example, self._overrides.get("CREATE", {}))
 
     def generate_update_example(self, create_model):
-        example = override_properties(
-            self.update_strategy.example(), self._overrides.get("CREATE", {})
-        )
+        overrides = self._overrides.get("UPDATE", self._overrides.get("CREATE", {}))
+        example = override_properties(self.update_strategy.example(), overrides)
         return {**create_model, **example}
 
     @staticmethod
