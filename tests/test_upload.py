@@ -9,7 +9,12 @@ from urllib.parse import urlsplit
 import pytest
 from botocore.exceptions import ClientError, WaiterError
 
-from rpdk.core.exceptions import DownstreamError, InternalError, UploadError
+from rpdk.core.exceptions import (
+    DownstreamError,
+    InternalError,
+    InvalidProjectError,
+    UploadError,
+)
 from rpdk.core.upload import (
     BUCKET_OUTPUT_NAME,
     INFRA_STACK_NAME,
@@ -312,4 +317,12 @@ def test_create_or_update_role(uploader):
     )
     file_path = Path()
     with patch.object(Path, "open", return_value=StringIO("template")):
+        uploader.create_or_update_role(file_path, "my-resource-type")
+
+
+def test_create_or_update_role_not_found(uploader):
+    file_path = Path()
+    with patch.object(Path, "open", side_effect=FileNotFoundError), pytest.raises(
+        InvalidProjectError
+    ):
         uploader.create_or_update_role(file_path, "my-resource-type")

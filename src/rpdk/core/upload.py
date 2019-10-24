@@ -4,7 +4,7 @@ from datetime import datetime
 from botocore.exceptions import ClientError, WaiterError
 
 from .data_loaders import resource_stream
-from .exceptions import DownstreamError, InternalError, UploadError
+from .exceptions import DownstreamError, InternalError, InvalidProjectError, UploadError
 
 LOG = logging.getLogger(__name__)
 
@@ -135,8 +135,17 @@ class Uploader:
         return stack_id
 
     def create_or_update_role(self, template_path, resource_type):
-        with template_path.open("r", encoding="utf-8") as f:
-            template = f.read()
+        try:
+            with template_path.open("r", encoding="utf-8") as f:
+                template = f.read()
+        except FileNotFoundError:
+            LOG.critical(
+                "CloudFormation template 'resource-role.yaml' "
+                "for execution role not found. "
+                "Please run `generate` or "
+                "provide an execution role via the --role-arn parameter."
+            )
+            raise InvalidProjectError()
         stack_id = self._create_or_update_stack(
             template, "{}-role-stack".format(resource_type)
         )
