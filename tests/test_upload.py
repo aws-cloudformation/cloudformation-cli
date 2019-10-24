@@ -2,6 +2,7 @@
 # pylint: disable=redefined-outer-name,useless-super-delegation,protected-access
 from datetime import datetime
 from io import StringIO
+from pathlib import Path
 from unittest.mock import ANY, Mock, patch
 from urllib.parse import urlsplit
 
@@ -142,7 +143,7 @@ def test_upload_s3_clienterror(uploader):
         with pytest.raises(DownstreamError):
             uploader.upload("foo", fileobj)
 
-    mock_stack.assert_called_once_with(ANY)
+    mock_stack.assert_called_once_with(ANY, INFRA_STACK_NAME)
     uploader.s3_client.upload_fileobj.assert_called_once_with(
         fileobj, BUCKET_OUTPUT_VALUE, ANY
     )
@@ -168,7 +169,7 @@ def test_upload_s3_success(uploader):
         mock_time.utcnow.return_value = datetime(2004, 11, 17, 20, 54, 33)
         s3_url = uploader.upload(CONTENTS_UTF8, fileobj)
 
-    mock_stack.assert_called_once_with(ANY)
+    mock_stack.assert_called_once_with(ANY, INFRA_STACK_NAME)
     mock_time.utcnow.assert_called_once_with()
     expected_key = "{}-2004-11-17T20-54-33.zip".format(CONTENTS_UTF8)
     uploader.s3_client.upload_fileobj.assert_called_once_with(
@@ -190,7 +191,7 @@ def test_upload_s3_success(uploader):
 def test__create_or_update_stack_stack_doesnt_exist(uploader):
     uploader.cfn_client.create_stack.return_value = {"StackId": STACK_ID}
     with patch.object(uploader, "_wait_for_stack", autospec=True) as mock_wait:
-        stack_id = uploader._create_or_update_stack(CONTENTS_UTF8)
+        stack_id = uploader._create_or_update_stack(CONTENTS_UTF8, INFRA_STACK_NAME)
 
     assert stack_id == STACK_ID
 
@@ -215,7 +216,7 @@ def test__create_or_update_stack_stack_exists_and_no_changes(uploader):
     )
 
     with patch.object(uploader, "_wait_for_stack", autospec=True) as mock_wait:
-        stack_id = uploader._create_or_update_stack(CONTENTS_UTF8)
+        stack_id = uploader._create_or_update_stack(CONTENTS_UTF8, INFRA_STACK_NAME)
 
     assert stack_id == INFRA_STACK_NAME
 
@@ -239,7 +240,7 @@ def test__create_or_update_stack_stack_exists_and_needs_changes(uploader):
     uploader.cfn_client.update_stack.return_value = {"StackId": STACK_ID}
 
     with patch.object(uploader, "_wait_for_stack", autospec=True) as mock_wait:
-        stack_id = uploader._create_or_update_stack(CONTENTS_UTF8)
+        stack_id = uploader._create_or_update_stack(CONTENTS_UTF8, INFRA_STACK_NAME)
 
     assert stack_id == STACK_ID
 
@@ -265,7 +266,7 @@ def test__create_or_update_stack_create_unknown_failure(uploader):
 
     with patch.object(uploader, "_wait_for_stack", autospec=True) as mock_wait:
         with pytest.raises(DownstreamError):
-            uploader._create_or_update_stack(CONTENTS_UTF8)
+            uploader._create_or_update_stack(CONTENTS_UTF8, INFRA_STACK_NAME)
 
     uploader.cfn_client.create_stack.assert_called_once_with(
         Capabilities=["CAPABILITY_IAM"],
@@ -287,7 +288,7 @@ def test__create_or_update_stack_update_unknown_failure(uploader):
 
     with patch.object(uploader, "_wait_for_stack", autospec=True) as mock_wait:
         with pytest.raises(DownstreamError):
-            uploader._create_or_update_stack(CONTENTS_UTF8)
+            uploader._create_or_update_stack(CONTENTS_UTF8, INFRA_STACK_NAME)
 
     uploader.cfn_client.create_stack.assert_called_once_with(
         Capabilities=["CAPABILITY_IAM"],
@@ -302,3 +303,13 @@ def test__create_or_update_stack_update_unknown_failure(uploader):
     )
 
     mock_wait.assert_not_called()
+
+
+def test_create_or_update_role(uploader):
+    uploader.cfn_client.create_stack.return_value = {"StackId": STACK_ID}
+    uploader.cfn_client.describe_stacks.return_value = describe_stacks_result(
+        [{"OutputKey": "ResourceTypeRoleArn", "OutputValue": "bar"}]
+    )
+    file_path = Path()
+    with patch.object(Path, "open", return_value=StringIO("template")):
+        uploader.create_or_update_role(file_path, "my-resource-type")

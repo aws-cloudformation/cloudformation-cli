@@ -12,7 +12,7 @@ LOG = logging.getLogger(__name__)
 def submit(args):
     project = Project()
     project.load()
-    project.submit(args.dry_run, args.endpoint_url, args.region)
+    project.submit(args.dry_run, args.endpoint_url, args.region, args.role_arn)
 
 
 def setup_subparser(subparsers, parents):
@@ -25,3 +25,4 @@ def setup_subparser(subparsers, parents):
     )
     parser.add_argument("--endpoint-url", help="CloudFormation endpoint to use.")
     parser.add_argument("--region", help="AWS Region to submit the resource type.")
+    parser.add_argument("--role-arn", help="AWS Region to submit the resource type.")

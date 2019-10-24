@@ -28,4 +28,5 @@ Resources:
                 Resource: "*"
 Outputs:
   ResourceTypeRoleArn:
-    Value: !GetAtt ResourceTypeRole.Arn
+    Value:
+      Fn::GetAtt: ResourceTypeRole.Arn
