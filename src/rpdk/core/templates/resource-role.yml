@@ -4,7 +4,7 @@ Description: >
   during CRUDL operations to mutate resources on behalf of the customer.
 
 Resources:
-  ResourceTypeRole:
+  ExecutionRole:
     Type: AWS::IAM::Role
     Properties:
       MaxSessionDuration: 8400
@@ -28,6 +28,6 @@ Resources:
                 {% endfor %}
                 Resource: "*"
 Outputs:
-  ResourceTypeRoleArn:
+  ExecutionRoleArn:
     Value:
-      Fn::GetAtt: ResourceTypeRole.Arn
+      Fn::GetAtt: ExecutionRole.Arn

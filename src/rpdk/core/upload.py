@@ -10,7 +10,7 @@ LOG = logging.getLogger(__name__)
 
 BUCKET_OUTPUT_NAME = "CloudFormationManagedUploadBucketName"
 LOG_DELIVERY_ROLE_ARN_OUTPUT_NAME = "LogAndMetricsDeliveryRoleArn"
-RESOURCE_TYPE_ROLE_ARN_OUTPUT_NAME = "ResourceTypeRoleArn"
+EXECUTION_ROLE_ARN_OUTPUT_NAME = "ExecutionRoleArn"
 INFRA_STACK_NAME = "CloudFormationManagedUploadInfrastructure"
 
 
@@ -149,7 +149,7 @@ class Uploader:
         stack_id = self._create_or_update_stack(
             template, "{}-role-stack".format(resource_type)
         )
-        return self._get_stack_output(stack_id, RESOURCE_TYPE_ROLE_ARN_OUTPUT_NAME)
+        return self._get_stack_output(stack_id, EXECUTION_ROLE_ARN_OUTPUT_NAME)
 
     def upload(self, file_prefix, fileobj):
         template = self._get_template()

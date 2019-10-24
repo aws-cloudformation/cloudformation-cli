@@ -852,6 +852,29 @@
             ],
             "idempotent": true
         },
+        "RecordHandlerProgress": {
+            "name": "RecordHandlerProgress",
+            "http": {
+                "method": "POST",
+                "requestUri": "/"
+            },
+            "input": {
+                "shape": "RecordHandlerProgressInput"
+            },
+            "output": {
+                "shape": "RecordHandlerProgressOutput",
+                "resultWrapper": "RecordHandlerProgressResult"
+            },
+            "errors": [
+                {
+                    "shape": "InvalidStateTransitionException"
+                },
+                {
+                    "shape": "OperationStatusCheckFailedException"
+                }
+            ],
+            "idempotent": true
+        },
         "RegisterType": {
             "name": "RegisterType",
             "http": {
@@ -2610,6 +2633,25 @@
             },
             "documentation": "<p>The output for the <a>GetTemplateSummary</a> action.</p>"
         },
+        "HandlerErrorCode": {
+            "type": "string",
+            "enum": [
+                "NotUpdatable",
+                "InvalidRequest",
+                "AccessDenied",
+                "InvalidCredentials",
+                "AlreadyExists",
+                "NotFound",
+                "ResourceConflict",
+                "Throttling",
+                "ServiceLimitExceeded",
+                "NotStabilized",
+                "GeneralServiceException",
+                "ServiceInternalError",
+                "NetworkFailure",
+                "InternalFailure"
+            ]
+        },
         "Imports": {
             "type": "list",
             "member": {
@@ -2644,6 +2686,16 @@
             "documentation": "<p>The specified operation isn't valid.</p>",
             "error": {
                 "code": "InvalidOperationException",
+                "httpStatusCode": 400,
+                "senderFault": true
+            },
+            "exception": true
+        },
+        "InvalidStateTransitionException": {
+            "type": "structure",
+            "members": {},
+            "error": {
+                "code": "InvalidStateTransition",
                 "httpStatusCode": 400,
                 "senderFault": true
             },
@@ -3178,6 +3230,25 @@
             },
             "exception": true
         },
+        "OperationStatus": {
+            "type": "string",
+            "enum": [
+                "PENDING",
+                "IN_PROGRESS",
+                "SUCCESS",
+                "FAILED"
+            ]
+        },
+        "OperationStatusCheckFailedException": {
+            "type": "structure",
+            "members": {},
+            "error": {
+                "code": "ConditionalCheckFailed",
+                "httpStatusCode": 400,
+                "senderFault": true
+            },
+            "exception": true
+        },
         "OptionalSecureUrl": {
             "type": "string",
             "max": 4096
@@ -3380,6 +3451,40 @@
         "Reason": {
             "type": "string"
         },
+        "RecordHandlerProgressInput": {
+            "type": "structure",
+            "required": [
+                "BearerToken",
+                "OperationStatus"
+            ],
+            "members": {
+                "BearerToken": {
+                    "shape": "ClientToken"
+                },
+                "OperationStatus": {
+                    "shape": "OperationStatus"
+                },
+                "CurrentOperationStatus": {
+                    "shape": "OperationStatus"
+                },
+                "StatusMessage": {
+                    "shape": "StatusMessage"
+                },
+                "ErrorCode": {
+                    "shape": "HandlerErrorCode"
+                },
+                "ResourceModel": {
+                    "shape": "ResourceModel"
+                },
+                "ClientRequestToken": {
+                    "shape": "ClientRequestToken"
+                }
+            }
+        },
+        "RecordHandlerProgressOutput": {
+            "type": "structure",
+            "members": {}
+        },
         "Region": {
             "type": "string",
             "pattern": "[a-zA-Z0-9-]+"
@@ -3545,6 +3650,11 @@
             "member": {
                 "shape": "ResourceChangeDetail"
             }
+        },
+        "ResourceModel": {
+            "type": "string",
+            "max": 16384,
+            "min": 1
         },
         "ResourceProperties": {
             "type": "string"
@@ -4738,6 +4848,10 @@
                 "senderFault": true
             },
             "exception": true
+        },
+        "StatusMessage": {
+            "type": "string",
+            "max": 1024
         },
         "StopStackSetOperationInput": {
             "type": "structure",

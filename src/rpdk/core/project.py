@@ -209,13 +209,13 @@ class Project:  # pylint: disable=too-many-instance-attributes
     def generate(self):
         # generate template for IAM role assumed by cloudformation
         # to provision resources if schema has handlers defined
-        if "handlers" in self.schema.keys():
+        if "handlers" in self.schema:
             template = self.env.get_template("resource-role.yml")
             path = self.root / ROLE_TEMPLATE_FILENAME
             LOG.debug("Writing Resource Role CloudFormation template: %s", path)
             actions = {
                 action
-                for handler in self.schema.get("handlers", {}).values()
+                for handler in self.schema["handlers"].values()
                 for action in handler.get("permissions", [])
             }
             contents = template.render(type_name=self.hypenated_name, actions=actions)
@@ -273,7 +273,7 @@ class Project:  # pylint: disable=too-many-instance-attributes
         cfn_client = session.client("cloudformation", endpoint_url=endpoint_url)
         s3_client = session.client("s3")
         uploader = Uploader(cfn_client, s3_client)
-        if not role_arn and "handlers" in self.schema.keys():
+        if not role_arn and "handlers" in self.schema:
             LOG.debug("Creating execution role for provider to use")
             role_arn = uploader.create_or_update_role(
                 self.root / ROLE_TEMPLATE_FILENAME, self.hypenated_name
@@ -283,7 +283,7 @@ class Project:  # pylint: disable=too-many-instance-attributes
         LOG.debug("Got S3 URL: %s", s3_url)
         log_delivery_role = uploader.get_log_delivery_role_arn()
         LOG.debug("Got Log Role: %s", log_delivery_role)
-        args = {
+        kwargs = {
             "Type": "RESOURCE",
             "TypeName": self.type_name,
             "SchemaHandlerPackage": s3_url,
@@ -294,11 +294,10 @@ class Project:  # pylint: disable=too-many-instance-attributes
             },
         }
         if role_arn:
-            args["ExecutionRoleArn"] = role_arn
+            kwargs["ExecutionRoleArn"] = role_arn
 
         try:
-            # TODO pass unpacked args to register_type call
-            response = cfn_client.register_type(**args)
+            response = cfn_client.register_type(**kwargs)
 
         except ClientError as e:
             LOG.debug("Registering type resulted in unknown ClientError", exc_info=e)

@@ -174,13 +174,13 @@ def test_generate_handlers(project, tmpdir):
     with role_path.open("r", encoding="utf-8") as f:
         template = yaml.safe_load(f.read())
 
-    action_list = template["Resources"]["ResourceTypeRole"]["Properties"]["Policies"][
-        0
-    ]["PolicyDocument"]["Statement"][0]["Action"]
+    action_list = template["Resources"]["ExecutionRole"]["Properties"]["Policies"][0][
+        "PolicyDocument"
+    ]["Statement"][0]["Action"]
 
     assert all(action in expected_actions for action in action_list)
     assert len(action_list) == len(expected_actions)
-    assert template["Outputs"]["ResourceTypeRoleArn"]
+    assert template["Outputs"]["ExecutionRoleArn"]
     mock_plugin.generate.assert_called_once_with(project)
 
 

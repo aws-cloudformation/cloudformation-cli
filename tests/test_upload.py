@@ -17,6 +17,7 @@ from rpdk.core.exceptions import (
 )
 from rpdk.core.upload import (
     BUCKET_OUTPUT_NAME,
+    EXECUTION_ROLE_ARN_OUTPUT_NAME,
     INFRA_STACK_NAME,
     LOG_DELIVERY_ROLE_ARN_OUTPUT_NAME,
     Uploader,
@@ -313,7 +314,7 @@ def test__create_or_update_stack_update_unknown_failure(uploader):
 def test_create_or_update_role(uploader):
     uploader.cfn_client.create_stack.return_value = {"StackId": STACK_ID}
     uploader.cfn_client.describe_stacks.return_value = describe_stacks_result(
-        [{"OutputKey": "ResourceTypeRoleArn", "OutputValue": "bar"}]
+        [{"OutputKey": EXECUTION_ROLE_ARN_OUTPUT_NAME, "OutputValue": "bar"}]
     )
     file_path = Path()
     with patch.object(Path, "open", return_value=StringIO("template")):
