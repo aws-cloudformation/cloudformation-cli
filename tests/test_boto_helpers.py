@@ -1,4 +1,4 @@
-from unittest.mock import create_autospec, patch
+from unittest.mock import ANY, create_autospec, patch
 
 import pytest
 from boto3 import Session
@@ -11,6 +11,8 @@ from rpdk.core.boto_helpers import (
     get_temporary_credentials,
 )
 from rpdk.core.exceptions import CLIMisconfiguredError, DownstreamError
+
+EXPECTED_ROLE = "someroleArn"
 
 
 def test_create_sdk_session_region():
@@ -59,7 +61,7 @@ def test_get_temporary_credentials_has_token():
     creds = get_temporary_credentials(session)
 
     session.get_credentials.assert_called_once_with()
-    session.client.assert_not_called()
+    session.client.assert_called_once_with("sts")
 
     assert len(creds) == 3
     assert tuple(creds.keys()) == BOTO_CRED_KEYS
@@ -118,3 +120,55 @@ def test_get_temporary_credentials_invalid_credentials():
     session.get_credentials.assert_called_once_with()
     session.client.assert_called_once_with("sts")
     client.get_session_token.assert_called_once_with()
+
+
+def test_get_temporary_credentials_assume_role_fails():
+    session = create_autospec(spec=Session, spec_set=True)
+
+    client = session.client.return_value
+    client.assume_role.side_effect = ClientError(
+        {
+            "Error": {
+                "Type": "Sender",
+                "Code": "InvalidClientTokenId",
+                "Message": "The security token included in the request is invalid.",
+            }
+        },
+        "GetSessionToken",
+    )
+
+    with pytest.raises(DownstreamError):
+        get_temporary_credentials(session, role_arn=EXPECTED_ROLE)
+
+    session.client.assert_called_once_with("sts")
+    client.assume_role.assert_called_once_with(
+        RoleArn=EXPECTED_ROLE, RoleSessionName=ANY
+    )
+
+
+def test_get_temporary_credentials_assume_role():
+    session = create_autospec(spec=Session, spec_set=True)
+
+    access_key = object()
+    secret_key = object()
+    token = object()
+
+    client = session.client.return_value
+    client.assume_role.return_value = {
+        "Credentials": {
+            "AccessKeyId": access_key,
+            "SecretAccessKey": secret_key,
+            "SessionToken": token,
+        }
+    }
+
+    creds = get_temporary_credentials(session, LOWER_CAMEL_CRED_KEYS, EXPECTED_ROLE)
+
+    session.client.assert_called_once_with("sts")
+    client.assume_role.assert_called_once_with(
+        RoleArn=EXPECTED_ROLE, RoleSessionName=ANY
+    )
+
+    assert len(creds) == 3
+    assert tuple(creds.keys()) == LOWER_CAMEL_CRED_KEYS
+    assert tuple(creds.values()) == (access_key, secret_key, token)

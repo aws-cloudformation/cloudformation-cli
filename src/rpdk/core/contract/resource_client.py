@@ -56,10 +56,13 @@ def override_properties(document, overrides):
 
 class ResourceClient:  # pylint: disable=too-many-instance-attributes
     def __init__(
-        self, function_name, endpoint, region, schema, overrides
+        self, function_name, endpoint, region, schema, overrides, role_arn=None
     ):  # pylint: disable=too-many-arguments
+        self._schema = schema
         self._session = create_sdk_session(region)
-        self._creds = get_temporary_credentials(self._session, LOWER_CAMEL_CRED_KEYS)
+        self._creds = get_temporary_credentials(
+            self._session, LOWER_CAMEL_CRED_KEYS, role_arn
+        )
         self._function_name = function_name
         if endpoint.startswith("http://"):
             self._client = self._session.client(
