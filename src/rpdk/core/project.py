@@ -6,6 +6,7 @@ from tempfile import TemporaryFile
 from uuid import uuid4
 
 from botocore.exceptions import ClientError
+from jinja2 import Environment, PackageLoader, select_autoescape
 from jsonschema import Draft6Validator
 from jsonschema.exceptions import ValidationError
 
@@ -24,6 +25,7 @@ LOG = logging.getLogger(__name__)
 
 SETTINGS_FILENAME = ".rpdk-config"
 SCHEMA_UPLOAD_FILENAME = "schema.json"
+ROLE_TEMPLATE_FILENAME = "resource-role.yaml"
 TYPE_NAME_REGEX = "^[a-zA-Z0-9]{2,64}::[a-zA-Z0-9]{2,64}::[a-zA-Z0-9]{2,64}$"
 
 
@@ -68,6 +70,14 @@ class Project:  # pylint: disable=too-many-instance-attributes
         self.runtime = "noexec"
         self.entrypoint = None
         self.test_entrypoint = None
+
+        self.env = Environment(
+            trim_blocks=True,
+            lstrip_blocks=True,
+            keep_trailing_newline=True,
+            loader=PackageLoader(__name__, "templates/"),
+            autoescape=select_autoescape(["html", "htm", "xml"]),
+        )
 
         LOG.debug("Root directory: %s", self.root)
 
@@ -197,6 +207,20 @@ class Project:  # pylint: disable=too-many-instance-attributes
                 LOG.warning("File already exists, not overwriting '%s'", path)
 
     def generate(self):
+        # generate template for IAM role assumed by cloudformation
+        # to provision resources if schema has handlers defined
+        if "handlers" in self.schema:
+            template = self.env.get_template("resource-role.yml")
+            path = self.root / ROLE_TEMPLATE_FILENAME
+            LOG.debug("Writing Resource Role CloudFormation template: %s", path)
+            actions = {
+                action
+                for handler in self.schema["handlers"].values()
+                for action in handler.get("permissions", [])
+            }
+            contents = template.render(type_name=self.hypenated_name, actions=actions)
+            self.overwrite(path, contents)
+
         return self._plugin.generate(self)
 
     def load(self):
@@ -216,7 +240,7 @@ class Project:  # pylint: disable=too-many-instance-attributes
             msg = "Resource specification is invalid: " + str(e)
             self._raise_invalid_project(msg, e)
 
-    def submit(self, dry_run, endpoint_url, region_name):
+    def submit(self, dry_run, endpoint_url, region_name, role_arn):
         # if it's a dry run, keep the file; otherwise can delete after upload
         if dry_run:
             path = Path("{}.zip".format(self.hypenated_name))
@@ -236,32 +260,45 @@ class Project:  # pylint: disable=too-many-instance-attributes
                 LOG.error("Dry run complete: %s", path.resolve())
             else:
                 f.seek(0)
-                self._upload(f, endpoint_url=endpoint_url, region_name=region_name)
+                self._upload(
+                    f,
+                    endpoint_url=endpoint_url,
+                    region_name=region_name,
+                    role_arn=role_arn,
+                )
 
-    def _upload(self, fileobj, endpoint_url, region_name):
+    def _upload(self, fileobj, endpoint_url, region_name, role_arn):
         LOG.debug("Packaging complete, uploading...")
         session = create_sdk_session(region_name)
         cfn_client = session.client("cloudformation", endpoint_url=endpoint_url)
         s3_client = session.client("s3")
         uploader = Uploader(cfn_client, s3_client)
+        if not role_arn and "handlers" in self.schema:
+            LOG.debug("Creating execution role for provider to use")
+            role_arn = uploader.create_or_update_role(
+                self.root / ROLE_TEMPLATE_FILENAME, self.hypenated_name
+            )
+
         s3_url = uploader.upload(self.hypenated_name, fileobj)
         LOG.debug("Got S3 URL: %s", s3_url)
         log_delivery_role = uploader.get_log_delivery_role_arn()
         LOG.debug("Got Log Role: %s", log_delivery_role)
+        kwargs = {
+            "Type": "RESOURCE",
+            "TypeName": self.type_name,
+            "SchemaHandlerPackage": s3_url,
+            "ClientRequestToken": str(uuid4()),
+            "LoggingConfig": {
+                "LogRoleArn": log_delivery_role,
+                "LogGroupName": "{}-logs".format(self.hypenated_name),
+            },
+        }
+        if role_arn:
+            kwargs["ExecutionRoleArn"] = role_arn
 
         try:
-            response = cfn_client.register_type(
-                Type="RESOURCE",
-                TypeName=self.type_name,
-                SchemaHandlerPackage=s3_url,
-                ClientRequestToken=str(uuid4()),
-                LoggingConfig=(
-                    {
-                        "LogRoleArn": log_delivery_role,
-                        "LogGroupName": "{}-logs".format(self.hypenated_name),
-                    }
-                ),
-            )
+            response = cfn_client.register_type(**kwargs)
+
         except ClientError as e:
             LOG.debug("Registering type resulted in unknown ClientError", exc_info=e)
             raise DownstreamError("Unknown CloudFormation error") from e

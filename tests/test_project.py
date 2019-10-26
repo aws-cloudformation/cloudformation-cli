@@ -11,6 +11,7 @@ from pathlib import Path
 from unittest.mock import ANY, MagicMock, patch
 
 import pytest
+import yaml
 from botocore.exceptions import ClientError
 
 from rpdk.core.exceptions import (
@@ -147,10 +148,39 @@ def test_safewrite_exists(project, tmpdir, caplog):
     assert str(path) in last_record.message
 
 
-def test_generate(project):
+def test_generate_no_handlers(project):
+    project.schema = {}
     mock_plugin = MagicMock(spec=["generate"])
     with patch.object(project, "_plugin", mock_plugin):
         project.generate()
+    mock_plugin.generate.assert_called_once_with(project)
+
+
+def test_generate_handlers(project, tmpdir):
+    project.type_name = "Test::Handler::Test"
+    expected_actions = {"createAction", "readAction"}
+    project.schema = {
+        "handlers": {
+            "create": {"permissions": ["createAction", "readAction"]},
+            "read": {"permissions": ["readAction"]},
+        }
+    }
+    project.root = tmpdir
+    mock_plugin = MagicMock(spec=["generate"])
+    with patch.object(project, "_plugin", mock_plugin):
+        project.generate()
+
+    role_path = project.root / "resource-role.yaml"
+    with role_path.open("r", encoding="utf-8") as f:
+        template = yaml.safe_load(f.read())
+
+    action_list = template["Resources"]["ExecutionRole"]["Properties"]["Policies"][0][
+        "PolicyDocument"
+    ]["Statement"][0]["Action"]
+
+    assert all(action in expected_actions for action in action_list)
+    assert len(action_list) == len(expected_actions)
+    assert template["Outputs"]["ExecutionRoleArn"]
     mock_plugin.generate.assert_called_once_with(project)
 
 
@@ -257,7 +287,7 @@ def test_submit_dry_run(project):
     # these context managers can't be wrapped by black, but it removes the \
     with patch_plugin as mock_plugin, patch_path as mock_path, \
             patch_temp as mock_temp, patch_upload as mock_upload:
-        project.submit(True, endpoint_url=ENDPOINT, region_name=REGION)
+        project.submit(True, endpoint_url=ENDPOINT, region_name=REGION, role_arn=None)
     # fmt: on
 
     mock_temp.assert_not_called()
@@ -295,7 +325,7 @@ def test_submit_live_run(project):
     # these context managers can't be wrapped by black, but it removes the \
     with patch_plugin as mock_plugin, patch_path as mock_path, \
             patch_temp as mock_temp, patch_upload as mock_upload:
-        project.submit(False, endpoint_url=ENDPOINT, region_name=REGION)
+        project.submit(False, endpoint_url=ENDPOINT, region_name=REGION, role_arn=None)
     # fmt: on
 
     mock_path.assert_not_called()
@@ -306,15 +336,16 @@ def test_submit_live_run(project):
 
     assert temp_file.tell() == 0  # file was rewound before upload
     mock_upload.assert_called_once_with(
-        temp_file, region_name=REGION, endpoint_url=ENDPOINT
+        temp_file, region_name=REGION, endpoint_url=ENDPOINT, role_arn=None
     )
 
     assert temp_file._was_closed
     temp_file._close()
 
 
-def test__upload_good_path(project):
+def test__upload_good_path_create_role(project):
     project.type_name = TYPE_NAME
+    project.schema = {"handlers": {}}
 
     mock_cfn_client = MagicMock(spec=["register_type"])
     s3_client = object()
@@ -322,18 +353,24 @@ def test__upload_good_path(project):
 
     patch_sdk = patch("rpdk.core.project.create_sdk_session", autospec=True)
     patch_uploader = patch.object(Uploader, "upload", return_value="url")
-    patch_role_arn = patch.object(
+    patch_exec_role_arn = patch.object(
+        Uploader, "create_or_update_role", return_value="some-execution-role-arn"
+    )
+    patch_logging_role_arn = patch.object(
         Uploader, "get_log_delivery_role_arn", return_value="some-log-role-arn"
     )
     patch_uuid = patch("rpdk.core.project.uuid4", autospec=True, return_value="foo")
 
-    with patch_sdk as mock_sdk, patch_uploader as mock_upload_method, patch_role_arn as mock_role_arn_method:  # noqa: B950 as it conflicts with formatting rules # pylint: disable=C0301
+    with patch_sdk as mock_sdk, patch_uploader as mock_upload_method, patch_logging_role_arn as mock_role_arn_method, patch_exec_role_arn as mock_exec_role_method:  # noqa: B950 as it conflicts with formatting rules # pylint: disable=C0301
         mock_session = mock_sdk.return_value
         mock_session.client.side_effect = [mock_cfn_client, s3_client]
         with patch_uuid as mock_uuid:
-            project._upload(fileobj, endpoint_url=None, region_name=None)
+            project._upload(fileobj, endpoint_url=None, region_name=None, role_arn=None)
 
     mock_sdk.assert_called_once_with(None)
+    mock_exec_role_method.assert_called_once_with(
+        project.root / "resource-role.yaml", project.hypenated_name
+    )
     mock_upload_method.assert_called_once_with(project.hypenated_name, fileobj)
     mock_role_arn_method.assert_called_once_with()
     mock_uuid.assert_called_once_with()
@@ -346,11 +383,57 @@ def test__upload_good_path(project):
             "LogRoleArn": "some-log-role-arn",
             "LogGroupName": "aws-color-red-logs",
         },
+        ExecutionRoleArn="some-execution-role-arn",
+    )
+
+
+def test__upload_good_path_override_role(project):
+    project.type_name = TYPE_NAME
+    project.schema = {"handlers": {}}
+
+    mock_cfn_client = MagicMock(spec=["register_type"])
+    s3_client = object()
+    fileobj = object()
+
+    patch_sdk = patch("rpdk.core.project.create_sdk_session", autospec=True)
+    patch_uploader = patch.object(Uploader, "upload", return_value="url")
+    patch_exec_role_arn = patch.object(
+        Uploader, "create_or_update_role", return_value="some-execution-role-arn"
+    )
+    patch_logging_role_arn = patch.object(
+        Uploader, "get_log_delivery_role_arn", return_value="some-log-role-arn"
+    )
+    patch_uuid = patch("rpdk.core.project.uuid4", autospec=True, return_value="foo")
+
+    with patch_sdk as mock_sdk, patch_uploader as mock_upload_method, patch_logging_role_arn as mock_role_arn_method, patch_exec_role_arn as mock_exec_role_method:  # noqa: B950 as it conflicts with formatting rules # pylint: disable=C0301
+        mock_session = mock_sdk.return_value
+        mock_session.client.side_effect = [mock_cfn_client, s3_client]
+        with patch_uuid as mock_uuid:
+            project._upload(
+                fileobj, endpoint_url=None, region_name=None, role_arn="someArn"
+            )
+
+    mock_sdk.assert_called_once_with(None)
+    mock_exec_role_method.assert_not_called()
+    mock_upload_method.assert_called_once_with(project.hypenated_name, fileobj)
+    mock_role_arn_method.assert_called_once_with()
+    mock_uuid.assert_called_once_with()
+    mock_cfn_client.register_type.assert_called_once_with(
+        Type="RESOURCE",
+        TypeName=project.type_name,
+        SchemaHandlerPackage="url",
+        ClientRequestToken=mock_uuid.return_value,
+        LoggingConfig={
+            "LogRoleArn": "some-log-role-arn",
+            "LogGroupName": "aws-color-red-logs",
+        },
+        ExecutionRoleArn="someArn",
     )
 
 
 def test__upload_clienterror(project):
     project.type_name = TYPE_NAME
+    project.schema = {}
 
     mock_cfn_client = MagicMock(spec=["register_type"])
     mock_cfn_client.register_type.side_effect = ClientError(
@@ -370,7 +453,7 @@ def test__upload_clienterror(project):
         mock_session = mock_sdk.return_value
         mock_session.client.side_effect = [mock_cfn_client, s3_client]
         with patch_uuid as mock_uuid, pytest.raises(DownstreamError):
-            project._upload(fileobj, endpoint_url=None, region_name=None)
+            project._upload(fileobj, endpoint_url=None, region_name=None, role_arn=None)
 
     mock_sdk.assert_called_once_with(None)
     mock_upload_method.assert_called_once_with(project.hypenated_name, fileobj)
