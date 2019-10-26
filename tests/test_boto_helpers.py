@@ -130,8 +130,8 @@ def test_get_temporary_credentials_assume_role_fails():
         {
             "Error": {
                 "Type": "Sender",
-                "Code": "InvalidClientTokenId",
-                "Message": "The security token included in the request is invalid.",
+                "Code": "AccessDeniedException",
+                "Message": "You do not have sufficient access to perform this action.",
             }
         },
         "GetSessionToken",

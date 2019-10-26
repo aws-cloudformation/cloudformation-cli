@@ -33,8 +33,8 @@ def create_sdk_session(region_name=None):
 def get_temporary_credentials(session, key_names=BOTO_CRED_KEYS, role_arn=None):
     sts_client = session.client("sts")
     if role_arn:
-        session_name = "CloudFormationContractTest-{}".format(
-            datetime.now().strftime("%Y%m%d%H%M%S")
+        session_name = "CloudFormationContractTest-{:%Y%m%d%H%M%S}".format(
+            datetime.now()
         )
         try:
             response = sts_client.assume_role(
@@ -44,7 +44,7 @@ def get_temporary_credentials(session, key_names=BOTO_CRED_KEYS, role_arn=None):
             LOG.debug(
                 "Getting session token resulted in unknown ClientError", exc_info=e
             )
-            raise DownstreamError("Could not retrieve session token") from e
+            raise DownstreamError("Could not assume specified role") from e
         temp = response["Credentials"]
         creds = (temp["AccessKeyId"], temp["SecretAccessKey"], temp["SessionToken"])
     else:
