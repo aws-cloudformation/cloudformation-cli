@@ -73,20 +73,6 @@
             ],
             "documentation": "<p>Creates a list of changes that will be applied to a stack so that you can review the changes before executing them. You can create a change set for a stack that doesn't exist or an existing stack. If you create a change set for a stack that doesn't exist, the change set shows all of the resources that AWS CloudFormation will create. If you create a change set for an existing stack, AWS CloudFormation compares the stack's information with the information that you submit in the change set and lists the differences. Use change sets to understand which resources AWS CloudFormation will create or change, and how it will change resources in an existing stack, before you create or update a stack.</p> <p>To create a change set for a stack that doesn't exist, for the <code>ChangeSetType</code> parameter, specify <code>CREATE</code>. To create a change set for an existing stack, specify <code>UPDATE</code> for the <code>ChangeSetType</code> parameter. After the <code>CreateChangeSet</code> call successfully completes, AWS CloudFormation starts creating the change set. To check the status of the change set or to review it, use the <a>DescribeChangeSet</a> action.</p> <p>When you are satisfied with the changes the change set will make, execute the change set by using the <a>ExecuteChangeSet</a> action. AWS CloudFormation doesn't make changes until you execute the change set.</p>"
         },
-        "CreateResourcesSnapshot": {
-            "name": "CreateResourcesSnapshot",
-            "http": {
-                "method": "POST",
-                "requestUri": "/"
-            },
-            "input": {
-                "shape": "CreateResourcesSnapshotInput"
-            },
-            "output": {
-                "shape": "CreateResourcesSnapshotOutput",
-                "resultWrapper": "CreateResourcesSnapshotResult"
-            }
-        },
         "CreateStack": {
             "name": "CreateStack",
             "http": {
@@ -176,20 +162,6 @@
                 }
             ],
             "documentation": "<p>Creates a stack set.</p>"
-        },
-        "CreateUploadBucket": {
-            "name": "CreateUploadBucket",
-            "http": {
-                "method": "POST",
-                "requestUri": "/"
-            },
-            "input": {
-                "shape": "CreateUploadBucketInput"
-            },
-            "output": {
-                "shape": "CreateUploadBucketOutput",
-                "resultWrapper": "CreateUploadBucketResult"
-            }
         },
         "DeleteChangeSet": {
             "name": "DeleteChangeSet",
@@ -342,53 +314,6 @@
                 }
             ],
             "documentation": "<p>Returns the inputs for the change set and a list of changes that AWS CloudFormation will make if you execute the change set. For more information, see <a href=\"https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-changesets.html\">Updating Stacks Using Change Sets</a> in the AWS CloudFormation User Guide.</p>"
-        },
-        "DescribeResource": {
-            "name": "DescribeResource",
-            "http": {
-                "method": "POST",
-                "requestUri": "/"
-            },
-            "input": {
-                "shape": "DescribeResourceInput"
-            },
-            "output": {
-                "shape": "DescribeResourceOutput",
-                "resultWrapper": "DescribeResourceResult"
-            },
-            "errors": [
-                {
-                    "shape": "ResourceTypeNotFoundException"
-                },
-                {
-                    "shape": "ResourceNotFoundException"
-                },
-                {
-                    "shape": "ContextNotFoundException"
-                },
-                {
-                    "shape": "DescribeResourceFailedException"
-                }
-            ]
-        },
-        "DescribeResourcesSnapshot": {
-            "name": "DescribeResourcesSnapshot",
-            "http": {
-                "method": "POST",
-                "requestUri": "/"
-            },
-            "input": {
-                "shape": "DescribeResourcesSnapshotInput"
-            },
-            "output": {
-                "shape": "DescribeResourcesSnapshotOutput",
-                "resultWrapper": "DescribeResourcesSnapshotResult"
-            },
-            "errors": [
-                {
-                    "shape": "ResourcesSnapshotNotFoundException"
-                }
-            ]
         },
         "DescribeStackDriftDetectionStatus": {
             "name": "DescribeStackDriftDetectionStatus",
@@ -615,28 +540,6 @@
                 "resultWrapper": "DetectStackResourceDriftResult"
             }
         },
-        "ElectCommandLeader": {
-            "name": "ElectCommandLeader",
-            "http": {
-                "method": "POST",
-                "requestUri": "/"
-            },
-            "input": {
-                "shape": "ElectCommandLeaderInput"
-            },
-            "output": {
-                "shape": "ElectCommandLeaderOutput",
-                "resultWrapper": "ElectCommandLeaderResult"
-            },
-            "errors": [
-                {
-                    "shape": "CommandNotFoundException"
-                },
-                {
-                    "shape": "ListenerNotFoundException"
-                }
-            ]
-        },
         "EstimateTemplateCost": {
             "name": "EstimateTemplateCost",
             "http": {
@@ -680,28 +583,6 @@
                 }
             ],
             "documentation": "<p>Updates a stack using the input information that was provided when the specified change set was created. After the call successfully completes, AWS CloudFormation starts updating the stack. Use the <a>DescribeStacks</a> action to view the status of the update.</p> <p>When you execute a change set, AWS CloudFormation deletes all other change sets associated with the stack because they aren't valid for the updated stack.</p> <p>If a stack policy is associated with the stack, AWS CloudFormation enforces the policy during the update. You can't specify a temporary stack policy that overrides the current policy.</p>"
-        },
-        "GetListenerCredentials": {
-            "name": "GetListenerCredentials",
-            "http": {
-                "method": "POST",
-                "requestUri": "/"
-            },
-            "input": {
-                "shape": "GetListenerCredentialsInput"
-            },
-            "output": {
-                "shape": "GetListenerCredentialsOutput",
-                "resultWrapper": "GetListenerCredentialsResult"
-            },
-            "errors": [
-                {
-                    "shape": "ListenerNotFoundException"
-                },
-                {
-                    "shape": "ListenerExpiredException"
-                }
-            ]
         },
         "GetStackPolicy": {
             "name": "GetStackPolicy",
@@ -994,20 +875,6 @@
             ],
             "idempotent": true
         },
-        "RegisterListener": {
-            "name": "RegisterListener",
-            "http": {
-                "method": "POST",
-                "requestUri": "/"
-            },
-            "input": {
-                "shape": "RegisterListenerInput"
-            },
-            "output": {
-                "shape": "RegisterListenerOutput",
-                "resultWrapper": "RegisterListenerResult"
-            }
-        },
         "RegisterType": {
             "name": "RegisterType",
             "http": {
@@ -1098,28 +965,6 @@
                 }
             ],
             "documentation": "<p>Stops an in-progress operation on a stack set and its associated stack instances. </p>"
-        },
-        "SynthesizeTemplate": {
-            "name": "SynthesizeTemplate",
-            "http": {
-                "method": "POST",
-                "requestUri": "/"
-            },
-            "input": {
-                "shape": "SynthesizeTemplateInput"
-            },
-            "output": {
-                "shape": "SynthesizeTemplateOutput",
-                "resultWrapper": "SynthesizeTemplateResult"
-            },
-            "errors": [
-                {
-                    "shape": "ResourcesSnapshotNotFoundException"
-                },
-                {
-                    "shape": "InvalidResourcesSnapshotStatusException"
-                }
-            ]
         },
         "UpdateStack": {
             "name": "UpdateStack",
@@ -1251,9 +1096,6 @@
         }
     },
     "shapes": {
-        "AccessKeyId": {
-            "type": "string"
-        },
         "Account": {
             "type": "string",
             "pattern": "[0-9]{12}"
@@ -1313,8 +1155,7 @@
             "type": "string"
         },
         "AllowedValue": {
-            "type": "string",
-            "max": 4096
+            "type": "string"
         },
         "AllowedValues": {
             "type": "list",
@@ -1345,9 +1186,6 @@
             "box": true,
             "max": 100,
             "min": 1
-        },
-        "BucketName": {
-            "type": "string"
         },
         "CFNRegistryException": {
             "type": "structure",
@@ -1419,8 +1257,7 @@
             "enum": [
                 "Add",
                 "Modify",
-                "Remove",
-                "Import"
+                "Remove"
             ]
         },
         "ChangeSetId": {
@@ -1516,8 +1353,7 @@
             "type": "string",
             "enum": [
                 "CREATE",
-                "UPDATE",
-                "IMPORT"
+                "UPDATE"
             ]
         },
         "ChangeSource": {
@@ -1552,29 +1388,6 @@
             "type": "string",
             "max": 128,
             "min": 1
-        },
-        "CommandName": {
-            "type": "string"
-        },
-        "CommandNotFoundException": {
-            "type": "structure",
-            "members": {},
-            "error": {
-                "code": "CommandNotFound",
-                "httpStatusCode": 400,
-                "senderFault": true
-            },
-            "exception": true
-        },
-        "ContextNotFoundException": {
-            "type": "structure",
-            "members": {},
-            "error": {
-                "code": "ContextNotFound",
-                "httpStatusCode": 400,
-                "senderFault": true
-            },
-            "exception": true
         },
         "ContinueUpdateRollbackInput": {
             "type": "structure",
@@ -1637,9 +1450,6 @@
                     "shape": "Capabilities",
                     "documentation": "<p>A list of values that you must specify before AWS CloudFormation can update certain stacks. Some stack templates might include resources that can affect permissions in your AWS account, for example, by creating new AWS Identity and Access Management (IAM) users. For those stacks, you must explicitly acknowledge their capabilities by specifying this parameter.</p> <p>The only valid values are <code>CAPABILITY_IAM</code> and <code>CAPABILITY_NAMED_IAM</code>. The following resources require you to specify this parameter: <a href=\"https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-iam-accesskey.html\"> AWS::IAM::AccessKey</a>, <a href=\"https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-iam-group.html\"> AWS::IAM::Group</a>, <a href=\"https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-iam-instanceprofile.html\"> AWS::IAM::InstanceProfile</a>, <a href=\"https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-iam-policy.html\"> AWS::IAM::Policy</a>, <a href=\"https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-iam-role.html\"> AWS::IAM::Role</a>, <a href=\"https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-iam-user.html\"> AWS::IAM::User</a>, and <a href=\"https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-iam-addusertogroup.html\"> AWS::IAM::UserToGroupAddition</a>. If your stack template contains these resources, we recommend that you review all permissions associated with them and edit their permissions if necessary.</p> <p>If you have IAM resources, you can specify either capability. If you have IAM resources with custom names, you must specify <code>CAPABILITY_NAMED_IAM</code>. If you don't specify this parameter, this action returns an <code>InsufficientCapabilities</code> error.</p> <p>For more information, see <a href=\"https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-iam-template.html#capabilities\">Acknowledging IAM Resources in AWS CloudFormation Templates</a>.</p>"
                 },
-                "ResourcesToAdopt": {
-                    "shape": "ResourcesToAdopt"
-                },
                 "ResourceTypes": {
                     "shape": "ResourceTypes",
                     "documentation": "<p>The template resource types that you have permissions to work with if you execute this change set, such as <code>AWS::EC2::Instance</code>, <code>AWS::EC2::*</code>, or <code>Custom::MyCustomInstance</code>.</p> <p>If the list of resource types doesn't include a resource type that you're updating, the stack update fails. By default, AWS CloudFormation grants permissions to all resource types. AWS Identity and Access Management (IAM) uses this parameter for condition keys in IAM policies for AWS CloudFormation. For more information, see <a href=\"https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-iam-template.html\">Controlling Access with AWS Identity and Access Management</a> in the AWS CloudFormation User Guide.</p>"
@@ -1675,12 +1485,6 @@
                 "ChangeSetType": {
                     "shape": "ChangeSetType",
                     "documentation": "<p>The type of change set operation. To create a change set for a new stack, specify <code>CREATE</code>. To create a change set for an existing stack, specify <code>UPDATE</code>.</p> <p>If you create a change set for a new stack, AWS Cloudformation creates a stack with a unique stack ID, but no template or resources. The stack will be in the <a href=\"https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-describing-stacks.html#d0e11995\"> <code>REVIEW_IN_PROGRESS</code> </a> state until you execute the change set.</p> <p>By default, AWS CloudFormation specifies <code>UPDATE</code>. You can't use the <code>UPDATE</code> type to create a change set for a new stack or the <code>CREATE</code> type to create a change set for an existing stack.</p>"
-                },
-                "EnablePropertyValidation": {
-                    "shape": "EnablePropertyValidation"
-                },
-                "ResourcesToImport": {
-                    "shape": "ResourcesToImport"
                 }
             },
             "documentation": "<p>The input for the <a>CreateChangeSet</a> action.</p>"
@@ -1698,25 +1502,6 @@
                 }
             },
             "documentation": "<p>The output for the <a>CreateChangeSet</a> action.</p>"
-        },
-        "CreateResourcesSnapshotInput": {
-            "type": "structure",
-            "required": [
-                "Resources"
-            ],
-            "members": {
-                "Resources": {
-                    "shape": "SnapshotResourceList"
-                }
-            }
-        },
-        "CreateResourcesSnapshotOutput": {
-            "type": "structure",
-            "members": {
-                "ResourcesSnapshotId": {
-                    "shape": "ResourcesSnapshotId"
-                }
-            }
         },
         "CreateStackInput": {
             "type": "structure",
@@ -1760,9 +1545,6 @@
                     "shape": "Capabilities",
                     "documentation": "<p>A list of values that you must specify before AWS CloudFormation can create certain stacks. Some stack templates might include resources that can affect permissions in your AWS account, for example, by creating new AWS Identity and Access Management (IAM) users. For those stacks, you must explicitly acknowledge their capabilities by specifying this parameter.</p> <p>The only valid values are <code>CAPABILITY_IAM</code> and <code>CAPABILITY_NAMED_IAM</code>. The following resources require you to specify this parameter: <a href=\"https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-iam-accesskey.html\"> AWS::IAM::AccessKey</a>, <a href=\"https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-iam-group.html\"> AWS::IAM::Group</a>, <a href=\"https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-iam-instanceprofile.html\"> AWS::IAM::InstanceProfile</a>, <a href=\"https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-iam-policy.html\"> AWS::IAM::Policy</a>, <a href=\"https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-iam-role.html\"> AWS::IAM::Role</a>, <a href=\"https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-iam-user.html\"> AWS::IAM::User</a>, and <a href=\"https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-iam-addusertogroup.html\"> AWS::IAM::UserToGroupAddition</a>. If your stack template contains these resources, we recommend that you review all permissions associated with them and edit their permissions if necessary.</p> <p>If you have IAM resources, you can specify either capability. If you have IAM resources with custom names, you must specify <code>CAPABILITY_NAMED_IAM</code>. If you don't specify this parameter, this action returns an <code>InsufficientCapabilities</code> error.</p> <p>For more information, see <a href=\"https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-iam-template.html#capabilities\">Acknowledging IAM Resources in AWS CloudFormation Templates</a>.</p>"
                 },
-                "ResourcesToAdopt": {
-                    "shape": "ResourcesToAdopt"
-                },
                 "ResourceTypes": {
                     "shape": "ResourceTypes",
                     "documentation": "<p>The template resource types that you have permissions to work with for this create stack action, such as <code>AWS::EC2::Instance</code>, <code>AWS::EC2::*</code>, or <code>Custom::MyCustomInstance</code>. Use the following syntax to describe template resource types: <code>AWS::*</code> (for all AWS resource), <code>Custom::*</code> (for all custom resources), <code>Custom::<i>logical_ID</i> </code> (for a specific custom resource), <code>AWS::<i>service_name</i>::*</code> (for all resources of a particular AWS service), and <code>AWS::<i>service_name</i>::<i>resource_logical_ID</i> </code> (for a specific AWS resource).</p> <p>If the list of resource types doesn't include a resource that you're creating, the stack creation fails. By default, AWS CloudFormation grants permissions to all resource types. AWS Identity and Access Management (IAM) uses this parameter for AWS CloudFormation-specific condition keys in IAM policies. For more information, see <a href=\"https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-iam-template.html\">Controlling Access with AWS Identity and Access Management</a>.</p>"
@@ -1790,9 +1572,6 @@
                 "ClientRequestToken": {
                     "shape": "ClientRequestToken",
                     "documentation": "<p>A unique identifier for this <code>CreateStack</code> request. Specify this token if you plan to retry requests so that AWS CloudFormation knows that you're not attempting to create a stack with the same name. You might retry <code>CreateStack</code> requests to ensure that AWS CloudFormation successfully received them.</p> <p>All events triggered by a given stack operation are assigned the same client request token, which you can use to track operations. For example, if you execute a <code>CreateStack</code> operation with the token <code>token1</code>, then all the <code>StackEvents</code> generated by that operation will have <code>ClientRequestToken</code> set as <code>token1</code>.</p> <p>In the console, stack operations display the client request token on the Events tab. Stack operations that are initiated from the console use the token format <i>Console-StackOperation-ID</i>, which helps you easily identify the stack operation . For example, if you create a stack using the console, each stack event would be assigned the same token in the following format: <code>Console-CreateStack-7f59c3cf-00d2-40c7-b2ff-e75db0987002</code>. </p>"
-                },
-                "EnablePropertyValidation": {
-                    "shape": "EnablePropertyValidation"
                 },
                 "EnableTerminationProtection": {
                     "shape": "EnableTerminationProtection",
@@ -1912,18 +1691,6 @@
                 }
             }
         },
-        "CreateUploadBucketInput": {
-            "type": "structure",
-            "members": {}
-        },
-        "CreateUploadBucketOutput": {
-            "type": "structure",
-            "members": {
-                "BucketName": {
-                    "shape": "BucketName"
-                }
-            }
-        },
         "CreatedButModifiedException": {
             "type": "structure",
             "members": {},
@@ -1937,23 +1704,6 @@
         },
         "CreationTime": {
             "type": "timestamp"
-        },
-        "Credentials": {
-            "type": "structure",
-            "members": {
-                "AccessKeyId": {
-                    "shape": "AccessKeyId"
-                },
-                "SecretAccessKey": {
-                    "shape": "SecretAccessKey"
-                },
-                "SessionToken": {
-                    "shape": "SessionToken"
-                },
-                "Expiration": {
-                    "shape": "Expiration"
-                }
-            }
         },
         "DeleteChangeSetInput": {
             "type": "structure",
@@ -2211,75 +1961,6 @@
             },
             "documentation": "<p>The output for the <a>DescribeChangeSet</a> action.</p>"
         },
-        "DescribeResourceFailedException": {
-            "type": "structure",
-            "members": {},
-            "error": {
-                "code": "DescribeResourceFailed",
-                "httpStatusCode": 400,
-                "senderFault": true
-            },
-            "exception": true
-        },
-        "DescribeResourceInput": {
-            "type": "structure",
-            "members": {
-                "ResourceType": {
-                    "shape": "ResourceType"
-                },
-                "PhysicalResourceId": {
-                    "shape": "PhysicalResourceId"
-                },
-                "PhysicalResourceIdContext": {
-                    "shape": "PhysicalResourceIdContext"
-                }
-            }
-        },
-        "DescribeResourceOutput": {
-            "type": "structure",
-            "members": {
-                "Resource": {
-                    "shape": "Resource"
-                },
-                "ResourceReferences": {
-                    "shape": "ResourceReferences"
-                },
-                "UnidentifiableResources": {
-                    "shape": "UnidentifiableResources"
-                },
-                "UnresolvedPaths": {
-                    "shape": "UnresolvedPaths"
-                }
-            }
-        },
-        "DescribeResourcesSnapshotInput": {
-            "type": "structure",
-            "required": [
-                "ResourcesSnapshotId"
-            ],
-            "members": {
-                "ResourcesSnapshotId": {
-                    "shape": "ResourcesSnapshotId"
-                }
-            }
-        },
-        "DescribeResourcesSnapshotOutput": {
-            "type": "structure",
-            "members": {
-                "ResourcesSnapshotId": {
-                    "shape": "ResourcesSnapshotId"
-                },
-                "SnapshotTime": {
-                    "shape": "ResourcesSnapshotTime"
-                },
-                "Status": {
-                    "shape": "ResourcesSnapshotStatus"
-                },
-                "StatusReason": {
-                    "shape": "ResourcesSnapshotStatusReason"
-                }
-            }
-        },
         "DescribeStackDriftDetectionStatusInput": {
             "type": "structure",
             "required": [
@@ -2325,9 +2006,6 @@
         },
         "DescribeStackEventsInput": {
             "type": "structure",
-            "required": [
-                "StackName"
-            ],
             "members": {
                 "StackName": {
                     "shape": "StackName",
@@ -2597,6 +2275,9 @@
                 "LoggingConfig": {
                     "shape": "LoggingConfig"
                 },
+                "ExecutionRoleArn": {
+                    "shape": "RoleArn"
+                },
                 "Visibility": {
                     "shape": "Visibility"
                 },
@@ -2709,39 +2390,6 @@
         "DisableRollback": {
             "type": "boolean"
         },
-        "ElectCommandLeaderInput": {
-            "type": "structure",
-            "required": [
-                "StackName",
-                "CommandName",
-                "InvocationId"
-            ],
-            "members": {
-                "StackName": {
-                    "shape": "StackName"
-                },
-                "CommandName": {
-                    "shape": "CommandName"
-                },
-                "InvocationId": {
-                    "shape": "InvocationId"
-                },
-                "ListenerId": {
-                    "shape": "ListenerId"
-                }
-            }
-        },
-        "ElectCommandLeaderOutput": {
-            "type": "structure",
-            "members": {
-                "ListenerId": {
-                    "shape": "ListenerId"
-                }
-            }
-        },
-        "EnablePropertyValidation": {
-            "type": "boolean"
-        },
         "EnableTerminationProtection": {
             "type": "boolean"
         },
@@ -2831,9 +2479,6 @@
                 "OBSOLETE"
             ]
         },
-        "Expiration": {
-            "type": "timestamp"
-        },
         "Export": {
             "type": "structure",
             "members": {
@@ -2872,28 +2517,6 @@
             "type": "integer",
             "max": 100,
             "min": 0
-        },
-        "GetListenerCredentialsInput": {
-            "type": "structure",
-            "required": [
-                "StackName"
-            ],
-            "members": {
-                "StackName": {
-                    "shape": "StackName"
-                },
-                "ListenerId": {
-                    "shape": "ListenerId"
-                }
-            }
-        },
-        "GetListenerCredentialsOutput": {
-            "type": "structure",
-            "members": {
-                "Credentials": {
-                    "shape": "Credentials"
-                }
-            }
         },
         "GetStackPolicyInput": {
             "type": "structure",
@@ -2995,9 +2618,6 @@
                     "shape": "ResourceTypes",
                     "documentation": "<p>A list of all the template resource types that are defined in the template, such as <code>AWS::EC2::Instance</code>, <code>AWS::Dynamo::Table</code>, and <code>Custom::MyCustomInstance</code>.</p>"
                 },
-                "Rules": {
-                    "shape": "Rules"
-                },
                 "Version": {
                     "shape": "Version",
                     "documentation": "<p>The AWS template format version, which identifies the capabilities of the template.</p>"
@@ -3009,9 +2629,6 @@
                 "DeclaredTransforms": {
                     "shape": "TransformsList",
                     "documentation": "<p>A list of the transforms that are declared in the template.</p>"
-                },
-                "ResourceIdentifierSummaries": {
-                    "shape": "ResourceIdentifierSummaries"
                 }
             },
             "documentation": "<p>The output for the <a>GetTemplateSummary</a> action.</p>"
@@ -3074,16 +2691,6 @@
             },
             "exception": true
         },
-        "InvalidResourcesSnapshotStatusException": {
-            "type": "structure",
-            "members": {},
-            "error": {
-                "code": "InvalidResourcesSnapshotStatus",
-                "httpStatusCode": 400,
-                "senderFault": true
-            },
-            "exception": true
-        },
         "InvalidStateTransitionException": {
             "type": "structure",
             "members": {},
@@ -3093,9 +2700,6 @@
                 "senderFault": true
             },
             "exception": true
-        },
-        "InvocationId": {
-            "type": "string"
         },
         "Key": {
             "type": "string"
@@ -3502,40 +3106,11 @@
                 }
             }
         },
-        "ListenerExpiredException": {
-            "type": "structure",
-            "members": {},
-            "error": {
-                "code": "ListenerExpired",
-                "httpStatusCode": 400,
-                "senderFault": true
-            },
-            "exception": true
-        },
-        "ListenerId": {
-            "type": "string"
-        },
-        "ListenerNotFoundException": {
-            "type": "structure",
-            "members": {},
-            "error": {
-                "code": "ListenerNotFound",
-                "httpStatusCode": 400,
-                "senderFault": true
-            },
-            "exception": true
-        },
         "LogGroupName": {
             "type": "string",
             "max": 512,
             "min": 1,
             "pattern": "[\\.\\-_/#A-Za-z0-9]+"
-        },
-        "LogRoleArn": {
-            "type": "string",
-            "max": 256,
-            "min": 1,
-            "pattern": "arn:.+:iam::[0-9]{12}:role/.+"
         },
         "LoggingConfig": {
             "type": "structure",
@@ -3545,7 +3120,7 @@
             ],
             "members": {
                 "LogRoleArn": {
-                    "shape": "LogRoleArn"
+                    "shape": "RoleArn"
                 },
                 "LogGroupName": {
                     "shape": "LogGroupName"
@@ -3554,32 +3129,6 @@
         },
         "LogicalResourceId": {
             "type": "string"
-        },
-        "LogicalResourceIdOverride": {
-            "type": "structure",
-            "required": [
-                "ResourceType",
-                "PhysicalResourceId",
-                "LogicalResourceId"
-            ],
-            "members": {
-                "ResourceType": {
-                    "shape": "ResourceType"
-                },
-                "PhysicalResourceId": {
-                    "shape": "PhysicalResourceId"
-                },
-                "LogicalResourceId": {
-                    "shape": "LogicalResourceId"
-                }
-            }
-        },
-        "LogicalResourceIdOverrideList": {
-            "type": "list",
-            "member": {
-                "shape": "LogicalResourceIdOverride"
-            },
-            "max": 5
         },
         "LogicalResourceIds": {
             "type": "list",
@@ -3624,7 +3173,7 @@
         },
         "NextToken": {
             "type": "string",
-            "max": 2048,
+            "max": 1024,
             "min": 1
         },
         "NoEcho": {
@@ -3899,9 +3448,6 @@
                 "FULLY_MUTABLE"
             ]
         },
-        "QueueUrl": {
-            "type": "string"
-        },
         "Reason": {
             "type": "string"
         },
@@ -3949,28 +3495,6 @@
                 "shape": "Region"
             }
         },
-        "RegisterListenerInput": {
-            "type": "structure",
-            "required": [
-                "StackName"
-            ],
-            "members": {
-                "StackName": {
-                    "shape": "StackName"
-                },
-                "ListenerId": {
-                    "shape": "ListenerId"
-                }
-            }
-        },
-        "RegisterListenerOutput": {
-            "type": "structure",
-            "members": {
-                "QueueUrl": {
-                    "shape": "QueueUrl"
-                }
-            }
-        },
         "RegisterTypeInput": {
             "type": "structure",
             "required": [
@@ -3989,6 +3513,9 @@
                 },
                 "LoggingConfig": {
                     "shape": "LoggingConfig"
+                },
+                "ExecutionRoleArn": {
+                    "shape": "RoleArn"
                 },
                 "ClientRequestToken": {
                     "shape": "RequestToken"
@@ -4051,23 +3578,6 @@
                 "Always"
             ]
         },
-        "Resource": {
-            "type": "structure",
-            "members": {
-                "ResourceType": {
-                    "shape": "ResourceType"
-                },
-                "Properties": {
-                    "shape": "Properties"
-                }
-            }
-        },
-        "ResourceAdoptionData": {
-            "type": "list",
-            "member": {
-                "shape": "ResourceToAdopt"
-            }
-        },
         "ResourceAttribute": {
             "type": "string",
             "enum": [
@@ -4076,7 +3586,6 @@
                 "CreationPolicy",
                 "UpdatePolicy",
                 "DeletionPolicy",
-                "UpdateReplacePolicy",
                 "Tags"
             ]
         },
@@ -4142,87 +3651,13 @@
                 "shape": "ResourceChangeDetail"
             }
         },
-        "ResourceIdentifierProperties": {
-            "type": "map",
-            "key": {
-                "shape": "ResourceIdentifierPropertyKey"
-            },
-            "value": {
-                "shape": "ResourceIdentifierPropertyValue"
-            },
-            "max": 256,
-            "min": 1
-        },
-        "ResourceIdentifierPropertyKey": {
-            "type": "string",
-            "max": 2048,
-            "min": 1
-        },
-        "ResourceIdentifierPropertyValue": {
-            "type": "string",
-            "max": 2048,
-            "min": 1
-        },
-        "ResourceIdentifierSummaries": {
-            "type": "list",
-            "member": {
-                "shape": "ResourceIdentifierSummary"
-            }
-        },
-        "ResourceIdentifierSummary": {
-            "type": "structure",
-            "members": {
-                "ResourceType": {
-                    "shape": "ResourceType"
-                },
-                "LogicalResourceIds": {
-                    "shape": "LogicalResourceIds"
-                },
-                "ResourceIdentifiers": {
-                    "shape": "ResourceIdentifiers"
-                }
-            }
-        },
-        "ResourceIdentifiers": {
-            "type": "list",
-            "member": {
-                "shape": "ResourceIdentifierPropertyKey"
-            }
-        },
         "ResourceModel": {
             "type": "string",
             "max": 16384,
             "min": 1
         },
-        "ResourceNotFoundException": {
-            "type": "structure",
-            "members": {},
-            "error": {
-                "code": "ResourceNotFound",
-                "httpStatusCode": 404,
-                "senderFault": true
-            },
-            "exception": true
-        },
         "ResourceProperties": {
             "type": "string"
-        },
-        "ResourceReference": {
-            "type": "structure",
-            "members": {
-                "ResourceType": {
-                    "shape": "ResourceType"
-                },
-                "PhysicalResourceId": {
-                    "shape": "PhysicalResourceId"
-                }
-            }
-        },
-        "ResourceReferences": {
-            "type": "list",
-            "member": {
-                "shape": "ResourceReference"
-            }
         },
         "ResourceSignalStatus": {
             "type": "string",
@@ -4239,9 +3674,6 @@
         "ResourceStatus": {
             "type": "string",
             "enum": [
-                "ADOPTION_FAILED",
-                "ADOPTION_COMPLETE",
-                "ADOPTION_IN_PROGRESS",
                 "CREATE_IN_PROGRESS",
                 "CREATE_FAILED",
                 "CREATE_COMPLETE",
@@ -4251,13 +3683,7 @@
                 "DELETE_SKIPPED",
                 "UPDATE_IN_PROGRESS",
                 "UPDATE_FAILED",
-                "UPDATE_COMPLETE",
-                "IMPORT_FAILED",
-                "IMPORT_COMPLETE",
-                "IMPORT_IN_PROGRESS",
-                "IMPORT_ROLLBACK_IN_PROGRESS",
-                "IMPORT_ROLLBACK_FAILED",
-                "IMPORT_ROLLBACK_COMPLETE"
+                "UPDATE_COMPLETE"
             ]
         },
         "ResourceStatusReason": {
@@ -4281,82 +3707,14 @@
             },
             "documentation": "<p>The field that AWS CloudFormation will change, such as the name of a resource's property, and whether the resource will be recreated.</p>"
         },
-        "ResourceToAdopt": {
-            "type": "structure",
-            "required": [
-                "LogicalResourceId",
-                "PhysicalResourceId"
-            ],
-            "members": {
-                "LogicalResourceId": {
-                    "shape": "LogicalResourceId"
-                },
-                "PhysicalResourceId": {
-                    "shape": "PhysicalResourceId"
-                },
-                "PhysicalResourceIdContext": {
-                    "shape": "PhysicalResourceIdContext"
-                }
-            }
-        },
-        "ResourceToImport": {
-            "type": "structure",
-            "required": [
-                "ResourceType",
-                "LogicalResourceId",
-                "ResourceIdentifier"
-            ],
-            "members": {
-                "ResourceType": {
-                    "shape": "ResourceType"
-                },
-                "LogicalResourceId": {
-                    "shape": "LogicalResourceId"
-                },
-                "ResourceIdentifier": {
-                    "shape": "ResourceIdentifierProperties"
-                }
-            }
-        },
         "ResourceToSkip": {
             "type": "string",
             "pattern": "[a-zA-Z0-9]+|[a-zA-Z][-a-zA-Z0-9]*\\.[a-zA-Z0-9]+"
-        },
-        "ResourceToSnapshot": {
-            "type": "structure",
-            "required": [
-                "ResourceType",
-                "PhysicalResourceId"
-            ],
-            "members": {
-                "ResourceType": {
-                    "shape": "ResourceType"
-                },
-                "PhysicalResourceId": {
-                    "shape": "PhysicalResourceId"
-                },
-                "PhysicalResourceIdContext": {
-                    "shape": "PhysicalResourceIdContext"
-                },
-                "SuggestedLogicalResourceId": {
-                    "shape": "LogicalResourceId"
-                }
-            }
         },
         "ResourceType": {
             "type": "string",
             "max": 256,
             "min": 1
-        },
-        "ResourceTypeNotFoundException": {
-            "type": "structure",
-            "members": {},
-            "error": {
-                "code": "ResourceTypeNotFound",
-                "httpStatusCode": 400,
-                "senderFault": true
-            },
-            "exception": true
         },
         "ResourceTypes": {
             "type": "list",
@@ -4364,60 +3722,11 @@
                 "shape": "ResourceType"
             }
         },
-        "ResourcesSnapshotId": {
-            "type": "string"
-        },
-        "ResourcesSnapshotNotFoundException": {
-            "type": "structure",
-            "members": {},
-            "error": {
-                "code": "ResourcesSnapshotNotFound",
-                "httpStatusCode": 400,
-                "senderFault": true
-            },
-            "exception": true
-        },
-        "ResourcesSnapshotStatus": {
-            "type": "string",
-            "enum": [
-                "SNAPSHOT_IN_PROGRESS",
-                "SNAPSHOT_COMPLETE",
-                "SNAPSHOT_FAILED"
-            ]
-        },
-        "ResourcesSnapshotStatusReason": {
-            "type": "string"
-        },
-        "ResourcesSnapshotTime": {
-            "type": "timestamp"
-        },
-        "ResourcesToAdopt": {
-            "type": "list",
-            "member": {
-                "shape": "ResourceToAdopt"
-            }
-        },
-        "ResourcesToImport": {
-            "type": "list",
-            "member": {
-                "shape": "ResourceToImport"
-            },
-            "max": 200
-        },
         "ResourcesToSkip": {
             "type": "list",
             "member": {
                 "shape": "ResourceToSkip"
             }
-        },
-        "RetainPolicies": {
-            "type": "string",
-            "enum": [
-                "none",
-                "delete",
-                "update",
-                "all"
-            ]
         },
         "RetainResources": {
             "type": "list",
@@ -4435,6 +3744,12 @@
             "type": "string",
             "max": 2048,
             "min": 20
+        },
+        "RoleArn": {
+            "type": "string",
+            "max": 256,
+            "min": 1,
+            "pattern": "arn:.+:iam::[0-9]{12}:role/.+"
         },
         "RollbackConfiguration": {
             "type": "structure",
@@ -4475,9 +3790,6 @@
             },
             "max": 5
         },
-        "Rules": {
-            "type": "string"
-        },
         "S3Url": {
             "type": "string",
             "max": 4096,
@@ -4488,12 +3800,6 @@
             "member": {
                 "shape": "ResourceAttribute"
             }
-        },
-        "SecretAccessKey": {
-            "type": "string"
-        },
-        "SessionToken": {
-            "type": "string"
         },
         "SetStackPolicyInput": {
             "type": "structure",
@@ -4564,14 +3870,6 @@
                 }
             },
             "documentation": "<p>The input for the <a>SignalResource</a> action.</p>"
-        },
-        "SnapshotResourceList": {
-            "type": "list",
-            "member": {
-                "shape": "ResourceToSnapshot"
-            },
-            "max": 5,
-            "min": 1
         },
         "Stack": {
             "type": "structure",
@@ -4883,7 +4181,7 @@
         "StackNameOrId": {
             "type": "string",
             "min": 1,
-            "pattern": "[a-zA-Z][-a-zA-Z0-9]*|arn:[-a-zA-Z0-9:/._+]*"
+            "pattern": "([a-zA-Z][-a-zA-Z0-9]*)|(arn:\\b(aws|aws-us-gov|aws-cn)\\b:[-a-zA-Z0-9:/._+]*)"
         },
         "StackPolicyBody": {
             "type": "string",
@@ -4897,12 +4195,12 @@
         },
         "StackPolicyDuringUpdateURL": {
             "type": "string",
-            "max": 5120,
+            "max": 1350,
             "min": 1
         },
         "StackPolicyURL": {
             "type": "string",
-            "max": 5120,
+            "max": 1350,
             "min": 1
         },
         "StackResource": {
@@ -5456,12 +4754,7 @@
                 "UPDATE_ROLLBACK_FAILED",
                 "UPDATE_ROLLBACK_COMPLETE_CLEANUP_IN_PROGRESS",
                 "UPDATE_ROLLBACK_COMPLETE",
-                "REVIEW_IN_PROGRESS",
-                "IMPORT_IN_PROGRESS",
-                "IMPORT_COMPLETE",
-                "IMPORT_ROLLBACK_IN_PROGRESS",
-                "IMPORT_ROLLBACK_FAILED",
-                "IMPORT_ROLLBACK_COMPLETE"
+                "REVIEW_IN_PROGRESS"
             ]
         },
         "StackStatusFilter": {
@@ -5558,8 +4851,7 @@
         },
         "StatusMessage": {
             "type": "string",
-            "max": 1024,
-            "min": 1
+            "max": 1024
         },
         "StopStackSetOperationInput": {
             "type": "structure",
@@ -5581,45 +4873,6 @@
         "StopStackSetOperationOutput": {
             "type": "structure",
             "members": {}
-        },
-        "SynthesizeTemplateInput": {
-            "type": "structure",
-            "required": [
-                "ResourcesSnapshotId",
-                "OutputFormat",
-                "RetainPolicies"
-            ],
-            "members": {
-                "ResourcesSnapshotId": {
-                    "shape": "ResourcesSnapshotId"
-                },
-                "TemplateBody": {
-                    "shape": "TemplateBody"
-                },
-                "TemplateURL": {
-                    "shape": "TemplateURL"
-                },
-                "OutputFormat": {
-                    "shape": "TemplateFormat"
-                },
-                "LogicalResourceIdOverride": {
-                    "shape": "LogicalResourceIdOverrideList"
-                },
-                "RetainPolicies": {
-                    "shape": "RetainPolicies"
-                }
-            }
-        },
-        "SynthesizeTemplateOutput": {
-            "type": "structure",
-            "members": {
-                "TemplateBody": {
-                    "shape": "TemplateBody"
-                },
-                "ResourceAdoptionData": {
-                    "shape": "ResourceAdoptionData"
-                }
-            }
         },
         "Tag": {
             "type": "structure",
@@ -5654,7 +4907,7 @@
             "member": {
                 "shape": "Tag"
             },
-            "max": 200
+            "max": 50
         },
         "TemplateBody": {
             "type": "string",
@@ -5662,13 +4915,6 @@
         },
         "TemplateDescription": {
             "type": "string"
-        },
-        "TemplateFormat": {
-            "type": "string",
-            "enum": [
-                "JSON",
-                "YAML"
-            ]
         },
         "TemplateParameter": {
             "type": "structure",
@@ -5707,7 +4953,7 @@
         },
         "TemplateURL": {
             "type": "string",
-            "max": 5120,
+            "max": 1024,
             "min": 1
         },
         "TimeoutMinutes": {
@@ -5830,21 +5076,6 @@
                 }
             }
         },
-        "UnidentifiableResources": {
-            "type": "list",
-            "member": {
-                "shape": "Resource"
-            }
-        },
-        "UnresolvedPath": {
-            "type": "string"
-        },
-        "UnresolvedPaths": {
-            "type": "list",
-            "member": {
-                "shape": "UnresolvedPath"
-            }
-        },
         "UpdateStackInput": {
             "type": "structure",
             "required": [
@@ -5883,9 +5114,6 @@
                     "shape": "Capabilities",
                     "documentation": "<p>A list of values that you must specify before AWS CloudFormation can update certain stacks. Some stack templates might include resources that can affect permissions in your AWS account, for example, by creating new AWS Identity and Access Management (IAM) users. For those stacks, you must explicitly acknowledge their capabilities by specifying this parameter.</p> <p>The only valid values are <code>CAPABILITY_IAM</code> and <code>CAPABILITY_NAMED_IAM</code>. The following resources require you to specify this parameter: <a href=\"https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-iam-accesskey.html\"> AWS::IAM::AccessKey</a>, <a href=\"https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-iam-group.html\"> AWS::IAM::Group</a>, <a href=\"https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-iam-instanceprofile.html\"> AWS::IAM::InstanceProfile</a>, <a href=\"https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-iam-policy.html\"> AWS::IAM::Policy</a>, <a href=\"https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-iam-role.html\"> AWS::IAM::Role</a>, <a href=\"https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-iam-user.html\"> AWS::IAM::User</a>, and <a href=\"https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-iam-addusertogroup.html\"> AWS::IAM::UserToGroupAddition</a>. If your stack template contains these resources, we recommend that you review all permissions associated with them and edit their permissions if necessary.</p> <p>If you have IAM resources, you can specify either capability. If you have IAM resources with custom names, you must specify <code>CAPABILITY_NAMED_IAM</code>. If you don't specify this parameter, this action returns an <code>InsufficientCapabilities</code> error.</p> <p>For more information, see <a href=\"https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-iam-template.html#capabilities\">Acknowledging IAM Resources in AWS CloudFormation Templates</a>.</p>"
                 },
-                "ResourcesToAdopt": {
-                    "shape": "ResourcesToAdopt"
-                },
                 "ResourceTypes": {
                     "shape": "ResourceTypes",
                     "documentation": "<p>The template resource types that you have permissions to work with for this update stack action, such as <code>AWS::EC2::Instance</code>, <code>AWS::EC2::*</code>, or <code>Custom::MyCustomInstance</code>.</p> <p>If the list of resource types doesn't include a resource that you're updating, the stack update fails. By default, AWS CloudFormation grants permissions to all resource types. AWS Identity and Access Management (IAM) uses this parameter for AWS CloudFormation-specific condition keys in IAM policies. For more information, see <a href=\"https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-iam-template.html\">Controlling Access with AWS Identity and Access Management</a>.</p>"
@@ -5917,9 +5145,6 @@
                 "ClientRequestToken": {
                     "shape": "ClientRequestToken",
                     "documentation": "<p>A unique identifier for this <code>UpdateStack</code> request. Specify this token if you plan to retry requests so that AWS CloudFormation knows that you're not attempting to update a stack with the same name. You might retry <code>UpdateStack</code> requests to ensure that AWS CloudFormation successfully received them.</p> <p>All events triggered by a given stack operation are assigned the same client request token, which you can use to track operations. For example, if you execute a <code>CreateStack</code> operation with the token <code>token1</code>, then all the <code>StackEvents</code> generated by that operation will have <code>ClientRequestToken</code> set as <code>token1</code>.</p> <p>In the console, stack operations display the client request token on the Events tab. Stack operations that are initiated from the console use the token format <i>Console-StackOperation-ID</i>, which helps you easily identify the stack operation . For example, if you create a stack using the console, each stack event would be assigned the same token in the following format: <code>Console-CreateStack-7f59c3cf-00d2-40c7-b2ff-e75db0987002</code>. </p>"
-                },
-                "EnablePropertyValidation": {
-                    "shape": "EnablePropertyValidation"
                 }
             },
             "documentation": "<p>The input for an <a>UpdateStack</a> action.</p>"
