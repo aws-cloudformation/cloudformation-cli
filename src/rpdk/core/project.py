@@ -25,6 +25,7 @@ LOG = logging.getLogger(__name__)
 
 SETTINGS_FILENAME = ".rpdk-config"
 SCHEMA_UPLOAD_FILENAME = "schema.json"
+OVERRIDES_FILENAME = "overrides.json"
 ROLE_TEMPLATE_FILENAME = "resource-role.yaml"
 TYPE_NAME_REGEX = "^[a-zA-Z0-9]{2,64}::[a-zA-Z0-9]{2,64}::[a-zA-Z0-9]{2,64}$"
 
@@ -100,6 +101,10 @@ class Project:  # pylint: disable=too-many-instance-attributes
     @property
     def schema_path(self):
         return self.root / self.schema_filename
+
+    @property
+    def overrides_path(self):
+        return self.root / OVERRIDES_FILENAME
 
     @staticmethod
     def _raise_invalid_project(msg, e):
@@ -254,6 +259,13 @@ class Project:  # pylint: disable=too-many-instance-attributes
             with zipfile.ZipFile(f, mode="w") as zip_file:
                 zip_file.write(self.schema_path, SCHEMA_UPLOAD_FILENAME)
                 zip_file.write(self.settings_path, SETTINGS_FILENAME)
+                try:
+                    zip_file.write(self.overrides_path, OVERRIDES_FILENAME)
+                    LOG.debug("%s found. Writing to package.", OVERRIDES_FILENAME)
+                except FileNotFoundError:
+                    LOG.debug(
+                        "%s not found. Not writing to package.", OVERRIDES_FILENAME
+                    )
                 self._plugin.package(self, zip_file)
 
             if dry_run:

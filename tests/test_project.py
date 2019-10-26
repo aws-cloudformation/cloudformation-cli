@@ -23,10 +23,12 @@ from rpdk.core.exceptions import (
 from rpdk.core.plugin_base import LanguagePlugin
 from rpdk.core.project import (
     LAMBDA_RUNTIMES,
+    OVERRIDES_FILENAME,
     SCHEMA_UPLOAD_FILENAME,
     SETTINGS_FILENAME,
     Project,
 )
+from rpdk.core.test import empty_override
 from rpdk.core.upload import Uploader
 
 from .utils import CONTENTS_UTF8, UnclosingBytesIO
@@ -276,6 +278,8 @@ def test_submit_dry_run(project):
     with project.schema_path.open("w", encoding="utf-8") as f:
         f.write(CONTENTS_UTF8)
 
+    with project.overrides_path.open("w", encoding="utf-8") as f:
+        f.write(json.dumps(empty_override()))
     project._write_settings("foo")
 
     patch_plugin = patch.object(project, "_plugin", spec=LanguagePlugin)
@@ -296,11 +300,17 @@ def test_submit_dry_run(project):
     mock_upload.assert_not_called()
 
     with zipfile.ZipFile(zip_path, mode="r") as zip_file:
-        assert set(zip_file.namelist()) == {SCHEMA_UPLOAD_FILENAME, SETTINGS_FILENAME}
+        assert set(zip_file.namelist()) == {
+            SCHEMA_UPLOAD_FILENAME,
+            SETTINGS_FILENAME,
+            OVERRIDES_FILENAME,
+        }
         schema_contents = zip_file.read(SCHEMA_UPLOAD_FILENAME).decode("utf-8")
         assert schema_contents == CONTENTS_UTF8
         settings = json.loads(zip_file.read(SETTINGS_FILENAME).decode("utf-8"))
         assert settings["runtime"] == RUNTIME
+        overrides = json.loads(zip_file.read(OVERRIDES_FILENAME).decode("utf-8"))
+        assert "CREATE" in overrides
         # https://docs.python.org/3/library/zipfile.html#zipfile.ZipFile.testzip
         assert zip_file.testzip() is None
 
