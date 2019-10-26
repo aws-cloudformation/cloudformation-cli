@@ -121,14 +121,14 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
             return self._strategy
 
         # imported here to avoid hypothesis being loaded before pytest is loaded
-        from .resource_generator import generate_schema_strategy
+        from .resource_generator import ResourceGenerator
 
         # make a copy so the original schema is never modified
         schema = json.loads(json.dumps(self._schema))
 
         prune_properties(schema, self._read_only_paths)
 
-        self._strategy = generate_schema_strategy(schema)
+        self._strategy = ResourceGenerator(schema).generate_schema_strategy(schema)
         return self._strategy
 
     @property
@@ -138,7 +138,7 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
             return self._update_strategy
 
         # imported here to avoid hypothesis being loaded before pytest is loaded
-        from .resource_generator import generate_schema_strategy
+        from .resource_generator import ResourceGenerator
 
         # make a copy so the original schema is never modified
         schema = json.loads(json.dumps(self._schema))
@@ -146,7 +146,9 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         prune_properties(schema, self._read_only_paths)
         prune_properties(schema, self._create_only_paths)
 
-        self._update_strategy = generate_schema_strategy(schema)
+        self._update_strategy = ResourceGenerator(schema).generate_schema_strategy(
+            schema
+        )
         return self._update_strategy
 
     def generate_create_example(self):

@@ -8,7 +8,7 @@ from rpdk.core.contract.resource_generator import (
     NEG_INF,
     POS_INF,
     STRING_FORMATS,
-    generate_schema_strategy,
+    ResourceGenerator,
 )
 
 
@@ -17,7 +17,7 @@ def test_generate_number_strategy_inclusive(schema_type):
     inc_min = 0
     inc_max = 16
     schema = {"type": schema_type, "minimum": inc_min, "maximum": inc_max}
-    strategy = generate_schema_strategy(schema)
+    strategy = ResourceGenerator(schema).generate_schema_strategy(schema)
     for i in range(100):
         example = strategy.example()
         assert inc_min <= example <= inc_max, i
@@ -32,14 +32,14 @@ def test_generate_number_strategy_exclusive(schema_type):
         "exclusiveMinimum": exc_min,
         "exclusiveMaximum": exc_max,
     }
-    strategy = generate_schema_strategy(schema)
+    strategy = ResourceGenerator(schema).generate_schema_strategy(schema)
     for i in range(100):
         assert exc_min < strategy.example() < exc_max, i
 
 
 def test_generate_number_strategy_no_inf_or_nan():
     schema = {"type": "number"}
-    strategy = generate_schema_strategy(schema)
+    strategy = ResourceGenerator(schema).generate_schema_strategy(schema)
     for i in range(100):
         example = strategy.example()
         assert example != POS_INF, i
@@ -49,45 +49,45 @@ def test_generate_number_strategy_no_inf_or_nan():
 
 def test_generate_string_strategy_regex():
     schema = {"type": "string", "pattern": "^foo+bar+\\Z$"}
-    regex_strategy = generate_schema_strategy(schema)
+    regex_strategy = ResourceGenerator(schema).generate_schema_strategy(schema)
     assert re.fullmatch(schema["pattern"], regex_strategy.example())
 
 
 def test_generate_string_strategy_format():
     schema = {"type": "string", "format": "arn"}
-    strategy = generate_schema_strategy(schema)
+    strategy = ResourceGenerator(schema).generate_schema_strategy(schema)
     assert re.fullmatch(STRING_FORMATS["arn"], strategy.example())
 
 
 def test_generate_string_strategy_length():
     schema = {"type": "string", "minLength": 5, "maxLength": 10}
-    strategy = generate_schema_strategy(schema)
+    strategy = ResourceGenerator(schema).generate_schema_strategy(schema)
     for i in range(100):
         assert schema["minLength"] <= len(strategy.example()) <= schema["maxLength"], i
 
 
 def test_generate_string_strategy_no_constraints():
     schema = {"type": "string"}
-    strategy = generate_schema_strategy(schema)
+    strategy = ResourceGenerator(schema).generate_schema_strategy(schema)
     assert isinstance(strategy.example(), str)
 
 
 def test_generate_boolean_strategy():
     schema = {"type": "boolean"}
-    strategy = generate_schema_strategy(schema)
+    strategy = ResourceGenerator(schema).generate_schema_strategy(schema)
     assert isinstance(strategy.example(), bool)
 
 
 def test_generate_array_strategy_simple():
     schema = {"type": "array"}
-    strategy = generate_schema_strategy(schema)
+    strategy = ResourceGenerator(schema).generate_schema_strategy(schema)
     assert isinstance(strategy.example(), Sequence)
 
 
 @pytest.mark.parametrize("item_constraint", ["items", "contains"])
 def test_generate_array_strategy_items(item_constraint):
     schema = {"type": "array", item_constraint: {"type": "string"}, "minItems": 1}
-    example = generate_schema_strategy(schema).example()
+    example = ResourceGenerator(schema).generate_schema_strategy(schema).example()
     assert isinstance(example, Sequence)
     assert len(example) >= 1
     assert isinstance(example[0], str)
@@ -95,7 +95,7 @@ def test_generate_array_strategy_items(item_constraint):
 
 def test_generate_array_strategy_multiple_items():
     schema = {"type": "array", "items": [{"type": "string"}, {"type": "integer"}]}
-    example = generate_schema_strategy(schema).example()
+    example = ResourceGenerator(schema).generate_schema_strategy(schema).example()
     assert isinstance(example, Sequence)
     assert len(example) == 2
     assert isinstance(example[0], str)
@@ -108,7 +108,7 @@ def test_generate_object_strategy_simple_combiner(combiner):
         "type": "object",
         "properties": {"foo": {"type": "string", combiner: [{"const": "bar"}]}},
     }
-    example = generate_schema_strategy(schema).example()
+    example = ResourceGenerator(schema).generate_schema_strategy(schema).example()
     assert example == {"foo": "bar"}
 
 
@@ -120,7 +120,7 @@ def test_generate_object_strategy_one_of(combiner):
             "foo": {"type": "string", combiner: [{"const": "bar"}, {"enum": ["bar"]}]}
         },
     }
-    example = generate_schema_strategy(schema).example()
+    example = ResourceGenerator(schema).generate_schema_strategy(schema).example()
     assert example == {"foo": "bar"}
 
 
@@ -129,19 +129,19 @@ def test_generate_object_strategy_all_of():
         "type": "object",
         "properties": {"foo": {"allOf": [{"type": "string"}, {"const": "bar"}]}},
     }
-    example = generate_schema_strategy(schema).example()
+    example = ResourceGenerator(schema).generate_schema_strategy(schema).example()
     assert example == {"foo": "bar"}
 
 
 def test_generate_object_strategy_properties():
     schema = {"properties": {"foo": {"type": "string", "const": "bar"}}}
-    example = generate_schema_strategy(schema).example()
+    example = ResourceGenerator(schema).generate_schema_strategy(schema).example()
     assert example == {"foo": "bar"}
 
 
 def test_generate_object_strategy_empty():
     schema = {}
-    example = generate_schema_strategy(schema).example()
+    example = ResourceGenerator(schema).generate_schema_strategy(schema).example()
     assert example == {}
 
 
@@ -153,7 +153,7 @@ def test_generate_object_strategy_empty():
     ],
 )
 def test_generate_const_strategy(schema):
-    example = generate_schema_strategy(schema).example()
+    example = ResourceGenerator(schema).generate_schema_strategy(schema).example()
     assert example == schema["const"]
 
 
@@ -165,5 +165,14 @@ def test_generate_const_strategy(schema):
     ],
 )
 def test_generate_enum_strategy(schema):
-    example = generate_schema_strategy(schema).example()
+    example = ResourceGenerator(schema).generate_schema_strategy(schema).example()
     assert example in schema["enum"]
+
+
+def test_generate_strategy_with_refs():
+    schema = {
+        "properties": {"foo": {"$ref": "#/definitions/Reference"}},
+        "definitions": {"Reference": {"type": "integer"}},
+    }
+    example = ResourceGenerator(schema).generate_schema_strategy(schema).example()
+    assert isinstance(example["foo"], int)
