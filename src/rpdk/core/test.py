@@ -100,7 +100,12 @@ def test(args):
 
     plugin = ContractPlugin(
         ResourceClient(
-            args.function_name, args.endpoint, args.region, project.schema, overrides
+            args.function_name,
+            args.endpoint,
+            args.region,
+            project.schema,
+            overrides,
+            args.role_arn,
         )
     )
 
@@ -123,6 +128,11 @@ def setup_subparser(subparsers, parents):
     _sam_arguments(parser)
     # this parameter can be used to pass additional arguments to pytest after `--`
     # for example,
+
+    parser.add_argument(
+        "--role-arn", help="Role used when performing handler operations."
+    )
+
     parser.add_argument("passed_to_pytest", nargs="*", help=SUPPRESS)
 
 

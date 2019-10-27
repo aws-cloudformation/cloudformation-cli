@@ -41,7 +41,7 @@ def resource_client():
         )
 
     mock_sesh.client.assert_called_once_with("lambda", endpoint_url=endpoint)
-    mock_creds.assert_called_once_with(mock_sesh, LOWER_CAMEL_CRED_KEYS)
+    mock_creds.assert_called_once_with(mock_sesh, LOWER_CAMEL_CRED_KEYS, None)
 
     assert client._creds == {}
     assert client._function_name == DEFAULT_FUNCTION
@@ -79,7 +79,7 @@ def test_init_sam_cli_client():
     mock_sesh.client.assert_called_once_with(
         "lambda", endpoint_url=DEFAULT_ENDPOINT, use_ssl=False, verify=False, config=ANY
     )
-    mock_creds.assert_called_once_with(mock_sesh, LOWER_CAMEL_CRED_KEYS)
+    mock_creds.assert_called_once_with(mock_sesh, LOWER_CAMEL_CRED_KEYS, None)
 
 
 def test_generate_token():

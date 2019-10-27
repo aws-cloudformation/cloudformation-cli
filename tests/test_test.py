@@ -78,7 +78,7 @@ def test_test_command_happy_path(
     mock_project.load.assert_called_once_with()
     function_name, endpoint, region = plugin_args
     mock_client.assert_called_once_with(
-        function_name, endpoint, region, mock_project.schema, EMPTY_OVERRIDE
+        function_name, endpoint, region, mock_project.schema, EMPTY_OVERRIDE, None
     )
     mock_plugin.assert_called_once_with(mock_client.return_value)
     mock_ini.assert_called_once_with()
