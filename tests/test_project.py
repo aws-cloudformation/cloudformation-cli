@@ -186,9 +186,13 @@ def test_generate_handlers(project, tmpdir):
     mock_plugin.generate.assert_called_once_with(project)
 
 
-def test_generate_handlers_empty_string(project, tmpdir):
+@pytest.mark.parametrize(
+    "schema",
+    ({"handlers": {"create": {"permissions": [""]}}}, {"handlers": {"create": {}}}),
+)
+def test_generate_handlers_deny_all(project, tmpdir, schema):
     project.type_name = "Test::Handler::Test"
-    project.schema = {"handlers": {"create": {"permissions": [""]}}}
+    project.schema = schema
     project.root = tmpdir
     mock_plugin = MagicMock(spec=["generate"])
     with patch.object(project, "_plugin", mock_plugin):
