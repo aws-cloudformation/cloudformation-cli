@@ -14,8 +14,6 @@ class ContainerType(Enum):
     DICT = auto()
     LIST = auto()
     SET = auto()
-    MULTI_SET = auto()
-    ORDERED_SET = auto()
 
 
 class ResolvedType:
@@ -111,19 +109,12 @@ class ModelResolver:
     @staticmethod
     def _get_array_container_type(property_schema):
         """Return True if an array has array semantics, or False for set semantics."""
-        insertion_order = property_schema.get("insertionOrder", True)
+        insertion_order = property_schema.get("insertionOrder", False)
         unique_items = property_schema.get("uniqueItems", False)
 
-        if insertion_order:
-            if unique_items:  # pylint: disable=no-else-return
-                return ContainerType.ORDERED_SET
-            else:
-                return ContainerType.LIST
-        else:
-            if unique_items:  # pylint: disable=no-else-return
-                return ContainerType.SET
-            else:
-                return ContainerType.MULTI_SET
+        if insertion_order or not unique_items:
+            return ContainerType.LIST
+        return ContainerType.SET
 
     @staticmethod
     def _get_primitive_lang_type(schema_type):

@@ -74,12 +74,12 @@ def test_modelresolver_unique_model_name():
     (
         ({"type": "array"}, ContainerType.LIST),
         ({"type": "array", "uniqueItems": False}, ContainerType.LIST),
-        ({"type": "array", "uniqueItems": True}, ContainerType.ORDERED_SET),
-        ({"type": "array", "insertionOrder": False}, ContainerType.MULTI_SET),
+        ({"type": "array", "uniqueItems": True}, ContainerType.SET),
+        ({"type": "array", "insertionOrder": False}, ContainerType.LIST),  # ?
         ({"type": "array", "insertionOrder": True}, ContainerType.LIST),
         (
             {"type": "array", "insertionOrder": True, "uniqueItems": True},
-            ContainerType.ORDERED_SET,
+            ContainerType.LIST,
         ),
         (
             {"type": "array", "insertionOrder": True, "uniqueItems": False},
@@ -91,7 +91,7 @@ def test_modelresolver_unique_model_name():
         ),
         (
             {"type": "array", "insertionOrder": False, "uniqueItems": False},
-            ContainerType.MULTI_SET,
+            ContainerType.LIST,
         ),
     ),
 )

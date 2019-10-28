@@ -52,6 +52,13 @@ repos:
     args: ["--skip", "B101,B322"]
 - repo: local
   hooks:
+  - id: git-secrets-register-aws
+    name: git-secrets-register-aws
+    description: Register AWS patterns with git-secrets
+    entry: git-secrets --register-aws
+    language: system
+    always_run: true
+    pass_filenames: false
   - id: git-secrets
     name: git-secrets
     description: Run git-secrets
