@@ -109,7 +109,7 @@ class ModelResolver:
     @staticmethod
     def _get_array_container_type(property_schema):
         """Return True if an array has array semantics, or False for set semantics."""
-        insertion_order = property_schema.get("insertionOrder", False)
+        insertion_order = property_schema.get("insertionOrder", True)
         unique_items = property_schema.get("uniqueItems", False)
 
         if insertion_order or not unique_items:
