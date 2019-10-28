@@ -164,7 +164,7 @@ def test_generate_handlers(project, tmpdir):
     project.schema = {
         "handlers": {
             "create": {"permissions": ["createAction", "readAction"]},
-            "read": {"permissions": ["readAction"]},
+            "read": {"permissions": ["readAction", ""]},
         }
     }
     project.root = tmpdir
@@ -183,6 +183,29 @@ def test_generate_handlers(project, tmpdir):
     assert all(action in expected_actions for action in action_list)
     assert len(action_list) == len(expected_actions)
     assert template["Outputs"]["ExecutionRoleArn"]
+    mock_plugin.generate.assert_called_once_with(project)
+
+def test_generate_handlers_empty_string(project, tmpdir):
+    project.type_name = "Test::Handler::Test"
+    project.schema = {
+        "handlers": {
+            "create": {"permissions": [""]}
+        }
+    }
+    project.root = tmpdir
+    mock_plugin = MagicMock(spec=["generate"])
+    with patch.object(project, "_plugin", mock_plugin):
+        project.generate()
+
+    role_path = project.root / "resource-role.yaml"
+    with role_path.open("r", encoding="utf-8") as f:
+        template = yaml.safe_load(f.read())
+
+    statement = template["Resources"]["ExecutionRole"]["Properties"]["Policies"][0][
+        "PolicyDocument"
+    ]["Statement"][0]
+    assert statement["Effect"] == "Deny"
+    assert statement["Action"][0] == "*"
     mock_plugin.generate.assert_called_once_with(project)
 
 

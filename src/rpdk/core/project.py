@@ -216,6 +216,7 @@ class Project:  # pylint: disable=too-many-instance-attributes
         # to provision resources if schema has handlers defined
         if "handlers" in self.schema:
             template = self.env.get_template("resource-role.yml")
+            permission = "Allow"
             path = self.root / ROLE_TEMPLATE_FILENAME
             LOG.debug("Writing Resource Role CloudFormation template: %s", path)
             actions = {
@@ -223,7 +224,14 @@ class Project:  # pylint: disable=too-many-instance-attributes
                 for handler in self.schema["handlers"].values()
                 for action in handler.get("permissions", [])
             }
-            contents = template.render(type_name=self.hypenated_name, actions=actions)
+            # gets rid of any empty string actions. Empty strings cannot be specified as an action in an IAM statement
+            actions.discard("")
+            # Check if handler has actions
+            if not actions:
+                actions.add("*")
+                permission = "Deny"
+
+            contents = template.render(type_name=self.hypenated_name, actions=actions, permission=permission)
             self.overwrite(path, contents)
 
         return self._plugin.generate(self)
