@@ -185,13 +185,10 @@ def test_generate_handlers(project, tmpdir):
     assert template["Outputs"]["ExecutionRoleArn"]
     mock_plugin.generate.assert_called_once_with(project)
 
+
 def test_generate_handlers_empty_string(project, tmpdir):
     project.type_name = "Test::Handler::Test"
-    project.schema = {
-        "handlers": {
-            "create": {"permissions": [""]}
-        }
-    }
+    project.schema = {"handlers": {"create": {"permissions": [""]}}}
     project.root = tmpdir
     mock_plugin = MagicMock(spec=["generate"])
     with patch.object(project, "_plugin", mock_plugin):
