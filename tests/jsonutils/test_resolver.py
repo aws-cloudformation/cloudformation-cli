@@ -74,8 +74,8 @@ def test_modelresolver_unique_model_name():
     (
         ({"type": "array"}, ContainerType.LIST),
         ({"type": "array", "uniqueItems": False}, ContainerType.LIST),
-        ({"type": "array", "uniqueItems": True}, ContainerType.SET),
-        ({"type": "array", "insertionOrder": False}, ContainerType.LIST),  # ?
+        ({"type": "array", "uniqueItems": True}, ContainerType.LIST),
+        ({"type": "array", "insertionOrder": False}, ContainerType.LIST),
         ({"type": "array", "insertionOrder": True}, ContainerType.LIST),
         (
             {"type": "array", "insertionOrder": True, "uniqueItems": True},
