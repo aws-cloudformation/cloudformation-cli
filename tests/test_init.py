@@ -56,7 +56,7 @@ def test_input_with_validation_valid_first_try(capsys):
     with patch("rpdk.core.init.input", return_value=sentinel2) as mock_input:
         ret = input_with_validation(PROMPT, validator)
 
-    mock_input.assert_called_once()
+    mock_input.assert_called_once_with()
     validator.assert_called_once_with(sentinel2)
     assert ret is sentinel1
 

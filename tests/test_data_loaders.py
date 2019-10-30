@@ -11,7 +11,7 @@ from unittest.mock import ANY, create_autospec, patch
 import jsonschema
 import pytest
 import yaml
-from jsonschema.exceptions import ValidationError
+from jsonschema.exceptions import RefResolutionError, ValidationError
 from pytest_localserver.http import Request, Response, WSGIServer
 
 from rpdk.core.data_loaders import (
@@ -162,6 +162,18 @@ def test_load_resource_spec_inliner_produced_invalid_schema():
     cause = excinfo.value.__cause__
     assert cause
     assert isinstance(cause, ValidationError)
+
+
+def test_load_resource_spec_invalid_ref():
+    copy = json.loads(json.dumps(BASIC_SCHEMA))
+    copy["properties"]["foo"] = {"$ref": "#/bar"}
+    with pytest.raises(SpecValidationError) as excinfo:
+        load_resource_spec(json_s(copy))
+
+    cause = excinfo.value.__cause__
+    assert cause
+    assert isinstance(cause, RefResolutionError)
+    assert "bar" in str(cause)
 
 
 @pytest.fixture
