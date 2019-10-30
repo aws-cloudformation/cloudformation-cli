@@ -27,7 +27,8 @@ def input_with_validation(prompt, validate, description=""):
             Style.RESET_ALL,
             sep="",
         )
-        response = input("{}>> {}".format(Fore.YELLOW, Style.RESET_ALL))
+        print(Fore.YELLOW, ">> ", Style.RESET_ALL, sep="", end="")
+        response = input()
         try:
             return validate(response)
         except WizardValidationError as e:
