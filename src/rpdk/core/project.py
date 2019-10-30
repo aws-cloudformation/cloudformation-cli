@@ -256,7 +256,9 @@ class Project:  # pylint: disable=too-many-instance-attributes
             msg = "Resource specification is invalid: " + str(e)
             self._raise_invalid_project(msg, e)
 
-    def submit(self, dry_run, endpoint_url, region_name, role_arn):
+    def submit(
+        self, dry_run, endpoint_url, region_name, role_arn, use_role
+    ):  # pylint: disable=too-many-arguments
         # if it's a dry run, keep the file; otherwise can delete after upload
         if dry_run:
             path = Path("{}.zip".format(self.hypenated_name))
@@ -288,15 +290,18 @@ class Project:  # pylint: disable=too-many-instance-attributes
                     endpoint_url=endpoint_url,
                     region_name=region_name,
                     role_arn=role_arn,
+                    use_role=use_role,
                 )
 
-    def _upload(self, fileobj, endpoint_url, region_name, role_arn):
+    def _upload(
+        self, fileobj, endpoint_url, region_name, role_arn, use_role
+    ):  # pylint: disable=too-many-arguments
         LOG.debug("Packaging complete, uploading...")
         session = create_sdk_session(region_name)
         cfn_client = session.client("cloudformation", endpoint_url=endpoint_url)
         s3_client = session.client("s3")
         uploader = Uploader(cfn_client, s3_client)
-        if not role_arn and "handlers" in self.schema:
+        if use_role and not role_arn and "handlers" in self.schema:
             LOG.debug("Creating execution role for provider to use")
             role_arn = uploader.create_or_update_role(
                 self.root / ROLE_TEMPLATE_FILENAME, self.hypenated_name
@@ -316,7 +321,7 @@ class Project:  # pylint: disable=too-many-instance-attributes
                 "LogGroupName": "{}-logs".format(self.hypenated_name),
             },
         }
-        if role_arn:
+        if role_arn and use_role:
             kwargs["ExecutionRoleArn"] = role_arn
 
         try:
