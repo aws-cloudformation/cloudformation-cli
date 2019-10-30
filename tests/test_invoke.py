@@ -1,15 +1,17 @@
 # fixture and parameter have the same name
 # pylint: disable=redefined-outer-name
 import json
-from unittest.mock import MagicMock, Mock, patch
+from io import StringIO
+from unittest.mock import Mock, patch
 
 import pytest
 
 from rpdk.core.cli import main
 from rpdk.core.contract.interface import Action
-from rpdk.core.contract.resource_client import ResourceClient
 from rpdk.core.invoke import _needs_reinvocation
 from rpdk.core.project import Project
+
+ACTIONS = list(Action.__members__)
 
 
 @pytest.fixture
@@ -35,53 +37,52 @@ def invalid_payload(tmp_path):
     return path
 
 
-@pytest.mark.parametrize("command", list(Action.__members__))
+@pytest.mark.parametrize("command", ACTIONS)
 def test_invoke_command_happy_path(capsys, payload_path, command):
-    mock_project, mock_client = _invoke_and_expect("SUCCESS", payload_path, command)
+    mock_project, mock_invoke = _invoke_and_expect("SUCCESS", payload_path, command)
 
     mock_project.load.assert_called_once_with()
-    mock_client.assert_called_once()
+    mock_invoke.assert_called_once()
     _out, err = capsys.readouterr()
     assert not err
 
 
-@pytest.mark.parametrize("command", list(Action.__members__))
+@pytest.mark.parametrize("command", ACTIONS)
 def test_invoke_command_sad_path(capsys, payload_path, command):
-    mock_project, mock_client = _invoke_and_expect("FAILED", payload_path, command)
+    mock_project, mock_invoke = _invoke_and_expect("FAILED", payload_path, command)
 
     mock_project.load.assert_called_once_with()
-    mock_client.assert_called_once()
+    mock_invoke.assert_called_once()
     _out, err = capsys.readouterr()
     assert not err
 
 
-@pytest.mark.parametrize("command", list(Action.__members__))
+@pytest.mark.parametrize("command", ACTIONS)
 def test_invoke_command_in_progress_with_reinvoke(capsys, payload_path, command):
-    mock_project, mock_client = _invoke_and_expect(
+    mock_project, mock_invoke = _invoke_and_expect(
         "IN_PROGRESS", payload_path, command, "--max-reinvoke", "2"
     )
 
-    assert mock_client.call_count == 3
+    assert mock_invoke.call_count == 3
 
     mock_project.load.assert_called_once_with()
     _out, err = capsys.readouterr()
     assert not err
 
 
-@pytest.mark.parametrize("command", list(Action.__members__))
+@pytest.mark.parametrize("command", ACTIONS)
 def test_invoke_command_in_progress_with_no_reinvocation(capsys, payload_path, command):
-    mock_project, mock_client = _invoke_and_expect(
+    mock_project, mock_invoke = _invoke_and_expect(
         "IN_PROGRESS", payload_path, command, "--max-reinvoke", "0"
     )
 
-    assert mock_client.call_count == 1
-
     mock_project.load.assert_called_once_with()
+    mock_invoke.assert_called_once()
     _out, err = capsys.readouterr()
     assert not err
 
 
-@pytest.mark.parametrize("command", list(Action.__members__))
+@pytest.mark.parametrize("command", ACTIONS)
 def test_value_error_on_json_load(capsys, invalid_payload, command):
     mock_project = Mock(spec=Project)
     mock_project.schema = {}
@@ -90,15 +91,24 @@ def test_value_error_on_json_load(capsys, invalid_payload, command):
     patch_project = patch(
         "rpdk.core.invoke.Project", autospec=True, return_value=mock_project
     )
+    patch_session = patch(
+        "rpdk.core.contract.resource_client.create_sdk_session", autospec=True
+    )
+    patch_creds = patch(
+        "rpdk.core.contract.resource_client.get_temporary_credentials",
+        autospec=True,
+        return_value={},
+    )
 
-    with pytest.raises(SystemExit), patch_project:
-        main(args_in=["invoke", command, str(invalid_payload)])
+    with patch_project, patch_session, patch_creds:
+        with pytest.raises(SystemExit):
+            main(args_in=["invoke", command, str(invalid_payload)])
 
     out, _err = capsys.readouterr()
     assert "Invalid JSON" in out
 
 
-@pytest.mark.parametrize("command", list(Action.__members__))
+@pytest.mark.parametrize("command", ACTIONS)
 def test_keyboard_interrupt(capsys, payload_path, command):
     mock_project = Mock(spec=Project)
     mock_project.schema = {}
@@ -107,29 +117,34 @@ def test_keyboard_interrupt(capsys, payload_path, command):
     patch_project = patch(
         "rpdk.core.invoke.Project", autospec=True, return_value=mock_project
     )
+    patch_session = patch(
+        "rpdk.core.contract.resource_client.create_sdk_session", autospec=True
+    )
+    patch_creds = patch(
+        "rpdk.core.contract.resource_client.get_temporary_credentials",
+        autospec=True,
+        return_value={},
+    )
+    patch_dumps = patch.object(json, "dumps", side_effect=KeyboardInterrupt)
 
-    json_patch = patch.object(json, "dumps", side_effect=KeyboardInterrupt)
-    mock_client_call = MagicMock(return_value={"status": "SUCCESS"})
-    patch_client_call = patch.object(ResourceClient, "_call", mock_client_call)
-
-    with patch_project, patch_client_call, json_patch:
+    with patch_project, patch_creds, patch_dumps, patch_session as mock_session:
+        mock_client = mock_session.return_value.client.return_value
         main(args_in=["invoke", command, str(payload_path)])
 
-    assert mock_client_call.call_count == 0
-
     mock_project.load.assert_called_once_with()
+    mock_client.invoke.assert_not_called()
     _out, err = capsys.readouterr()
     assert not err
 
 
 # We test this private member directly because it is not practical to
 # test the case where IN_PROGRESS re-invokes indefinitely.
-def test_needs_reinvocation():
-    assert _needs_reinvocation(None, 300)
-    assert _needs_reinvocation(None, 0)
-    assert _needs_reinvocation(1, 0)
-    assert _needs_reinvocation(1, 1)
-    assert not _needs_reinvocation(1, 2)
+@pytest.mark.parametrize(
+    "max_reinvoke,current_invocation,result",
+    [(None, 300, True), (None, 0, True), (1, 0, True), (1, 1, True), (1, 2, False)],
+)
+def test_needs_reinvocation(max_reinvoke, current_invocation, result):
+    assert _needs_reinvocation(max_reinvoke, current_invocation) is result
 
 
 def _invoke_and_expect(status, payload_path, command, *args):
@@ -140,12 +155,22 @@ def _invoke_and_expect(status, payload_path, command, *args):
     patch_project = patch(
         "rpdk.core.invoke.Project", autospec=True, return_value=mock_project
     )
+    patch_session = patch(
+        "rpdk.core.contract.resource_client.create_sdk_session", autospec=True
+    )
+    patch_creds = patch(
+        "rpdk.core.contract.resource_client.get_temporary_credentials",
+        autospec=True,
+        return_value={},
+    )
 
-    mock_client_call = MagicMock(return_value={"status": status})
-
-    patch_client_call = patch.object(ResourceClient, "_call", mock_client_call)
-
-    with patch_project, patch_client_call as mock_client:
+    with patch_project, patch_session as mock_session, patch_creds as mock_creds:
+        mock_client = mock_session.return_value.client.return_value
+        mock_client.invoke.side_effect = lambda **_kwargs: {
+            "Payload": StringIO(json.dumps({"status": status}))
+        }
         main(args_in=["invoke", command, str(payload_path), *args])
 
-    return mock_project, mock_client
+    mock_creds.assert_called_once()
+
+    return mock_project, mock_client.invoke
