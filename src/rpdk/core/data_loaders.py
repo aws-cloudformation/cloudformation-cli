@@ -8,7 +8,7 @@ import pkg_resources
 import requests
 import yaml
 from jsonschema import Draft7Validator, RefResolver
-from jsonschema.exceptions import ValidationError
+from jsonschema.exceptions import RefResolutionError, ValidationError
 
 from .exceptions import InternalError, SpecValidationError
 from .jsonutils.inliner import RefInliner
@@ -113,7 +113,11 @@ def load_resource_spec(resource_spec_file):
     base_uri = get_file_base_uri(resource_spec_file)
 
     inliner = RefInliner(base_uri, resource_spec)
-    inlined = inliner.inline()
+    try:
+        inlined = inliner.inline()
+    except RefResolutionError as e:
+        LOG.debug("Resource spec validation failed", exc_info=True)
+        raise SpecValidationError(str(e)) from e
 
     try:
         validator.validate(inlined)
