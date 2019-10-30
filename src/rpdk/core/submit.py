@@ -27,11 +27,12 @@ def setup_subparser(subparsers, parents):
     )
     parser.add_argument("--endpoint-url", help="CloudFormation endpoint to use.")
     parser.add_argument("--region", help="AWS Region to submit the resource type.")
-    parser.add_argument(
+    role_group = parser.add_mutually_exclusive_group()
+    role_group.add_argument(
         "--role-arn",
         help="Role ARN that CloudFormation will use when invoking handlers.",
     )
-    parser.add_argument(
+    role_group.add_argument(
         "--no-role",
         action="store_false",
         dest="use_role",
