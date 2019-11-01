@@ -35,6 +35,12 @@ NEG_INF = float("-inf")
 POS_INF = float("inf")
 
 
+def terminate_regex(regex):
+    if regex.endswith("$"):
+        return regex[:-1] + r"\Z"
+    return regex
+
+
 class ResourceGenerator:
     def __init__(self, schema):
         self.resolver = RefResolver.from_schema(schema)
@@ -239,7 +245,8 @@ class ResourceGenerator:
                 LOG.warning("found minLength used with pattern")
             if "maxLength" in schema:  # pragma: no cover
                 LOG.warning("found maxLength used with pattern")
-            return from_regex(regex)
+
+            return from_regex(terminate_regex(regex))
 
         if "pattern" in schema:  # pragma: no cover
             LOG.warning("found pattern used with format")
