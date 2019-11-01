@@ -9,7 +9,22 @@ from rpdk.core.contract.resource_generator import (
     POS_INF,
     STRING_FORMATS,
     ResourceGenerator,
+    terminate_regex,
 )
+
+
+def test_terminate_regex_end_of_line_like_a_normal_person():
+    original_regex = r"^[a-zA-Z0-9]{1,219}$"
+    assert re.match(original_regex, "dfqh3eqefhq\n")
+    assert re.match(original_regex, "dfqh3eqefhq")
+    modified_regex = terminate_regex(original_regex)
+    assert not re.match(modified_regex, "dfqh3eqefhq\n")
+    assert re.match(modified_regex, "dfqh3eqefhq")
+
+
+def test_terminate_regex_no_termination_needed():
+    original_regex = r"^[a-zA-Z0-9]{1,219}\Z"
+    assert terminate_regex(original_regex) == original_regex
 
 
 @pytest.mark.parametrize("schema_type", ["integer", "number"])
