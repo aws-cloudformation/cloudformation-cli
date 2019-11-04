@@ -315,7 +315,13 @@ def test_submit_dry_run(project):
     # these context managers can't be wrapped by black, but it removes the \
     with patch_plugin as mock_plugin, patch_path as mock_path, \
             patch_temp as mock_temp, patch_upload as mock_upload:
-        project.submit(True, endpoint_url=ENDPOINT, region_name=REGION, role_arn=None)
+        project.submit(
+            True,
+            endpoint_url=ENDPOINT,
+            region_name=REGION,
+            role_arn=None,
+            use_role=True
+        )
     # fmt: on
 
     mock_temp.assert_not_called()
@@ -359,7 +365,13 @@ def test_submit_live_run(project):
     # these context managers can't be wrapped by black, but it removes the \
     with patch_plugin as mock_plugin, patch_path as mock_path, \
             patch_temp as mock_temp, patch_upload as mock_upload:
-        project.submit(False, endpoint_url=ENDPOINT, region_name=REGION, role_arn=None)
+        project.submit(
+            False,
+            endpoint_url=ENDPOINT,
+            region_name=REGION,
+            role_arn=None,
+            use_role=True
+        )
     # fmt: on
 
     mock_path.assert_not_called()
@@ -370,7 +382,11 @@ def test_submit_live_run(project):
 
     assert temp_file.tell() == 0  # file was rewound before upload
     mock_upload.assert_called_once_with(
-        temp_file, region_name=REGION, endpoint_url=ENDPOINT, role_arn=None
+        temp_file,
+        region_name=REGION,
+        endpoint_url=ENDPOINT,
+        role_arn=None,
+        use_role=True,
     )
 
     assert temp_file._was_closed
@@ -399,7 +415,13 @@ def test__upload_good_path_create_role(project):
         mock_session = mock_sdk.return_value
         mock_session.client.side_effect = [mock_cfn_client, s3_client]
         with patch_uuid as mock_uuid:
-            project._upload(fileobj, endpoint_url=None, region_name=None, role_arn=None)
+            project._upload(
+                fileobj,
+                endpoint_url=None,
+                region_name=None,
+                role_arn=None,
+                use_role=True,
+            )
 
     mock_sdk.assert_called_once_with(None)
     mock_exec_role_method.assert_called_once_with(
@@ -421,7 +443,13 @@ def test__upload_good_path_create_role(project):
     )
 
 
-def test__upload_good_path_override_role(project):
+@pytest.mark.parametrize(
+    ("use_role,expected_additional_args"),
+    [(True, {"ExecutionRoleArn": "someArn"}), (False, {})],
+)
+def test__upload_good_path_skip_role_creation(
+    project, use_role, expected_additional_args
+):
     project.type_name = TYPE_NAME
     project.schema = {"handlers": {}}
 
@@ -431,27 +459,28 @@ def test__upload_good_path_override_role(project):
 
     patch_sdk = patch("rpdk.core.project.create_sdk_session", autospec=True)
     patch_uploader = patch.object(Uploader, "upload", return_value="url")
-    patch_exec_role_arn = patch.object(
-        Uploader, "create_or_update_role", return_value="some-execution-role-arn"
-    )
     patch_logging_role_arn = patch.object(
         Uploader, "get_log_delivery_role_arn", return_value="some-log-role-arn"
     )
     patch_uuid = patch("rpdk.core.project.uuid4", autospec=True, return_value="foo")
 
-    with patch_sdk as mock_sdk, patch_uploader as mock_upload_method, patch_logging_role_arn as mock_role_arn_method, patch_exec_role_arn as mock_exec_role_method:  # noqa: B950 as it conflicts with formatting rules # pylint: disable=C0301
+    with patch_sdk as mock_sdk, patch_uploader as mock_upload_method, patch_logging_role_arn as mock_role_arn_method:  # noqa: B950 as it conflicts with formatting rules # pylint: disable=C0301
         mock_session = mock_sdk.return_value
         mock_session.client.side_effect = [mock_cfn_client, s3_client]
         with patch_uuid as mock_uuid:
             project._upload(
-                fileobj, endpoint_url=None, region_name=None, role_arn="someArn"
+                fileobj,
+                endpoint_url=None,
+                region_name=None,
+                role_arn="someArn",
+                use_role=use_role,
             )
 
     mock_sdk.assert_called_once_with(None)
-    mock_exec_role_method.assert_not_called()
     mock_upload_method.assert_called_once_with(project.hypenated_name, fileobj)
     mock_role_arn_method.assert_called_once_with()
     mock_uuid.assert_called_once_with()
+
     mock_cfn_client.register_type.assert_called_once_with(
         Type="RESOURCE",
         TypeName=project.type_name,
@@ -461,7 +490,7 @@ def test__upload_good_path_override_role(project):
             "LogRoleArn": "some-log-role-arn",
             "LogGroupName": "aws-color-red-logs",
         },
-        ExecutionRoleArn="someArn",
+        **expected_additional_args
     )
 
 
@@ -487,7 +516,13 @@ def test__upload_clienterror(project):
         mock_session = mock_sdk.return_value
         mock_session.client.side_effect = [mock_cfn_client, s3_client]
         with patch_uuid as mock_uuid, pytest.raises(DownstreamError):
-            project._upload(fileobj, endpoint_url=None, region_name=None, role_arn=None)
+            project._upload(
+                fileobj,
+                endpoint_url=None,
+                region_name=None,
+                role_arn=None,
+                use_role=False,
+            )
 
     mock_sdk.assert_called_once_with(None)
     mock_upload_method.assert_called_once_with(project.hypenated_name, fileobj)
