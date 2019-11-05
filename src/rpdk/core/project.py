@@ -328,11 +328,12 @@ class Project:  # pylint: disable=too-many-instance-attributes
             LOG.debug("Registering type resulted in unknown ClientError", exc_info=e)
             raise DownstreamError("Unknown CloudFormation error") from e
         else:
-            if set_default:
-                self._wait_for_registration(cfn_client, response["RegistrationToken"])
+            self._wait_for_registration(
+                cfn_client, response["RegistrationToken"], set_default
+            )
 
     @staticmethod
-    def _wait_for_registration(cfn_client, registration_token):
+    def _wait_for_registration(cfn_client, registration_token, set_default):
         # temporarily creating waiter inline
         # until the SDK releases and we can use get_waiter
         waiter_config = {
@@ -365,6 +366,11 @@ class Project:  # pylint: disable=too-many-instance-attributes
         )
         # registration_waiter = cfn_client.get_waiter("TypeRegistrationComplete")
         try:
+            LOG.warning(
+                "Successfully submitted type. "
+                "Waiting for registration with token '%s' to complete.",
+                registration_token,
+            )
             registration_waiter.wait(RegistrationToken=registration_token)
         except WaiterError as e:
             LOG.warning(
@@ -386,8 +392,11 @@ class Project:  # pylint: disable=too-many-instance-attributes
             )
             raise DownstreamError("Type registration error") from e
         LOG.warning("Registration complete.")
-        arn = cfn_client.describe_type_registration(
+        response = cfn_client.describe_type_registration(
             RegistrationToken=registration_token
-        )["TypeVersionArn"]
-        cfn_client.set_type_default_version(Arn=arn)
-        LOG.warning("Set default version to '%s", arn)
+        )
+        LOG.warning(response)
+        if set_default:
+            arn = response["TypeVersionArn"]
+            cfn_client.set_type_default_version(Arn=arn)
+            LOG.warning("Set default version to '%s", arn)

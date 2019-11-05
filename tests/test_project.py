@@ -461,14 +461,14 @@ def test__upload_good_path_create_role_and_set_default(project):
         },
         ExecutionRoleArn="some-execution-role-arn",
     )
-    mock_wait.assert_called_once_with(mock_cfn_client, "foo")
+    mock_wait.assert_called_once_with(mock_cfn_client, "foo", True)
 
 
 @pytest.mark.parametrize(
     ("use_role,expected_additional_args"),
     [(True, {"ExecutionRoleArn": "someArn"}), (False, {})],
 )
-def test__upload_good_path_skip_role_creation_and_set_default(
+def test__upload_good_path_skip_role_creation(
     project, use_role, expected_additional_args
 ):
     project.type_name = TYPE_NAME
@@ -484,23 +484,25 @@ def test__upload_good_path_skip_role_creation_and_set_default(
         Uploader, "get_log_delivery_role_arn", return_value="some-log-role-arn"
     )
     patch_uuid = patch("rpdk.core.project.uuid4", autospec=True, return_value="foo")
+    patch_wait = patch.object(project, "_wait_for_registration", autospec=True)
 
     with patch_sdk as mock_sdk, patch_uploader as mock_upload_method, patch_logging_role_arn as mock_role_arn_method:  # noqa: B950 as it conflicts with formatting rules # pylint: disable=C0301
         mock_sdk.return_value.client.side_effect = [mock_cfn_client, object()]
-        with patch_uuid as mock_uuid:
+        with patch_uuid as mock_uuid, patch_wait as mock_wait:
             project._upload(
                 fileobj,
                 endpoint_url=None,
                 region_name=None,
                 role_arn="someArn",
                 use_role=use_role,
-                set_default=False,
+                set_default=True,
             )
 
     mock_sdk.assert_called_once_with(None)
     mock_upload_method.assert_called_once_with(project.hypenated_name, fileobj)
     mock_role_arn_method.assert_called_once_with()
     mock_uuid.assert_called_once_with()
+    mock_wait.assert_called_once_with(mock_cfn_client, "foo", True)
 
     mock_cfn_client.register_type.assert_called_once_with(
         Type="RESOURCE",
@@ -575,7 +577,7 @@ def test__wait_for_registration_set_default(project):
         return_value=mock_waiter,
     )
     with patch_create_waiter:
-        project._wait_for_registration(mock_cfn_client, REGISTRATION_TOKEN)
+        project._wait_for_registration(mock_cfn_client, REGISTRATION_TOKEN, True)
 
     mock_cfn_client.describe_type_registration.assert_called_once_with(
         RegistrationToken=REGISTRATION_TOKEN
@@ -583,6 +585,29 @@ def test__wait_for_registration_set_default(project):
     mock_cfn_client.set_type_default_version.assert_called_once_with(
         Arn=TYPE_VERSION_ARN
     )
+    mock_waiter.wait.assert_called_once_with(RegistrationToken=REGISTRATION_TOKEN)
+
+
+def test__wait_for_registration_no_set_default(project):
+    mock_cfn_client = MagicMock(
+        spec=["describe_type_registration", "set_type_default_version"]
+    )
+    mock_cfn_client.describe_type_registration.return_value = (
+        DESCRIBE_TYPE_COMPLETE_RETURN
+    )
+    mock_waiter = MagicMock(spec=["wait"])
+    patch_create_waiter = patch(
+        "rpdk.core.project.create_waiter_with_client",
+        autospec=True,
+        return_value=mock_waiter,
+    )
+    with patch_create_waiter:
+        project._wait_for_registration(mock_cfn_client, REGISTRATION_TOKEN, False)
+
+    mock_cfn_client.describe_type_registration.assert_called_once_with(
+        RegistrationToken=REGISTRATION_TOKEN
+    )
+    mock_cfn_client.set_type_default_version.assert_not_called()
     mock_waiter.wait.assert_called_once_with(RegistrationToken=REGISTRATION_TOKEN)
 
 
@@ -604,7 +629,7 @@ def test__wait_for_registration_waiter_fails(project):
         "rpdk.core.project.create_waiter_with_client", return_value=mock_waiter
     )
     with patch_create_waiter, pytest.raises(DownstreamError):
-        project._wait_for_registration(mock_cfn_client, REGISTRATION_TOKEN)
+        project._wait_for_registration(mock_cfn_client, REGISTRATION_TOKEN, True)
 
     mock_cfn_client.describe_type_registration.assert_called_once_with(
         RegistrationToken=REGISTRATION_TOKEN
@@ -631,7 +656,7 @@ def test__wait_for_registration_waiter_fails_describe_fails(project):
         "rpdk.core.project.create_waiter_with_client", return_value=mock_waiter
     )
     with patch_create_waiter, pytest.raises(DownstreamError):
-        project._wait_for_registration(mock_cfn_client, REGISTRATION_TOKEN)
+        project._wait_for_registration(mock_cfn_client, REGISTRATION_TOKEN, False)
 
     mock_cfn_client.describe_type_registration.assert_called_once_with(
         RegistrationToken=REGISTRATION_TOKEN
