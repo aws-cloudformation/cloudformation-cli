@@ -588,6 +588,34 @@ def test__wait_for_registration_set_default(project):
     mock_waiter.wait.assert_called_once_with(RegistrationToken=REGISTRATION_TOKEN)
 
 
+def test__wait_for_registration_set_default_fails(project):
+    mock_cfn_client = MagicMock(
+        spec=["describe_type_registration", "set_type_default_version"]
+    )
+    mock_cfn_client.describe_type_registration.return_value = (
+        DESCRIBE_TYPE_COMPLETE_RETURN
+    )
+    mock_cfn_client.set_type_default_version.side_effect = ClientError(
+        BLANK_CLIENT_ERROR, "SetTypeDefaultVersion"
+    )
+    mock_waiter = MagicMock(spec=["wait"])
+    patch_create_waiter = patch(
+        "rpdk.core.project.create_waiter_with_client",
+        autospec=True,
+        return_value=mock_waiter,
+    )
+    with patch_create_waiter, pytest.raises(DownstreamError):
+        project._wait_for_registration(mock_cfn_client, REGISTRATION_TOKEN, True)
+
+    mock_cfn_client.describe_type_registration.assert_called_once_with(
+        RegistrationToken=REGISTRATION_TOKEN
+    )
+    mock_cfn_client.set_type_default_version.assert_called_once_with(
+        Arn=TYPE_VERSION_ARN
+    )
+    mock_waiter.wait.assert_called_once_with(RegistrationToken=REGISTRATION_TOKEN)
+
+
 def test__wait_for_registration_no_set_default(project):
     mock_cfn_client = MagicMock(
         spec=["describe_type_registration", "set_type_default_version"]

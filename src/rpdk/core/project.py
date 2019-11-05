@@ -381,12 +381,14 @@ class Project:  # pylint: disable=too-many-instance-attributes
                 response = cfn_client.describe_type_registration(
                     RegistrationToken=registration_token
                 )
-            except ClientError:
+            except ClientError as describe_error:
                 LOG.debug(
                     "Describing type registration resulted in unknown ClientError",
                     exc_info=e,
                 )
-                raise DownstreamError("Unknown CloudFormation error.") from e
+                raise DownstreamError(
+                    "Error describing type registration"
+                ) from describe_error
             LOG.warning(
                 "Please see response for additional information: '%s'", response
             )
@@ -398,5 +400,12 @@ class Project:  # pylint: disable=too-many-instance-attributes
         LOG.warning(response)
         if set_default:
             arn = response["TypeVersionArn"]
-            cfn_client.set_type_default_version(Arn=arn)
+            try:
+                cfn_client.set_type_default_version(Arn=arn)
+            except ClientError as e:
+                LOG.debug(
+                    "Setting default version resulted in unknown ClientError",
+                    exc_info=e,
+                )
+                raise DownstreamError("Error setting default version") from e
             LOG.warning("Set default version to '%s", arn)
