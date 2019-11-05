@@ -11,8 +11,6 @@ from jinja2 import Environment, PackageLoader, select_autoescape
 from jsonschema import Draft6Validator
 from jsonschema.exceptions import ValidationError
 
-from rpdk.core.input_helpers import input_with_validation, validate_yes
-
 from .boto_helpers import create_sdk_session
 from .data_loaders import load_resource_spec, resource_json
 from .exceptions import (
@@ -260,7 +258,7 @@ class Project:  # pylint: disable=too-many-instance-attributes
             self._raise_invalid_project(msg, e)
 
     def submit(
-        self, dry_run, endpoint_url, region_name, role_arn, use_role
+        self, dry_run, endpoint_url, region_name, role_arn, use_role, set_default
     ):  # pylint: disable=too-many-arguments
         # if it's a dry run, keep the file; otherwise can delete after upload
         if dry_run:
@@ -289,16 +287,12 @@ class Project:  # pylint: disable=too-many-instance-attributes
             else:
                 f.seek(0)
                 self._upload(
-                    f,
-                    endpoint_url=endpoint_url,
-                    region_name=region_name,
-                    role_arn=role_arn,
-                    use_role=use_role,
+                    f, endpoint_url, region_name, role_arn, use_role, set_default
                 )
 
     def _upload(
-        self, fileobj, endpoint_url, region_name, role_arn, use_role
-    ):  # pylint: disable=too-many-arguments
+        self, fileobj, endpoint_url, region_name, role_arn, use_role, set_default
+    ):  # pylint: disable=too-many-arguments, too-many-locals
         LOG.debug("Packaging complete, uploading...")
         session = create_sdk_session(region_name)
         cfn_client = session.client("cloudformation", endpoint_url=endpoint_url)
@@ -334,7 +328,8 @@ class Project:  # pylint: disable=too-many-instance-attributes
             LOG.debug("Registering type resulted in unknown ClientError", exc_info=e)
             raise DownstreamError("Unknown CloudFormation error") from e
         else:
-            self._wait_for_registration(cfn_client, response["RegistrationToken"])
+            if set_default:
+                self._wait_for_registration(cfn_client, response["RegistrationToken"])
 
     @staticmethod
     def _wait_for_registration(cfn_client, registration_token):
@@ -372,24 +367,27 @@ class Project:  # pylint: disable=too-many-instance-attributes
         try:
             registration_waiter.wait(RegistrationToken=registration_token)
         except WaiterError as e:
-            response = cfn_client.describe_type_registration(
-                RegistrationToken=registration_token
-            )
-            LOG.critical(
-                "Failed to register the type with registration token '%s'. "
-                "Please see response for additional information: '%s'",
+            LOG.warning(
+                "Failed to register the type with registration token '%s'.",
                 registration_token,
-                response["Description"],
             )
-            raise e
+            try:
+                response = cfn_client.describe_type_registration(
+                    RegistrationToken=registration_token
+                )
+            except ClientError:
+                LOG.debug(
+                    "Describing type registration resulted in unknown ClientError",
+                    exc_info=e,
+                )
+                raise DownstreamError("Unknown CloudFormation error.") from e
+            LOG.warning(
+                "Please see response for additional information: '%s'", response
+            )
+            raise DownstreamError("Type registration error") from e
+        LOG.warning("Registration complete.")
         arn = cfn_client.describe_type_registration(
             RegistrationToken=registration_token
         )["TypeVersionArn"]
-
-        if input_with_validation(
-            "Successfully registered type. "
-            "Do you want to set it as the default version?",
-            validate_yes,
-        ):
-            cfn_client.set_type_default_version(Arn=arn)
-            LOG.warning("Set default version to '%s", arn)
+        cfn_client.set_type_default_version(Arn=arn)
+        LOG.warning("Set default version to '%s", arn)

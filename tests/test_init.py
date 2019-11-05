@@ -11,9 +11,10 @@ from rpdk.core.init import (
     init,
     input_language,
     input_typename,
+    input_with_validation,
     validate_type_name,
+    validate_yes,
 )
-from rpdk.core.input_helpers import input_with_validation, validate_yes
 from rpdk.core.project import Project
 
 PROMPT = "MECVGD"
@@ -52,7 +53,7 @@ def test_input_with_validation_valid_first_try(capsys):
     sentinel2 = object()
 
     validator = Mock(return_value=sentinel1)
-    with patch("rpdk.core.input_helpers.input", return_value=sentinel2) as mock_input:
+    with patch("rpdk.core.init.input", return_value=sentinel2) as mock_input:
         ret = input_with_validation(PROMPT, validator)
 
     mock_input.assert_called_once_with()
@@ -72,9 +73,7 @@ def test_input_with_validation_valid_second_try(capsys):
 
     sentinel = object()
 
-    with patch(
-        "rpdk.core.input_helpers.input", side_effect=(ERROR, sentinel)
-    ) as mock_input:
+    with patch("rpdk.core.init.input", side_effect=(ERROR, sentinel)) as mock_input:
         ret = input_with_validation(PROMPT, mock_validator)
 
     assert mock_input.call_count == 2
@@ -219,7 +218,7 @@ def test_ignore_abort_abort():
 
 def test_input_typename():
     type_name = "AWS::Color::Red"
-    patch_input = patch("rpdk.core.input_helpers.input", return_value=type_name)
+    patch_input = patch("rpdk.core.init.input", return_value=type_name)
     with patch_input as mock_input:
         assert input_typename() == type_name
     mock_input.assert_called_once()
@@ -241,7 +240,7 @@ def test_input_language_one_plugin():
 def test_input_language_several_plugins():
     validator = ValidatePluginChoice(["1", PROMPT, "2"])
     patch_validator = patch("rpdk.core.init.validate_plugin_choice", validator)
-    patch_input = patch("rpdk.core.input_helpers.input", return_value="2")
+    patch_input = patch("rpdk.core.init.input", return_value="2")
     with patch_validator, patch_input as mock_input:
         assert input_language() == PROMPT
 
