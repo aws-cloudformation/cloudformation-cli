@@ -5,10 +5,13 @@ from pathlib import Path
 from tempfile import TemporaryFile
 from uuid import uuid4
 
-from botocore.exceptions import ClientError
+from botocore.exceptions import ClientError, WaiterError
+from botocore.waiter import WaiterModel, create_waiter_with_client
 from jinja2 import Environment, PackageLoader, select_autoescape
 from jsonschema import Draft6Validator
 from jsonschema.exceptions import ValidationError
+
+from rpdk.core.input_helpers import input_with_validation, validate_yes
 
 from .boto_helpers import create_sdk_session
 from .data_loaders import load_resource_spec, resource_json
@@ -330,6 +333,63 @@ class Project:  # pylint: disable=too-many-instance-attributes
         except ClientError as e:
             LOG.debug("Registering type resulted in unknown ClientError", exc_info=e)
             raise DownstreamError("Unknown CloudFormation error") from e
-        LOG.warning(
-            "Registration in progress with token: %s", response["RegistrationToken"]
+        else:
+            self._wait_for_registration(cfn_client, response["RegistrationToken"])
+
+    @staticmethod
+    def _wait_for_registration(cfn_client, registration_token):
+        # temporarily creating waiter inline
+        # until the SDK releases and we can use get_waiter
+        waiter_config = {
+            "version": 2,
+            "waiters": {
+                "TypeRegistrationComplete": {
+                    "delay": 5,
+                    "operation": "DescribeTypeRegistration",
+                    "maxAttempts": 200,
+                    "description": "Wait until type registration is COMPLETE.",
+                    "acceptors": [
+                        {
+                            "argument": "ProgressStatus",
+                            "expected": "COMPLETE",
+                            "matcher": "path",
+                            "state": "success",
+                        },
+                        {
+                            "argument": "ProgressStatus",
+                            "expected": "FAILED",
+                            "matcher": "path",
+                            "state": "failure",
+                        },
+                    ],
+                }
+            },
+        }
+        registration_waiter = create_waiter_with_client(
+            "TypeRegistrationComplete", WaiterModel(waiter_config), cfn_client
         )
+        # registration_waiter = cfn_client.get_waiter("TypeRegistrationComplete")
+        try:
+            registration_waiter.wait(RegistrationToken=registration_token)
+        except WaiterError as e:
+            response = cfn_client.describe_type_registration(
+                RegistrationToken=registration_token
+            )
+            LOG.critical(
+                "Failed to register the type with registration token '%s'. "
+                "Please see response for additional information: '%s'",
+                registration_token,
+                response["Description"],
+            )
+            raise e
+        arn = cfn_client.describe_type_registration(
+            RegistrationToken=registration_token
+        )["TypeVersionArn"]
+
+        if input_with_validation(
+            "Successfully registered type. "
+            "Do you want to set it as the default version?",
+            validate_yes,
+        ):
+            cfn_client.set_type_default_version(Arn=arn)
+            LOG.warning("Set default version to '%s", arn)

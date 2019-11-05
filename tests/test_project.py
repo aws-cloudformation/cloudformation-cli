@@ -12,7 +12,7 @@ from unittest.mock import ANY, MagicMock, patch
 
 import pytest
 import yaml
-from botocore.exceptions import ClientError
+from botocore.exceptions import ClientError, WaiterError
 
 from rpdk.core.exceptions import (
     DownstreamError,
@@ -39,6 +39,22 @@ REGION = "us-east-1"
 ENDPOINT = "cloudformation.beta.com"
 RUNTIME = random.choice(list(LAMBDA_RUNTIMES))
 BLANK_CLIENT_ERROR = {"Error": {"Code": "", "Message": ""}}
+
+REGISTRATION_TOKEN = "foo"
+TYPE_ARN = "arn:aws:cloudformation:us-east-1:123456789012:type/resource/Foo-Bar-Foo"
+TYPE_VERSION_ARN = (
+    "arn:aws:cloudformation:us-east-1:123456789012:type/resource/Foo-Bar-Foo/00000001"
+)
+DESCRIBE_TYPE_COMPLETE_RETURN = {
+    "TypeArn": TYPE_ARN,
+    "TypeVersionArn": TYPE_VERSION_ARN,
+    "Description": "Some detailed progress message.",
+    "ProgressStatus": "COMPLETE",
+}
+DESCRIBE_TYPE_FAILED_RETURN = {
+    "Description": "Some detailed progress message.",
+    "ProgressStatus": "FAILED",
+}
 
 
 @pytest.fixture
@@ -398,7 +414,7 @@ def test__upload_good_path_create_role(project):
     project.schema = {"handlers": {}}
 
     mock_cfn_client = MagicMock(spec=["register_type"])
-    s3_client = object()
+    mock_cfn_client.register_type.return_value = {"RegistrationToken": "foo"}
     fileobj = object()
 
     patch_sdk = patch("rpdk.core.project.create_sdk_session", autospec=True)
@@ -410,11 +426,11 @@ def test__upload_good_path_create_role(project):
         Uploader, "get_log_delivery_role_arn", return_value="some-log-role-arn"
     )
     patch_uuid = patch("rpdk.core.project.uuid4", autospec=True, return_value="foo")
+    patch_wait = patch.object(project, "_wait_for_registration", autospec=True)
 
     with patch_sdk as mock_sdk, patch_uploader as mock_upload_method, patch_logging_role_arn as mock_role_arn_method, patch_exec_role_arn as mock_exec_role_method:  # noqa: B950 as it conflicts with formatting rules # pylint: disable=C0301
-        mock_session = mock_sdk.return_value
-        mock_session.client.side_effect = [mock_cfn_client, s3_client]
-        with patch_uuid as mock_uuid:
+        mock_sdk.return_value.client.side_effect = [mock_cfn_client, object()]
+        with patch_uuid as mock_uuid, patch_wait as mock_wait:
             project._upload(
                 fileobj,
                 endpoint_url=None,
@@ -441,6 +457,7 @@ def test__upload_good_path_create_role(project):
         },
         ExecutionRoleArn="some-execution-role-arn",
     )
+    mock_wait.assert_called_once_with(mock_cfn_client, "foo")
 
 
 @pytest.mark.parametrize(
@@ -454,8 +471,8 @@ def test__upload_good_path_skip_role_creation(
     project.schema = {"handlers": {}}
 
     mock_cfn_client = MagicMock(spec=["register_type"])
-    s3_client = object()
     fileobj = object()
+    mock_cfn_client.register_type.return_value = {"RegistrationToken": "foo"}
 
     patch_sdk = patch("rpdk.core.project.create_sdk_session", autospec=True)
     patch_uploader = patch.object(Uploader, "upload", return_value="url")
@@ -463,11 +480,11 @@ def test__upload_good_path_skip_role_creation(
         Uploader, "get_log_delivery_role_arn", return_value="some-log-role-arn"
     )
     patch_uuid = patch("rpdk.core.project.uuid4", autospec=True, return_value="foo")
+    patch_wait = patch.object(project, "_wait_for_registration", autospec=True)
 
     with patch_sdk as mock_sdk, patch_uploader as mock_upload_method, patch_logging_role_arn as mock_role_arn_method:  # noqa: B950 as it conflicts with formatting rules # pylint: disable=C0301
-        mock_session = mock_sdk.return_value
-        mock_session.client.side_effect = [mock_cfn_client, s3_client]
-        with patch_uuid as mock_uuid:
+        mock_sdk.return_value.client.side_effect = [mock_cfn_client, object()]
+        with patch_uuid as mock_uuid, patch_wait as mock_wait:
             project._upload(
                 fileobj,
                 endpoint_url=None,
@@ -492,6 +509,7 @@ def test__upload_good_path_skip_role_creation(
         },
         **expected_additional_args
     )
+    mock_wait.assert_called_once_with(mock_cfn_client, "foo")
 
 
 def test__upload_clienterror(project):
@@ -502,7 +520,6 @@ def test__upload_clienterror(project):
     mock_cfn_client.register_type.side_effect = ClientError(
         BLANK_CLIENT_ERROR, "RegisterType"
     )
-    s3_client = object()
     fileobj = object()
 
     patch_sdk = patch("rpdk.core.project.create_sdk_session", autospec=True)
@@ -514,7 +531,7 @@ def test__upload_clienterror(project):
 
     with patch_sdk as mock_sdk, patch_uploader as mock_upload_method, patch_role_arn as mock_role_arn_method:  # noqa: B950 as it conflicts with formatting rules # pylint: disable=C0301
         mock_session = mock_sdk.return_value
-        mock_session.client.side_effect = [mock_cfn_client, s3_client]
+        mock_session.client.side_effect = [mock_cfn_client, object()]
         with patch_uuid as mock_uuid, pytest.raises(DownstreamError):
             project._upload(
                 fileobj,
@@ -538,6 +555,87 @@ def test__upload_clienterror(project):
             "LogGroupName": "aws-color-red-logs",
         },
     )
+
+
+def test__wait_for_registration_set_default(project):
+    mock_cfn_client = MagicMock(
+        spec=["describe_type_registration", "set_type_default_version"]
+    )
+    mock_cfn_client.describe_type_registration.return_value = (
+        DESCRIBE_TYPE_COMPLETE_RETURN
+    )
+    mock_waiter = MagicMock(spec=["wait"])
+    patch_create_waiter = patch(
+        "rpdk.core.project.create_waiter_with_client",
+        autospec=True,
+        return_value=mock_waiter,
+    )
+    patch_input = patch(
+        "rpdk.core.project.input_with_validation", autospec=True, return_value=True
+    )
+    with patch_create_waiter, patch_input:
+        project._wait_for_registration(mock_cfn_client, REGISTRATION_TOKEN)
+
+    mock_cfn_client.describe_type_registration.assert_called_once_with(
+        RegistrationToken=REGISTRATION_TOKEN
+    )
+    mock_cfn_client.set_type_default_version.assert_called_once_with(
+        Arn=TYPE_VERSION_ARN
+    )
+    mock_waiter.wait.assert_called_once_with(RegistrationToken=REGISTRATION_TOKEN)
+
+
+def test__wait_for_registration_no_default(project):
+    mock_cfn_client = MagicMock(
+        spec=["describe_type_registration", "set_type_default_version"]
+    )
+    mock_cfn_client.describe_type_registration.return_value = (
+        DESCRIBE_TYPE_COMPLETE_RETURN
+    )
+    mock_waiter = MagicMock(spec=["wait"])
+    patch_create_waiter = patch(
+        "rpdk.core.project.create_waiter_with_client",
+        autospec=True,
+        return_value=mock_waiter,
+    )
+    patch_input = patch(
+        "rpdk.core.project.input_with_validation", autospec=True, return_value=False
+    )
+    with patch_create_waiter, patch_input:
+        project._wait_for_registration(mock_cfn_client, REGISTRATION_TOKEN)
+
+    mock_cfn_client.describe_type_registration.assert_called_once_with(
+        RegistrationToken=REGISTRATION_TOKEN
+    )
+    mock_cfn_client.set_type_default_version.assert_not_called()
+    mock_waiter.wait.assert_called_once_with(RegistrationToken=REGISTRATION_TOKEN)
+
+
+def test__wait_for_registration_waiter_fails(project):
+    mock_cfn_client = MagicMock(
+        spec=["describe_type_registration", "set_type_default_version"]
+    )
+    mock_cfn_client.describe_type_registration.return_value = (
+        DESCRIBE_TYPE_FAILED_RETURN
+    )
+    mock_waiter = MagicMock(spec=["wait"])
+    mock_waiter.wait.side_effect = WaiterError(
+        "TypeRegistrationComplete",
+        "Waiter encountered a terminal failure state",
+        DESCRIBE_TYPE_FAILED_RETURN,
+    )
+
+    patch_create_waiter = patch(
+        "rpdk.core.project.create_waiter_with_client", return_value=mock_waiter
+    )
+    with patch_create_waiter, pytest.raises(WaiterError):
+        project._wait_for_registration(mock_cfn_client, REGISTRATION_TOKEN)
+
+    mock_cfn_client.describe_type_registration.assert_called_once_with(
+        RegistrationToken=REGISTRATION_TOKEN
+    )
+    mock_cfn_client.set_type_default_version.assert_not_called()
+    mock_waiter.wait.assert_called_once_with(RegistrationToken=REGISTRATION_TOKEN)
 
 
 def test__write_settings_invalid_runtime(project):

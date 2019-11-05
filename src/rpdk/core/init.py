@@ -4,79 +4,17 @@ import logging
 import re
 from functools import wraps
 
-from colorama import Fore, Style
+from rpdk.core.exceptions import WizardValidationError
+from rpdk.core.input_helpers import input_with_validation, validate_yes
+from rpdk.core.plugin_registry import PLUGIN_CHOICES
 
-from .exceptions import WizardAbortError, WizardValidationError
-from .plugin_registry import PLUGIN_CHOICES
+from .exceptions import WizardAbortError
 from .project import Project
 
 LOG = logging.getLogger(__name__)
 
 
 TYPE_NAME_REGEX = r"^[a-zA-Z0-9]{2,64}::[a-zA-Z0-9]{2,64}::[a-zA-Z0-9]{2,64}$"
-
-
-def input_with_validation(prompt, validate, description=""):
-    while True:
-        print(
-            Style.BRIGHT,
-            Fore.WHITE,
-            prompt,
-            Style.RESET_ALL,
-            description,
-            Style.RESET_ALL,
-            sep="",
-        )
-        print(Fore.YELLOW, ">> ", Style.RESET_ALL, sep="", end="")
-        response = input()
-        try:
-            return validate(response)
-        except WizardValidationError as e:
-            print(Style.BRIGHT, Fore.RED, str(e), Style.RESET_ALL, sep="")
-
-
-def validate_type_name(value):
-    match = re.match(TYPE_NAME_REGEX, value)
-    if match:
-        return value
-    LOG.debug("'%s' did not match '%s'", value, TYPE_NAME_REGEX)
-    raise WizardValidationError(
-        "Please enter a value matching '{}'".format(TYPE_NAME_REGEX)
-    )
-
-
-def validate_yes(value):
-    return value.lower() in ("y", "yes")
-
-
-class ValidatePluginChoice:
-    def __init__(self, choices):
-        self.choices = tuple(choices)
-        self.max = len(self.choices)
-
-        pretty = "\n".join(
-            "[{}] {}".format(i, choice) for i, choice in enumerate(self.choices, 1)
-        )
-        self.message = (
-            "Select a language for code generation:\n"
-            + pretty
-            + "\n(enter an integer): "
-        )
-
-    def __call__(self, value):
-        try:
-            choice = int(value)
-        except ValueError:
-            raise WizardValidationError("Please enter an integer")
-        choice -= 1
-        if choice < 0 or choice >= self.max:
-            raise WizardValidationError("Please select a choice")
-        return self.choices[choice]
-
-
-validate_plugin_choice = ValidatePluginChoice(  # pylint: disable=invalid-name
-    PLUGIN_CHOICES
-)
 
 
 def check_for_existing_project(project):
@@ -166,3 +104,43 @@ def setup_subparser(subparsers, parents):
     parser.add_argument(
         "--force", action="store_true", help="Force files to be overwritten."
     )
+
+
+def validate_type_name(value):
+    match = re.match(TYPE_NAME_REGEX, value)
+    if match:
+        return value
+    LOG.debug("'%s' did not match '%s'", value, TYPE_NAME_REGEX)
+    raise WizardValidationError(
+        "Please enter a value matching '{}'".format(TYPE_NAME_REGEX)
+    )
+
+
+class ValidatePluginChoice:
+    def __init__(self, choices):
+        self.choices = tuple(choices)
+        self.max = len(self.choices)
+
+        pretty = "\n".join(
+            "[{}] {}".format(i, choice) for i, choice in enumerate(self.choices, 1)
+        )
+        self.message = (
+            "Select a language for code generation:\n"
+            + pretty
+            + "\n(enter an integer): "
+        )
+
+    def __call__(self, value):
+        try:
+            choice = int(value)
+        except ValueError:
+            raise WizardValidationError("Please enter an integer")
+        choice -= 1
+        if choice < 0 or choice >= self.max:
+            raise WizardValidationError("Please select a choice")
+        return self.choices[choice]
+
+
+validate_plugin_choice = ValidatePluginChoice(  # pylint: disable=invalid-name
+    PLUGIN_CHOICES
+)
