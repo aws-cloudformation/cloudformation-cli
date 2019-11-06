@@ -432,7 +432,7 @@ def test__upload_good_path_create_role_and_set_default(project):
     patch_wait = patch.object(project, "_wait_for_registration", autospec=True)
 
     with patch_sdk as mock_sdk, patch_uploader as mock_upload_method, patch_logging_role_arn as mock_role_arn_method, patch_exec_role_arn as mock_exec_role_method:  # noqa: B950 as it conflicts with formatting rules # pylint: disable=C0301
-        mock_sdk.return_value.client.side_effect = [mock_cfn_client, object()]
+        mock_sdk.return_value.client.side_effect = [mock_cfn_client, MagicMock()]
         with patch_uuid as mock_uuid, patch_wait as mock_wait:
             project._upload(
                 fileobj,
@@ -487,7 +487,7 @@ def test__upload_good_path_skip_role_creation(
     patch_wait = patch.object(project, "_wait_for_registration", autospec=True)
 
     with patch_sdk as mock_sdk, patch_uploader as mock_upload_method, patch_logging_role_arn as mock_role_arn_method:  # noqa: B950 as it conflicts with formatting rules # pylint: disable=C0301
-        mock_sdk.return_value.client.side_effect = [mock_cfn_client, object()]
+        mock_sdk.return_value.client.side_effect = [mock_cfn_client, MagicMock()]
         with patch_uuid as mock_uuid, patch_wait as mock_wait:
             project._upload(
                 fileobj,
@@ -536,7 +536,7 @@ def test__upload_clienterror(project):
 
     with patch_sdk as mock_sdk, patch_uploader as mock_upload_method, patch_role_arn as mock_role_arn_method:  # noqa: B950 as it conflicts with formatting rules # pylint: disable=C0301
         mock_session = mock_sdk.return_value
-        mock_session.client.side_effect = [mock_cfn_client, object()]
+        mock_session.client.side_effect = [mock_cfn_client, MagicMock()]
         with patch_uuid as mock_uuid, pytest.raises(DownstreamError):
             project._upload(
                 fileobj,
