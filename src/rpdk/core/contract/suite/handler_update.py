@@ -13,17 +13,22 @@ from rpdk.core.contract.suite.handler_commons import (
 
 @pytest.fixture(scope="module")
 def updated_resource(resource_client):
-    request = model = resource_client.generate_create_example()
+    create_request = resource_client.generate_create_example()
     try:
-        update_request = resource_client.generate_update_example(request)
-        resource_client.call_and_assert(Action.CREATE, OperationStatus.SUCCESS, request)
         _status, response, _error = resource_client.call_and_assert(
-            Action.UPDATE, OperationStatus.SUCCESS, update_request, request
+            Action.CREATE, OperationStatus.SUCCESS, create_request
         )
-        model = response["resourceModel"]
-        yield model, update_request, request
+        created_model = response["resourceModel"]
+        update_request = resource_client.generate_update_example(created_model)
+        _status, response, _error = resource_client.call_and_assert(
+            Action.UPDATE, OperationStatus.SUCCESS, update_request, created_model
+        )
+        updated_model = response["resourceModel"]
+        yield create_request, created_model, update_request, updated_model
     finally:
-        resource_client.call_and_assert(Action.DELETE, OperationStatus.SUCCESS, model)
+        resource_client.call_and_assert(
+            Action.DELETE, OperationStatus.SUCCESS, updated_model
+        )
 
 
 @pytest.mark.update
@@ -31,7 +36,7 @@ def updated_resource(resource_client):
 def contract_update_read_success(updated_resource, resource_client):
     # should be able to use the created model
     # to read since physical resource id is immutable
-    updated_model, _updated_request, _request = updated_resource
+    _create_request, _created_model, _update_request, updated_model = updated_resource
     test_read_success(resource_client, updated_model)
 
 
@@ -40,6 +45,6 @@ def contract_update_read_success(updated_resource, resource_client):
 def contract_update_list_success(updated_resource, resource_client):
     # should be able to use the created model
     # to read since physical resource id is immutable
-    updated_model, _updated_request, _request = updated_resource
+    _create_request, _created_model, _update_request, updated_model = updated_resource
     models = test_list_success(resource_client, updated_model)
     assert updated_model in models

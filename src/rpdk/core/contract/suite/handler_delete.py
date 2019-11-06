@@ -6,7 +6,7 @@ import pytest
 
 # WARNING: contract tests should use fully qualified imports to avoid issues
 # when being loaded by pytest
-from rpdk.core.contract.interface import Action, OperationStatus
+from rpdk.core.contract.interface import Action, HandlerErrorCode, OperationStatus
 from rpdk.core.contract.suite.handler_commons import (
     test_create_success,
     test_delete_failure_not_found,
@@ -32,7 +32,15 @@ def deleted_resource(resource_client):
         resource_client.call_and_assert(Action.DELETE, OperationStatus.SUCCESS, model)
         yield model, request
     finally:
-        resource_client.call_and_assert(Action.DELETE, OperationStatus.SUCCESS, model)
+        request = resource_client.make_request(model, None)
+        status, response = resource_client.call(Action.DELETE, request)
+
+        # a failed status is allowed if the error code is NotFound
+        if status == OperationStatus.FAILED:
+            error_code = resource_client.assert_failed(status, response)
+            assert error_code == HandlerErrorCode.NotFound
+        else:
+            resource_client.assert_success(status, response)
 
 
 @pytest.mark.delete
@@ -70,6 +78,8 @@ def contract_delete_delete(resource_client, deleted_resource):
 @pytest.mark.create
 @pytest.mark.delete
 def contract_delete_create(resource_client, deleted_resource):
-    deleted_model, request = deleted_resource
-    response = test_create_success(resource_client, request)
-    assert deleted_model == response["resourceModel"]
+    _deleted_model, request = deleted_resource
+    test_create_success(resource_client, request)
+    # read-only properties should be excluded from the comparison
+    # https://github.com/aws-cloudformation/aws-cloudformation-rpdk/issues/329
+    # assert deleted_model == response["resourceModel"]
