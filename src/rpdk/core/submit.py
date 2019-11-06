@@ -13,7 +13,12 @@ def submit(args):
     project = Project()
     project.load()
     project.submit(
-        args.dry_run, args.endpoint_url, args.region, args.role_arn, args.use_role
+        args.dry_run,
+        args.endpoint_url,
+        args.region,
+        args.role_arn,
+        args.use_role,
+        args.set_default,
     )
 
 
@@ -27,6 +32,11 @@ def setup_subparser(subparsers, parents):
     )
     parser.add_argument("--endpoint-url", help="CloudFormation endpoint to use.")
     parser.add_argument("--region", help="AWS Region to submit the resource type.")
+    parser.add_argument(
+        "--set-default",
+        action="store_true",
+        help="If registration is successful, set submitted version to the default.",
+    )
     role_group = parser.add_mutually_exclusive_group()
     role_group.add_argument(
         "--role-arn",

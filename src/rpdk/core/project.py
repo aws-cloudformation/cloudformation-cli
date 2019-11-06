@@ -5,7 +5,8 @@ from pathlib import Path
 from tempfile import TemporaryFile
 from uuid import uuid4
 
-from botocore.exceptions import ClientError
+from botocore.exceptions import ClientError, WaiterError
+from botocore.waiter import WaiterModel, create_waiter_with_client
 from jinja2 import Environment, PackageLoader, select_autoescape
 from jsonschema import Draft6Validator
 from jsonschema.exceptions import ValidationError
@@ -257,7 +258,7 @@ class Project:  # pylint: disable=too-many-instance-attributes
             self._raise_invalid_project(msg, e)
 
     def submit(
-        self, dry_run, endpoint_url, region_name, role_arn, use_role
+        self, dry_run, endpoint_url, region_name, role_arn, use_role, set_default
     ):  # pylint: disable=too-many-arguments
         # if it's a dry run, keep the file; otherwise can delete after upload
         if dry_run:
@@ -286,16 +287,12 @@ class Project:  # pylint: disable=too-many-instance-attributes
             else:
                 f.seek(0)
                 self._upload(
-                    f,
-                    endpoint_url=endpoint_url,
-                    region_name=region_name,
-                    role_arn=role_arn,
-                    use_role=use_role,
+                    f, endpoint_url, region_name, role_arn, use_role, set_default
                 )
 
     def _upload(
-        self, fileobj, endpoint_url, region_name, role_arn, use_role
-    ):  # pylint: disable=too-many-arguments
+        self, fileobj, endpoint_url, region_name, role_arn, use_role, set_default
+    ):  # pylint: disable=too-many-arguments, too-many-locals
         LOG.debug("Packaging complete, uploading...")
         session = create_sdk_session(region_name)
         cfn_client = session.client("cloudformation", endpoint_url=endpoint_url)
@@ -330,6 +327,85 @@ class Project:  # pylint: disable=too-many-instance-attributes
         except ClientError as e:
             LOG.debug("Registering type resulted in unknown ClientError", exc_info=e)
             raise DownstreamError("Unknown CloudFormation error") from e
-        LOG.warning(
-            "Registration in progress with token: %s", response["RegistrationToken"]
+        else:
+            self._wait_for_registration(
+                cfn_client, response["RegistrationToken"], set_default
+            )
+
+    @staticmethod
+    def _wait_for_registration(cfn_client, registration_token, set_default):
+        # temporarily creating waiter inline
+        # until the SDK releases and we can use get_waiter
+        waiter_config = {
+            "version": 2,
+            "waiters": {
+                "TypeRegistrationComplete": {
+                    "delay": 5,
+                    "operation": "DescribeTypeRegistration",
+                    "maxAttempts": 200,
+                    "description": "Wait until type registration is COMPLETE.",
+                    "acceptors": [
+                        {
+                            "argument": "ProgressStatus",
+                            "expected": "COMPLETE",
+                            "matcher": "path",
+                            "state": "success",
+                        },
+                        {
+                            "argument": "ProgressStatus",
+                            "expected": "FAILED",
+                            "matcher": "path",
+                            "state": "failure",
+                        },
+                    ],
+                }
+            },
+        }
+        registration_waiter = create_waiter_with_client(
+            "TypeRegistrationComplete", WaiterModel(waiter_config), cfn_client
         )
+        # registration_waiter = cfn_client.get_waiter("TypeRegistrationComplete")
+        try:
+            LOG.warning(
+                "Successfully submitted type. "
+                "Waiting for registration with token '%s' to complete.",
+                registration_token,
+            )
+            registration_waiter.wait(RegistrationToken=registration_token)
+        except WaiterError as e:
+            LOG.warning(
+                "Failed to register the type with registration token '%s'.",
+                registration_token,
+            )
+            try:
+                response = cfn_client.describe_type_registration(
+                    RegistrationToken=registration_token
+                )
+            except ClientError as describe_error:
+                LOG.debug(
+                    "Describing type registration resulted in unknown ClientError",
+                    exc_info=e,
+                )
+                raise DownstreamError(
+                    "Error describing type registration"
+                ) from describe_error
+            LOG.warning(
+                "Please see response for additional information: '%s'", response
+            )
+            raise DownstreamError("Type registration error") from e
+        LOG.warning("Registration complete.")
+        response = cfn_client.describe_type_registration(
+            RegistrationToken=registration_token
+        )
+        LOG.warning(response)
+        if set_default:
+            arn = response["TypeVersionArn"]
+            try:
+                cfn_client.set_type_default_version(Arn=arn)
+            except ClientError as e:
+                LOG.debug(
+                    "Setting default version resulted in unknown ClientError",
+                    exc_info=e,
+                )
+                raise DownstreamError("Error setting default version") from e
+            LOG.warning("Set default version to '%s", arn)
