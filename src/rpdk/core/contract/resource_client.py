@@ -97,7 +97,7 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         self._update_strategy = None
 
         self._primary_identifier_paths = self._properties_to_paths("primaryIdentifier")
-        self._read_only_paths = self._properties_to_paths("readOnlyProperties")
+        self.read_only_paths = self._properties_to_paths("readOnlyProperties")
         self._write_only_paths = self._properties_to_paths("writeOnlyProperties")
         self._create_only_paths = self._properties_to_paths("createOnlyProperties")
 
@@ -109,11 +109,11 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
 
     def has_writable_identifier(self):
         for path in self._primary_identifier_paths:
-            if path not in self._read_only_paths:
+            if path not in self.read_only_paths:
                 return True
         for identifier_paths in self._additional_identifiers_paths:
             for path in identifier_paths:
-                if path not in self._read_only_paths:
+                if path not in self.read_only_paths:
                     return True
         return False
 
@@ -129,7 +129,7 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         # make a copy so the original schema is never modified
         schema = json.loads(json.dumps(self._schema))
 
-        prune_properties(schema, self._read_only_paths)
+        prune_properties(schema, self.read_only_paths)
 
         self._strategy = ResourceGenerator(schema).generate_schema_strategy(schema)
         return self._strategy
@@ -146,7 +146,7 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         # make a copy so the original schema is never modified
         schema = json.loads(json.dumps(self._schema))
 
-        prune_properties(schema, self._read_only_paths)
+        prune_properties(schema, self.read_only_paths)
         prune_properties(schema, self._create_only_paths)
 
         self._update_strategy = ResourceGenerator(schema).generate_schema_strategy(

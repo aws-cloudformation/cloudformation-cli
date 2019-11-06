@@ -117,7 +117,7 @@ def test__update_schema(resource_client):
     assert resource_client._schema is schema
     assert resource_client._strategy is None
     assert resource_client._primary_identifier_paths == {("properties", "a")}
-    assert resource_client._read_only_paths == {("properties", "b")}
+    assert resource_client.read_only_paths == {("properties", "b")}
     assert resource_client._write_only_paths == {("properties", "c")}
     assert resource_client._create_only_paths == {("properties", "d")}
 
