@@ -7,6 +7,7 @@ import pytest
 # WARNING: contract tests should use fully qualified imports to avoid issues
 # when being loaded by pytest
 from rpdk.core.contract.interface import Action, HandlerErrorCode, OperationStatus
+from rpdk.core.contract.resource_client import prune_properties
 from rpdk.core.contract.suite.handler_commons import (
     test_create_success,
     test_delete_failure_not_found,
@@ -78,8 +79,11 @@ def contract_delete_delete(resource_client, deleted_resource):
 @pytest.mark.create
 @pytest.mark.delete
 def contract_delete_create(resource_client, deleted_resource):
-    _deleted_model, request = deleted_resource
-    test_create_success(resource_client, request)
+    deleted_model, request = deleted_resource
+    response = test_create_success(resource_client, request)
+
     # read-only properties should be excluded from the comparison
-    # https://github.com/aws-cloudformation/aws-cloudformation-rpdk/issues/329
-    # assert deleted_model == response["resourceModel"]
+    prune_properties(deleted_model, resource_client.read_only_paths)
+    prune_properties(response["resourceModel"], resource_client.read_only_paths)
+
+    assert deleted_model == response["resourceModel"]
