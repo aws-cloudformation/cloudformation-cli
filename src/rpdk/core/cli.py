@@ -56,7 +56,7 @@ def main(args_in=None):  # pylint: disable=too-many-statements
 
         def no_command(args):
             if args.version:
-                print("cfn-cli", __version__)
+                print("cfn", __version__)
             else:
                 parser.print_help()
 

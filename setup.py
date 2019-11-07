@@ -45,7 +45,9 @@ setup(
         "hypothesis>=4.32",
         "colorama>=0.4.1",
     ],
-    entry_points={"console_scripts": ["cfn-cli = rpdk.core.cli:main"]},
+    entry_points={
+        "console_scripts": ["cfn-cli = rpdk.core.cli:main", "cfn = rpdk.core.cli:main"]
+    },
     license="Apache License 2.0",
     classifiers=(
         "Development Status :: 2 - Pre-Alpha",

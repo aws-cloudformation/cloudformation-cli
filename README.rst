@@ -1,7 +1,7 @@
 AWS CloudFormation Resource Provider Development Kit
 ====================================================
 
-The CloudFormation CLI (cfn-cli) allows you to author your own resource providers that can be used by CloudFormation.
+The CloudFormation CLI (cfn) allows you to author your own resource providers that can be used by CloudFormation.
 
 Development
 -----------
@@ -48,7 +48,7 @@ the Python Package Index (PyPI). It requires Python 3.
 
 .. code-block:: bash
 
-    pip3 install cfn-cli
+    pip3 install cfn
 
 Command: init
 ^^^^^^^^^^^^^
@@ -57,7 +57,7 @@ To create a project in the current directory, use the ``init`` command. A wizard
 
 .. code-block:: bash
 
-    cfn-cli init
+    cfn init
 
 Command: generate
 ^^^^^^^^^^^^^^^^^
@@ -66,7 +66,7 @@ To refresh auto-generated code, use the ``generate`` command. Usually, plugins t
 
 .. code-block:: bash
 
-    cfn-cli generate
+    cfn generate
 
 Plugin system
 -------------
