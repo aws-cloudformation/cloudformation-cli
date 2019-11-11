@@ -266,6 +266,109 @@ def test_flatten_combiners_no_clobber(combiner):
     assert ref in flattener._schema_map
 
 
+@pytest.mark.parametrize("combiner", COMBINERS)
+def test_flatten_combiners_flattened_before_merge_success(combiner):
+    # if the schema has not been flattened before the combiners are merged,
+    # this would fail since it declares both type and ref
+    ref = ("definitions", "stringType")
+    test_schema = {
+        "typeName": "AWS::Valid::TypeName",
+        "definitions": {"stringType": {"type": "string"}},
+        "properties": {
+            "p": {
+                combiner: [
+                    {"properties": {"a": {"type": "string"}}},
+                    {"properties": {"a": {"$ref": fragment_encode(ref)}}},
+                ]
+            }
+        },
+    }
+
+    flattener = JsonSchemaFlattener(test_schema)
+    flattener.flatten_schema()
+    assert ref not in flattener._schema_map
+
+
+@pytest.mark.parametrize("combiner", COMBINERS)
+def test_flatten_combiners_flattened_before_merge_failed(combiner):
+    # this should fail, since we declare ref and type string for the same object
+    ref = ("definitions", "obj")
+    test_schema = {
+        "typeName": "AWS::Valid::TypeName",
+        "definitions": {"obj": {"properties": {"a": {"type": "object"}}}},
+        "properties": {
+            "p": {
+                combiner: [
+                    {"properties": {"a": {"type": "string"}}},
+                    {"properties": {"a": {"$ref": fragment_encode(ref)}}},
+                ]
+            }
+        },
+    }
+
+    flattener = JsonSchemaFlattener(test_schema)
+    with pytest.raises(ConstraintError) as excinfo:
+        flattener.flatten_schema()
+    assert "type 'string'" in str(
+        excinfo.value
+    ) and "object '('definitions', 'obj')'" in str(excinfo.value)
+
+
+@pytest.mark.parametrize("combiner", COMBINERS)
+def test_flatten_combiners_flattened_before_merge_failed_but_should_not(combiner):
+    # this should not fail, since the refs are actually compatible with each other
+    # https://github.com/aws-cloudformation/aws-cloudformation-rpdk/issues/333
+    ref = ("definitions", "obj")
+    ref2 = ("definitions", "obj2")
+    test_schema = {
+        "typeName": "AWS::Valid::TypeName",
+        "definitions": {
+            "obj": {"properties": {"a": {"type": "object"}}},
+            "obj2": {"properties": {"a": {"type": "object"}}},
+        },
+        "properties": {
+            "p": {
+                combiner: [
+                    {"properties": {"a": {"$ref": fragment_encode(ref)}}},
+                    {"properties": {"a": {"$ref": fragment_encode(ref2)}}},
+                ]
+            }
+        },
+    }
+
+    flattener = JsonSchemaFlattener(test_schema)
+    with pytest.raises(ConstraintError) as excinfo:
+        flattener.flatten_schema()
+    assert "declared multiple values for '$ref'" in str(excinfo.value)
+
+
+@pytest.mark.parametrize("combiner", COMBINERS)
+def test_flatten_combiners_flattened_before_merge_top_level_does_not_throw(combiner):
+    # this should actually raise a constraint error, as the property is declared as
+    # a string and an object.
+    # https://github.com/aws-cloudformation/aws-cloudformation-rpdk/issues/333
+    ref = ("definitions", "obj")
+    test_schema = {
+        "typeName": "AWS::Valid::TypeName",
+        "definitions": {"obj": {"properties": {"a": {"type": "object"}}}},
+        "properties": {
+            "p": {
+                combiner: [
+                    {"properties": {"a": {"type": "string"}}},
+                    {"$ref": fragment_encode(ref)},
+                ]
+            }
+        },
+    }
+
+    flattener = JsonSchemaFlattener(test_schema)
+    flattener.flatten_schema()
+    assert ref in flattener._schema_map
+    assert ("properties", "p") in flattener._schema_map
+    invalid = flattener._schema_map[("properties", "p")]
+    assert "$ref" in invalid and "properties" in invalid
+
+
 def test_contraint_array_additional_items_valid():
     flattener = JsonSchemaFlattener({})
     schema = {}

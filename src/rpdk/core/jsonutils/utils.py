@@ -121,10 +121,10 @@ def schema_merge(target, src, path):
     >>> b = {'foo': {'a': {'aa': 'a', 'cc': 'c'}}}
     >>> schema_merge(a, b, ())
     {'foo': {'a': {'aa': 'a', 'bb': 'b', 'cc': 'c'}}, 'bar': 1}
-    >>> a = {'type': {'a': 'aa'}, '$ref': {'a': 'aa'}}
-    >>> b = {'type': {'a': 'bb'}, '$ref': {'a': 'bb'}}
+    >>> a = {'foo': {'a': 'aa'}, 'bar': {'a': 'aa'}}
+    >>> b = {'foo': {'a': 'bb'}, 'bar': {'a': 'bb'}}
     >>> schema_merge(a, b, ())
-    {'type': {'a': 'bb'}, '$ref': {'a': 'bb'}}
+    {'foo': {'a': 'bb'}, 'bar': {'a': 'bb'}}
     >>> schema_merge({'type': 'a'}, {'type': 'b'}, ()) # doctest: +NORMALIZE_WHITESPACE
     Traceback (most recent call last):
     ...
@@ -134,14 +134,38 @@ def schema_merge(target, src, path):
     >>> schema_merge(a, b, ('foo',)) # doctest: +NORMALIZE_WHITESPACE
     Traceback (most recent call last):
     ...
-    core.jsonutils.utils.ConstraintError:
-    Object at path '#/foo' declared multiple values for '$ref': found 'a' and 'b'
+    core.jsonutils.utils.ConstraintError: Object at path '#/foo'
+    declared multiple values for '$ref': found 'a' and 'b'
+    >>> a, b = {'insertionOrder': True}, {'insertionOrder': False}
+    >>> schema_merge(a, b, ('foo',)) # doctest: +NORMALIZE_WHITESPACE
+    Traceback (most recent call last):
+    ...
+    core.jsonutils.utils.ConstraintError: Object at path '#/foo'
+    declared multiple values for 'insertionOrder': found 'True' and 'False'
+    >>> a, b = {'uniqueItems': True}, {'uniqueItems': False}
+    >>> schema_merge(a, b, ('foo',)) # doctest: +NORMALIZE_WHITESPACE
+    Traceback (most recent call last):
+    ...
+    core.jsonutils.utils.ConstraintError: Object at path '#/foo'
+    declared multiple values for 'uniqueItems': found 'True' and 'False'
     >>> a, b = {'Foo': {'$ref': 'a'}}, {'Foo': {'$ref': 'b'}}
     >>> schema_merge(a, b, ('foo',)) # doctest: +NORMALIZE_WHITESPACE
     Traceback (most recent call last):
     ...
     core.jsonutils.utils.ConstraintError: Object at path '#/foo/Foo'
     declared multiple values for '$ref': found 'a' and 'b'
+    >>> a, b = {'$ref': 'a'}, {'type': 'b'}
+    >>> schema_merge(a, b, ('foo',)) # doctest: +NORMALIZE_WHITESPACE
+    Traceback (most recent call last):
+    ...
+    core.jsonutils.utils.ConstraintError: Object at path '#/foo'
+    declared multiple types: found type 'b' and object 'a'
+    >>> a, b = {'Foo': {'$ref': 'a'}}, {'Foo': {'type': 'b'}}
+    >>> schema_merge(a, b, ('foo',)) # doctest: +NORMALIZE_WHITESPACE
+    Traceback (most recent call last):
+    ...
+    core.jsonutils.utils.ConstraintError: Object at path '#/foo/Foo'
+    declared multiple types: found type 'b' and object 'a'
     >>> schema_merge('', {}, ())
     Traceback (most recent call last):
     ...
@@ -155,6 +179,7 @@ def schema_merge(target, src, path):
     """
     if not (isinstance(target, Mapping) and isinstance(src, Mapping)):
         raise TypeError("Both schemas must be dictionaries")
+
     for key, src_schema in src.items():
         try:
             target_schema = target[key]
@@ -168,11 +193,24 @@ def schema_merge(target, src, path):
                 if key == "required":
                     target[key] = sorted(set(target_schema) | set(src_schema))
                 else:
-                    if key in ("type", "$ref") and target_schema != src_schema:
+                    if (
+                        key in ("type", "$ref", "uniqueItems", "insertionOrder")
+                        and target_schema != src_schema
+                    ):
                         msg = (
                             "Object at path '{path}' declared multiple values "
                             "for '{}': found '{}' and '{}'"
                         )
                         raise ConstraintError(msg, path, key, target_schema, src_schema)
                     target[key] = src_schema
+        # at this point, the schema is flattened and merged,
+        # which means a $ref will always be to an object
+        type_key = target.get("type", "object")
+        ref_key = target.get("$ref", None)
+        if type_key != "object" and ref_key is not None:
+            msg = (
+                "Object at path '{path}' declared multiple types: "
+                "found type '{}' and object '{}'"
+            )
+            raise ConstraintError(msg, path, type_key, ref_key)
     return target
