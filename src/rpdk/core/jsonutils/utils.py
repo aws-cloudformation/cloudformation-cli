@@ -156,16 +156,10 @@ def schema_merge(target, src, path):
     declared multiple values for '$ref': found 'a' and 'b'
     >>> a, b = {'$ref': 'a'}, {'type': 'b'}
     >>> schema_merge(a, b, ('foo',)) # doctest: +NORMALIZE_WHITESPACE
-    Traceback (most recent call last):
-    ...
-    core.jsonutils.utils.ConstraintError: Object at path '#/foo'
-    declared multiple types: found type 'b' and object 'a'
+    {'$ref': 'a', 'type': 'b'}
     >>> a, b = {'Foo': {'$ref': 'a'}}, {'Foo': {'type': 'b'}}
     >>> schema_merge(a, b, ('foo',)) # doctest: +NORMALIZE_WHITESPACE
-    Traceback (most recent call last):
-    ...
-    core.jsonutils.utils.ConstraintError: Object at path '#/foo/Foo'
-    declared multiple types: found type 'b' and object 'a'
+    {'Foo': {'$ref': 'a', 'type': 'b'}}
     >>> schema_merge('', {}, ())
     Traceback (most recent call last):
     ...
@@ -203,14 +197,4 @@ def schema_merge(target, src, path):
                         )
                         raise ConstraintError(msg, path, key, target_schema, src_schema)
                     target[key] = src_schema
-        # at this point, the schema is flattened and merged,
-        # which means a $ref will always be to an object
-        type_key = target.get("type", "object")
-        ref_key = target.get("$ref", None)
-        if type_key != "object" and ref_key is not None:
-            msg = (
-                "Object at path '{path}' declared multiple types: "
-                "found type '{}' and object '{}'"
-            )
-            raise ConstraintError(msg, path, type_key, ref_key)
     return target
