@@ -92,9 +92,12 @@ def main(args_in=None):  # pylint: disable=too-many-statements
 
         log = logging.getLogger(__name__)
         log.debug("Logging set up successfully")
+        log.debug("Running %s: %s", args.subparser_name, args)
 
         with colorama_text():
             args.command(args)
+
+        log.debug("Finished %s", args.subparser_name)
     except SysExitRecommendedError as e:
         # This is to unify exit messages, and avoid throwing SystemExit in
         # library code, which is hard to catch for consumers. (There are still
