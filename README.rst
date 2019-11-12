@@ -17,13 +17,13 @@ tool.)
     pip install -e . -r requirements.txt
     pre-commit install
 
-You will also need to install a language plugin, such as [the Java language plugin](https://github.com/aws-cloudformation/aws-cloudformation-rpdk-java-plugin), also via `pip install`. For example, assuming the plugin is checked out in the same parent directory as this repository:
+You will also need to install a language plugin, such as `the Java language plugin <https://github.com/aws-cloudformation/aws-cloudformation-rpdk-java-plugin>`_, also via `pip install`. For example, assuming the plugin is checked out in the same parent directory as this repository:
 
 .. code-block:: bash
 
     pip install -e ../aws-cloudformation-rpdk-java-plugin
 
-Linting and running unit tests is done via [pre-commit](https://pre-commit.com/), and so is performed automatically on commit. The continuous integration also runs these checks. Manual options are available so you don't have to commit):
+Linting and running unit tests is done via `pre-commit <https://pre-commit.com/>`_, and so is performed automatically on commit. The continuous integration also runs these checks. Manual options are available so you don't have to commit):
 
 ```
 # run all hooks on all files, mirrors what the CI runs
