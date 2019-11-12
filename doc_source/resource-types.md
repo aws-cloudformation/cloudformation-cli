@@ -28,7 +28,7 @@ There are three major steps in developing a resource providers:
 
   When you're ready to test the resource behavior, the CloudFormation CLI provides two commands for testing: 
   + Use the `invoke` command to test a single handler\.
-  + Use the the `[test](resource-type-cli-test.md)` command to run the entire suite of resource contract tests locally, using the AWS SAM Command Line Interface \(SAM CLI\), to make sure the handlers you've written comply with expected handler behavior at each stage of the resource lifecycle\.
+  + Use the `[test](resource-type-cli-test.md)` command to run the entire suite of resource contract tests locally, using the AWS SAM Command Line Interface \(SAM CLI\), to make sure the handlers you've written comply with expected handler behavior at each stage of the resource lifecycle\.
 + Register
 
   Register the resource provider with the CloudFormation registry in order to make it available for use in CloudFormation templates\.

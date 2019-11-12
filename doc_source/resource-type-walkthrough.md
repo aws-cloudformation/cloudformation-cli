@@ -10,7 +10,7 @@ For purposes of this walkthrough, it is assumed you have already set up the Clou
 
 ## Create the Resource Provider Development Project<a name="resource-type-walkthrough-model"></a>
 
-Before we can actually design and implement our resource provider, we'll need to generate a new resoure type project, and then import it into our IDE\.
+Before we can actually design and implement our resource provider, we'll need to generate a new resource type project, and then import it into our IDE\.
 
 **Note**  
 This walkthrough uses the Community Edition of the [IntelliJ IDEA](https://www.jetbrains.com/idea/)\.

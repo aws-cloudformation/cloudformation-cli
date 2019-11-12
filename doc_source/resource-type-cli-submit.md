@@ -55,7 +55,7 @@ You cannot specify both `--role-arn` and `--no-role` arguments\.
 
 `--set-default`
 
-Upon successful registration of the type version, sets the current type version as the defaul version\.
+Upon successful registration of the type version, sets the current type version as the default version\.
 
 ## Output<a name="resource-type-cli-submit-output"></a>
 

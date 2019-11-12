@@ -41,4 +41,4 @@ You can deregister a specific resource provider version, or the resource provide
 
 Deregistering a resource provider or resource provider version deregisters it in all regions\.
 
-You cannot deregiser a resource using the CloudFormation console\.
+You cannot deregister a resource using the CloudFormation console\.

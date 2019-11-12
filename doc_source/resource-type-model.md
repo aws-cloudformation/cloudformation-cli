@@ -27,7 +27,7 @@ For reference information on resource schema elements, see [Resource Provider Sc
 
 ## How to Define a Minimal Resource<a name="resource-type-howto-minimal"></a>
 
-The example below displays a minimal resource provider definiton\. In this case, the resource consists of a single optional property, `Name`, which is also specified as its primary \(and only\) identifier\.
+The example below displays a minimal resource provider definition\. In this case, the resource consists of a single optional property, `Name`, which is also specified as its primary \(and only\) identifier\.
 
 Note that this resource schema would require a `handlers` section with the create, read, and update handlers specified in order for the resource to actually be provisioned within a CloudFormation account\.
 

@@ -30,7 +30,7 @@ Complete the following steps to install and configure the tools needed to develo
 
    First, install [Homebrew](https://brew.sh/), an open\-source package manager for macOS\. You'll use Homebrew to install additional development requirements\.
 
-1. Next, use Homebrew to install Maven, Python, and the AWS Command Line Inteface \(AWS CLI\)
+1. Next, use Homebrew to install Maven, Python, and the AWS Command Line Interface \(AWS CLI\)\.
 
    ```
    $ brew update

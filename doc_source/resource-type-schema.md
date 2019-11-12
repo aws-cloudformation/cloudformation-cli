@@ -193,7 +193,7 @@ Resource properties that can be specified by the user, but cannot be returned by
 
 createOnlyProperties  <a name="schema-properties-createonlyproperties"></a>
 Resource properties that can be specified by the user only during resource creation\.   
-Any property not explictly listed in the `createOnlyProperties` element can be specified by the user during a resource update operation\.
+Any property not explicitly listed in the `createOnlyProperties` element can be specified by the user during a resource update operation\.
 *Type*: List of JSON pointers
 
 deprecatedProperties  <a name="schema-properties-deprecatedproperties"></a>
