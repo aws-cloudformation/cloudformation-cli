@@ -234,7 +234,9 @@ class Project:  # pylint: disable=too-many-instance-attributes
                 permission = "Deny"
 
             contents = template.render(
-                type_name=self.hypenated_name, actions=actions, permission=permission
+                type_name=self.hypenated_name,
+                actions=sorted(actions),
+                permission=permission,
             )
             self.overwrite(path, contents)
 
