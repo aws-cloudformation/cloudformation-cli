@@ -22,7 +22,7 @@ def find_version(*file_paths):
 
 
 setup(
-    name="aws-cfn-cli",
+    name="cloudformation-cli",
     version=find_version("src", "rpdk", "core", "__init__.py"),
     description=__doc__,
     long_description=read("README.rst"),
