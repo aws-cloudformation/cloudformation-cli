@@ -7,8 +7,8 @@ Performs contract tests on the handlers of a resource provider\.
 ## Synopsis<a name="resource-type-cli-test-synopsis"></a>
 
 ```
-  cfn test 
-[--endpoint <value>] 
+  cfn test
+[--endpoint <value>]
 [--function-name <value>]
 [--region <value>]
 [--role-arn <value>]

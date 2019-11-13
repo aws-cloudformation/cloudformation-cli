@@ -2,7 +2,7 @@
 
 Once you've completed developing your resource provider, you'll need to *register* it with CloudFormation in order to make it available for use in CloudFormation operations\. From the CloudFormation CLI, use the `[submit](resource-type-cli-submit.md)` command to register your resource with CloudFormation\. The `submit` command does the following:
 + Validates the resource schema\.
-+ Packages up the resource project files and uploads them to CloudFormation\. 
++ Packages up the resource project files and uploads them to CloudFormation\.
 
   This includes the source code for your resource handlers\. These resource handlers run within the CloudFormation service account\.
 + Runs the unit and contract tests defined in the resource project\.
@@ -35,7 +35,7 @@ During registration, CloudFormation examines which resource handlers have been i
 
 ## Deregistering Resource Providers and Provider Versions<a name="resource-type-register-deregister"></a>
 
-To remove a resource provider or provider version from active use in CloudFormation, you must *deregister* it using the [DeregisterType](https://docs.aws.amazon.com/AWSCloudFormation/latest/APIReference/API_DeregisterType.html) action\. If a type or type version is deregistered, it can no longer be used in CloudFormation operations\. 
+To remove a resource provider or provider version from active use in CloudFormation, you must *deregister* it using the [DeregisterType](https://docs.aws.amazon.com/AWSCloudFormation/latest/APIReference/API_DeregisterType.html) action\. If a type or type version is deregistered, it can no longer be used in CloudFormation operations\.
 
 You can deregister a specific resource provider version, or the resource provider as a whole\. To deregister a type, you must individually deregister all registered versions of that type\. If a type has only a single registered version, deregistering that version results in the type itself being deregistered\. You cannot deregister the default version of a type, unless it is the only registered version of that type, in which case the type itself is deregistered as well\.
 

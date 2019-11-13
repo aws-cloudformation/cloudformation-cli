@@ -25,4 +25,4 @@ Force project files to be overwritten\.
 
 ## Output<a name="resource-type-cli-init-output"></a>
 
-The `init` command launches a wizard that walks you through setting up the project, including specifying the resource name\. 
+The `init` command launches a wizard that walks you through setting up the project, including specifying the resource name\.

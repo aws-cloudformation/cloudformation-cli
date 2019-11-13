@@ -4,7 +4,7 @@
 
 Registers the resource provider with CloudFormation, in the specified region\. Registering a resource provider makes it available for use in CloudFormation operations\. Registering includes:
 + Validating the resource schema\.
-+ Packaging up the resource project files and uploading them to CloudFormation\. 
++ Packaging up the resource project files and uploading them to CloudFormation\.
 
   This includes the source code for your resource handlers\. These resource handlers run within the CloudFormation account\.
 + Determining which handlers have been specified for the resource, and running the appropriate contract tests\.

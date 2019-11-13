@@ -8,13 +8,13 @@ The Resource Provider Definition Schema is a *meta\-schema* that extends [draft\
 
 Once you have defined your resource schema, you can use the CloudFormation CLI ` [validate](resource-type-cli-validate.md)` command to verify that the resource schema is valid\.
 
-In terms of testing, the resource schema also determines: 
-+ What unit test stubs are generated in your resource package, and what contract tests are appropriate to run for the resource\. When you run the CloudFormation CLI ` [generate](resource-type-cli-generate.md)` command, the CloudFormation CLI generates empty unit tests based on the properties of the resource and their attributes\. 
+In terms of testing, the resource schema also determines:
++ What unit test stubs are generated in your resource package, and what contract tests are appropriate to run for the resource\. When you run the CloudFormation CLI ` [generate](resource-type-cli-generate.md)` command, the CloudFormation CLI generates empty unit tests based on the properties of the resource and their attributes\.
 + Which contract tests are appropriate for CloudFormation CLI to run for your resources\. When you run the ` [test](resource-type-cli-test.md)` command, the CloudFormation CLI runs the appropriate contract tests, based on which handlers are included in your resource schema\.
 
 ## Defining Property Attributes<a name="resource-type-model-setting-properties"></a>
 
-Certain properties of a resource may have special meaning when used in different contexts\. For example, a given resource property may be read\-only when read back for state changes, but can be specified when used as the target of a $ref from a related resource\. Because of this semantic difference in how this property metadata should be interpreted, certain property attributes are defined at the resource level, rather than at a property level\. 
+Certain properties of a resource may have special meaning when used in different contexts\. For example, a given resource property may be read\-only when read back for state changes, but can be specified when used as the target of a $ref from a related resource\. Because of this semantic difference in how this property metadata should be interpreted, certain property attributes are defined at the resource level, rather than at a property level\.
 
 These attributes include:
 + `primaryIdentifier`
