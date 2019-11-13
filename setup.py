@@ -22,7 +22,7 @@ def find_version(*file_paths):
 
 
 setup(
-    name="aws-cloudformation-rpdk",
+    name="aws-cfn-cli",
     version=find_version("src", "rpdk", "core", "__init__.py"),
     description=__doc__,
     long_description=read("README.rst"),
@@ -50,7 +50,7 @@ setup(
     },
     license="Apache License 2.0",
     classifiers=(
-        "Development Status :: 2 - Pre-Alpha",
+        "Development Status :: 4 - Beta",
         "Intended Audience :: Developers",
         "License :: OSI Approved :: Apache Software License",
         "Natural Language :: English",
