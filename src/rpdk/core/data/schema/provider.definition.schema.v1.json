@@ -210,6 +210,11 @@
         }
     },
     "type": "object",
+    "patternProperties": {
+        "^\\$id$": {
+            "$ref": "https://json-schema.org/draft-07/schema#/properties/$id"
+        }
+    },
     "properties": {
         "$schema": {
             "$ref": "https://json-schema.org/draft-07/schema#/properties/$schema"
