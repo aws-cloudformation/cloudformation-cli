@@ -8,5 +8,6 @@
                 "type": "string"
             }
         }
-    }
+    },
+    "additionalProperties": false
 }

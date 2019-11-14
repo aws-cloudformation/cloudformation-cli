@@ -8,5 +8,6 @@
     },
     "primaryIdentifier": [
         "/properties/property1"
-    ]
+    ],
+    "additionalProperties": false
 }

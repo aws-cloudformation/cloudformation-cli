@@ -10,7 +10,7 @@
         "/properties/property1"
     ],
     "remote": {
-        "type": "object",
-        "description": "reserved word"
-    }
+        "schema01": {}
+    },
+    "additionalProperties": false
 }

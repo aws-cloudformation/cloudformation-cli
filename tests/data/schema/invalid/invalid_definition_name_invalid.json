@@ -10,5 +10,6 @@
         "property1": {
             "type": "integer"
         }
-    }
+    },
+    "additionalProperties": false
 }
