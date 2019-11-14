@@ -27,13 +27,15 @@ setup(
     description=__doc__,
     long_description=read("README.rst"),
     author="Amazon Web Services",
-    url="https://aws.amazon.com/cloudformation/",
+    author_email="aws-cloudformation-developers@amazon.com",
+    url="https://github.com/aws-cloudformation/aws-cloudformation-rpdk/",
     # https://packaging.python.org/guides/packaging-namespace-packages/
     packages=["rpdk.core"],
     package_dir={"": "src"},
     # package_data -> use MANIFEST.in instead
     include_package_data=True,
     zip_safe=True,
+    python_requires=">=3.6",
     install_requires=[
         "boto3>=1.9.207,<1.10.0",
         "Jinja2>=2.10",
@@ -49,8 +51,9 @@ setup(
         "console_scripts": ["cfn-cli = rpdk.core.cli:main", "cfn = rpdk.core.cli:main"]
     },
     license="Apache License 2.0",
-    classifiers=(
+    classifiers=[
         "Development Status :: 4 - Beta",
+        "Environment :: Console",
         "Intended Audience :: Developers",
         "License :: OSI Approved :: Apache Software License",
         "Natural Language :: English",
@@ -60,6 +63,7 @@ setup(
         "Programming Language :: Python :: 3 :: Only",
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
-    ),
+        "Programming Language :: Python :: 3.8",
+    ],
     keywords="Amazon Web Services AWS CloudFormation",
 )
