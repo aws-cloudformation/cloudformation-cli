@@ -45,6 +45,16 @@ def json_s(obj):
     return StringIO(json.dumps(obj))
 
 
+@contextmanager
+def wsgi_serve(application):
+    server = WSGIServer(application=application)
+    try:
+        server.start()
+        yield server
+    finally:
+        server.stop()
+
+
 def test_load_resource_spec_invalid_json():
     with pytest.raises(SpecValidationError) as excinfo:
         load_resource_spec(StringIO('{"foo": "aaaaa}'))
@@ -153,6 +163,22 @@ def test_load_resource_spec_file_object_has_name(tmpdir):
     assert actual == expected
 
 
+def test_load_resource_spec_uses_id_if_id_is_set():
+    @Request.application
+    def application(request):  # pylint: disable=unused-argument
+        return Response(json.dumps({"type": "string"}), mimetype="application/json")
+
+    with wsgi_serve(application) as server:
+        schema = {
+            **BASIC_SCHEMA,
+            "$id": server.url + "/foo",
+            "properties": {"foo": {"$ref": server.url + "/bar"}},
+        }
+        inlined = load_resource_spec(json_s(schema))
+
+    assert inlined["remote"]["schema0"]["type"] == "string"
+
+
 def test_load_resource_spec_inliner_produced_invalid_schema():
     with patch("rpdk.core.data_loaders.RefInliner", autospec=True) as mock_inliner:
         mock_inliner.return_value.inline.return_value = {}
@@ -187,16 +213,6 @@ def plugin():
         __name__, "data/project_schema.json"
     )
     return mock_plugin
-
-
-@contextmanager
-def wsgi_serve(application):
-    server = WSGIServer(application=application)
-    try:
-        server.start()
-        yield server
-    finally:
-        server.stop()
 
 
 def test_make_validator_handlers_time_out():
