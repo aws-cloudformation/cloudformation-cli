@@ -3,5 +3,6 @@
     "description": "a test schema",
     "properties": {
         "property1": true
-    }
+    },
+    "additionalProperties": false
 }
