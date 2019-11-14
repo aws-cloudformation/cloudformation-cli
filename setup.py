@@ -27,7 +27,7 @@ setup(
     description=__doc__,
     long_description=read("README.rst"),
     author="Amazon Web Services",
-    url="https://aws.amazon.com/cloudformation/",
+    url="https://github.com/aws-cloudformation/aws-cloudformation-rpdk/",
     # https://packaging.python.org/guides/packaging-namespace-packages/
     packages=["rpdk.core"],
     package_dir={"": "src"},
