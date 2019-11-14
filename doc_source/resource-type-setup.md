@@ -37,34 +37,14 @@ Complete the following steps to install and configure the tools needed to develo
    $ brew install maven python awscli
    ```
 
-1. Install the CloudFormation CLI\.
-
-   Unzip the installer package to the directory of your choice\. 
+1. Install the CloudFormation CLI using the following command:
 
    ```
-   $ unzip aws-cloudformation-rpdk-nightly.zip 
-   Archive:  aws-cloudformation-rpdk-nightly.zip
-     inflating: aws_cloudformation_rpdk-0.1-py3-none-any.whl  
-     inflating: aws-cloudformation-resource-schema-1.0.0.jar  
-     inflating: aws-cloudformation-rpdk-java-plugin-0.1.tar.gz  
-     inflating: aws_cloudformation_rpdk_java_plugin-0.1-py3-none-any.whl  
-     inflating: aws-cloudformation-rpdk-0.1.tar.gz  
-     inflating: aws-cloudformation-rpdk-java-plugin-1.0.jar  
-     inflating: cloudformation-2010-05-15.normal.json  
-     inflating: install.sh              
-     inflating: install-macos.sh
+   pip install cloudformation-cli
    ```
 
-1. Run the `install.sh` script, contained in the installer package\. This script checks all dependencies and guides you through the installation\.
+1. Install the Java Plug\-in for CloudFormation CLI using the following command:
 
    ```
-   $ ./install.sh 
-   *** pre-checks completed
-   *** SDK patched
-   *** virtual environment created under env/
-   *** RPDK components installed into virtual environment
-   *** Java support libraries installed
-   *** RPDK executable location verified
-   *** RPDK executable quicktested
-   COMPLETE
+   pip install cloudformation-cli-java-plugin
    ```
