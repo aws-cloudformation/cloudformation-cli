@@ -27,6 +27,7 @@ setup(
     description=__doc__,
     long_description=read("README.rst"),
     author="Amazon Web Services",
+    author_email="aws-cloudformation-developers@amazon.com",
     url="https://github.com/aws-cloudformation/aws-cloudformation-rpdk/",
     # https://packaging.python.org/guides/packaging-namespace-packages/
     packages=["rpdk.core"],
@@ -51,6 +52,7 @@ setup(
     license="Apache License 2.0",
     classifiers=(
         "Development Status :: 4 - Beta",
+        "Environment :: Console",
         "Intended Audience :: Developers",
         "License :: OSI Approved :: Apache Software License",
         "Natural Language :: English",
