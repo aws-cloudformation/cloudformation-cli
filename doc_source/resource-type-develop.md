@@ -6,7 +6,7 @@ Once you've modeled your resource provider, and validated its schema, the next s
 
 ## Implementing Resource Handlers<a name="resource-type-develop-implement-handlers"></a>
 
-When you `[generate](resource-type-cli-generate.md)` your resource package, the CloudFormation CLI stubs out empty handler functions, each of which each corresponds to a specific event in the resource lifecycle\. You add logic to these handlers to control what happens to your resource provider at each stage of its lifecycle\. 
+When you `[generate](resource-type-cli-generate.md)` your resource package, the CloudFormation CLI stubs out empty handler functions, each of which each corresponds to a specific event in the resource lifecycle\. You add logic to these handlers to control what happens to your resource provider at each stage of its lifecycle\.
 + `create`: CloudFormation invokes this handler when the resource is initially created during stack create operations\.
 + `read`: CloudFormation invokes this handler as part of a stack update operation when detailed information about the resource's current state is required\.
 + `update`: CloudFormation invokes this handler when the resource is updated as part of a stack update operation\.
@@ -32,7 +32,7 @@ For more information on the permissions available per AWS service, see [Actions,
 
 ## Testing Resource Types Locally Using SAM<a name="resource-type-develop-test"></a>
 
-Once you've implemented the desired handlers for your resource, you can test the resource locally using the AWS SAM command line interface \(CLI\), to make sure your resource behaves as expected, debug what's wrong, and fix any issues\. 
+Once you've implemented the desired handlers for your resource, you can test the resource locally using the AWS SAM command line interface \(CLI\), to make sure your resource behaves as expected, debug what's wrong, and fix any issues\.
 
 For more information on testing using AWS SAM CLI, see [Testing and Debugging Serverless Applications](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-test-and-debug.html) in the *AWS Serverless Application Model Developer Guide*\.
 

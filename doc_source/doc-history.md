@@ -3,6 +3,6 @@
 The following table describes the documentation for this release of the CloudFormation Command Line Interface \(CLI\)\.
 + **Latest documentation update:** November 14, 2019
 
-| Change | Description | Date | 
+| Change | Description | Date |
 | --- |--- |--- |
-| [General Availability](#doc-history) | Initial publication of the CloudFormation CLI documentation\. | November 14, 2019 | 
+| [General Availability](#doc-history) | Initial publication of the CloudFormation CLI documentation\. | November 14, 2019 |
