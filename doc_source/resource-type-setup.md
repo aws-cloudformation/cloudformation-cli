@@ -44,7 +44,5 @@ Complete the following steps to install and configure the tools needed to develo
 
 1. Install the Java Plug\-in for CloudFormation CLI using the following command:
 
-   ```   
+   ```
    pip install cloudformation-cli-java-plugin
-
-
