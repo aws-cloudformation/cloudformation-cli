@@ -21,7 +21,7 @@ Below are some Frequently Asked Questions about resource provider development\.
   A downstream service error occurred in a CREATE action on a AWS::MyService::MyResource: com.amazonaws.services.logs.model.AWSLogsException: User: arn:aws:sts::123456789012:assumed-role/UluruResourceHandlerLambdaExecutionRole-123456789012pdx/AWS-MYService-MyResource-Handler-1h344teffe is not authorized to perform: some:ApiCall on resource: some-resource (Service: AWSLogs; Status Code: 400; Error Code: AccessDeniedException; Request ID: 36af0cec-a96a-11e9-b204-ddabexample)
   ```
 
-  This is an indication that you are attempting to create and invoke AWS APIs using the default client, which is injected with environment credentials\.
+  This is an indication that you are attempting to create and invoke AWS APIs using the default client, which is injected with environment credentials\. 
 
   For resource providers, you should use the passed\-in `AmazonWebServicesClientProxy` object to make AWS API calls, as in the following example\.
 
@@ -44,11 +44,11 @@ Below are some Frequently Asked Questions about resource provider development\.
 ## Provider Development<a name="resource-type-faq-dev"></a>
 + **Q: Can I share functionality between resource by adding common functionality to the `BaseHandler`?**
 
-  **A:** Because the `BaseHandler` is code\-generated, it cannot be edited\.
+  **A:** Because the `BaseHandler` is code\-generated, it cannot be edited\. 
 + **Q: For Java development, is there a way to include multiple resources in a single maven project?**
 
   **A:** Not currently\. For security and manageability, the CloudFormation Registry registers each resource provider as a separate, versioned, type\. You could still share code through a shared package\. Ideally, the wrapper layer does most of the boilerplate\. If you see a need for more boilerplate, we would like to know how we can improve for that use case rather than combine types in a package, so please reach out to the team\.
-+ **Q: Will `com.amazonaws.cloudformation.proxy.Logger` have debug/info/warning/error levels/?**
++ **Q: Will `software.amazon.cloudformation.proxy.Logger` have debug/info/warning/error levels/?**
 
   **A:** Currently, all log messages are emitted to AWS CloudWatch, which has no built\-in concept of log levels\.
 
