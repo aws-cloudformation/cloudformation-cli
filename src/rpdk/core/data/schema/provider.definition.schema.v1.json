@@ -1,5 +1,5 @@
 {
-    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$schema": "https://json-schema.org/draft-07/schema#",
     "$id": "provider.definition.schema.v1.json",
     "title": "CloudFormation Resource Provider Definition MetaSchema",
     "description": "This schema validates a CloudFormation resource provider definition.",
@@ -79,46 +79,46 @@
                             "default": true
                         },
                         "$ref": {
-                            "$ref": "http://json-schema.org/draft-07/schema#/properties/$ref"
+                            "$ref": "https://json-schema.org/draft-07/schema#/properties/$ref"
                         },
                         "$comment": {
-                            "$ref": "http://json-schema.org/draft-07/schema#/properties/$comment"
+                            "$ref": "https://json-schema.org/draft-07/schema#/properties/$comment"
                         },
                         "title": {
-                            "$ref": "http://json-schema.org/draft-07/schema#/properties/title"
+                            "$ref": "https://json-schema.org/draft-07/schema#/properties/title"
                         },
                         "description": {
-                            "$ref": "http://json-schema.org/draft-07/schema#/properties/description"
+                            "$ref": "https://json-schema.org/draft-07/schema#/properties/description"
                         },
                         "examples": {
-                            "$ref": "http://json-schema.org/draft-07/schema#/properties/examples"
+                            "$ref": "https://json-schema.org/draft-07/schema#/properties/examples"
                         },
                         "default": {
-                            "$ref": "http://json-schema.org/draft-07/schema#/properties/default"
+                            "$ref": "https://json-schema.org/draft-07/schema#/properties/default"
                         },
                         "multipleOf": {
-                            "$ref": "http://json-schema.org/draft-07/schema#/properties/multipleOf"
+                            "$ref": "https://json-schema.org/draft-07/schema#/properties/multipleOf"
                         },
                         "maximum": {
-                            "$ref": "http://json-schema.org/draft-07/schema#/properties/maximum"
+                            "$ref": "https://json-schema.org/draft-07/schema#/properties/maximum"
                         },
                         "exclusiveMaximum": {
-                            "$ref": "http://json-schema.org/draft-07/schema#/properties/exclusiveMaximum"
+                            "$ref": "https://json-schema.org/draft-07/schema#/properties/exclusiveMaximum"
                         },
                         "minimum": {
-                            "$ref": "http://json-schema.org/draft-07/schema#/properties/minimum"
+                            "$ref": "https://json-schema.org/draft-07/schema#/properties/minimum"
                         },
                         "exclusiveMinimum": {
-                            "$ref": "http://json-schema.org/draft-07/schema#/properties/exclusiveMinimum"
+                            "$ref": "https://json-schema.org/draft-07/schema#/properties/exclusiveMinimum"
                         },
                         "maxLength": {
-                            "$ref": "http://json-schema.org/draft-07/schema#/properties/maxLength"
+                            "$ref": "https://json-schema.org/draft-07/schema#/properties/maxLength"
                         },
                         "minLength": {
-                            "$ref": "http://json-schema.org/draft-07/schema#/properties/minLength"
+                            "$ref": "https://json-schema.org/draft-07/schema#/properties/minLength"
                         },
                         "pattern": {
-                            "$ref": "http://json-schema.org/draft-07/schema#/properties/pattern"
+                            "$ref": "https://json-schema.org/draft-07/schema#/properties/pattern"
                         },
                         "items": {
                             "$comment": "Redefined as just a schema. A list of schemas is not allowed",
@@ -126,25 +126,25 @@
                             "default": {}
                         },
                         "maxItems": {
-                            "$ref": "http://json-schema.org/draft-07/schema#/properties/maxItems"
+                            "$ref": "https://json-schema.org/draft-07/schema#/properties/maxItems"
                         },
                         "minItems": {
-                            "$ref": "http://json-schema.org/draft-07/schema#/properties/minItems"
+                            "$ref": "https://json-schema.org/draft-07/schema#/properties/minItems"
                         },
                         "uniqueItems": {
-                            "$ref": "http://json-schema.org/draft-07/schema#/properties/uniqueItems"
+                            "$ref": "https://json-schema.org/draft-07/schema#/properties/uniqueItems"
                         },
                         "contains": {
-                            "$ref": "http://json-schema.org/draft-07/schema#/properties/contains"
+                            "$ref": "https://json-schema.org/draft-07/schema#/properties/contains"
                         },
                         "maxProperties": {
-                            "$ref": "http://json-schema.org/draft-07/schema#/properties/maxProperties"
+                            "$ref": "https://json-schema.org/draft-07/schema#/properties/maxProperties"
                         },
                         "minProperties": {
-                            "$ref": "http://json-schema.org/draft-07/schema#/properties/minProperties"
+                            "$ref": "https://json-schema.org/draft-07/schema#/properties/minProperties"
                         },
                         "required": {
-                            "$ref": "http://json-schema.org/draft-07/schema#/properties/required"
+                            "$ref": "https://json-schema.org/draft-07/schema#/properties/required"
                         },
                         "properties": {
                             "type": "object",
@@ -177,22 +177,22 @@
                                         "$ref": "#/definitions/properties"
                                     },
                                     {
-                                        "$ref": "http://json-schema.org/draft-07/schema#/definitions/stringArray"
+                                        "$ref": "https://json-schema.org/draft-07/schema#/definitions/stringArray"
                                     }
                                 ]
                             }
                         },
                         "const": {
-                            "$ref": "http://json-schema.org/draft-07/schema#/properties/const"
+                            "$ref": "https://json-schema.org/draft-07/schema#/properties/const"
                         },
                         "enum": {
-                            "$ref": "http://json-schema.org/draft-07/schema#/properties/enum"
+                            "$ref": "https://json-schema.org/draft-07/schema#/properties/enum"
                         },
                         "type": {
-                            "$ref": "http://json-schema.org/draft-07/schema#/properties/type"
+                            "$ref": "https://json-schema.org/draft-07/schema#/properties/type"
                         },
                         "format": {
-                            "$ref": "http://json-schema.org/draft-07/schema#/properties/format"
+                            "$ref": "https://json-schema.org/draft-07/schema#/properties/format"
                         },
                         "allOf": {
                             "$ref": "#/definitions/schemaArray"
@@ -212,7 +212,7 @@
     "type": "object",
     "properties": {
         "$schema": {
-            "$ref": "http://json-schema.org/draft-07/schema#/properties/$schema"
+            "$ref": "https://json-schema.org/draft-07/schema#/properties/$schema"
         },
         "type": {
             "$comment": "Resource Type",
@@ -230,14 +230,14 @@
             "pattern": "^[a-zA-Z0-9]{2,64}::[a-zA-Z0-9]{2,64}::[a-zA-Z0-9]{2,64}$"
         },
         "$comment": {
-            "$ref": "http://json-schema.org/draft-07/schema#/properties/$comment"
+            "$ref": "https://json-schema.org/draft-07/schema#/properties/$comment"
         },
         "title": {
-            "$ref": "http://json-schema.org/draft-07/schema#/properties/title"
+            "$ref": "https://json-schema.org/draft-07/schema#/properties/title"
         },
         "description": {
             "$comment": "A short description of the resource provider. This will be shown in the AWS CloudFormation console.",
-            "$ref": "http://json-schema.org/draft-07/schema#/properties/description"
+            "$ref": "https://json-schema.org/draft-07/schema#/properties/description"
         },
         "sourceUrl": {
             "$comment": "The location of the source code for this resource provider, to help interested parties submit issues or improvements.",
@@ -308,7 +308,7 @@
                     "type": "object",
                     "properties": {
                         "$comment": {
-                            "$ref": "http://json-schema.org/draft-07/schema#/properties/$comment"
+                            "$ref": "https://json-schema.org/draft-07/schema#/properties/$comment"
                         },
                         "properties": {
                             "$ref": "#/properties/properties"
@@ -351,7 +351,7 @@
             }
         },
         "required": {
-            "$ref": "http://json-schema.org/draft-07/schema#/properties/required"
+            "$ref": "https://json-schema.org/draft-07/schema#/properties/required"
         },
         "allOf": {
             "$ref": "#/definitions/schemaArray"
