@@ -6,6 +6,7 @@ from tempfile import TemporaryFile
 from uuid import uuid4
 
 from botocore.exceptions import ClientError, WaiterError
+from botocore.waiter import WaiterModel, create_waiter_with_client
 from jinja2 import Environment, PackageLoader, select_autoescape
 from jsonschema import Draft6Validator
 from jsonschema.exceptions import ValidationError
@@ -335,7 +336,37 @@ class Project:  # pylint: disable=too-many-instance-attributes
 
     @staticmethod
     def _wait_for_registration(cfn_client, registration_token, set_default):
-        registration_waiter = cfn_client.get_waiter("TypeRegistrationComplete")
+        # temporarily creating waiter inline
+        # until the SDK releases and we can use get_waiter
+        waiter_config = {
+            "version": 2,
+            "waiters": {
+                "TypeRegistrationComplete": {
+                    "delay": 5,
+                    "operation": "DescribeTypeRegistration",
+                    "maxAttempts": 200,
+                    "description": "Wait until type registration is COMPLETE.",
+                    "acceptors": [
+                        {
+                            "argument": "ProgressStatus",
+                            "expected": "COMPLETE",
+                            "matcher": "path",
+                            "state": "success",
+                        },
+                        {
+                            "argument": "ProgressStatus",
+                            "expected": "FAILED",
+                            "matcher": "path",
+                            "state": "failure",
+                        },
+                    ],
+                }
+            },
+        }
+        registration_waiter = create_waiter_with_client(
+            "TypeRegistrationComplete", WaiterModel(waiter_config), cfn_client
+        )
+        # registration_waiter = cfn_client.get_waiter("TypeRegistrationComplete")
         try:
             LOG.warning(
                 "Successfully submitted type. "
