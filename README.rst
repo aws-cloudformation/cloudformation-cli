@@ -38,8 +38,6 @@ If you want to generate an HTML coverage report afterwards, run
 Usage
 -----
 
-WARNING: Future Information; we have *not* published to PyPI yet.
-
 Installation
 ^^^^^^^^^^^^
 
@@ -48,7 +46,7 @@ the Python Package Index (PyPI). It requires Python 3.
 
 .. code-block:: bash
 
-    pip3 install cfn
+    pip install cloudformation-cli
 
 Command: init
 ^^^^^^^^^^^^^
