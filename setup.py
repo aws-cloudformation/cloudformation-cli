@@ -37,7 +37,7 @@ setup(
     zip_safe=True,
     python_requires=">=3.6",
     install_requires=[
-        "boto3>=1.9.207,<1.10.0",
+        "boto3>=1.10.20",
         "Jinja2>=2.10",
         "jsonschema>=3.0.1",
         "pytest==4.5.0",
