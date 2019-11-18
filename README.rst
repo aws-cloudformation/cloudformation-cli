@@ -21,7 +21,7 @@ You will also need to install a language plugin, such as `the Java language plug
 
 .. code-block:: bash
 
-    pip install -e ../aws-cloudformation-rpdk-java-plugin
+    pip install -e ../cloudformation-cli-java-plugin
 
 Linting and running unit tests is done via `pre-commit <https://pre-commit.com/>`_, and so is performed automatically on commit. The continuous integration also runs these checks. Manual options are available so you don't have to commit):
 
