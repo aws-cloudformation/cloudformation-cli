@@ -335,7 +335,7 @@ class Project:  # pylint: disable=too-many-instance-attributes
 
     @staticmethod
     def _wait_for_registration(cfn_client, registration_token, set_default):
-        registration_waiter = cfn_client.get_waiter("TypeRegistrationComplete")
+        registration_waiter = cfn_client.get_waiter("type_registration_complete")
         try:
             LOG.warning(
                 "Successfully submitted type. "
