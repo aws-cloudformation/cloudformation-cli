@@ -25,12 +25,13 @@ You will also need to install a language plugin, such as `the Java language plug
 
 Linting and running unit tests is done via `pre-commit <https://pre-commit.com/>`_, and so is performed automatically on commit. The continuous integration also runs these checks. Manual options are available so you don't have to commit):
 
-```
-# run all hooks on all files, mirrors what the CI runs
-pre-commit run --all-files
-# run unit tests only. can also be used for other hooks, e.g. black, flake8, pylint-local
-pre-commit run pytest-local
-```
+.. code-block:: bash
+
+    # run all hooks on all files, mirrors what the CI runs
+    pre-commit run --all-files
+    # run unit tests only. can also be used for other hooks, e.g. black, flake8, pylint-local
+    pre-commit run pytest-local
+
 
 If you want to generate an HTML coverage report afterwards, run
 ``coverage html``. The report is output to ``htmlcov/index.html``.
