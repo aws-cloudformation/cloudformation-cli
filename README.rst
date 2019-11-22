@@ -90,13 +90,13 @@ it will work as a plugin.
 
 Supported plugins
 ^^^^^^^^^^^^^^^^^
-========  =================  =======================================================================================================================  ================================================================================================
+========  =================  =======================================================================================================================  ============================================================================================
 Language  Status             Github                                                                                                                   PyPI
-========  =================  =======================================================================================================================  ================================================================================================
+========  =================  =======================================================================================================================  ============================================================================================
 Java      Available          `aws-cloudformation-rpdk-java-plugin <https://github.com/aws-cloudformation/aws-cloudformation-rpdk-java-plugin/>`_      `cloudformation-cli-java-plugin <https://pypi.org/project/cloudformation-cli-java-plugin/>`_
 Go        Available          `aws-cloudformation-rpdk-go-plugin <https://github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/>`_          `cloudformation-cli-go-plugin <https://pypi.org/project/cloudformation-cli-go-plugin/>`_
-Python    Developer Preview  `aws-cloudformation-rpdk-python-plugin <https://github.com/aws-cloudformation/aws-cloudformation-rpdk-python-plugin/>`_  `cloudformation-cli-python-plugin <https://pypi.org/project/cloudformation-cli-python-plugin/>`_
-========  =================  =======================================================================================================================  ================================================================================================
+Python    Developer Preview  `aws-cloudformation-rpdk-python-plugin <https://github.com/aws-cloudformation/aws-cloudformation-rpdk-python-plugin/>`_  N/A
+========  =================  =======================================================================================================================  ============================================================================================
 
 License
 -------
