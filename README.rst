@@ -90,8 +90,8 @@ it will work as a plugin.
 
 Supported plugins
 ^^^^^^^^^^^^^^^^^
-* `Java <https://github.com/aws-cloudformation/aws-cloudformation-rpdk-java-plugin/>`_
-* `Go <https://github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/>`_
+* `Java <https://github.com/aws-cloudformation/aws-cloudformation-rpdk-java-plugin/>`_ - `cloudformation-cli-java-plugin <https://pypi.org/project/cloudformation-cli-java-plugin/>`_
+* `Go <https://github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/>`_ - `cloudformation-cli-go-plugin <https://pypi.org/project/cloudformation-cli-go-plugin/>`_
 
 
 
