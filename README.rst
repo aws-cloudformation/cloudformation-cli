@@ -43,11 +43,13 @@ Installation
 ^^^^^^^^^^^^
 
 This tool can be installed using `pip <https://pypi.org/project/pip/>`_ from
-the Python Package Index (PyPI). It requires Python 3.
+the Python Package Index (PyPI). It requires Python 3. The tool requires at least one language plugin. The language plugins are also available on PyPI and as such can be installed all at once:
 
 .. code-block:: bash
 
-    pip install cloudformation-cli
+    pip install cloudformation-cli cloudformation-cli-java-plugin cloudformation-cli-go-plugin
+
+
 
 Command: init
 ^^^^^^^^^^^^^
@@ -88,8 +90,10 @@ it will work as a plugin.
 
 Supported plugins
 ^^^^^^^^^^^^^^^^^
-* `Java <https://pypi.org/project/cloudformation-cli-java-plugin/>`_
-* `Go <https://pypi.org/project/cloudformation-cli-go-plugin/>`_
+* `Java <https://github.com/aws-cloudformation/aws-cloudformation-rpdk-java-plugin/>`_
+* `Go <https://github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/>`_
+
+
 
 License
 -------
