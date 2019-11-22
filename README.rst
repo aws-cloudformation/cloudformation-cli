@@ -86,6 +86,11 @@ Plugins must provide the same interface as ``LanguagePlugin`` (in
 methods - but this is not necessary. As long as the class has the same methods,
 it will work as a plugin.
 
+Supported plugins
+^^^^^^^^^^^^^^^^^
+* `Java <https://pypi.org/project/cloudformation-cli-java-plugin/>`_
+* `Go <https://pypi.org/project/cloudformation-cli-go-plugin/>`_
+
 License
 -------
 
