@@ -3,39 +3,6 @@ AWS CloudFormation Resource Provider Development Kit
 
 The CloudFormation CLI (cfn) allows you to author your own resource providers that can be used by CloudFormation.
 
-Development
------------
-
-For developing, it's strongly suggested to install the development dependencies
-inside a virtual environment. (This isn't required if you just want to use this
-tool.)
-
-.. code-block:: bash
-
-    python3 -m venv env
-    source env/bin/activate
-    pip install -e . -r requirements.txt
-    pre-commit install
-
-You will also need to install a language plugin, such as `the Java language plugin <https://github.com/aws-cloudformation/aws-cloudformation-rpdk-java-plugin>`_, also via `pip install`. For example, assuming the plugin is checked out in the same parent directory as this repository:
-
-.. code-block:: bash
-
-    pip install -e ../cloudformation-cli-java-plugin
-
-Linting and running unit tests is done via `pre-commit <https://pre-commit.com/>`_, and so is performed automatically on commit. The continuous integration also runs these checks. Manual options are available so you don't have to commit):
-
-.. code-block:: bash
-
-    # run all hooks on all files, mirrors what the CI runs
-    pre-commit run --all-files
-    # run unit tests only. can also be used for other hooks, e.g. black, flake8, pylint-local
-    pre-commit run pytest-local
-
-
-If you want to generate an HTML coverage report afterwards, run
-``coverage html``. The report is output to ``htmlcov/index.html``.
-
 Usage
 -----
 
@@ -68,6 +35,39 @@ To refresh auto-generated code, use the ``generate`` command. Usually, plugins t
 .. code-block:: bash
 
     cfn generate
+
+Development
+-----------
+
+For developing, it's strongly suggested to install the development dependencies
+inside a virtual environment. (This isn't required if you just want to use this
+tool.)
+
+.. code-block:: bash
+
+    python3 -m venv env
+    source env/bin/activate
+    pip install -e . -r requirements.txt
+    pre-commit install
+
+You will also need to install a language plugin, such as `the Java language plugin <https://github.com/aws-cloudformation/aws-cloudformation-rpdk-java-plugin>`_, also via `pip install`. For example, assuming the plugin is checked out in the same parent directory as this repository:
+
+.. code-block:: bash
+
+    pip install -e ../cloudformation-cli-java-plugin
+
+Linting and running unit tests is done via `pre-commit <https://pre-commit.com/>`_, and so is performed automatically on commit. The continuous integration also runs these checks. Manual options are available so you don't have to commit):
+
+.. code-block:: bash
+
+    # run all hooks on all files, mirrors what the CI runs
+    pre-commit run --all-files
+    # run unit tests only. can also be used for other hooks, e.g. black, flake8, pylint-local
+    pre-commit run pytest-local
+
+
+If you want to generate an HTML coverage report afterwards, run
+``coverage html``. The report is output to ``htmlcov/index.html``.
 
 Plugin system
 -------------
