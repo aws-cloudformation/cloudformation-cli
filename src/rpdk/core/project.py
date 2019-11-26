@@ -296,6 +296,7 @@ class Project:  # pylint: disable=too-many-instance-attributes
     ):  # pylint: disable=too-many-arguments, too-many-locals
         LOG.debug("Packaging complete, uploading...")
         session = create_sdk_session(region_name)
+        LOG.debug("Uploading to region '%s'", session.region_name)
         cfn_client = session.client("cloudformation", endpoint_url=endpoint_url)
         s3_client = session.client("s3")
         uploader = Uploader(cfn_client, s3_client)
