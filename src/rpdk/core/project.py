@@ -33,14 +33,16 @@ TYPE_NAME_REGEX = "^[a-zA-Z0-9]{2,64}::[a-zA-Z0-9]{2,64}::[a-zA-Z0-9]{2,64}$"
 LAMBDA_RUNTIMES = {
     "noexec",  # cannot be executed, schema only
     "java8",
+    "java11",
     "go1.x",
     # python2.7 is EOL soon (2020-01-01)
     "python3.6",
     "python3.7",
-    # dotnetcore1.0 is EOL soon (2019-06-27)
+    "python3.8",
     "dotnetcore2.1",
-    # nodejs8.10 is EOL soon (2019-12-??)
+    # nodejs8.10 is EOL soon (2019-12-31)
     "nodejs10.x",
+    "nodejs12.x",
 }
 
 SETTINGS_VALIDATOR = Draft6Validator(
