@@ -2,6 +2,7 @@
 """
 import logging
 import re
+from argparse import SUPPRESS
 from functools import wraps
 
 from colorama import Fore, Style
@@ -138,7 +139,11 @@ def init(args):
     check_for_existing_project(project)
 
     type_name = input_typename()
-    language = input_language()
+    if args.language:
+        language = args.language
+        LOG.warning("Language plugin '%s' selected non-interactively", language)
+    else:
+        language = input_language()
 
     project.init(type_name, language)
     project.generate()
@@ -166,3 +171,5 @@ def setup_subparser(subparsers, parents):
     parser.add_argument(
         "--force", action="store_true", help="Force files to be overwritten."
     )
+    # this is mainly for CI, so suppress it to keep it simple
+    parser.add_argument("--language", help=SUPPRESS)
