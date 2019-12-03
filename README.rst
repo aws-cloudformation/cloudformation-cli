@@ -93,9 +93,9 @@ Supported plugins
 ========  =================  =======================================================================================================================  ============================================================================================
 Language  Status             Github                                                                                                                   PyPI
 ========  =================  =======================================================================================================================  ============================================================================================
-Java      Available          `cloudformation-cli-java-plugin <https://github.com/aws-cloudformation/cloudformation-cli-java-plugin/>`_      `cloudformation-cli-java-plugin <https://pypi.org/project/cloudformation-cli-java-plugin/>`_
-Go        Available          `cloudformation-cli-go-plugin <https://github.com/aws-cloudformation/cloudformation-cli-go-plugin/>`_          `cloudformation-cli-go-plugin <https://pypi.org/project/cloudformation-cli-go-plugin/>`_
-Python    Developer Preview  `cloudformation-cli-python-plugin <https://github.com/aws-cloudformation/cloudformation-cli-python-plugin/>`_  N/A
+Java      Available          `cloudformation-cli-java-plugin <https://github.com/aws-cloudformation/cloudformation-cli-java-plugin/>`_                `cloudformation-cli-java-plugin <https://pypi.org/project/cloudformation-cli-java-plugin/>`_
+Go        Available          `cloudformation-cli-go-plugin <https://github.com/aws-cloudformation/cloudformation-cli-go-plugin/>`_                    `cloudformation-cli-go-plugin <https://pypi.org/project/cloudformation-cli-go-plugin/>`_
+Python    Developer Preview  `cloudformation-cli-python-plugin <https://github.com/aws-cloudformation/cloudformation-cli-python-plugin/>`_            N/A
 ========  =================  =======================================================================================================================  ============================================================================================
 
 License
