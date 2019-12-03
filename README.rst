@@ -50,7 +50,7 @@ tool.)
     pip install -e . -r requirements.txt
     pre-commit install
 
-You will also need to install a language plugin, such as `the Java language plugin <https://github.com/aws-cloudformation/aws-cloudformation-rpdk-java-plugin>`_, also via `pip install`. For example, assuming the plugin is checked out in the same parent directory as this repository:
+You will also need to install a language plugin, such as `the Java language plugin <https://github.com/aws-cloudformation/cloudformation-cli-java-plugin>`_, also via `pip install`. For example, assuming the plugin is checked out in the same parent directory as this repository:
 
 .. code-block:: bash
 
@@ -93,9 +93,9 @@ Supported plugins
 ========  =================  =======================================================================================================================  ============================================================================================
 Language  Status             Github                                                                                                                   PyPI
 ========  =================  =======================================================================================================================  ============================================================================================
-Java      Available          `aws-cloudformation-rpdk-java-plugin <https://github.com/aws-cloudformation/aws-cloudformation-rpdk-java-plugin/>`_      `cloudformation-cli-java-plugin <https://pypi.org/project/cloudformation-cli-java-plugin/>`_
-Go        Available          `aws-cloudformation-rpdk-go-plugin <https://github.com/aws-cloudformation/aws-cloudformation-rpdk-go-plugin/>`_          `cloudformation-cli-go-plugin <https://pypi.org/project/cloudformation-cli-go-plugin/>`_
-Python    Developer Preview  `aws-cloudformation-rpdk-python-plugin <https://github.com/aws-cloudformation/aws-cloudformation-rpdk-python-plugin/>`_  N/A
+Java      Available          `cloudformation-cli-java-plugin <https://github.com/aws-cloudformation/cloudformation-cli-java-plugin/>`_      `cloudformation-cli-java-plugin <https://pypi.org/project/cloudformation-cli-java-plugin/>`_
+Go        Available          `cloudformation-cli-go-plugin <https://github.com/aws-cloudformation/cloudformation-cli-go-plugin/>`_          `cloudformation-cli-go-plugin <https://pypi.org/project/cloudformation-cli-go-plugin/>`_
+Python    Developer Preview  `cloudformation-cli-python-plugin <https://github.com/aws-cloudformation/cloudformation-cli-python-plugin/>`_  N/A
 ========  =================  =======================================================================================================================  ============================================================================================
 
 License
