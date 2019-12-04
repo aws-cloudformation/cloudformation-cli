@@ -5,7 +5,6 @@ The CloudFormation CLI (cfn) allows you to author your own resource providers th
 
 Usage
 -----
-
 Documentation
 ^^^^^^^^^^^^^
 
