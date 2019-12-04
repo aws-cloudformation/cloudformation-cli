@@ -1,10 +1,14 @@
-AWS CloudFormation Resource Provider Development Kit
-====================================================
+AWS CloudFormation CLI
+======================
 
 The CloudFormation CLI (cfn) allows you to author your own resource providers that can be used by CloudFormation.
 
 Usage
 -----
+Documentation
+^^^^^^^^^^^^^
+
+Primary documentation for the CloudFormation CLI can be found at the `AWS Documentation <https://docs.aws.amazon.com/cloudformation-cli/latest/userguide/resource-types.html>`_ site.
 
 Installation
 ^^^^^^^^^^^^
