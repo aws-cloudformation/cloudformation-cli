@@ -9,7 +9,7 @@ Usage
 Documentation
 ^^^^^^^^^^^^^
 
-Primary documentation for the CloudFormation CLI can be found at the `AWS Documentation https://docs.aws.amazon.com/cloudformation-cli/latest/userguide/resource-types.html` site.
+Primary documentation for the CloudFormation CLI can be found at the `AWS Documentation <https://docs.aws.amazon.com/cloudformation-cli/latest/userguide/resource-types.html>`_ site.
 
 Installation
 ^^^^^^^^^^^^
