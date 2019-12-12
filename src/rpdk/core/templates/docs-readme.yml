@@ -1,0 +1,82 @@
+# {{ type_name }}
+{% if schema.description %}
+
+{{ schema.description }}
+{% endif %}
+{{ schema }}
+## Syntax
+
+To declare this entity in your AWS CloudFormation template, use the following syntax:
+
+### JSON
+
+<pre>
+{
+    "Type" : "{{ type_name }}",
+    "Properties" : {
+{% for propname, prop in schema.properties.items() %}
+        "<a href="#{{ propname.lower() }}" title="{{ propname }}">{{ propname }}</a>" : String{% if not loop.last %},{% endif %}
+
+{% endfor %}
+    }
+}
+</pre>
+
+### YAML
+
+<pre>
+Type: {{ type_name }}
+Properties:
+{% for propname, prop in schema.properties.items() %}
+    <a href="#{{ propname.lower() }}" title="{{ propname }}">{{ propname }}</a>: String
+{% endfor %}
+</pre>
+
+## Properties
+
+{% for propname, prop in schema.properties.items() %}
+#### {{ propname }}
+{% if prop.description %}
+
+{{ prop.description }}
+{% endif %}
+
+_Required_: {% if propname in schema.required %}Yes{% else %}No{% endif %}
+
+
+_Type_: String
+
+_Update requires_: [Replacement](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-replacement)
+
+{% endfor %}
+## Return Values
+
+### Ref
+
+{% set refproperty = schema.primaryIdentifier[0].replace("/properties/", "") -%}
+When you pass the logical ID of this resource to the intrinsic `Ref` function, Ref returns the {{ refproperty }}.
+{% for identifierptr in schema.additionalIdentifiers %}
+{% if len(identifierptr) == 1 %}
+{% set hasattributes = True -%}
+{% endif %}
+{% endfor %}
+{% if hasattributes %}
+### Fn::GetAtt
+
+The `Fn::GetAtt` intrinsic function returns a value for a specified attribute of this type. The following are the available attributes and sample return values.
+
+For more information about using the `Fn::GetAtt` intrinsic function, see [Fn::GetAtt](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/intrinsic-function-reference-getatt.html).
+
+{% for identifierptr in schema.additionalIdentifiers %}
+{% if len(identifierptr) == 1 %}
+{% set identifier_name = identifierptr[0].replace("/properties/","") -%}
+#### {{ identifier_name }}
+{% if schema.properties[identifierptr[0].replace("/properties/","")].description %}
+{% set identifier_description = schema.properties[identifierptr[0].replace("/properties/","")].description -%}
+
+{{ identifier_description }}
+{% endif %}
+{% endif %}
+
+{% endfor %}
+{% endif %}
