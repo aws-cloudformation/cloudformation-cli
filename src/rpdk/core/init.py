@@ -147,6 +147,7 @@ def init(args):
 
     project.init(type_name, language)
     project.generate()
+    project.generate_docs()
 
     LOG.warning("Initialized a new project in %s", project.root.resolve())
 

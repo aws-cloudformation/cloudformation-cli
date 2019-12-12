@@ -1,5 +1,7 @@
 import json
 import logging
+import os
+import shutil
 import zipfile
 from pathlib import Path
 from tempfile import TemporaryFile
@@ -292,6 +294,29 @@ class Project:  # pylint: disable=too-many-instance-attributes
                 self._upload(
                     f, endpoint_url, region_name, role_arn, use_role, set_default
                 )
+
+    def generate_docs(self):
+        # generate the docs folder that contains documentation based on the schema
+        docs_path = "{}/docs".format(self.root)
+
+        if not self.type_info or not self.schema:
+            LOG.warning(
+                "Could not generate schema docs due to missing type info or schema"
+            )
+            return
+
+        if os.path.isdir(docs_path):
+            LOG.debug("Docs directory already exists, recreating...")
+            shutil.rmtree(docs_path)
+        os.mkdir(docs_path)
+
+        LOG.debug("Writing generated docs")
+
+        template = self.env.get_template("docs-readme.yml")
+
+        contents = template.render(type_name=self.type_name, schema=self.schema)
+        readme_path = Path("{}/README.md".format(docs_path))
+        self.safewrite(readme_path, contents)
 
     def _upload(
         self, fileobj, endpoint_url, region_name, role_arn, use_role, set_default

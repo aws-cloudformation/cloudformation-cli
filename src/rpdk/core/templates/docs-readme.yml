@@ -3,7 +3,7 @@
 
 {{ schema.description }}
 {% endif %}
-{{ schema }}
+
 ## Syntax
 
 To declare this entity in your AWS CloudFormation template, use the following syntax:
@@ -14,10 +14,12 @@ To declare this entity in your AWS CloudFormation template, use the following sy
 {
     "Type" : "{{ type_name }}",
     "Properties" : {
+{% if schema.properties %}
 {% for propname, prop in schema.properties.items() %}
         "<a href="#{{ propname.lower() }}" title="{{ propname }}">{{ propname }}</a>" : String{% if not loop.last %},{% endif %}
 
 {% endfor %}
+{% endif %}
     }
 }
 </pre>
@@ -27,11 +29,13 @@ To declare this entity in your AWS CloudFormation template, use the following sy
 <pre>
 Type: {{ type_name }}
 Properties:
+{% if schema.properties %}
 {% for propname, prop in schema.properties.items() %}
     <a href="#{{ propname.lower() }}" title="{{ propname }}">{{ propname }}</a>: String
 {% endfor %}
+{% endif %}
 </pre>
-
+{% if schema.properties %}
 ## Properties
 
 {% for propname, prop in schema.properties.items() %}
@@ -79,4 +83,5 @@ For more information about using the `Fn::GetAtt` intrinsic function, see [Fn::G
 {% endif %}
 
 {% endfor %}
+{% endif %}
 {% endif %}

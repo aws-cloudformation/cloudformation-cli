@@ -13,6 +13,7 @@ def test_generate_command_generate(capsys):
 
     mock_project.load.assert_called_once_with()
     mock_project.generate.assert_called_once_with()
+    mock_project.generate_docs.assert_called_once_with()
 
     out, err = capsys.readouterr()
     assert not err
