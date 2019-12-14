@@ -1,4 +1,4 @@
-# {{ type_name }}
+# {{ type_name }} {{ subproperty_name }}
 {% if schema.description %}
 
 {{ schema.description }}
@@ -12,26 +12,21 @@ To declare this entity in your AWS CloudFormation template, use the following sy
 
 <pre>
 {
-    "Type" : "{{ type_name }}",
-    "Properties" : {
 {% if schema.properties %}
 {% for propname, prop in schema.properties.items() %}
-        "<a href="#{{ propname.lower() }}" title="{{ propname }}">{{ propname }}</a>" : <i>{{ prop.jsontype }}</i>{% if not loop.last %},{% endif %}
+    "<a href="#{{ propname.lower() }}" title="{{ propname }}">{{ propname }}</a>" : <i>{{ prop.jsontype }}</i>{% if not loop.last %},{% endif %}
 
 {% endfor %}
 {% endif %}
-    }
 }
 </pre>
 
 ### YAML
 
 <pre>
-Type: {{ type_name }}
-Properties:
 {% if schema.properties %}
 {% for propname, prop in schema.properties.items() %}
-    <a href="#{{ propname.lower() }}" title="{{ propname }}">{{ propname }}</a>: <i>{{ prop.yamltype }}</i>
+<a href="#{{ propname.lower() }}" title="{{ propname }}">{{ propname }}</a>: <i>{{ prop.yamltype }}</i>
 {% endfor %}
 {% endif %}
 </pre>
@@ -74,30 +69,4 @@ _Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormati
 {% endif %}
 
 {% endfor %}
-{% endif %}
-{% if getatt|length > 0 or ref %}
-## Return Values
-{% if ref %}
-
-### Ref
-
-When you pass the logical ID of this resource to the intrinsic `Ref` function, Ref returns the {{ ref }}.
-{% endif %}
-{% if getatt|length > 0 %}
-
-### Fn::GetAtt
-
-The `Fn::GetAtt` intrinsic function returns a value for a specified attribute of this type. The following are the available attributes and sample return values.
-
-For more information about using the `Fn::GetAtt` intrinsic function, see [Fn::GetAtt](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/intrinsic-function-reference-getatt.html).
-
-{% for att in getatt %}
-#### {{ att.name }}
-{% if att.description %}
-
-{{ att.description }}
-{% endif %}
-
-{% endfor %}
-{% endif %}
 {% endif %}

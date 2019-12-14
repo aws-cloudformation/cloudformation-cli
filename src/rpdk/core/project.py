@@ -1,3 +1,4 @@
+import copy
 import json
 import logging
 import os
@@ -299,7 +300,7 @@ class Project:  # pylint: disable=too-many-instance-attributes
         # generate the docs folder that contains documentation based on the schema
         docs_path = "{}/docs".format(self.root)
 
-        if not self.type_info or not self.schema:
+        if not self.type_info or not self.schema or "properties" not in self.schema:
             LOG.warning(
                 "Could not generate schema docs due to missing type info or schema"
             )
@@ -312,11 +313,123 @@ class Project:  # pylint: disable=too-many-instance-attributes
 
         LOG.debug("Writing generated docs")
 
+        docs_schema = copy.deepcopy(
+            self.schema
+        )  # take care not to overwrite master schema
+
+        for propname in docs_schema["properties"]:
+            docs_schema["properties"][propname] = self._set_docs_properties(
+                propname, docs_schema["properties"][propname], []
+            )
+
+        ref = None
+        if "primaryIdentifier" in docs_schema:
+            if len(docs_schema["primaryIdentifier"]) == 1:
+                ref = docs_schema["primaryIdentifier"][0].split("/").pop()
+
+        getatt = []
+        if "additionalIdentifiers" in docs_schema:
+            for identifierptr in docs_schema["additionalIdentifiers"]:
+                if len(identifierptr) == 1:
+                    attshortname = identifierptr[0].split("/").pop()
+                    attdescription = "Returns the <code>{}</code> value.".format(
+                        attshortname
+                    )
+                    attpath = identifierptr[0].replace(
+                        "/properties/", ""
+                    )  # multi-depth getatt possible?
+                    if (
+                        attpath in docs_schema["properties"]
+                        and "description" in docs_schema["properties"][attpath]
+                    ):
+                        attdescription = docs_schema["properties"][attpath][
+                            "description"
+                        ]
+                    getatt.append({"name": attshortname, "description": attdescription})
+
         template = self.env.get_template("docs-readme.yml")
 
-        contents = template.render(type_name=self.type_name, schema=self.schema)
+        contents = template.render(
+            type_name=self.type_name, schema=docs_schema, ref=ref, getatt=getatt
+        )
         readme_path = Path("{}/README.md".format(docs_path))
         self.safewrite(readme_path, contents)
+
+    def _set_docs_properties(self, propname, prop, proppath):
+        proppath.append(propname)
+
+        if "$ref" in prop:
+            def_name = prop["$ref"].replace(
+                "#/definitions/", ""
+            )  # primitive, will miss complex/external definitions
+            if "definitions" in self.schema and def_name in self.schema["definitions"]:
+                merged = {}
+                merged.update(self.schema["definitions"][def_name])
+                merged.update(prop)  # properties overwrites definition
+                prop = merged
+
+        if (
+            "createOnlyProperties" in self.schema
+            and "/properties/{}".format("/".join(proppath))
+            in self.schema["createOnlyProperties"]
+        ):
+            prop["createonly"] = True
+
+        basic_type_mappings = {
+            "string": "String",
+            "number": "Double",
+            "boolean": "Boolean",
+        }
+
+        prop["jsontype"] = "Unknown"
+        prop["yamltype"] = "Unknown"
+        prop["longformtype"] = "Unknown"
+
+        if prop["type"] in basic_type_mappings:
+            prop["jsontype"] = basic_type_mappings[prop["type"]]
+            prop["yamltype"] = basic_type_mappings[prop["type"]]
+            prop["longformtype"] = basic_type_mappings[prop["type"]]
+        elif prop["type"] == "array":
+            prop["arrayitems"] = self._set_docs_properties(
+                propname, prop["items"], copy.copy(proppath)
+            )
+            prop["jsontype"] = "[ " + prop["arrayitems"]["jsontype"] + ", ... ]"
+            prop["yamltype"] = "\n      - " + prop["arrayitems"]["longformtype"]
+            prop["longformtype"] = "List of " + prop["arrayitems"]["longformtype"]
+        elif prop["type"] == "object":
+            template = self.env.get_template("docs-subproperty.yml")
+            docs_path = "{}/docs".format(self.root)
+
+            for subpropname in prop["properties"]:
+                prop["properties"][subpropname] = self._set_docs_properties(
+                    subpropname, prop["properties"][subpropname], copy.copy(proppath),
+                )
+
+            subproperty_name = " ".join(proppath)
+            subproperty_filename = "-".join(proppath).lower() + ".md"
+
+            contents = template.render(
+                type_name=self.type_name,
+                subproperty_name=subproperty_name,
+                schema=prop,
+            )
+            readme_path = Path("{}/{}".format(docs_path, subproperty_filename))
+            self.safewrite(readme_path, contents)
+
+            prop["jsontype"] = (
+                '<a href="' + subproperty_filename + '">' + propname + "</a>"
+            )
+            prop["yamltype"] = (
+                '<a href="' + subproperty_filename + '">' + propname + "</a>"
+            )
+            prop["longformtype"] = (
+                '<a href="' + subproperty_filename + '">' + propname + "</a>"
+            )
+
+        if "enum" in prop:
+            prop["allowedvalues"] = prop["enum"]
+
+        return prop
 
     def _upload(
         self, fileobj, endpoint_url, region_name, role_arn, use_role, set_default

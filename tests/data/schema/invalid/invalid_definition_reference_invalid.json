@@ -1,0 +1,14 @@
+{
+    "typeName": "AWS::Valid::TypeName",
+    "description": "a test schema",
+    "properties": {
+        "property1": {
+            "type": "string",
+            "$ref": "#/definitions/invalid"
+        }
+    },
+    "primaryIdentifier": [
+        "/properties/property1"
+    ],
+    "additionalProperties": false
+}
