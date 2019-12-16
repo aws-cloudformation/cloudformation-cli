@@ -1,7 +1,6 @@
 import copy
 import json
 import logging
-import os
 import shutil
 import zipfile
 from pathlib import Path
@@ -306,10 +305,10 @@ class Project:  # pylint: disable=too-many-instance-attributes
             )
             return
 
-        if os.path.isdir(docs_path):
+        if docs_path.is_dir():
             LOG.debug("Docs directory already exists, recreating...")
-            shutil.rmtree(docs_path)
-        os.mkdir(docs_path)
+            shutil.rmtree(docs_path, ignore_errors=True)
+        docs_path.mkdir(exist_ok=True)
 
         LOG.debug("Writing generated docs")
 
