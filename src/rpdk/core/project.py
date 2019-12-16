@@ -351,7 +351,7 @@ class Project:  # pylint: disable=too-many-instance-attributes
         contents = template.render(
             type_name=self.type_name, schema=docs_schema, ref=ref, getatt=getatt
         )
-        readme_path = Path("{}/README.md".format(docs_path))
+        readme_path = docs_path / "README.md"
         self.safewrite(readme_path, contents)
 
     def _set_docs_properties(self, propname, prop, proppath):
@@ -391,7 +391,7 @@ class Project:  # pylint: disable=too-many-instance-attributes
             prop["longformtype"] = "List of " + prop["arrayitems"]["longformtype"]
         elif prop["type"] == "object":
             template = self.env.get_template("docs-subproperty.yml")
-            docs_path = "{}/docs".format(self.root)
+            docs_path = self.root / "docs"
 
             for subpropname in prop["properties"]:
                 prop["properties"][subpropname] = self._set_docs_properties(
@@ -406,7 +406,7 @@ class Project:  # pylint: disable=too-many-instance-attributes
                 subproperty_name=subproperty_name,
                 schema=prop,
             )
-            readme_path = Path("{}/{}".format(docs_path, subproperty_filename))
+            readme_path = docs_path / subproperty_filename
             self.safewrite(readme_path, contents)
 
             prop["jsontype"] = (
