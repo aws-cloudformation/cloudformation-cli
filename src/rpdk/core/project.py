@@ -9,7 +9,7 @@ from uuid import uuid4
 
 from botocore.exceptions import ClientError, WaiterError
 from jinja2 import Environment, PackageLoader, select_autoescape
-from jsonschema import Draft6Validator
+from jsonschema import Draft6Validator, RefResolver
 from jsonschema.exceptions import ValidationError
 
 from .boto_helpers import create_sdk_session
@@ -358,14 +358,7 @@ class Project:  # pylint: disable=too-many-instance-attributes
         proppath.append(propname)
 
         if "$ref" in prop:
-            def_name = prop["$ref"].replace(
-                "#/definitions/", ""
-            )  # primitive, will miss complex/external definitions
-            if "definitions" in self.schema and def_name in self.schema["definitions"]:
-                merged = {}
-                merged.update(self.schema["definitions"][def_name])
-                merged.update(prop)  # properties overwrites definition
-                prop = merged
+            prop = RefResolver.from_schema(self.schema).resolve(prop["$ref"])[1]
 
         if (
             "createOnlyProperties" in self.schema
@@ -377,6 +370,7 @@ class Project:  # pylint: disable=too-many-instance-attributes
         basic_type_mappings = {
             "string": "String",
             "number": "Double",
+            "integer": "Double",
             "boolean": "Boolean",
         }
 

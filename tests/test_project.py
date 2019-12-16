@@ -201,17 +201,18 @@ def test_generate_with_docs(project, tmp_path_factory):
     assert project.type_name in readme_contents
 
 
-def test_generate_with_docs_invalid_definition(project, tmp_path_factory):
+def test_generate_with_docs_nested_object(project, tmp_path_factory):
     project.schema = resource_json(
-        __name__, "data/schema/invalid/invalid_definition_reference_invalid.json"
+        __name__, "data/schema/valid/valid_nested_property_object.json"
     )
     project.type_name = "AWS::Color::Red"
     # tmpdir conflicts with other tests, make a unique one
-    project.root = tmp_path_factory.mktemp("generate_with_docs_invalid_definition")
+    project.root = tmp_path_factory.mktemp("generate_with_docs_nested_object")
     mock_plugin = MagicMock(spec=["generate"])
     with patch.object(project, "_plugin", mock_plugin):
-        # skip actual generation
+        project.generate()
         project.generate_docs()
+    mock_plugin.generate.assert_called_once_with(project)
 
     docs_dir = project.root / "docs"
     readme_file = project.root / "docs" / "README.md"
@@ -225,13 +226,13 @@ def test_generate_with_docs_invalid_definition(project, tmp_path_factory):
     assert project.type_name in readme_contents
 
 
-def test_generate_with_docs_invalid_typename(project, tmp_path_factory):
+def test_generate_with_docs_invalid_property_type(project, tmp_path_factory):
     project.schema = resource_json(
-        __name__, "data/schema/invalid/invalid_typename.json"
+        __name__, "data/schema/invalid/invalid_property_type_invalid.json"
     )
     project.type_name = "AWS::Color::Red"
     # tmpdir conflicts with other tests, make a unique one
-    project.root = tmp_path_factory.mktemp("generate_with_docs_invalid_typename")
+    project.root = tmp_path_factory.mktemp("generate_with_docs_invalid_property_type")
     mock_plugin = MagicMock(spec=["generate"])
     with patch.object(project, "_plugin", mock_plugin):
         # skip actual generation
