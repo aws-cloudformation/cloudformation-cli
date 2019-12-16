@@ -298,7 +298,7 @@ class Project:  # pylint: disable=too-many-instance-attributes
 
     def generate_docs(self):
         # generate the docs folder that contains documentation based on the schema
-        docs_path = "{}/docs".format(self.root)
+        docs_path = self.root / "docs"
 
         if not self.type_info or not self.schema or "properties" not in self.schema:
             LOG.warning(
@@ -313,8 +313,8 @@ class Project:  # pylint: disable=too-many-instance-attributes
 
         LOG.debug("Writing generated docs")
 
-        docs_schema = copy.deepcopy(
-            self.schema
+        docs_schema = json.loads(
+            json.dumps(self.schema)
         )  # take care not to overwrite master schema
 
         for propname in docs_schema["properties"]:

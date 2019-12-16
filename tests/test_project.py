@@ -176,89 +176,86 @@ def test_generate_no_handlers(project):
     mock_plugin.generate.assert_called_once_with(project)
 
 
-def test_generate_with_docs(project, tmpdir_factory):
+def test_generate_with_docs(project, tmp_path_factory):
     project.schema = resource_json(
         __name__, "data/schema/valid/valid_type_complex.json"
     )
     project.type_name = "AWS::Color::Red"
     # tmpdir conflicts with other tests, make a unique one
-    project.root = tmpdir_factory.mktemp("generate_with_docs")
+    project.root = tmp_path_factory.mktemp("generate_with_docs")
     mock_plugin = MagicMock(spec=["generate"])
     with patch.object(project, "_plugin", mock_plugin):
         project.generate()
         project.generate_docs()
     mock_plugin.generate.assert_called_once_with(project)
 
-    docs_dir = Path(project.root / "docs")
-    readme_file = Path(project.root / "docs" / "README.md")
+    docs_dir = project.root / "docs"
+    readme_file = project.root / "docs" / "README.md"
 
     assert docs_dir.is_dir()
     assert readme_file.is_file()
     with patch.object(project, "_plugin", mock_plugin):
         project.generate()
         project.generate_docs()
-    with readme_file.open("r", encoding="utf-8") as f:
-        readme_contents = f.read()
-        assert project.type_name in readme_contents
+    readme_contents = readme_file.read_text(encoding="utf-8")
+    assert project.type_name in readme_contents
 
 
-def test_generate_with_docs_invalid_definition(project, tmpdir_factory):
+def test_generate_with_docs_invalid_definition(project, tmp_path_factory):
     project.schema = resource_json(
         __name__, "data/schema/invalid/invalid_definition_reference_invalid.json"
     )
     project.type_name = "AWS::Color::Red"
     # tmpdir conflicts with other tests, make a unique one
-    project.root = tmpdir_factory.mktemp("generate_with_docs_invalid_definition")
+    project.root = tmp_path_factory.mktemp("generate_with_docs_invalid_definition")
     mock_plugin = MagicMock(spec=["generate"])
     with patch.object(project, "_plugin", mock_plugin):
         # skip actual generation
         project.generate_docs()
 
-    docs_dir = Path(project.root / "docs")
-    readme_file = Path(project.root / "docs" / "README.md")
+    docs_dir = project.root / "docs"
+    readme_file = project.root / "docs" / "README.md"
 
     assert docs_dir.is_dir()
     assert readme_file.is_file()
     with patch.object(project, "_plugin", mock_plugin):
         project.generate()
         project.generate_docs()
-    with readme_file.open("r", encoding="utf-8") as f:
-        readme_contents = f.read()
-        assert project.type_name in readme_contents
+    readme_contents = readme_file.read_text(encoding="utf-8")
+    assert project.type_name in readme_contents
 
 
-def test_generate_with_docs_invalid_typename(project, tmpdir_factory):
+def test_generate_with_docs_invalid_typename(project, tmp_path_factory):
     project.schema = resource_json(
         __name__, "data/schema/invalid/invalid_typename.json"
     )
     project.type_name = "AWS::Color::Red"
     # tmpdir conflicts with other tests, make a unique one
-    project.root = tmpdir_factory.mktemp("generate_with_docs_invalid_typename")
+    project.root = tmp_path_factory.mktemp("generate_with_docs_invalid_typename")
     mock_plugin = MagicMock(spec=["generate"])
     with patch.object(project, "_plugin", mock_plugin):
         # skip actual generation
         project.generate_docs()
 
-    docs_dir = Path(project.root / "docs")
-    readme_file = Path(project.root / "docs" / "README.md")
+    docs_dir = project.root / "docs"
+    readme_file = project.root / "docs" / "README.md"
 
     assert docs_dir.is_dir()
     assert readme_file.is_file()
     with patch.object(project, "_plugin", mock_plugin):
         project.generate()
         project.generate_docs()
-    with readme_file.open("r", encoding="utf-8") as f:
-        readme_contents = f.read()
-        assert project.type_name in readme_contents
+    readme_contents = readme_file.read_text(encoding="utf-8")
+    assert project.type_name in readme_contents
 
 
-def test_generate_with_docs_composite_primary_identifier(project, tmpdir_factory):
+def test_generate_with_docs_composite_primary_identifier(project, tmp_path_factory):
     project.schema = resource_json(
         __name__, "data/schema/valid/valid_type_composite_primary_identifier.json"
     )
     project.type_name = "AWS::Color::Red"
     # tmpdir conflicts with other tests, make a unique one
-    project.root = tmpdir_factory.mktemp(
+    project.root = tmp_path_factory.mktemp(
         "generate_with_docs_composite_primary_identifier"
     )
     mock_plugin = MagicMock(spec=["generate"])
@@ -267,47 +264,46 @@ def test_generate_with_docs_composite_primary_identifier(project, tmpdir_factory
         project.generate_docs()
     mock_plugin.generate.assert_called_once_with(project)
 
-    docs_dir = Path(project.root / "docs")
-    readme_file = Path(project.root / "docs" / "README.md")
+    docs_dir = project.root / "docs"
+    readme_file = project.root / "docs" / "README.md"
 
     assert docs_dir.is_dir()
     assert readme_file.is_file()
     with patch.object(project, "_plugin", mock_plugin):
         project.generate()
         project.generate_docs()
-    with readme_file.open("r", encoding="utf-8") as f:
-        readme_contents = f.read()
-        assert project.type_name in readme_contents
+    readme_contents = readme_file.read_text(encoding="utf-8")
+    assert project.type_name in readme_contents
 
 
-def test_generate_with_docs_no_type(project, tmpdir_factory):
+def test_generate_with_docs_no_type(project, tmp_path_factory):
     project.schema = {"properties": {}}
     # tmpdir conflicts with other tests, make a unique one
-    project.root = tmpdir_factory.mktemp("generate_with_docs_no_type")
+    project.root = tmp_path_factory.mktemp("generate_with_docs_no_type")
     mock_plugin = MagicMock(spec=["generate"])
     with patch.object(project, "_plugin", mock_plugin):
         project.generate()
         project.generate_docs()
     mock_plugin.generate.assert_called_once_with(project)
 
-    docs_dir = Path(project.root / "docs")
+    docs_dir = project.root / "docs"
 
     assert not docs_dir.is_dir()
 
 
-def test_generate_with_docs_twice(project, tmpdir_factory):
+def test_generate_with_docs_twice(project, tmp_path_factory):
     project.schema = {"properties": {}}
     project.type_name = "AWS::Color::Red"
     # tmpdir conflicts with other tests, make a unique one
-    project.root = tmpdir_factory.mktemp("generate_with_docs_twice")
+    project.root = tmp_path_factory.mktemp("generate_with_docs_twice")
     mock_plugin = MagicMock(spec=["generate"])
     with patch.object(project, "_plugin", mock_plugin):
         project.generate()
         project.generate_docs()
     mock_plugin.generate.assert_called_once_with(project)
 
-    docs_dir = Path(project.root / "docs")
-    readme_file = Path(project.root / "docs" / "README.md")
+    docs_dir = project.root / "docs"
+    readme_file = project.root / "docs" / "README.md"
 
     assert docs_dir.is_dir()
     assert readme_file.is_file()
@@ -319,9 +315,8 @@ def test_generate_with_docs_twice(project, tmpdir_factory):
     with patch.object(project, "_plugin", mock_plugin):
         project.generate()
         project.generate_docs()
-    with readme_file.open("r", encoding="utf-8") as f:
-        readme_contents = f.read()
-        assert project.type_name in readme_contents
+    readme_contents = readme_file.read_text(encoding="utf-8")
+    assert project.type_name in readme_contents
 
 
 def test_generate_handlers(project, tmpdir):
