@@ -7,7 +7,7 @@ Resources:
   ExecutionRole:
     Type: AWS::IAM::Role
     Properties:
-      MaxSessionDuration: 43200
+      MaxSessionDuration: {{ role_session_timeout }}
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:

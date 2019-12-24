@@ -29,6 +29,10 @@ OVERRIDES_FILENAME = "overrides.json"
 ROLE_TEMPLATE_FILENAME = "resource-role.yaml"
 TYPE_NAME_REGEX = "^[a-zA-Z0-9]{2,64}::[a-zA-Z0-9]{2,64}::[a-zA-Z0-9]{2,64}$"
 
+DEFAULT_ROLE_TIMEOUT_MINUTES = 120  # 2 hours
+MIN_ROLE_TIMEOUT_SECONDS = 900  # 15 minutes
+MAX_ROLE_TIMEOUT_SECONDS = 43200  # 12 hours
+
 
 LAMBDA_RUNTIMES = {
     "noexec",  # cannot be executed, schema only
@@ -217,15 +221,37 @@ class Project:  # pylint: disable=too-many-instance-attributes
         # generate template for IAM role assumed by cloudformation
         # to provision resources if schema has handlers defined
         if "handlers" in self.schema:
+            handlers = self.schema["handlers"]
             template = self.env.get_template("resource-role.yml")
             permission = "Allow"
             path = self.root / ROLE_TEMPLATE_FILENAME
             LOG.debug("Writing Resource Role CloudFormation template: %s", path)
             actions = {
                 action
-                for handler in self.schema["handlers"].values()
+                for handler in handlers.values()
                 for action in handler.get("permissions", [])
             }
+
+            # calculate IAM role max session timeout based on highest handler timeout
+            # with some buffer (70 seconds per minute)
+            cud_handlers = [
+                handlers.get(handler, {})
+                for handler in ["create", "update", "delete"]
+                if handlers.get(handler, None)
+            ]
+            max_handler_timeout = max(
+                (
+                    handler.get("timeoutInMinutes", DEFAULT_ROLE_TIMEOUT_MINUTES)
+                    for handler in cud_handlers
+                ),
+                default=DEFAULT_ROLE_TIMEOUT_MINUTES,
+            )
+            # max role session timeout must be between 15 minutes and 12 hours
+            role_session_timeout = min(
+                MAX_ROLE_TIMEOUT_SECONDS,
+                max(MIN_ROLE_TIMEOUT_SECONDS, 70 * max_handler_timeout),
+            )
+
             # gets rid of any empty string actions.
             # Empty strings cannot be specified as an action in an IAM statement
             actions.discard("")
@@ -238,6 +264,7 @@ class Project:  # pylint: disable=too-many-instance-attributes
                 type_name=self.hypenated_name,
                 actions=sorted(actions),
                 permission=permission,
+                role_session_timeout=role_session_timeout,
             )
             self.overwrite(path, contents)
 
