@@ -232,6 +232,15 @@ def test_generate_handlers_deny_all(project, tmpdir, schema):
         ({"handlers": {"create": {"timeoutInMinutes": 720}}}, 43200),
         ({"handlers": {"create": {"timeoutInMinutes": 2}}}, 900),
         ({"handlers": {"create": {"timeoutInMinutes": 30}}}, 2100),
+        (
+            {
+                "handlers": {
+                    "create": {"timeoutInMinutes": 50},
+                    "update": {"timeoutInMinutes": 30},
+                }
+            },
+            3500,
+        ),
         ({"handlers": {"create": {}}}, 8400),
     ),
 )
