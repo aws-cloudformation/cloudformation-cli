@@ -30,7 +30,9 @@ ROLE_TEMPLATE_FILENAME = "resource-role.yaml"
 TYPE_NAME_REGEX = "^[a-zA-Z0-9]{2,64}::[a-zA-Z0-9]{2,64}::[a-zA-Z0-9]{2,64}$"
 
 DEFAULT_ROLE_TIMEOUT_MINUTES = 120  # 2 hours
-MIN_ROLE_TIMEOUT_SECONDS = 900  # 15 minutes
+# min and max are according to CreateRole API restrictions
+# https://docs.aws.amazon.com/IAM/latest/APIReference/API_CreateRole.html
+MIN_ROLE_TIMEOUT_SECONDS = 3600  # 1 hour
 MAX_ROLE_TIMEOUT_SECONDS = 43200  # 12 hours
 
 
@@ -246,7 +248,7 @@ class Project:  # pylint: disable=too-many-instance-attributes
                 ),
                 default=DEFAULT_ROLE_TIMEOUT_MINUTES,
             )
-            # max role session timeout must be between 15 minutes and 12 hours
+            # max role session timeout must be between 1 hour and 12 hours
             role_session_timeout = min(
                 MAX_ROLE_TIMEOUT_SECONDS,
                 max(MIN_ROLE_TIMEOUT_SECONDS, 70 * max_handler_timeout),
