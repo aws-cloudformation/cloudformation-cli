@@ -236,15 +236,11 @@ class Project:  # pylint: disable=too-many-instance-attributes
 
             # calculate IAM role max session timeout based on highest handler timeout
             # with some buffer (70 seconds per minute)
-            cud_handlers = [
-                handlers.get(handler, {})
-                for handler in ["create", "update", "delete"]
-                if handlers.get(handler, None)
-            ]
             max_handler_timeout = max(
                 (
                     handler.get("timeoutInMinutes", DEFAULT_ROLE_TIMEOUT_MINUTES)
-                    for handler in cud_handlers
+                    for operation, handler in handlers.items()
+                    if operation in ["create", "update", "delete"]
                 ),
                 default=DEFAULT_ROLE_TIMEOUT_MINUTES,
             )
