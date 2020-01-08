@@ -242,6 +242,7 @@ def test_generate_handlers_deny_all(project, tmpdir, schema):
             6300,
         ),
         ({"handlers": {"create": {}}}, 8400),
+        ({"handlers": {"create": {"timeoutInMinutes": 90}, "read": {}}}, 8400),
     ),
 )
 def test_generate_handlers_role_session_timeout(project, tmpdir, schema, result):

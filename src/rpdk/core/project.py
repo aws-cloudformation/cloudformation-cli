@@ -240,7 +240,6 @@ class Project:  # pylint: disable=too-many-instance-attributes
                 (
                     handler.get("timeoutInMinutes", DEFAULT_ROLE_TIMEOUT_MINUTES)
                     for operation, handler in handlers.items()
-                    if operation in ["create", "update", "delete"]
                 ),
                 default=DEFAULT_ROLE_TIMEOUT_MINUTES,
             )
