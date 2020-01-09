@@ -7,8 +7,7 @@ docutils>=0.14
 # testing tools
 pylint>=2.3.1
 coverage>=4.5.4
-# https://github.com/pytest-dev/pytest/issues/5392
-pytest==4.5.0
+pytest>=5.3.2
 pytest-cov>=2.7.1
 pytest-random-order>=1.0.4
 hypothesis>=4.32.3
