@@ -11,6 +11,7 @@ from rpdk.core.contract.resource_client import (
     ResourceClient,
     override_properties,
     prune_properties,
+    prune_properties_from_model,
 )
 from rpdk.core.test import (
     DEFAULT_ENDPOINT,
@@ -59,6 +60,25 @@ def test_prune_properties():
         "array": ["first", "second"],
     }
     prune_properties(document, [("foo",), ("spam",), ("not_found",), ("array", "1")])
+    assert document == {"one": "two", "array": ["first"]}
+
+
+def test_prune_properties_from_model():
+    document = {
+        "foo": "bar",
+        "spam": "eggs",
+        "one": "two",
+        "array": ["first", "second"],
+    }
+    prune_properties_from_model(
+        document,
+        [
+            ("properties", "foo"),
+            ("properties", "spam"),
+            ("properties", "not_found"),
+            ("properties", "array", "1"),
+        ],
+    )
     assert document == {"one": "two", "array": ["first"]}
 
 
@@ -523,9 +543,3 @@ def test_has_update_handler(resource_client):
     schema = {"handlers": {"update": {"permissions": ["permission"]}}}
     resource_client._update_schema(schema)
     assert resource_client.has_update_handler()
-
-
-def test_has_update_handler_false(resource_client):
-    schema = {"handlers": {"create": {"permissions": ["permission"]}}}
-    resource_client._update_schema(schema)
-    assert not resource_client.has_update_handler()
