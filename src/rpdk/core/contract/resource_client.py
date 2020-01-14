@@ -38,6 +38,18 @@ def prune_properties(document, paths):
     return document
 
 
+def prune_properties_from_model(model, paths):
+    """Prune given properties from a resource model.
+
+    This assumes the dict passed in is a resources model i.e. solely the properties.
+    This also assumes the paths to remove are prefixed with "/properties",
+    as many of the paths are defined in the schema
+    The function modifies the document in-place, but also returns the document
+    for convenience. (The return value may be ignored.)
+    """
+    return prune_properties({"properties": model}, paths)["properties"]
+
+
 def override_properties(document, overrides):
     """Override given properties from a document."""
     for path, obj in overrides.items():
