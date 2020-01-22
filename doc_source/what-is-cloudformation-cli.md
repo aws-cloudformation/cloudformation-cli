@@ -1,0 +1,5 @@
+# What Is the CloudFormation Command Line Interface?<a name="what-is-cloudformation-cli"></a>
+
+The CloudFormation Command Line Interface \(CLI\) is an open\-source tool that enables you to develop and test AWS and third\-party resources, and register them for use in AWS CloudFormation\. The CloudFormation CLI provides a consistent way to model and provision both AWS and third\-party resources through CloudFormation\. It includes commands to enable each step of creating your resource providers\.
+
+You can use the CloudFormation CLI to register resource providers—both those you create yourself, as well as ones shared with you—with the CloudFormation registry\. This enables you to use CloudFormation capabilities to create, provision, and manage these custom resources in a safe and repeatable manner, just as you would any AWS resource\. For more information on the CloudFormation registry, see [Using the CloudFormation Registry](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/registry.html) in the *CloudFormation User Guide*\.

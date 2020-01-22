@@ -21,12 +21,13 @@ PROMPT = "MECVGD"
 ERROR = "TUJFEL"
 
 
-def test_init_method():
+def test_init_method_interactive_language():
     type_name = object()
     language = object()
 
-    args = Mock(spec_set=["force"])
+    args = Mock(spec_set=["force", "language"])
     args.force = False
+    args.language = None
 
     mock_project = Mock(spec=Project)
     mock_project.load_settings.side_effect = FileNotFoundError
@@ -45,6 +46,33 @@ def test_init_method():
 
     mock_project.load_settings.assert_called_once_with()
     mock_project.init.assert_called_once_with(type_name, language)
+    mock_project.generate.assert_called_once_with()
+
+
+def test_init_method_noninteractive_language():
+    type_name = object()
+
+    args = Mock(spec_set=["force", "language"])
+    args.force = False
+    args.language = "rust1.39"
+
+    mock_project = Mock(spec=Project)
+    mock_project.load_settings.side_effect = FileNotFoundError
+    mock_project.settings_path = ""
+    mock_project.root = Path(".")
+
+    patch_project = patch("rpdk.core.init.Project", return_value=mock_project)
+    patch_tn = patch("rpdk.core.init.input_typename", return_value=type_name)
+    patch_l = patch("rpdk.core.init.input_language")
+
+    with patch_project, patch_tn as mock_tn, patch_l as mock_l:
+        init(args)
+
+    mock_tn.assert_called_once_with()
+    mock_l.assert_not_called()
+
+    mock_project.load_settings.assert_called_once_with()
+    mock_project.init.assert_called_once_with(type_name, args.language)
     mock_project.generate.assert_called_once_with()
 
 

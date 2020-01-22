@@ -226,6 +226,45 @@ def test_generate_handlers_deny_all(project, tmpdir, schema):
     mock_plugin.generate.assert_called_once_with(project)
 
 
+@pytest.mark.parametrize(
+    "schema,result",
+    (
+        ({"handlers": {"create": {"timeoutInMinutes": 720}}}, 43200),
+        ({"handlers": {"create": {"timeoutInMinutes": 2}}}, 3600),
+        ({"handlers": {"create": {"timeoutInMinutes": 90}}}, 6300),
+        (
+            {
+                "handlers": {
+                    "create": {"timeoutInMinutes": 70},
+                    "update": {"timeoutInMinutes": 90},
+                }
+            },
+            6300,
+        ),
+        ({"handlers": {"create": {}}}, 8400),
+        ({"handlers": {"create": {"timeoutInMinutes": 90}, "read": {}}}, 8400),
+    ),
+)
+def test_generate_handlers_role_session_timeout(project, tmpdir, schema, result):
+    project.type_name = "Test::Handler::Test"
+    project.schema = schema
+    project.root = tmpdir
+    mock_plugin = MagicMock(spec=["generate"])
+    with patch.object(project, "_plugin", mock_plugin):
+        project.generate()
+
+    role_path = project.root / "resource-role.yaml"
+    with role_path.open("r", encoding="utf-8") as f:
+        template = yaml.safe_load(f.read())
+
+    max_session_timeout = template["Resources"]["ExecutionRole"]["Properties"][
+        "MaxSessionDuration"
+    ]
+    assert max_session_timeout == result
+
+    mock_plugin.generate.assert_called_once_with(project)
+
+
 def test_init(project):
     type_name = "AWS::Color::Red"
 
@@ -565,19 +604,15 @@ def test__upload_clienterror(project):
 
 def test__wait_for_registration_set_default(project):
     mock_cfn_client = MagicMock(
-        spec=["describe_type_registration", "set_type_default_version"]
+        spec=["describe_type_registration", "set_type_default_version", "get_waiter"]
     )
     mock_cfn_client.describe_type_registration.return_value = (
         DESCRIBE_TYPE_COMPLETE_RETURN
     )
     mock_waiter = MagicMock(spec=["wait"])
-    patch_create_waiter = patch(
-        "rpdk.core.project.create_waiter_with_client",
-        autospec=True,
-        return_value=mock_waiter,
-    )
-    with patch_create_waiter:
-        project._wait_for_registration(mock_cfn_client, REGISTRATION_TOKEN, True)
+    mock_cfn_client.get_waiter.return_value = mock_waiter
+
+    project._wait_for_registration(mock_cfn_client, REGISTRATION_TOKEN, True)
 
     mock_cfn_client.describe_type_registration.assert_called_once_with(
         RegistrationToken=REGISTRATION_TOKEN
@@ -590,7 +625,7 @@ def test__wait_for_registration_set_default(project):
 
 def test__wait_for_registration_set_default_fails(project):
     mock_cfn_client = MagicMock(
-        spec=["describe_type_registration", "set_type_default_version"]
+        spec=["describe_type_registration", "set_type_default_version", "get_waiter"]
     )
     mock_cfn_client.describe_type_registration.return_value = (
         DESCRIBE_TYPE_COMPLETE_RETURN
@@ -599,12 +634,9 @@ def test__wait_for_registration_set_default_fails(project):
         BLANK_CLIENT_ERROR, "SetTypeDefaultVersion"
     )
     mock_waiter = MagicMock(spec=["wait"])
-    patch_create_waiter = patch(
-        "rpdk.core.project.create_waiter_with_client",
-        autospec=True,
-        return_value=mock_waiter,
-    )
-    with patch_create_waiter, pytest.raises(DownstreamError):
+    mock_cfn_client.get_waiter.return_value = mock_waiter
+
+    with pytest.raises(DownstreamError):
         project._wait_for_registration(mock_cfn_client, REGISTRATION_TOKEN, True)
 
     mock_cfn_client.describe_type_registration.assert_called_once_with(
@@ -618,19 +650,15 @@ def test__wait_for_registration_set_default_fails(project):
 
 def test__wait_for_registration_no_set_default(project):
     mock_cfn_client = MagicMock(
-        spec=["describe_type_registration", "set_type_default_version"]
+        spec=["describe_type_registration", "set_type_default_version", "get_waiter"]
     )
     mock_cfn_client.describe_type_registration.return_value = (
         DESCRIBE_TYPE_COMPLETE_RETURN
     )
     mock_waiter = MagicMock(spec=["wait"])
-    patch_create_waiter = patch(
-        "rpdk.core.project.create_waiter_with_client",
-        autospec=True,
-        return_value=mock_waiter,
-    )
-    with patch_create_waiter:
-        project._wait_for_registration(mock_cfn_client, REGISTRATION_TOKEN, False)
+    mock_cfn_client.get_waiter.return_value = mock_waiter
+
+    project._wait_for_registration(mock_cfn_client, REGISTRATION_TOKEN, False)
 
     mock_cfn_client.describe_type_registration.assert_called_once_with(
         RegistrationToken=REGISTRATION_TOKEN
@@ -641,7 +669,7 @@ def test__wait_for_registration_no_set_default(project):
 
 def test__wait_for_registration_waiter_fails(project):
     mock_cfn_client = MagicMock(
-        spec=["describe_type_registration", "set_type_default_version"]
+        spec=["describe_type_registration", "set_type_default_version", "get_waiter"]
     )
     mock_cfn_client.describe_type_registration.return_value = (
         DESCRIBE_TYPE_FAILED_RETURN
@@ -652,11 +680,9 @@ def test__wait_for_registration_waiter_fails(project):
         "Waiter encountered a terminal failure state",
         DESCRIBE_TYPE_FAILED_RETURN,
     )
+    mock_cfn_client.get_waiter.return_value = mock_waiter
 
-    patch_create_waiter = patch(
-        "rpdk.core.project.create_waiter_with_client", return_value=mock_waiter
-    )
-    with patch_create_waiter, pytest.raises(DownstreamError):
+    with pytest.raises(DownstreamError):
         project._wait_for_registration(mock_cfn_client, REGISTRATION_TOKEN, True)
 
     mock_cfn_client.describe_type_registration.assert_called_once_with(
@@ -668,7 +694,7 @@ def test__wait_for_registration_waiter_fails(project):
 
 def test__wait_for_registration_waiter_fails_describe_fails(project):
     mock_cfn_client = MagicMock(
-        spec=["describe_type_registration", "set_type_default_version"]
+        spec=["describe_type_registration", "set_type_default_version", "get_waiter"]
     )
     mock_cfn_client.describe_type_registration.side_effect = ClientError(
         BLANK_CLIENT_ERROR, "DescribeTypeRegistration"
@@ -680,10 +706,9 @@ def test__wait_for_registration_waiter_fails_describe_fails(project):
         DESCRIBE_TYPE_FAILED_RETURN,
     )
 
-    patch_create_waiter = patch(
-        "rpdk.core.project.create_waiter_with_client", return_value=mock_waiter
-    )
-    with patch_create_waiter, pytest.raises(DownstreamError):
+    mock_cfn_client.get_waiter.return_value = mock_waiter
+
+    with pytest.raises(DownstreamError):
         project._wait_for_registration(mock_cfn_client, REGISTRATION_TOKEN, False)
 
     mock_cfn_client.describe_type_registration.assert_called_once_with(

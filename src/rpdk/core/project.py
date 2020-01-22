@@ -6,7 +6,6 @@ from tempfile import TemporaryFile
 from uuid import uuid4
 
 from botocore.exceptions import ClientError, WaiterError
-from botocore.waiter import WaiterModel, create_waiter_with_client
 from jinja2 import Environment, PackageLoader, select_autoescape
 from jsonschema import Draft6Validator
 from jsonschema.exceptions import ValidationError
@@ -30,18 +29,26 @@ OVERRIDES_FILENAME = "overrides.json"
 ROLE_TEMPLATE_FILENAME = "resource-role.yaml"
 TYPE_NAME_REGEX = "^[a-zA-Z0-9]{2,64}::[a-zA-Z0-9]{2,64}::[a-zA-Z0-9]{2,64}$"
 
+DEFAULT_ROLE_TIMEOUT_MINUTES = 120  # 2 hours
+# min and max are according to CreateRole API restrictions
+# https://docs.aws.amazon.com/IAM/latest/APIReference/API_CreateRole.html
+MIN_ROLE_TIMEOUT_SECONDS = 3600  # 1 hour
+MAX_ROLE_TIMEOUT_SECONDS = 43200  # 12 hours
+
 
 LAMBDA_RUNTIMES = {
     "noexec",  # cannot be executed, schema only
     "java8",
+    "java11",
     "go1.x",
     # python2.7 is EOL soon (2020-01-01)
     "python3.6",
     "python3.7",
-    # dotnetcore1.0 is EOL soon (2019-06-27)
+    "python3.8",
     "dotnetcore2.1",
-    # nodejs8.10 is EOL soon (2019-12-??)
+    # nodejs8.10 is EOL soon (2019-12-31)
     "nodejs10.x",
+    "nodejs12.x",
 }
 
 SETTINGS_VALIDATOR = Draft6Validator(
@@ -216,15 +223,32 @@ class Project:  # pylint: disable=too-many-instance-attributes
         # generate template for IAM role assumed by cloudformation
         # to provision resources if schema has handlers defined
         if "handlers" in self.schema:
+            handlers = self.schema["handlers"]
             template = self.env.get_template("resource-role.yml")
             permission = "Allow"
             path = self.root / ROLE_TEMPLATE_FILENAME
             LOG.debug("Writing Resource Role CloudFormation template: %s", path)
             actions = {
                 action
-                for handler in self.schema["handlers"].values()
+                for handler in handlers.values()
                 for action in handler.get("permissions", [])
             }
+
+            # calculate IAM role max session timeout based on highest handler timeout
+            # with some buffer (70 seconds per minute)
+            max_handler_timeout = max(
+                (
+                    handler.get("timeoutInMinutes", DEFAULT_ROLE_TIMEOUT_MINUTES)
+                    for operation, handler in handlers.items()
+                ),
+                default=DEFAULT_ROLE_TIMEOUT_MINUTES,
+            )
+            # max role session timeout must be between 1 hour and 12 hours
+            role_session_timeout = min(
+                MAX_ROLE_TIMEOUT_SECONDS,
+                max(MIN_ROLE_TIMEOUT_SECONDS, 70 * max_handler_timeout),
+            )
+
             # gets rid of any empty string actions.
             # Empty strings cannot be specified as an action in an IAM statement
             actions.discard("")
@@ -234,7 +258,10 @@ class Project:  # pylint: disable=too-many-instance-attributes
                 permission = "Deny"
 
             contents = template.render(
-                type_name=self.hypenated_name, actions=actions, permission=permission
+                type_name=self.hypenated_name,
+                actions=sorted(actions),
+                permission=permission,
+                role_session_timeout=role_session_timeout,
             )
             self.overwrite(path, contents)
 
@@ -295,6 +322,7 @@ class Project:  # pylint: disable=too-many-instance-attributes
     ):  # pylint: disable=too-many-arguments, too-many-locals
         LOG.debug("Packaging complete, uploading...")
         session = create_sdk_session(region_name)
+        LOG.debug("Uploading to region '%s'", session.region_name)
         cfn_client = session.client("cloudformation", endpoint_url=endpoint_url)
         s3_client = session.client("s3")
         uploader = Uploader(cfn_client, s3_client)
@@ -334,37 +362,7 @@ class Project:  # pylint: disable=too-many-instance-attributes
 
     @staticmethod
     def _wait_for_registration(cfn_client, registration_token, set_default):
-        # temporarily creating waiter inline
-        # until the SDK releases and we can use get_waiter
-        waiter_config = {
-            "version": 2,
-            "waiters": {
-                "TypeRegistrationComplete": {
-                    "delay": 5,
-                    "operation": "DescribeTypeRegistration",
-                    "maxAttempts": 200,
-                    "description": "Wait until type registration is COMPLETE.",
-                    "acceptors": [
-                        {
-                            "argument": "ProgressStatus",
-                            "expected": "COMPLETE",
-                            "matcher": "path",
-                            "state": "success",
-                        },
-                        {
-                            "argument": "ProgressStatus",
-                            "expected": "FAILED",
-                            "matcher": "path",
-                            "state": "failure",
-                        },
-                    ],
-                }
-            },
-        }
-        registration_waiter = create_waiter_with_client(
-            "TypeRegistrationComplete", WaiterModel(waiter_config), cfn_client
-        )
-        # registration_waiter = cfn_client.get_waiter("TypeRegistrationComplete")
+        registration_waiter = cfn_client.get_waiter("type_registration_complete")
         try:
             LOG.warning(
                 "Successfully submitted type. "

@@ -37,6 +37,7 @@ BASIC_SCHEMA = {
     "description": "test schema",
     "properties": {"foo": {"type": "string"}},
     "primaryIdentifier": ["/properties/foo"],
+    "additionalProperties": False,
 }
 
 

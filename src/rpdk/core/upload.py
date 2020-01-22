@@ -43,6 +43,7 @@ class Uploader:
 
     def _wait_for_stack(self, stack_id, waiter_name, success_msg):
         waiter = self.cfn_client.get_waiter(waiter_name)
+        LOG.debug("Waiting for stack '%s'", stack_id)
         try:
             waiter.wait(
                 StackName=stack_id, WaiterConfig={"Delay": 5, "MaxAttempts": 200}
