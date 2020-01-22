@@ -163,7 +163,14 @@ def test_load_resource_spec_file_object_has_name(tmpdir):
     assert actual == expected
 
 
-def test_load_resource_spec_uses_id_if_id_is_set():
+@pytest.mark.parametrize(
+    "ref_fn",
+    (
+        lambda server: server.url + "/bar",  # absolute
+        lambda _server: "./bar",  # relative
+    ),
+)
+def test_load_resource_spec_uses_id_if_id_is_set(ref_fn):
     @Request.application
     def application(request):  # pylint: disable=unused-argument
         return Response(json.dumps({"type": "string"}), mimetype="application/json")
@@ -172,7 +179,7 @@ def test_load_resource_spec_uses_id_if_id_is_set():
         schema = {
             **BASIC_SCHEMA,
             "$id": server.url + "/foo",
-            "properties": {"foo": {"$ref": server.url + "/bar"}},
+            "properties": {"foo": {"$ref": ref_fn(server)}},
         }
         inlined = load_resource_spec(json_s(schema))
 
