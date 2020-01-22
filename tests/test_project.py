@@ -374,6 +374,45 @@ def test_generate_handlers_deny_all(project, tmpdir, schema):
     mock_plugin.generate.assert_called_once_with(project)
 
 
+@pytest.mark.parametrize(
+    "schema,result",
+    (
+        ({"handlers": {"create": {"timeoutInMinutes": 720}}}, 43200),
+        ({"handlers": {"create": {"timeoutInMinutes": 2}}}, 3600),
+        ({"handlers": {"create": {"timeoutInMinutes": 90}}}, 6300),
+        (
+            {
+                "handlers": {
+                    "create": {"timeoutInMinutes": 70},
+                    "update": {"timeoutInMinutes": 90},
+                }
+            },
+            6300,
+        ),
+        ({"handlers": {"create": {}}}, 8400),
+        ({"handlers": {"create": {"timeoutInMinutes": 90}, "read": {}}}, 8400),
+    ),
+)
+def test_generate_handlers_role_session_timeout(project, tmpdir, schema, result):
+    project.type_name = "Test::Handler::Test"
+    project.schema = schema
+    project.root = tmpdir
+    mock_plugin = MagicMock(spec=["generate"])
+    with patch.object(project, "_plugin", mock_plugin):
+        project.generate()
+
+    role_path = project.root / "resource-role.yaml"
+    with role_path.open("r", encoding="utf-8") as f:
+        template = yaml.safe_load(f.read())
+
+    max_session_timeout = template["Resources"]["ExecutionRole"]["Properties"][
+        "MaxSessionDuration"
+    ]
+    assert max_session_timeout == result
+
+    mock_plugin.generate.assert_called_once_with(project)
+
+
 def test_init(project):
     type_name = "AWS::Color::Red"
 

@@ -19,6 +19,13 @@
                         "type": "string"
                     },
                     "additionalItems": false
+                },
+                "timeoutInMinutes": {
+                    "description": "Defines the timeout for the entire operation to be interpreted by the invoker of the handler.  The default is 120 (2 hours).",
+                    "type": "integer",
+                    "minimum": 2,
+                    "maximum": 720,
+                    "default": 120
                 }
             },
             "additionalProperties": false,
