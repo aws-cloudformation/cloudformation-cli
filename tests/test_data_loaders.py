@@ -172,7 +172,7 @@ def test_load_resource_spec_file_object_has_name(tmpdir):
 )
 def test_load_resource_spec_uses_id_if_id_is_set(ref_fn):
     @Request.application
-    def application(request):  # pylint: disable=unused-argument
+    def application(_request):
         return Response(json.dumps({"type": "string"}), mimetype="application/json")
 
     with wsgi_serve(application) as server:
