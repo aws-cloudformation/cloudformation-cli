@@ -52,12 +52,6 @@ repos:
     args: ["--skip", "B101,B322"]
 - repo: local
   hooks:
-  - id: git-secrets
-    name: git-secrets
-    description: Run git-secrets
-    entry: git-secrets --scan
-    language: system
-    always_run: true
   - id: pylint-local
     name: pylint-local
     description: Run pylint in the local virtualenv

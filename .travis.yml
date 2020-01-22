@@ -1,0 +1,22 @@
+dist: bionic
+language: python
+cache:
+  - pip
+env:
+  global:
+  - AWS_REGION="us-east-1"
+
+before_install:
+  - pip install --upgrade pip 'attrs==19.2.0' -r requirements.txt
+
+install:
+  - pip install .
+
+script:
+  - pre-commit run --all-files
+
+jobs:
+  include:
+    - python: "3.6"
+    - python: "3.7"
+    - python: "3.8"
