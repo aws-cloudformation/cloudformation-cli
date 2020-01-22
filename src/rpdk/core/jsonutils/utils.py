@@ -117,59 +117,19 @@ def schema_merge(target, src, path):
     {'foo': 'a'}
     >>> schema_merge({'foo': 'a'}, {'foo': 'b'}, ())
     {'foo': 'b'}
-    >>> a = {'foo': {'a': {'aa': 'a', 'bb': 'b'}}, 'bar': 1}
-    >>> b = {'foo': {'a': {'aa': 'a', 'cc': 'c'}}}
-    >>> schema_merge(a, b, ())
-    {'foo': {'a': {'aa': 'a', 'bb': 'b', 'cc': 'c'}}, 'bar': 1}
-    >>> a = {'foo': {'a': 'aa'}, 'bar': {'a': 'aa'}}
-    >>> b = {'foo': {'a': 'bb'}, 'bar': {'a': 'bb'}}
-    >>> schema_merge(a, b, ())
-    {'foo': {'a': 'bb'}, 'bar': {'a': 'bb'}}
+    >>> schema_merge({'required': 'a'}, {'required': 'b'}, ())
+    {'required': ['a', 'b']}
+    >>> a, b = {'$ref': 'a'}, {'type': 'b'}
+    >>> schema_merge(a, b, ('foo',))
+    {'$ref': 'a', 'type': 'b'}
+    >>> a, b = {'Foo': {'$ref': 'a'}}, {'Foo': {'type': 'b'}}
+    >>> schema_merge(a, b, ('foo',))
+    {'Foo': {'$ref': 'a', 'type': 'b'}}
     >>> schema_merge({'type': 'a'}, {'type': 'b'}, ()) # doctest: +NORMALIZE_WHITESPACE
     Traceback (most recent call last):
     ...
     core.jsonutils.utils.ConstraintError:
     Object at path '#' declared multiple values for 'type': found 'a' and 'b'
-    >>> a, b = {'$ref': 'a'}, {'$ref': 'b'}
-    >>> schema_merge(a, b, ('foo',)) # doctest: +NORMALIZE_WHITESPACE
-    Traceback (most recent call last):
-    ...
-    core.jsonutils.utils.ConstraintError: Object at path '#/foo'
-    declared multiple values for '$ref': found 'a' and 'b'
-    >>> a, b = {'insertionOrder': True}, {'insertionOrder': False}
-    >>> schema_merge(a, b, ('foo',)) # doctest: +NORMALIZE_WHITESPACE
-    Traceback (most recent call last):
-    ...
-    core.jsonutils.utils.ConstraintError: Object at path '#/foo'
-    declared multiple values for 'insertionOrder': found 'True' and 'False'
-    >>> a, b = {'uniqueItems': True}, {'uniqueItems': False}
-    >>> schema_merge(a, b, ('foo',)) # doctest: +NORMALIZE_WHITESPACE
-    Traceback (most recent call last):
-    ...
-    core.jsonutils.utils.ConstraintError: Object at path '#/foo'
-    declared multiple values for 'uniqueItems': found 'True' and 'False'
-    >>> a, b = {'Foo': {'$ref': 'a'}}, {'Foo': {'$ref': 'b'}}
-    >>> schema_merge(a, b, ('foo',)) # doctest: +NORMALIZE_WHITESPACE
-    Traceback (most recent call last):
-    ...
-    core.jsonutils.utils.ConstraintError: Object at path '#/foo/Foo'
-    declared multiple values for '$ref': found 'a' and 'b'
-    >>> a, b = {'$ref': 'a'}, {'type': 'b'}
-    >>> schema_merge(a, b, ('foo',)) # doctest: +NORMALIZE_WHITESPACE
-    {'$ref': 'a', 'type': 'b'}
-    >>> a, b = {'Foo': {'$ref': 'a'}}, {'Foo': {'type': 'b'}}
-    >>> schema_merge(a, b, ('foo',)) # doctest: +NORMALIZE_WHITESPACE
-    {'Foo': {'$ref': 'a', 'type': 'b'}}
-    >>> schema_merge('', {}, ())
-    Traceback (most recent call last):
-    ...
-    TypeError: Both schemas must be dictionaries
-    >>> schema_merge({}, 1, ())
-    Traceback (most recent call last):
-    ...
-    TypeError: Both schemas must be dictionaries
-    >>> schema_merge({'required': 'a'}, {'required': 'b'}, ())
-    {'required': ['a', 'b']}
     """
     if not (isinstance(target, Mapping) and isinstance(src, Mapping)):
         raise TypeError("Both schemas must be dictionaries")
