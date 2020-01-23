@@ -304,7 +304,7 @@ def test_generate_with_docs_twice(project, tmp_path_factory):
     mock_plugin.generate.assert_called_once_with(project)
 
     docs_dir = project.root / "docs"
-    readme_file = project.root / "docs" / "README.md"
+    readme_file = docs_dir / "README.md"
 
     assert docs_dir.is_dir()
     assert readme_file.is_file()
@@ -333,7 +333,6 @@ def test_generate_handlers(project, tmpdir):
     mock_plugin = MagicMock(spec=["generate"])
     with patch.object(project, "_plugin", mock_plugin):
         project.generate()
-        project.generate_docs()
 
     role_path = project.root / "resource-role.yaml"
     with role_path.open("r", encoding="utf-8") as f:
@@ -360,7 +359,6 @@ def test_generate_handlers_deny_all(project, tmpdir, schema):
     mock_plugin = MagicMock(spec=["generate"])
     with patch.object(project, "_plugin", mock_plugin):
         project.generate()
-        project.generate_docs()
 
     role_path = project.root / "resource-role.yaml"
     with role_path.open("r", encoding="utf-8") as f:
@@ -870,3 +868,53 @@ def test__write_settings_invalid_runtime(project):
     project.runtime = "foo"
     with pytest.raises(InternalError):
         project._write_settings("foo")
+
+
+@pytest.mark.parametrize(
+    "docs_schema",
+    (
+        {},
+        {"primaryIdentifier": ["/properties/Id1", "/properties/Id1"]},
+        {"primaryIdentifier": ["/properties/Nested/Id1"]},
+    ),
+)
+def test__get_docs_primary_identifier_bad_path(docs_schema):
+    ref = Project._get_docs_primary_identifier(docs_schema)
+    assert ref is None
+
+
+def test__get_docs_primary_identifier_good_path():
+    ref = Project._get_docs_primary_identifier(
+        {"primaryIdentifier": ["/properties/Id1"]}
+    )
+    assert ref == "Id1"
+
+
+def test__get_docs_additional_identifiers_empty():
+    getatt = Project._get_docs_additional_identifiers({})
+    assert getatt == []
+
+
+@pytest.mark.parametrize(
+    "docs_schema",
+    (
+        {"additionalIdentifiers": [["/properties/Id2"]]},
+        {"properties": {}, "additionalIdentifiers": [["/properties/Id2"]]},
+        {"properties": {"Id2": {}}, "additionalIdentifiers": [["/properties/Id2"]]},
+    ),
+)
+def test__get_docs_additional_identifiers_bad_path(docs_schema):
+    getatt = Project._get_docs_additional_identifiers(docs_schema)
+    assert getatt == [
+        {"name": "Id2", "description": "Returns the <code>Id2</code> value."}
+    ]
+
+
+def test__get_docs_additional_identifiers_good_path():
+    getatt = Project._get_docs_additional_identifiers(
+        {
+            "properties": {"Id2": {"description": "foo"}},
+            "additionalIdentifiers": [["/properties/Id2"]],
+        }
+    )
+    assert getatt == [{"name": "Id2", "description": "foo"}]

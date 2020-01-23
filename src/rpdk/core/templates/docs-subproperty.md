@@ -43,11 +43,11 @@ To declare this entity in your AWS CloudFormation template, use the following sy
 
 _Required_: {% if propname in schema.required %}Yes{% else %}No{% endif %}
 
-
 _Type_: {{ prop.longformtype }}
 {% if prop.allowedvalues %}
 
-_Allowed Values_: <code>{{ "</code> | <code>".join(prop.allowedvalues) }}</code>
+_Allowed Values_: {% for allowedvalue in prop.allowedvalues %}<code>{{ allowedvalue }}</code>{% if not loop.last %} | {% endif %}{% endfor %}
+
 {% endif %}
 {% if prop.minLength %}
 
@@ -61,10 +61,11 @@ _Maximum_: <code>{{ prop.maxLength }}</code>
 
 _Pattern_: <code>{{ prop.pattern }}</code>
 {% endif %}
-
 {% if prop.createonly %}
+
 _Update requires_: [Replacement](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-replacement)
 {% else %}
+
 _Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
 {% endif %}
 

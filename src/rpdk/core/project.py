@@ -1,4 +1,3 @@
-import copy
 import json
 import logging
 import shutil
@@ -20,6 +19,8 @@ from .exceptions import (
     InvalidProjectError,
     SpecValidationError,
 )
+from .jsonutils.pointer import fragment_decode, fragment_encode
+from .jsonutils.utils import traverse
 from .plugin_registry import load_plugin
 from .upload import Uploader
 
@@ -69,6 +70,14 @@ SETTINGS_VALIDATOR = Draft6Validator(
 )
 
 
+BASIC_TYPE_MAPPINGS = {
+    "string": "String",
+    "number": "Double",
+    "integer": "Double",
+    "boolean": "Boolean",
+}
+
+
 class Project:  # pylint: disable=too-many-instance-attributes
     def __init__(self, overwrite_enabled=False, root=None):
         self.overwrite_enabled = overwrite_enabled
@@ -87,7 +96,7 @@ class Project:  # pylint: disable=too-many-instance-attributes
             lstrip_blocks=True,
             keep_trailing_newline=True,
             loader=PackageLoader(__name__, "templates/"),
-            autoescape=select_autoescape(["html", "htm", "xml"]),
+            autoescape=select_autoescape(["html", "htm", "xml", "md"]),
         )
 
         LOG.debug("Root directory: %s", self.root)
@@ -329,119 +338,110 @@ class Project:  # pylint: disable=too-many-instance-attributes
             )
             return
 
-        if docs_path.is_dir():
-            LOG.debug("Docs directory already exists, recreating...")
-            shutil.rmtree(docs_path, ignore_errors=True)
+        LOG.debug("Removing generated docs: %s", docs_path)
+        shutil.rmtree(docs_path, ignore_errors=True)
         docs_path.mkdir(exist_ok=True)
 
         LOG.debug("Writing generated docs")
 
-        docs_schema = json.loads(
-            json.dumps(self.schema)
-        )  # take care not to overwrite master schema
+        # take care not to modify the master schema
+        docs_schema = json.loads(json.dumps(self.schema))
 
-        for propname in docs_schema["properties"]:
-            docs_schema["properties"][propname] = self._set_docs_properties(
-                propname, docs_schema["properties"][propname], []
-            )
+        docs_schema["properties"] = {
+            name: self._set_docs_properties(name, value, (name,))
+            for name, value in docs_schema["properties"].items()
+        }
 
-        ref = None
-        if "primaryIdentifier" in docs_schema:
-            if len(docs_schema["primaryIdentifier"]) == 1:
-                ref = docs_schema["primaryIdentifier"][0].split("/").pop()
+        LOG.debug("Finished documenting nested properties")
 
-        getatt = []
-        if "additionalIdentifiers" in docs_schema:
-            for identifierptr in docs_schema["additionalIdentifiers"]:
-                if len(identifierptr) == 1:
-                    attshortname = identifierptr[0].split("/").pop()
-                    attdescription = "Returns the <code>{}</code> value.".format(
-                        attshortname
-                    )
-                    attpath = identifierptr[0].replace(
-                        "/properties/", ""
-                    )  # multi-depth getatt possible?
-                    if (
-                        attpath in docs_schema["properties"]
-                        and "description" in docs_schema["properties"][attpath]
-                    ):
-                        attdescription = docs_schema["properties"][attpath][
-                            "description"
-                        ]
-                    getatt.append({"name": attshortname, "description": attdescription})
+        ref = self._get_docs_primary_identifier(docs_schema)
+        getatt = self._get_docs_additional_identifiers(docs_schema)
 
-        template = self.env.get_template("docs-readme.yml")
-
+        readme_path = docs_path / "README.md"
+        LOG.debug("Writing docs README: %s", readme_path)
+        template = self.env.get_template("docs-readme.md")
         contents = template.render(
             type_name=self.type_name, schema=docs_schema, ref=ref, getatt=getatt
         )
-        readme_path = docs_path / "README.md"
         self.safewrite(readme_path, contents)
 
-    def _set_docs_properties(self, propname, prop, proppath):
-        proppath.append(propname)
+    @staticmethod
+    def _get_docs_primary_identifier(docs_schema):
+        try:
+            primary_id = docs_schema["primaryIdentifier"]
+            if len(primary_id) == 1:
+                # drop /properties
+                primary_id_path = fragment_decode(primary_id[0], prefix="")[1:]
+                # at some point, someone might use a nested primary ID
+                if len(primary_id_path) == 1:
+                    return primary_id_path[0]
+                LOG.warning("Nested primaryIdentifier found")
+        except (KeyError, ValueError):
+            pass
+        return None
 
+    @staticmethod
+    def _get_docs_additional_identifiers(docs_schema):
+        getatt = []
+        if "additionalIdentifiers" in docs_schema:
+            for extra_id in docs_schema["additionalIdentifiers"]:
+                if len(extra_id) == 1:
+                    extra_id_path = fragment_decode(extra_id[0], prefix="")
+                    attshortname = extra_id_path[-1]
+                    desc_path = extra_id_path + ("description",)
+                    try:
+                        desc, _path, _parent = traverse(docs_schema, desc_path)
+                    except (KeyError, IndexError, ValueError):
+                        desc = f"Returns the <code>{attshortname}</code> value."
+                    getatt.append({"name": attshortname, "description": desc})
+        return getatt
+
+    def _set_docs_properties(self, propname, prop, proppath):
         if "$ref" in prop:
             prop = RefResolver.from_schema(self.schema).resolve(prop["$ref"])[1]
 
+        proppath_ptr = fragment_encode(("properties",) + proppath, prefix="")
         if (
             "createOnlyProperties" in self.schema
-            and "/properties/{}".format("/".join(proppath))
-            in self.schema["createOnlyProperties"]
+            and proppath_ptr in self.schema["createOnlyProperties"]
         ):
             prop["createonly"] = True
 
-        basic_type_mappings = {
-            "string": "String",
-            "number": "Double",
-            "integer": "Double",
-            "boolean": "Boolean",
-        }
-
-        prop["jsontype"] = "Unknown"
-        prop["yamltype"] = "Unknown"
-        prop["longformtype"] = "Unknown"
-
-        if prop["type"] in basic_type_mappings:
-            prop["jsontype"] = basic_type_mappings[prop["type"]]
-            prop["yamltype"] = basic_type_mappings[prop["type"]]
-            prop["longformtype"] = basic_type_mappings[prop["type"]]
+        if prop["type"] in BASIC_TYPE_MAPPINGS:
+            mapped = BASIC_TYPE_MAPPINGS[prop["type"]]
+            prop["jsontype"] = prop["yamltype"] = prop["longformtype"] = mapped
         elif prop["type"] == "array":
-            prop["arrayitems"] = self._set_docs_properties(
-                propname, prop["items"], copy.copy(proppath)
+            prop["arrayitems"] = arrayitems = self._set_docs_properties(
+                propname, prop["items"], proppath
             )
-            prop["jsontype"] = "[ " + prop["arrayitems"]["jsontype"] + ", ... ]"
-            prop["yamltype"] = "\n      - " + prop["arrayitems"]["longformtype"]
-            prop["longformtype"] = "List of " + prop["arrayitems"]["longformtype"]
+            prop["jsontype"] = f'[ {arrayitems["jsontype"]}, ... ]'
+            prop["yamltype"] = f'\n      - {arrayitems["longformtype"]}'
+            prop["longformtype"] = f'List of {arrayitems["longformtype"]}'
         elif prop["type"] == "object":
-            template = self.env.get_template("docs-subproperty.yml")
+            template = self.env.get_template("docs-subproperty.md")
             docs_path = self.root / "docs"
 
-            for subpropname in prop["properties"]:
-                prop["properties"][subpropname] = self._set_docs_properties(
-                    subpropname, prop["properties"][subpropname], copy.copy(proppath),
-                )
+            prop["properties"] = {
+                name: self._set_docs_properties(name, value, proppath + (name,))
+                for name, value in prop["properties"].items()
+            }
 
             subproperty_name = " ".join(proppath)
             subproperty_filename = "-".join(proppath).lower() + ".md"
+            subproperty_path = docs_path / subproperty_filename
 
+            LOG.debug("Writing docs %s: %s", subproperty_filename, subproperty_path)
             contents = template.render(
-                type_name=self.type_name,
-                subproperty_name=subproperty_name,
-                schema=prop,
+                type_name=self.type_name, subproperty_name=subproperty_name, schema=prop
             )
-            readme_path = docs_path / subproperty_filename
-            self.safewrite(readme_path, contents)
+            self.safewrite(subproperty_path, contents)
 
-            prop["jsontype"] = (
-                '<a href="' + subproperty_filename + '">' + propname + "</a>"
-            )
-            prop["yamltype"] = (
-                '<a href="' + subproperty_filename + '">' + propname + "</a>"
-            )
-            prop["longformtype"] = (
-                '<a href="' + subproperty_filename + '">' + propname + "</a>"
-            )
+            href = f'<a href="{subproperty_filename}">{propname}</a>'
+            prop["jsontype"] = prop["yamltype"] = prop["longformtype"] = href
+        else:
+            prop["jsontype"] = "Unknown"
+            prop["yamltype"] = "Unknown"
+            prop["longformtype"] = "Unknown"
 
         if "enum" in prop:
             prop["allowedvalues"] = prop["enum"]
