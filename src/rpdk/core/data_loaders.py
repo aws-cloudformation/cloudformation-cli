@@ -89,7 +89,7 @@ def get_file_base_uri(file):
     return path.resolve().as_uri()
 
 
-def load_resource_spec(resource_spec_file):
+def load_resource_spec(resource_spec_file):  # noqa: C901
     """Load a resource provider definition from a file, and validate it."""
     try:
         resource_spec = json.load(resource_spec_file)
@@ -110,7 +110,10 @@ def load_resource_spec(resource_spec_file):
             "Property 'remote' is reserved for CloudFormation use"
         )
 
-    base_uri = get_file_base_uri(resource_spec_file)
+    try:
+        base_uri = resource_spec["$id"]
+    except KeyError:
+        base_uri = get_file_base_uri(resource_spec_file)
 
     inliner = RefInliner(base_uri, resource_spec)
     try:
