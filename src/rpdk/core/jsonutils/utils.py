@@ -2,6 +2,8 @@ from collections.abc import Mapping, Sequence
 
 from .pointer import fragment_encode
 
+NON_MERGABLE_KEYS = ("type", "$ref", "uniqueItems", "insertionOrder")
+
 
 class FlatteningError(Exception):
     pass
@@ -117,44 +119,23 @@ def schema_merge(target, src, path):
     {'foo': 'a'}
     >>> schema_merge({'foo': 'a'}, {'foo': 'b'}, ())
     {'foo': 'b'}
-    >>> a = {'foo': {'a': {'aa': 'a', 'bb': 'b'}}, 'bar': 1}
-    >>> b = {'foo': {'a': {'aa': 'a', 'cc': 'c'}}}
-    >>> schema_merge(a, b, ())
-    {'foo': {'a': {'aa': 'a', 'bb': 'b', 'cc': 'c'}}, 'bar': 1}
-    >>> a = {'type': {'a': 'aa'}, '$ref': {'a': 'aa'}}
-    >>> b = {'type': {'a': 'bb'}, '$ref': {'a': 'bb'}}
-    >>> schema_merge(a, b, ())
-    {'type': {'a': 'bb'}, '$ref': {'a': 'bb'}}
+    >>> schema_merge({'required': 'a'}, {'required': 'b'}, ())
+    {'required': ['a', 'b']}
+    >>> a, b = {'$ref': 'a'}, {'type': 'b'}
+    >>> schema_merge(a, b, ('foo',))
+    {'$ref': 'a', 'type': 'b'}
+    >>> a, b = {'Foo': {'$ref': 'a'}}, {'Foo': {'type': 'b'}}
+    >>> schema_merge(a, b, ('foo',))
+    {'Foo': {'$ref': 'a', 'type': 'b'}}
     >>> schema_merge({'type': 'a'}, {'type': 'b'}, ()) # doctest: +NORMALIZE_WHITESPACE
     Traceback (most recent call last):
     ...
     core.jsonutils.utils.ConstraintError:
     Object at path '#' declared multiple values for 'type': found 'a' and 'b'
-    >>> a, b = {'$ref': 'a'}, {'$ref': 'b'}
-    >>> schema_merge(a, b, ('foo',)) # doctest: +NORMALIZE_WHITESPACE
-    Traceback (most recent call last):
-    ...
-    core.jsonutils.utils.ConstraintError:
-    Object at path '#/foo' declared multiple values for '$ref': found 'a' and 'b'
-    >>> a, b = {'Foo': {'$ref': 'a'}}, {'Foo': {'$ref': 'b'}}
-    >>> schema_merge(a, b, ('foo',)) # doctest: +NORMALIZE_WHITESPACE
-    Traceback (most recent call last):
-    ...
-    core.jsonutils.utils.ConstraintError: Object at path '#/foo/Foo'
-    declared multiple values for '$ref': found 'a' and 'b'
-    >>> schema_merge('', {}, ())
-    Traceback (most recent call last):
-    ...
-    TypeError: Both schemas must be dictionaries
-    >>> schema_merge({}, 1, ())
-    Traceback (most recent call last):
-    ...
-    TypeError: Both schemas must be dictionaries
-    >>> schema_merge({'required': 'a'}, {'required': 'b'}, ())
-    {'required': ['a', 'b']}
     """
     if not (isinstance(target, Mapping) and isinstance(src, Mapping)):
         raise TypeError("Both schemas must be dictionaries")
+
     for key, src_schema in src.items():
         try:
             target_schema = target[key]
@@ -168,7 +149,7 @@ def schema_merge(target, src, path):
                 if key == "required":
                     target[key] = sorted(set(target_schema) | set(src_schema))
                 else:
-                    if key in ("type", "$ref") and target_schema != src_schema:
+                    if key in NON_MERGABLE_KEYS and target_schema != src_schema:
                         msg = (
                             "Object at path '{path}' declared multiple values "
                             "for '{}': found '{}' and '{}'"
