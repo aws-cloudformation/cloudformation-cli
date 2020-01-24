@@ -266,6 +266,93 @@ def test_flatten_combiners_no_clobber(combiner):
     assert ref in flattener._schema_map
 
 
+@pytest.mark.parametrize("combiner", COMBINERS)
+def test_flatten_combiners_resolve_types(combiner):
+    ref = ("definitions", "obj")
+    test_schema = {
+        "typeName": "AWS::Valid::TypeName",
+        "definitions": {"obj": {"type": "object"}},
+        "properties": {
+            "p": {combiner: [{"type": "string"}, {"$ref": fragment_encode(ref)}]}
+        },
+    }
+
+    flattener = JsonSchemaFlattener(test_schema)
+    with pytest.raises(ConstraintError) as excinfo:
+        flattener.flatten_schema()
+    assert "declared multiple values for 'type'" in str(excinfo.value)
+
+
+@pytest.mark.parametrize("combiner", COMBINERS)
+def test_flatten_combiners_resolve_types_object_by_default(combiner):
+    # this should fail, since we declare an object type and string type
+    # https://github.com/aws-cloudformation/aws-cloudformation-rpdk/issues/333
+    ref = ("definitions", "obj")
+    test_schema = {
+        "typeName": "AWS::Valid::TypeName",
+        "definitions": {"obj": {"properties": {"Foo": {"type": "object"}}}},
+        "properties": {
+            "p": {combiner: [{"type": "string"}, {"$ref": fragment_encode(ref)}]}
+        },
+    }
+
+    flattener = JsonSchemaFlattener(test_schema)
+    flattener.flatten_schema()
+    assert ref in flattener._schema_map
+
+
+@pytest.mark.parametrize("combiner", COMBINERS)
+def test_flatten_combiners_resolve_types_nested_should_fail(combiner):
+    # this should fail, since we declare type object and string for the same property
+    # https://github.com/aws-cloudformation/aws-cloudformation-rpdk/issues/333
+    ref = ("definitions", "obj")
+    test_schema = {
+        "typeName": "AWS::Valid::TypeName",
+        "definitions": {"obj": {"properties": {"Foo": {"type": "object"}}}},
+        "properties": {
+            "p": {
+                combiner: [
+                    {"properties": {"Foo": {"type": "string"}}},
+                    {"$ref": fragment_encode(ref)},
+                ]
+            }
+        },
+    }
+
+    flattener = JsonSchemaFlattener(test_schema)
+    flattener.flatten_schema()
+    assert ref in flattener._schema_map
+    assert ("properties", "p") in flattener._schema_map
+
+
+@pytest.mark.parametrize("combiner", COMBINERS)
+def test_flatten_combiners_flattened_before_merge_failed_but_should_not(combiner):
+    # this should not fail, since the refs are actually compatible with each other
+    # https://github.com/aws-cloudformation/aws-cloudformation-rpdk/issues/333
+    ref = ("definitions", "obj")
+    ref2 = ("definitions", "obj2")
+    test_schema = {
+        "typeName": "AWS::Valid::TypeName",
+        "definitions": {
+            "obj": {"properties": {"a": {"type": "object"}}},
+            "obj2": {"properties": {"a": {"type": "object"}}},
+        },
+        "properties": {
+            "p": {
+                combiner: [
+                    {"$ref": fragment_encode(ref)},
+                    {"$ref": fragment_encode(ref2)},
+                ]
+            }
+        },
+    }
+
+    flattener = JsonSchemaFlattener(test_schema)
+    with pytest.raises(ConstraintError) as excinfo:
+        flattener.flatten_schema()
+    assert "declared multiple values for '$ref'" in str(excinfo.value)
+
+
 def test_contraint_array_additional_items_valid():
     flattener = JsonSchemaFlattener({})
     schema = {}
