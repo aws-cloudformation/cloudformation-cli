@@ -2,6 +2,8 @@ from collections.abc import Mapping, Sequence
 
 from .pointer import fragment_encode
 
+NON_MERGABLE_KEYS = ("type", "$ref", "uniqueItems", "insertionOrder")
+
 
 class FlatteningError(Exception):
     pass
@@ -147,10 +149,7 @@ def schema_merge(target, src, path):
                 if key == "required":
                     target[key] = sorted(set(target_schema) | set(src_schema))
                 else:
-                    if (
-                        key in ("type", "$ref", "uniqueItems", "insertionOrder")
-                        and target_schema != src_schema
-                    ):
+                    if key in NON_MERGABLE_KEYS and target_schema != src_schema:
                         msg = (
                             "Object at path '{path}' declared multiple values "
                             "for '{}': found '{}' and '{}'"

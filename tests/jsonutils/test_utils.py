@@ -1,12 +1,12 @@
 import pytest
 
-from rpdk.core.jsonutils.utils import ConstraintError, schema_merge
+from rpdk.core.jsonutils.utils import NON_MERGABLE_KEYS, ConstraintError, schema_merge
 
 A = "VVNEON"
 B = "HVPOEV"
 
 
-@pytest.mark.parametrize("key", ("type", "$ref", "insertionOrder", "uniqueItems"))
+@pytest.mark.parametrize("key", NON_MERGABLE_KEYS)
 def test_schema_merge_different_values_depth_1(key):
     with pytest.raises(ConstraintError) as excinfo:
         schema_merge({key: A}, {key: B}, ("foo",))
@@ -18,7 +18,7 @@ def test_schema_merge_different_values_depth_1(key):
     assert B in message
 
 
-@pytest.mark.parametrize("key", ("type", "$ref", "insertionOrder", "uniqueItems"))
+@pytest.mark.parametrize("key", NON_MERGABLE_KEYS)
 def test_schema_merge_different_values_depth_2(key):
     with pytest.raises(ConstraintError) as excinfo:
         schema_merge({"Foo": {key: A}}, {"Foo": {key: B}}, ("foo",))
