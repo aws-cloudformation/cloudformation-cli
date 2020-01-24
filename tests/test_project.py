@@ -890,31 +890,31 @@ def test__get_docs_primary_identifier_good_path():
     assert ref == "Id1"
 
 
-def test__get_docs_additional_identifiers_empty():
-    getatt = Project._get_docs_additional_identifiers({})
+def test__get_docs_gettable_atts_empty():
+    getatt = Project._get_docs_gettable_atts({})
     assert getatt == []
 
 
 @pytest.mark.parametrize(
     "docs_schema",
     (
-        {"additionalIdentifiers": [["/properties/Id2"]]},
-        {"properties": {}, "additionalIdentifiers": [["/properties/Id2"]]},
-        {"properties": {"Id2": {}}, "additionalIdentifiers": [["/properties/Id2"]]},
+        {"readOnlyProperties": ["/properties/Id2"]},
+        {"properties": {}, "readOnlyProperties": ["/properties/Id2"]},
+        {"properties": {"Id2": {}}, "readOnlyProperties": ["/properties/Id2"]},
     ),
 )
-def test__get_docs_additional_identifiers_bad_path(docs_schema):
-    getatt = Project._get_docs_additional_identifiers(docs_schema)
+def test__get_docs_gettable_atts_bad_path(docs_schema):
+    getatt = Project._get_docs_gettable_atts(docs_schema)
     assert getatt == [
         {"name": "Id2", "description": "Returns the <code>Id2</code> value."}
     ]
 
 
-def test__get_docs_additional_identifiers_good_path():
-    getatt = Project._get_docs_additional_identifiers(
+def test__get_docs_gettable_atts_good_path():
+    getatt = Project._get_docs_gettable_atts(
         {
             "properties": {"Id2": {"description": "foo"}},
-            "additionalIdentifiers": [["/properties/Id2"]],
+            "readOnlyProperties": ["/properties/Id2"],
         }
     )
     assert getatt == [{"name": "Id2", "description": "foo"}]

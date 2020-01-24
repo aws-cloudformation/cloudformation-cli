@@ -44,12 +44,10 @@ LAMBDA_RUNTIMES = {
     "java8",
     "java11",
     "go1.x",
-    # python2.7 is EOL soon (2020-01-01)
     "python3.6",
     "python3.7",
     "python3.8",
     "dotnetcore2.1",
-    # nodejs8.10 is EOL soon (2019-12-31)
     "nodejs10.x",
     "nodejs12.x",
 }
@@ -355,7 +353,7 @@ class Project:  # pylint: disable=too-many-instance-attributes
         LOG.debug("Finished documenting nested properties")
 
         ref = self._get_docs_primary_identifier(docs_schema)
-        getatt = self._get_docs_additional_identifiers(docs_schema)
+        getatt = self._get_docs_gettable_atts(docs_schema)
 
         readme_path = docs_path / "README.md"
         LOG.debug("Writing docs README: %s", readme_path)
@@ -381,20 +379,22 @@ class Project:  # pylint: disable=too-many-instance-attributes
         return None
 
     @staticmethod
-    def _get_docs_additional_identifiers(docs_schema):
-        getatt = []
-        if "additionalIdentifiers" in docs_schema:
-            for extra_id in docs_schema["additionalIdentifiers"]:
-                if len(extra_id) == 1:
-                    extra_id_path = fragment_decode(extra_id[0], prefix="")
-                    attshortname = extra_id_path[-1]
-                    desc_path = extra_id_path + ("description",)
-                    try:
-                        desc, _path, _parent = traverse(docs_schema, desc_path)
-                    except (KeyError, IndexError, ValueError):
-                        desc = f"Returns the <code>{attshortname}</code> value."
-                    getatt.append({"name": attshortname, "description": desc})
-        return getatt
+    def _get_docs_gettable_atts(docs_schema):
+        def _get_property_description(prop):
+            path = fragment_decode(prop, prefix="")
+            name = path[-1]
+            try:
+                desc, _resolved_path, _parent = traverse(
+                    docs_schema, path + ("description",)
+                )
+            except (KeyError, IndexError, ValueError):
+                desc = f"Returns the <code>{name}</code> value."
+            return {"name": name, "description": desc}
+
+        return [
+            _get_property_description(prop)
+            for prop in docs_schema.get("readOnlyProperties", [])
+        ]
 
     def _set_docs_properties(self, propname, prop, proppath):
         if "$ref" in prop:
