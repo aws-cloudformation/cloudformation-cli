@@ -106,6 +106,7 @@ def test_load_settings_valid_json(project):
     mock_load.assert_called_once_with(LANGUAGE)
     assert project.type_info == ("AWS", "Color", "Red")
     assert project.type_name == TYPE_NAME
+    assert project.language == LANGUAGE
     assert project._plugin is plugin
     assert project.settings == {}
 
@@ -281,6 +282,7 @@ def test_init(project):
 
     assert project.type_info == ("AWS", "Color", "Red")
     assert project.type_name == type_name
+    assert project.language == LANGUAGE
     assert project._plugin is mock_plugin
     assert project.settings == {}
 
@@ -352,6 +354,7 @@ def test_settings_not_found(project):
 def test_submit_dry_run(project):
     project.type_name = TYPE_NAME
     project.runtime = RUNTIME
+    project.language = LANGUAGE
     zip_path = project.root / "test.zip"
 
     with project.schema_path.open("w", encoding="utf-8") as f:
@@ -359,7 +362,8 @@ def test_submit_dry_run(project):
 
     with project.overrides_path.open("w", encoding="utf-8") as f:
         f.write(json.dumps(empty_override()))
-    project._write_settings("foo")
+
+    project.write_settings()
 
     patch_plugin = patch.object(project, "_plugin", spec=LanguagePlugin)
     patch_upload = patch.object(project, "_upload", autospec=True)
@@ -404,11 +408,12 @@ def test_submit_dry_run(project):
 def test_submit_live_run(project):
     project.type_name = TYPE_NAME
     project.runtime = RUNTIME
+    project.language = LANGUAGE
 
     with project.schema_path.open("w", encoding="utf-8") as f:
         f.write(CONTENTS_UTF8)
 
-    project._write_settings("foo")
+    project.write_settings()
 
     temp_file = UnclosingBytesIO()
 
@@ -720,5 +725,7 @@ def test__wait_for_registration_waiter_fails_describe_fails(project):
 
 def test__write_settings_invalid_runtime(project):
     project.runtime = "foo"
+    project.language = LANGUAGE
+
     with pytest.raises(InternalError):
-        project._write_settings("foo")
+        project.write_settings()
