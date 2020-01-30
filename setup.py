@@ -40,7 +40,7 @@ setup(
         "boto3>=1.10.20",
         "Jinja2>=2.10",
         "jsonschema>=3.0.1",
-        "pytest==4.5.0",
+        "pytest>=4.5.0",
         "Werkzeug>=0.15",
         "PyYAML>=5.1",
         "requests>=2.22",
