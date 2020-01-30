@@ -1,6 +1,6 @@
-import importlib
-import os
+import importlib.util
 from abc import ABC, abstractmethod
+from pathlib import Path
 
 from jinja2 import (
     ChoiceLoader,
@@ -28,13 +28,11 @@ class LanguagePlugin(ABC):
             # Try loading module with PEP 451 loaders
             spec = importlib.util.find_spec(self._module_name)
 
-            loader = (
-                FileSystemLoader(
-                    os.path.join(os.path.dirname(spec.origin), "templates")
-                )
-                if spec is not None
-                else PackageLoader(self._module_name)
-            )
+            if spec is None or spec.origin is None:
+                loader = PackageLoader(self._module_name)
+            else:
+                path = Path(spec.origin).resolve(strict=True)
+                loader = FileSystemLoader(str(path.parent / "templates"))
 
             options["loader"] = ChoiceLoader([loader, PackageLoader(__name__)])
         if "autoescape" not in options:

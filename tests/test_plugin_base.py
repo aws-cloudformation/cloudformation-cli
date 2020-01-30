@@ -66,3 +66,19 @@ def test_language_plugin_setup_jinja_env_overrides(plugin):
 
     for name in FILTER_REGISTRY:
         assert name in env.filters
+
+
+def test_language_plugin_setup_jinja_env_no_spec(plugin):
+    with patch(
+        "rpdk.core.plugin_base.importlib.util.find_spec", return_value=None
+    ) as mock_spec:
+        env = plugin._setup_jinja_env()
+
+    mock_spec.assert_called_once_with(plugin._module_name)
+    assert env.loader
+    assert env.autoescape
+
+    for name in FILTER_REGISTRY:
+        assert name in env.filters
+
+    # don't assert the template, PackageLoader does not work from pytest
