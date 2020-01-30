@@ -1,6 +1,14 @@
+import importlib
+import os
 from abc import ABC, abstractmethod
 
-from jinja2 import ChoiceLoader, Environment, PackageLoader, select_autoescape
+from jinja2 import (
+    ChoiceLoader,
+    Environment,
+    FileSystemLoader,
+    PackageLoader,
+    select_autoescape,
+)
 
 from .filters import FILTER_REGISTRY
 
@@ -15,13 +23,20 @@ class LanguagePlugin(ABC):
         return self.MODULE_NAME
 
     def _setup_jinja_env(self, **options):
+
         if "loader" not in options:
-            options["loader"] = ChoiceLoader(
-                [
-                    PackageLoader(self._module_name, "templates/"),
-                    PackageLoader(__name__, "templates/"),
-                ]
+            # Try loading module with PEP 451 loaders
+            spec = importlib.util.find_spec(self._module_name)
+
+            loader = (
+                FileSystemLoader(
+                    os.path.join(os.path.dirname(spec.origin), "templates")
+                )
+                if spec is not None
+                else PackageLoader(self._module_name)
             )
+
+            options["loader"] = ChoiceLoader([loader, PackageLoader(__name__)])
         if "autoescape" not in options:
             options["autoescape"] = select_autoescape(["html", "htm", "xml"])
 
