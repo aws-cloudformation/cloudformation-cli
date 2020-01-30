@@ -1,11 +1,11 @@
 # fixture and parameter have the same name
 # pylint: disable=redefined-outer-name,useless-super-delegation,protected-access
-from unittest.mock import patch
+from unittest.mock import call, patch
 
 import pytest
 
 from rpdk.core.filters import FILTER_REGISTRY
-from rpdk.core.plugin_base import LanguagePlugin
+from rpdk.core.plugin_base import LanguagePlugin, __name__ as plugin_base_name
 
 
 class TestLanguagePlugin(LanguagePlugin):
@@ -71,14 +71,14 @@ def test_language_plugin_setup_jinja_env_overrides(plugin):
 def test_language_plugin_setup_jinja_env_no_spec(plugin):
     with patch(
         "rpdk.core.plugin_base.importlib.util.find_spec", return_value=None
-    ) as mock_spec:
+    ) as mock_spec, patch("rpdk.core.plugin_base.PackageLoader") as mock_loader:
         env = plugin._setup_jinja_env()
 
     mock_spec.assert_called_once_with(plugin._module_name)
+    mock_loader.assert_has_calls([call(plugin._module_name), call(plugin_base_name)])
+
     assert env.loader
     assert env.autoescape
 
     for name in FILTER_REGISTRY:
         assert name in env.filters
-
-    # don't assert the template, PackageLoader does not work from pytest
