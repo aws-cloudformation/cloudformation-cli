@@ -37,6 +37,16 @@ Resources:
             Resource:
               - !Sub "arn:${AWS::Partition}:s3:::${ArtifactBucket}"
               - !Sub "arn:${AWS::Partition}:s3:::${ArtifactBucket}/*"
+          - Sid: Require Secure Transport
+            Action: "s3:*"
+            Effect: Deny
+            Resource:
+              - !Sub "arn:${AWS::Partition}:s3:::${ArtifactBucket}"
+              - !Sub "arn:${AWS::Partition}:s3:::${ArtifactBucket}/*"
+            Condition:
+              Bool:
+                "aws:SecureTransport": "false"
+            Principal: "*"
 
   EncryptionKey:
     Type: AWS::KMS::Key
