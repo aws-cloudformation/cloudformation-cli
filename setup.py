@@ -25,7 +25,8 @@ setup(
     name="cloudformation-cli",
     version=find_version("src", "rpdk", "core", "__init__.py"),
     description=__doc__,
-    long_description=read("README.rst"),
+    long_description=read("README.md"),
+    long_description_content_type="text/markdown",
     author="Amazon Web Services",
     author_email="aws-cloudformation-developers@amazon.com",
     url="https://github.com/aws-cloudformation/aws-cloudformation-rpdk/",
@@ -52,7 +53,7 @@ setup(
     },
     license="Apache License 2.0",
     classifiers=[
-        "Development Status :: 4 - Beta",
+        "Development Status :: 5 - Production/Stable",
         "Environment :: Console",
         "Intended Audience :: Developers",
         "License :: OSI Approved :: Apache Software License",

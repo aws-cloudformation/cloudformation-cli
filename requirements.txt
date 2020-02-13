@@ -1,8 +1,6 @@
 # better interactive session, debugger
 ipython>=7.7.0
 ipdb>=0.12
-# for previewing the README.rst
-docutils>=0.14
 
 # testing tools
 pylint>=2.3.1
