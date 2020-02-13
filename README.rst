@@ -54,7 +54,7 @@ tool.)
     pip install -e . -r requirements.txt
     pre-commit install
 
-You will also need to install a language plugin, such as `the Java language plugin <https://github.com/aws-cloudformation/cloudformation-cli-java-plugin>`_, also via `pip install`. For example, assuming the plugin is checked out in the same parent directory as this repository:
+You will also need to install a language plugin, such as `the Java language plugin <https://github.com/aws-cloudformation/cloudformation-cli-java-plugin>`_, also via ``pip install``. For example, assuming the plugin is checked out in the same parent directory as this repository:
 
 .. code-block:: bash
 
