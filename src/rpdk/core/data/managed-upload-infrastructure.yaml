@@ -19,6 +19,27 @@ Resources:
             Status: Enabled
             AbortIncompleteMultipartUpload:
               DaysAfterInitiation: 1
+      VersioningConfiguration:
+        Status: Enabled
+      LoggingConfiguration:
+        DestinationBucketName: !Ref AccessLogsBucket
+        LogFilePrefix: ArtifactBucket
+
+  AccessLogsBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      AccessControl: LogDeliveryWrite
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+        - ServerSideEncryptionByDefault:
+            SSEAlgorithm: aws:kms
+            KMSMasterKeyID: !Ref EncryptionKey
+      LifecycleConfiguration:
+        Rules:
+          - Status: Enabled
+            ExpirationInDays: 3653
+      VersioningConfiguration:
+        Status: Enabled
 
   ArtifactCopyPolicy:
     Type: AWS::S3::BucketPolicy
@@ -55,7 +76,7 @@ Resources:
       Description: KMS key used to encrypt the resource type artifacts
       EnableKeyRotation: true
       KeyPolicy:
-        Version: 2012-10-17
+        Version: "2012-10-17"
         Statement:
         - Sid: Enable full access for owning account
           Effect: Allow
@@ -80,7 +101,7 @@ Resources:
     Properties:
       MaxSessionDuration: 43200
       AssumeRolePolicyDocument:
-        Version: '2012-10-17'
+        Version: "2012-10-17"
         Statement:
         - Effect: Allow
           Principal:
@@ -92,7 +113,7 @@ Resources:
       Policies:
       - PolicyName: LogAndMetricsDeliveryRolePolicy
         PolicyDocument:
-          Version: '2012-10-17'
+          Version: "2012-10-17"
           Statement:
           - Effect: Allow
             Action:
