@@ -120,7 +120,7 @@ def test_temporary_ini_file():
 
 
 def test_get_overrides_no_root():
-    assert get_overrides(None) == EMPTY_OVERRIDE
+    assert get_overrides(None, DEFAULT_REGION, "") == EMPTY_OVERRIDE
 
 
 @pytest.fixture
@@ -134,20 +134,20 @@ def test_get_overrides_file_not_found(base):
         path.unlink()
     except FileNotFoundError:
         pass
-    assert get_overrides(path) == EMPTY_OVERRIDE
+    assert get_overrides(path, DEFAULT_REGION, "") == EMPTY_OVERRIDE
 
 
 def test_get_overrides_invalid_file(base):
     path = base / "overrides.json"
     path.write_text("{}")
-    assert get_overrides(base) == EMPTY_OVERRIDE
+    assert get_overrides(base, DEFAULT_REGION, "") == EMPTY_OVERRIDE
 
 
 def test_get_overrides_empty_overrides(base):
     path = base / "overrides.json"
     with path.open("w", encoding="utf-8") as f:
         json.dump(EMPTY_OVERRIDE, f)
-    assert get_overrides(base) == EMPTY_OVERRIDE
+    assert get_overrides(base, DEFAULT_REGION, "") == EMPTY_OVERRIDE
 
 
 def test_get_overrides_invalid_pointer_skipped(base):
@@ -157,7 +157,7 @@ def test_get_overrides_invalid_pointer_skipped(base):
     path = base / "overrides.json"
     with path.open("w", encoding="utf-8") as f:
         json.dump(overrides, f)
-    assert get_overrides(base) == EMPTY_OVERRIDE
+    assert get_overrides(base, DEFAULT_REGION, "") == EMPTY_OVERRIDE
 
 
 def test_get_overrides_good_path(base):
@@ -167,7 +167,52 @@ def test_get_overrides_good_path(base):
     path = base / "overrides.json"
     with path.open("w", encoding="utf-8") as f:
         json.dump(overrides, f)
-    assert get_overrides(base) == {"CREATE": {("foo", "bar"): {}}}
+    assert get_overrides(base, DEFAULT_REGION, "") == {"CREATE": {("foo", "bar"): {}}}
+
+
+@pytest.mark.parametrize(
+    "overrides_export_variable,list_exports_return_value,expected_overrides",
+    [
+        (
+            "TestInvalidExport",
+            [{"Exports": [{"Value": "TestValue", "Name": "Test"}]}],
+            empty_override(),
+        ),
+        (
+            "TestExport",
+            [{"Exports": [{"Value": "TestValue", "Name": "TestExport"}]}],
+            {"CREATE": {("foo", "bar"): "TestValue"}},
+        ),
+        (
+            "TestExport",
+            (
+                {
+                    "Exports": [{"Value": "FirstTestValue", "Name": "FirstTestExport"}],
+                    "NextToken": "nexttoken",
+                },
+                {"Exports": [{"Value": "TestValue", "Name": "TestExport"}]},
+            ),
+            {"CREATE": {("foo", "bar"): "TestValue"}},
+        ),
+    ],
+)
+def test_get_overrides_with_jinja(
+    base, overrides_export_variable, list_exports_return_value, expected_overrides
+):
+    overrides = empty_override()
+    overrides["CREATE"]["/foo/bar"] = "{{" + overrides_export_variable + "}}"
+    mock_cfn_client = Mock(spec=["list_exports"])
+    mock_cfn_client.list_exports.side_effect = list_exports_return_value
+    patch_sdk = patch("rpdk.core.test.create_sdk_session", autospec=True)
+
+    path = base / "overrides.json"
+    with path.open("w", encoding="utf-8") as f:
+        json.dump(overrides, f)
+    with patch_sdk as mock_sdk:
+        mock_sdk.return_value.client.side_effect = [mock_cfn_client, Mock()]
+        result = get_overrides(base, DEFAULT_REGION, None)
+
+    assert result == expected_overrides
 
 
 @pytest.mark.parametrize(

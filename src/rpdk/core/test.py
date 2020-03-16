@@ -10,11 +10,13 @@ from pathlib import Path
 from tempfile import NamedTemporaryFile
 
 import pytest
+from jinja2 import Environment, Template, meta
 from jsonschema import Draft6Validator
 from jsonschema.exceptions import ValidationError
 
 from rpdk.core.jsonutils.pointer import fragment_decode
 
+from .boto_helpers import create_sdk_session
 from .contract.contract_plugin import ContractPlugin
 from .contract.interface import Action
 from .contract.resource_client import ResourceClient
@@ -52,14 +54,61 @@ def temporary_ini_file():
         yield str(path)
 
 
-def get_overrides(root):
+def get_cloudformation_exports(region_name, endpoint_url):
+    session = create_sdk_session(region_name)
+    cfn_client = session.client("cloudformation", endpoint_url=endpoint_url)
+    next_token = ""
+    exports = {}
+    while next_token is not None:
+        result = (
+            cfn_client.list_exports(NextToken=next_token)
+            if next_token != ""
+            else cfn_client.list_exports()
+        )
+        exports = {
+            **exports,
+            **{export["Name"]: export["Value"] for export in result["Exports"]},
+        }
+        next_token = None if "NextToken" not in result else result["NextToken"]
+    return exports
+
+
+def render_jinja(overrides_raw, region_name, endpoint_url):
+    env = Environment(autoescape=True)
+    parsed_content = env.parse(json.dumps(overrides_raw))
+    variables = meta.find_undeclared_variables(parsed_content)
+    if variables:
+        exports = get_cloudformation_exports(region_name, endpoint_url)
+        invalid_exports = []
+        var_map = {}
+        for variable in variables:
+            if variable in exports:
+                var_map[variable] = exports[variable]
+            else:
+                invalid_exports.append(variable)
+        if invalid_exports:
+            invalid_exports_message = (
+                "Override file invalid: %s are not valid cloudformation exports."
+                + "No Overrides will be applied"
+            )
+            LOG.warning(invalid_exports_message, invalid_exports)
+            return empty_override()
+        overrides_template = Template(json.dumps(overrides_raw))
+        to_return = json.loads(overrides_template.render(var_map))
+    else:
+        overrides_template = Template(json.dumps(overrides_raw))
+        to_return = json.loads(overrides_template.render())
+    return to_return
+
+
+def get_overrides(root, region_name, endpoint_url):
     if not root:
         return empty_override()
 
     path = root / "overrides.json"
     try:
         with path.open("r", encoding="utf-8") as f:
-            overrides_raw = json.load(f)
+            overrides_raw = render_jinja(json.load(f), region_name, endpoint_url)
     except FileNotFoundError:
         LOG.debug("Override file '%s' not found. No overrides will be applied", path)
         return empty_override()
@@ -96,7 +145,7 @@ def test(args):
     project = Project()
     project.load()
 
-    overrides = get_overrides(project.root)
+    overrides = get_overrides(project.root, args.region, args.endpoint_url)
 
     plugin = ContractPlugin(
         ResourceClient(
@@ -132,6 +181,8 @@ def setup_subparser(subparsers, parents):
     parser.add_argument(
         "--role-arn", help="Role used when performing handler operations."
     )
+
+    parser.add_argument("--endpoint-url", help="CloudFormation endpoint to use.")
 
     parser.add_argument("passed_to_pytest", nargs="*", help=SUPPRESS)
 
