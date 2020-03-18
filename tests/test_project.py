@@ -874,7 +874,7 @@ def test__write_settings_invalid_runtime(project):
     project.language = LANGUAGE
 
     with pytest.raises(InternalError):
-        project._write_settings()
+        project.write_settings()
 
 
 @pytest.mark.parametrize(
