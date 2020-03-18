@@ -82,6 +82,7 @@ class Project:  # pylint: disable=too-many-instance-attributes
         self.root = Path(root) if root else Path.cwd()
         self.settings_path = self.root / SETTINGS_FILENAME
         self.type_info = None
+        self.language = None
         self._plugin = None
         self.settings = None
         self.schema = None
@@ -146,6 +147,7 @@ class Project:  # pylint: disable=too-many-instance-attributes
             )
 
         self.type_name = raw_settings["typeName"]
+        self.language = raw_settings["language"]
         self.runtime = raw_settings["runtime"]
         self.entrypoint = raw_settings["entrypoint"]
         self.test_entrypoint = raw_settings["testEntrypoint"]
@@ -164,10 +166,10 @@ class Project:  # pylint: disable=too-many-instance-attributes
 
         self.safewrite(self.schema_path, _write)
 
-    def _write_settings(self, language):
+    def write_settings(self):
         if self.runtime not in LAMBDA_RUNTIMES:
             LOG.critical(
-                "Plugin returned invalid runtime: %s (%s)", self.runtime, language
+                "Plugin returned invalid runtime: %s (%s)", self.runtime, self.language
             )
             raise InternalError("Internal error (Plugin returned invalid runtime)")
 
@@ -175,7 +177,7 @@ class Project:  # pylint: disable=too-many-instance-attributes
             json.dump(
                 {
                     "typeName": self.type_name,
-                    "language": language,
+                    "language": self.language,
                     "runtime": self.runtime,
                     "entrypoint": self.entrypoint,
                     "testEntrypoint": self.test_entrypoint,
@@ -190,12 +192,13 @@ class Project:  # pylint: disable=too-many-instance-attributes
 
     def init(self, type_name, language):
         self.type_name = type_name
+        self.language = language
         self._plugin = load_plugin(language)
         self.settings = {}
 
         self._write_example_schema()
         self._plugin.init(self)
-        self._write_settings(language)
+        self.write_settings()
 
     def load_schema(self):
         if not self.type_info:

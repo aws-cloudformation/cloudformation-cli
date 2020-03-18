@@ -19,6 +19,27 @@ Resources:
             Status: Enabled
             AbortIncompleteMultipartUpload:
               DaysAfterInitiation: 1
+      VersioningConfiguration:
+        Status: Enabled
+      LoggingConfiguration:
+        DestinationBucketName: !Ref AccessLogsBucket
+        LogFilePrefix: ArtifactBucket
+
+  AccessLogsBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      AccessControl: LogDeliveryWrite
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+        - ServerSideEncryptionByDefault:
+            SSEAlgorithm: aws:kms
+            KMSMasterKeyID: !Ref EncryptionKey
+      LifecycleConfiguration:
+        Rules:
+          - Status: Enabled
+            ExpirationInDays: 3653
+      VersioningConfiguration:
+        Status: Enabled
 
   ArtifactCopyPolicy:
     Type: AWS::S3::BucketPolicy
@@ -37,6 +58,16 @@ Resources:
             Resource:
               - !Sub "arn:${AWS::Partition}:s3:::${ArtifactBucket}"
               - !Sub "arn:${AWS::Partition}:s3:::${ArtifactBucket}/*"
+          - Sid: Require Secure Transport
+            Action: "s3:*"
+            Effect: Deny
+            Resource:
+              - !Sub "arn:${AWS::Partition}:s3:::${ArtifactBucket}"
+              - !Sub "arn:${AWS::Partition}:s3:::${ArtifactBucket}/*"
+            Condition:
+              Bool:
+                "aws:SecureTransport": "false"
+            Principal: "*"
 
   EncryptionKey:
     Type: AWS::KMS::Key
@@ -45,7 +76,7 @@ Resources:
       Description: KMS key used to encrypt the resource type artifacts
       EnableKeyRotation: true
       KeyPolicy:
-        Version: 2012-10-17
+        Version: "2012-10-17"
         Statement:
         - Sid: Enable full access for owning account
           Effect: Allow
@@ -70,7 +101,7 @@ Resources:
     Properties:
       MaxSessionDuration: 43200
       AssumeRolePolicyDocument:
-        Version: '2012-10-17'
+        Version: "2012-10-17"
         Statement:
         - Effect: Allow
           Principal:
@@ -82,7 +113,7 @@ Resources:
       Policies:
       - PolicyName: LogAndMetricsDeliveryRolePolicy
         PolicyDocument:
-          Version: '2012-10-17'
+          Version: "2012-10-17"
           Statement:
           - Effect: Allow
             Action:
