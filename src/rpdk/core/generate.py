@@ -13,6 +13,7 @@ def generate(_args):
     project = Project()
     project.load()
     project.generate()
+    project.generate_docs()
 
     LOG.warning("Generated files for %s", project.type_name)
 

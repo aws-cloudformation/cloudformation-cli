@@ -1,5 +1,6 @@
 import json
 import logging
+import shutil
 import zipfile
 from pathlib import Path
 from tempfile import TemporaryFile
@@ -7,7 +8,7 @@ from uuid import uuid4
 
 from botocore.exceptions import ClientError, WaiterError
 from jinja2 import Environment, PackageLoader, select_autoescape
-from jsonschema import Draft6Validator
+from jsonschema import Draft6Validator, RefResolver
 from jsonschema.exceptions import ValidationError
 
 from .boto_helpers import create_sdk_session
@@ -18,6 +19,8 @@ from .exceptions import (
     InvalidProjectError,
     SpecValidationError,
 )
+from .jsonutils.pointer import fragment_decode, fragment_encode
+from .jsonutils.utils import traverse
 from .plugin_registry import load_plugin
 from .upload import Uploader
 
@@ -41,12 +44,10 @@ LAMBDA_RUNTIMES = {
     "java8",
     "java11",
     "go1.x",
-    # python2.7 is EOL soon (2020-01-01)
     "python3.6",
     "python3.7",
     "python3.8",
     "dotnetcore2.1",
-    # nodejs8.10 is EOL soon (2019-12-31)
     "nodejs10.x",
     "nodejs12.x",
 }
@@ -65,6 +66,14 @@ SETTINGS_VALIDATOR = Draft6Validator(
         "additionalProperties": False,
     }
 )
+
+
+BASIC_TYPE_MAPPINGS = {
+    "string": "String",
+    "number": "Double",
+    "integer": "Double",
+    "boolean": "Boolean",
+}
 
 
 class Project:  # pylint: disable=too-many-instance-attributes
@@ -86,7 +95,7 @@ class Project:  # pylint: disable=too-many-instance-attributes
             lstrip_blocks=True,
             keep_trailing_newline=True,
             loader=PackageLoader(__name__, "templates/"),
-            autoescape=select_autoescape(["html", "htm", "xml"]),
+            autoescape=select_autoescape(["html", "htm", "xml", "md"]),
         )
 
         LOG.debug("Root directory: %s", self.root)
@@ -319,6 +328,128 @@ class Project:  # pylint: disable=too-many-instance-attributes
                 self._upload(
                     f, endpoint_url, region_name, role_arn, use_role, set_default
                 )
+
+    def generate_docs(self):
+        # generate the docs folder that contains documentation based on the schema
+        docs_path = self.root / "docs"
+
+        if not self.type_info or not self.schema or "properties" not in self.schema:
+            LOG.warning(
+                "Could not generate schema docs due to missing type info or schema"
+            )
+            return
+
+        LOG.debug("Removing generated docs: %s", docs_path)
+        shutil.rmtree(docs_path, ignore_errors=True)
+        docs_path.mkdir(exist_ok=True)
+
+        LOG.debug("Writing generated docs")
+
+        # take care not to modify the master schema
+        docs_schema = json.loads(json.dumps(self.schema))
+
+        docs_schema["properties"] = {
+            name: self._set_docs_properties(name, value, (name,))
+            for name, value in docs_schema["properties"].items()
+        }
+
+        LOG.debug("Finished documenting nested properties")
+
+        ref = self._get_docs_primary_identifier(docs_schema)
+        getatt = self._get_docs_gettable_atts(docs_schema)
+
+        readme_path = docs_path / "README.md"
+        LOG.debug("Writing docs README: %s", readme_path)
+        template = self.env.get_template("docs-readme.md")
+        contents = template.render(
+            type_name=self.type_name, schema=docs_schema, ref=ref, getatt=getatt
+        )
+        self.safewrite(readme_path, contents)
+
+    @staticmethod
+    def _get_docs_primary_identifier(docs_schema):
+        try:
+            primary_id = docs_schema["primaryIdentifier"]
+            if len(primary_id) == 1:
+                # drop /properties
+                primary_id_path = fragment_decode(primary_id[0], prefix="")[1:]
+                # at some point, someone might use a nested primary ID
+                if len(primary_id_path) == 1:
+                    return primary_id_path[0]
+                LOG.warning("Nested primaryIdentifier found")
+        except (KeyError, ValueError):
+            pass
+        return None
+
+    @staticmethod
+    def _get_docs_gettable_atts(docs_schema):
+        def _get_property_description(prop):
+            path = fragment_decode(prop, prefix="")
+            name = path[-1]
+            try:
+                desc, _resolved_path, _parent = traverse(
+                    docs_schema, path + ("description",)
+                )
+            except (KeyError, IndexError, ValueError):
+                desc = f"Returns the <code>{name}</code> value."
+            return {"name": name, "description": desc}
+
+        return [
+            _get_property_description(prop)
+            for prop in docs_schema.get("readOnlyProperties", [])
+        ]
+
+    def _set_docs_properties(self, propname, prop, proppath):
+        if "$ref" in prop:
+            prop = RefResolver.from_schema(self.schema).resolve(prop["$ref"])[1]
+
+        proppath_ptr = fragment_encode(("properties",) + proppath, prefix="")
+        if (
+            "createOnlyProperties" in self.schema
+            and proppath_ptr in self.schema["createOnlyProperties"]
+        ):
+            prop["createonly"] = True
+
+        if prop["type"] in BASIC_TYPE_MAPPINGS:
+            mapped = BASIC_TYPE_MAPPINGS[prop["type"]]
+            prop["jsontype"] = prop["yamltype"] = prop["longformtype"] = mapped
+        elif prop["type"] == "array":
+            prop["arrayitems"] = arrayitems = self._set_docs_properties(
+                propname, prop["items"], proppath
+            )
+            prop["jsontype"] = f'[ {arrayitems["jsontype"]}, ... ]'
+            prop["yamltype"] = f'\n      - {arrayitems["longformtype"]}'
+            prop["longformtype"] = f'List of {arrayitems["longformtype"]}'
+        elif prop["type"] == "object":
+            template = self.env.get_template("docs-subproperty.md")
+            docs_path = self.root / "docs"
+
+            prop["properties"] = {
+                name: self._set_docs_properties(name, value, proppath + (name,))
+                for name, value in prop["properties"].items()
+            }
+
+            subproperty_name = " ".join(proppath)
+            subproperty_filename = "-".join(proppath).lower() + ".md"
+            subproperty_path = docs_path / subproperty_filename
+
+            LOG.debug("Writing docs %s: %s", subproperty_filename, subproperty_path)
+            contents = template.render(
+                type_name=self.type_name, subproperty_name=subproperty_name, schema=prop
+            )
+            self.safewrite(subproperty_path, contents)
+
+            href = f'<a href="{subproperty_filename}">{propname}</a>'
+            prop["jsontype"] = prop["yamltype"] = prop["longformtype"] = href
+        else:
+            prop["jsontype"] = "Unknown"
+            prop["yamltype"] = "Unknown"
+            prop["longformtype"] = "Unknown"
+
+        if "enum" in prop:
+            prop["allowedvalues"] = prop["enum"]
+
+        return prop
 
     def _upload(
         self, fileobj, endpoint_url, region_name, role_arn, use_role, set_default

@@ -14,6 +14,7 @@ import pytest
 import yaml
 from botocore.exceptions import ClientError, WaiterError
 
+from rpdk.core.data_loaders import resource_json
 from rpdk.core.exceptions import (
     DownstreamError,
     InternalError,
@@ -172,7 +173,152 @@ def test_generate_no_handlers(project):
     mock_plugin = MagicMock(spec=["generate"])
     with patch.object(project, "_plugin", mock_plugin):
         project.generate()
+        project.generate_docs()
     mock_plugin.generate.assert_called_once_with(project)
+
+
+def test_generate_with_docs(project, tmp_path_factory):
+    project.schema = resource_json(
+        __name__, "data/schema/valid/valid_type_complex.json"
+    )
+    project.type_name = "AWS::Color::Red"
+    # tmpdir conflicts with other tests, make a unique one
+    project.root = tmp_path_factory.mktemp("generate_with_docs")
+    mock_plugin = MagicMock(spec=["generate"])
+    with patch.object(project, "_plugin", mock_plugin):
+        project.generate()
+        project.generate_docs()
+    mock_plugin.generate.assert_called_once_with(project)
+
+    docs_dir = project.root / "docs"
+    readme_file = project.root / "docs" / "README.md"
+
+    assert docs_dir.is_dir()
+    assert readme_file.is_file()
+    with patch.object(project, "_plugin", mock_plugin):
+        project.generate()
+        project.generate_docs()
+    readme_contents = readme_file.read_text(encoding="utf-8")
+    assert project.type_name in readme_contents
+
+
+def test_generate_with_docs_nested_object(project, tmp_path_factory):
+    project.schema = resource_json(
+        __name__, "data/schema/valid/valid_nested_property_object.json"
+    )
+    project.type_name = "AWS::Color::Red"
+    # tmpdir conflicts with other tests, make a unique one
+    project.root = tmp_path_factory.mktemp("generate_with_docs_nested_object")
+    mock_plugin = MagicMock(spec=["generate"])
+    with patch.object(project, "_plugin", mock_plugin):
+        project.generate()
+        project.generate_docs()
+    mock_plugin.generate.assert_called_once_with(project)
+
+    docs_dir = project.root / "docs"
+    readme_file = project.root / "docs" / "README.md"
+
+    assert docs_dir.is_dir()
+    assert readme_file.is_file()
+    with patch.object(project, "_plugin", mock_plugin):
+        project.generate()
+        project.generate_docs()
+    readme_contents = readme_file.read_text(encoding="utf-8")
+    assert project.type_name in readme_contents
+
+
+def test_generate_with_docs_invalid_property_type(project, tmp_path_factory):
+    project.schema = resource_json(
+        __name__, "data/schema/invalid/invalid_property_type_invalid.json"
+    )
+    project.type_name = "AWS::Color::Red"
+    # tmpdir conflicts with other tests, make a unique one
+    project.root = tmp_path_factory.mktemp("generate_with_docs_invalid_property_type")
+    mock_plugin = MagicMock(spec=["generate"])
+    with patch.object(project, "_plugin", mock_plugin):
+        # skip actual generation
+        project.generate_docs()
+
+    docs_dir = project.root / "docs"
+    readme_file = project.root / "docs" / "README.md"
+
+    assert docs_dir.is_dir()
+    assert readme_file.is_file()
+    with patch.object(project, "_plugin", mock_plugin):
+        project.generate()
+        project.generate_docs()
+    readme_contents = readme_file.read_text(encoding="utf-8")
+    assert project.type_name in readme_contents
+
+
+def test_generate_with_docs_composite_primary_identifier(project, tmp_path_factory):
+    project.schema = resource_json(
+        __name__, "data/schema/valid/valid_type_composite_primary_identifier.json"
+    )
+    project.type_name = "AWS::Color::Red"
+    # tmpdir conflicts with other tests, make a unique one
+    project.root = tmp_path_factory.mktemp(
+        "generate_with_docs_composite_primary_identifier"
+    )
+    mock_plugin = MagicMock(spec=["generate"])
+    with patch.object(project, "_plugin", mock_plugin):
+        project.generate()
+        project.generate_docs()
+    mock_plugin.generate.assert_called_once_with(project)
+
+    docs_dir = project.root / "docs"
+    readme_file = project.root / "docs" / "README.md"
+
+    assert docs_dir.is_dir()
+    assert readme_file.is_file()
+    with patch.object(project, "_plugin", mock_plugin):
+        project.generate()
+        project.generate_docs()
+    readme_contents = readme_file.read_text(encoding="utf-8")
+    assert project.type_name in readme_contents
+
+
+def test_generate_with_docs_no_type(project, tmp_path_factory):
+    project.schema = {"properties": {}}
+    # tmpdir conflicts with other tests, make a unique one
+    project.root = tmp_path_factory.mktemp("generate_with_docs_no_type")
+    mock_plugin = MagicMock(spec=["generate"])
+    with patch.object(project, "_plugin", mock_plugin):
+        project.generate()
+        project.generate_docs()
+    mock_plugin.generate.assert_called_once_with(project)
+
+    docs_dir = project.root / "docs"
+
+    assert not docs_dir.is_dir()
+
+
+def test_generate_with_docs_twice(project, tmp_path_factory):
+    project.schema = {"properties": {}}
+    project.type_name = "AWS::Color::Red"
+    # tmpdir conflicts with other tests, make a unique one
+    project.root = tmp_path_factory.mktemp("generate_with_docs_twice")
+    mock_plugin = MagicMock(spec=["generate"])
+    with patch.object(project, "_plugin", mock_plugin):
+        project.generate()
+        project.generate_docs()
+    mock_plugin.generate.assert_called_once_with(project)
+
+    docs_dir = project.root / "docs"
+    readme_file = docs_dir / "README.md"
+
+    assert docs_dir.is_dir()
+    assert readme_file.is_file()
+    with patch.object(project, "_plugin", mock_plugin):
+        project.generate()
+        project.generate_docs()
+    assert docs_dir.is_dir()
+    assert readme_file.is_file()
+    with patch.object(project, "_plugin", mock_plugin):
+        project.generate()
+        project.generate_docs()
+    readme_contents = readme_file.read_text(encoding="utf-8")
+    assert project.type_name in readme_contents
 
 
 def test_generate_handlers(project, tmpdir):
@@ -729,3 +875,53 @@ def test__write_settings_invalid_runtime(project):
 
     with pytest.raises(InternalError):
         project.write_settings()
+
+
+@pytest.mark.parametrize(
+    "docs_schema",
+    (
+        {},
+        {"primaryIdentifier": ["/properties/Id1", "/properties/Id1"]},
+        {"primaryIdentifier": ["/properties/Nested/Id1"]},
+    ),
+)
+def test__get_docs_primary_identifier_bad_path(docs_schema):
+    ref = Project._get_docs_primary_identifier(docs_schema)
+    assert ref is None
+
+
+def test__get_docs_primary_identifier_good_path():
+    ref = Project._get_docs_primary_identifier(
+        {"primaryIdentifier": ["/properties/Id1"]}
+    )
+    assert ref == "Id1"
+
+
+def test__get_docs_gettable_atts_empty():
+    getatt = Project._get_docs_gettable_atts({})
+    assert getatt == []
+
+
+@pytest.mark.parametrize(
+    "docs_schema",
+    (
+        {"readOnlyProperties": ["/properties/Id2"]},
+        {"properties": {}, "readOnlyProperties": ["/properties/Id2"]},
+        {"properties": {"Id2": {}}, "readOnlyProperties": ["/properties/Id2"]},
+    ),
+)
+def test__get_docs_gettable_atts_bad_path(docs_schema):
+    getatt = Project._get_docs_gettable_atts(docs_schema)
+    assert getatt == [
+        {"name": "Id2", "description": "Returns the <code>Id2</code> value."}
+    ]
+
+
+def test__get_docs_gettable_atts_good_path():
+    getatt = Project._get_docs_gettable_atts(
+        {
+            "properties": {"Id2": {"description": "foo"}},
+            "readOnlyProperties": ["/properties/Id2"],
+        }
+    )
+    assert getatt == [{"name": "Id2", "description": "foo"}]
