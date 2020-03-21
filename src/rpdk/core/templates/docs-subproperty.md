@@ -1,3 +1,4 @@
+{% autoescape false %}
 # {{ type_name }} {{ subproperty_name }}
 {% if schema.description %}
 
@@ -77,3 +78,4 @@ _Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormati
 {% endif %}
 {% endfor %}
 {% endif %}
+{% endautoescape %}

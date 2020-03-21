@@ -1,3 +1,4 @@
+{% autoescape false %}
 # {{ type_name }}
 {% if schema.description %}
 
@@ -109,3 +110,4 @@ For more information about using the `Fn::GetAtt` intrinsic function, see [Fn::G
 {% endfor %}
 {% endif %}
 {% endif %}
+{% endautoescape %}
