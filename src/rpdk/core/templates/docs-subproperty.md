@@ -49,6 +49,7 @@ To declare this entity in your AWS CloudFormation template, use the following sy
 
 _Required_: {% if propname in schema.required %}Yes{% else %}No{% endif %}
 
+
 _Type_: {{ prop.longformtype }}
 {% if prop.allowedvalues %}
 
