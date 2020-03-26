@@ -171,43 +171,46 @@ def test_get_overrides_good_path(base):
 
 
 @pytest.mark.parametrize(
-    "overrides_export_variable,list_exports_return_value,expected_overrides",
+    "overrides_string,list_exports_return_value,expected_overrides",
     [
         (
-            "TestInvalidExport",
+            '{"CREATE": {"/foo/bar": "{{TestInvalidExport}}"}}',
             [{"Exports": [{"Value": "TestValue", "Name": "Test"}]}],
             empty_override(),
         ),
         (
-            "TestExport",
-            [{"Exports": [{"Value": "TestValue", "Name": "TestExport"}]}],
+            '{"CREATE": {"/foo/bar": {{TestExport}}}}',
+            [{"Exports": [{"Value": 5, "Name": "TestExport"}]}],
+            {"CREATE": {("foo", "bar"): 5}},
+        ),
+        (
+            '{"CREATE": {"/foo/bar": "{{TestExport}}"}}',
+            [
+                {"Exports": [{"Value": "FirstTestValue", "Name": "FirstTestExport"}]},
+                {"Exports": [{"Value": "TestValue", "Name": "TestExport"}]},
+            ],
             {"CREATE": {("foo", "bar"): "TestValue"}},
         ),
         (
-            "TestExport",
-            (
-                {
-                    "Exports": [{"Value": "FirstTestValue", "Name": "FirstTestExport"}],
-                    "NextToken": "nexttoken",
-                },
-                {"Exports": [{"Value": "TestValue", "Name": "TestExport"}]},
-            ),
-            {"CREATE": {("foo", "bar"): "TestValue"}},
+            '{"CREATE": {"/foo/bar": "{{TestExport}}",'
+            + ' "/foo/bar2": "{{TestInvalidExport}}"}}',
+            [{"Exports": [{"Value": "TestValue", "Name": "TestExport"}]}],
+            empty_override(),
         ),
     ],
 )
 def test_get_overrides_with_jinja(
-    base, overrides_export_variable, list_exports_return_value, expected_overrides
+    base, overrides_string, list_exports_return_value, expected_overrides
 ):
-    overrides = empty_override()
-    overrides["CREATE"]["/foo/bar"] = "{{" + overrides_export_variable + "}}"
-    mock_cfn_client = Mock(spec=["list_exports"])
-    mock_cfn_client.list_exports.side_effect = list_exports_return_value
+    mock_cfn_client = Mock(spec=["get_paginator"])
+    mock_paginator = Mock(spec=["paginate"])
+    mock_cfn_client.get_paginator.return_value = mock_paginator
+    mock_paginator.paginate.return_value = list_exports_return_value
     patch_sdk = patch("rpdk.core.test.create_sdk_session", autospec=True)
 
     path = base / "overrides.json"
     with path.open("w", encoding="utf-8") as f:
-        json.dump(overrides, f)
+        f.write(overrides_string)
     with patch_sdk as mock_sdk:
         mock_sdk.return_value.client.side_effect = [mock_cfn_client, Mock()]
         result = get_overrides(base, DEFAULT_REGION, None)

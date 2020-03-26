@@ -57,47 +57,32 @@ def temporary_ini_file():
 def get_cloudformation_exports(region_name, endpoint_url):
     session = create_sdk_session(region_name)
     cfn_client = session.client("cloudformation", endpoint_url=endpoint_url)
-    next_token = ""
+    paginator = cfn_client.get_paginator("list_exports")
+    pages = paginator.paginate()
     exports = {}
-    while next_token is not None:
-        result = (
-            cfn_client.list_exports(NextToken=next_token)
-            if next_token != ""
-            else cfn_client.list_exports()
-        )
-        exports = {
-            **exports,
-            **{export["Name"]: export["Value"] for export in result["Exports"]},
-        }
-        next_token = None if "NextToken" not in result else result["NextToken"]
+    for page in pages:
+        exports.update({export["Name"]: export["Value"] for export in page["Exports"]})
     return exports
 
 
-def render_jinja(overrides_raw, region_name, endpoint_url):
+def render_jinja(overrides_string, region_name, endpoint_url):
     env = Environment(autoescape=True)
-    parsed_content = env.parse(json.dumps(overrides_raw))
+    parsed_content = env.parse(overrides_string)
     variables = meta.find_undeclared_variables(parsed_content)
     if variables:
         exports = get_cloudformation_exports(region_name, endpoint_url)
-        invalid_exports = []
-        var_map = {}
-        for variable in variables:
-            if variable in exports:
-                var_map[variable] = exports[variable]
-            else:
-                invalid_exports.append(variable)
-        if invalid_exports:
+        invalid_exports = variables - exports.keys()
+        if len(invalid_exports) > 0:
             invalid_exports_message = (
                 "Override file invalid: %s are not valid cloudformation exports."
                 + "No Overrides will be applied"
             )
             LOG.warning(invalid_exports_message, invalid_exports)
             return empty_override()
-        overrides_template = Template(json.dumps(overrides_raw))
-        to_return = json.loads(overrides_template.render(var_map))
+        overrides_template = Template(overrides_string)
+        to_return = json.loads(overrides_template.render(exports))
     else:
-        overrides_template = Template(json.dumps(overrides_raw))
-        to_return = json.loads(overrides_template.render())
+        to_return = json.loads(overrides_string)
     return to_return
 
 
@@ -108,7 +93,7 @@ def get_overrides(root, region_name, endpoint_url):
     path = root / "overrides.json"
     try:
         with path.open("r", encoding="utf-8") as f:
-            overrides_raw = render_jinja(json.load(f), region_name, endpoint_url)
+            overrides_raw = render_jinja(f.read(), region_name, endpoint_url)
     except FileNotFoundError:
         LOG.debug("Override file '%s' not found. No overrides will be applied", path)
         return empty_override()
