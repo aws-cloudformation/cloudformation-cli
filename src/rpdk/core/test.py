@@ -130,7 +130,9 @@ def test(args):
     project = Project()
     project.load()
 
-    overrides = get_overrides(project.root, args.region, args.endpoint_url)
+    overrides = get_overrides(
+        project.root, args.region, args.cloudformation_endpoint_url
+    )
 
     plugin = ContractPlugin(
         ResourceClient(
@@ -167,7 +169,9 @@ def setup_subparser(subparsers, parents):
         "--role-arn", help="Role used when performing handler operations."
     )
 
-    parser.add_argument("--endpoint-url", help="CloudFormation endpoint to use.")
+    parser.add_argument(
+        "--cloudformation-endpoint-url", help="CloudFormation endpoint to use."
+    )
 
     parser.add_argument("passed_to_pytest", nargs="*", help=SUPPRESS)
 
