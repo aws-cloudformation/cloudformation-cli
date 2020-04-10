@@ -1,3 +1,4 @@
+{% autoescape false %}
 # {{ type_name }} {{ subproperty_name }}
 {% if schema.description %}
 
@@ -14,8 +15,10 @@ To declare this entity in your AWS CloudFormation template, use the following sy
 {
 {% if schema.properties %}
 {% for propname, prop in schema.properties.items() %}
+{% if not prop.readonly %}
     "<a href="#{{ propname.lower() }}" title="{{ propname }}">{{ propname }}</a>" : <i>{{ prop.jsontype }}</i>{% if not loop.last %},{% endif %}
 
+{% endif %}
 {% endfor %}
 {% endif %}
 }
@@ -26,7 +29,9 @@ To declare this entity in your AWS CloudFormation template, use the following sy
 <pre>
 {% if schema.properties %}
 {% for propname, prop in schema.properties.items() %}
+{% if not prop.readonly %}
 <a href="#{{ propname.lower() }}" title="{{ propname }}">{{ propname }}</a>: <i>{{ prop.yamltype }}</i>
+{% endif %}
 {% endfor %}
 {% endif %}
 </pre>
@@ -35,6 +40,7 @@ To declare this entity in your AWS CloudFormation template, use the following sy
 ## Properties
 
 {% for propname, prop in schema.properties.items() %}
+{% if not prop.readonly %}
 #### {{ propname }}
 {% if prop.description %}
 
@@ -42,6 +48,7 @@ To declare this entity in your AWS CloudFormation template, use the following sy
 {% endif %}
 
 _Required_: {% if propname in schema.required %}Yes{% else %}No{% endif %}
+
 
 _Type_: {{ prop.longformtype }}
 {% if prop.allowedvalues %}
@@ -69,5 +76,7 @@ _Update requires_: [Replacement](https://docs.aws.amazon.com/AWSCloudFormation/l
 _Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
 {% endif %}
 
+{% endif %}
 {% endfor %}
 {% endif %}
+{% endautoescape %}

@@ -410,6 +410,12 @@ class Project:  # pylint: disable=too-many-instance-attributes
         ):
             prop["createonly"] = True
 
+        if (
+            "readOnlyProperties" in self.schema
+            and proppath_ptr in self.schema["readOnlyProperties"]
+        ):
+            prop["readonly"] = True
+
         if prop["type"] in BASIC_TYPE_MAPPINGS:
             mapped = BASIC_TYPE_MAPPINGS[prop["type"]]
             prop["jsontype"] = prop["yamltype"] = prop["longformtype"] = mapped
