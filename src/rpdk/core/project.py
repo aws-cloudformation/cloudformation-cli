@@ -416,7 +416,7 @@ class Project:  # pylint: disable=too-many-instance-attributes
         ):
             prop["readonly"] = True
 
-        prop_type = "object" if "type" not in prop else prop["type"]
+        prop_type = prop.get("type", "object")
 
         if prop_type in BASIC_TYPE_MAPPINGS:
             mapped = BASIC_TYPE_MAPPINGS[prop_type]
