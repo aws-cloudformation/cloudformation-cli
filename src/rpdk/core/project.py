@@ -416,17 +416,19 @@ class Project:  # pylint: disable=too-many-instance-attributes
         ):
             prop["readonly"] = True
 
-        if prop["type"] in BASIC_TYPE_MAPPINGS:
-            mapped = BASIC_TYPE_MAPPINGS[prop["type"]]
+        prop_type = "object" if "type" not in prop else prop["type"]
+
+        if prop_type in BASIC_TYPE_MAPPINGS:
+            mapped = BASIC_TYPE_MAPPINGS[prop_type]
             prop["jsontype"] = prop["yamltype"] = prop["longformtype"] = mapped
-        elif prop["type"] == "array":
+        elif prop_type == "array":
             prop["arrayitems"] = arrayitems = self._set_docs_properties(
                 propname, prop["items"], proppath
             )
             prop["jsontype"] = f'[ {arrayitems["jsontype"]}, ... ]'
             prop["yamltype"] = f'\n      - {arrayitems["longformtype"]}'
             prop["longformtype"] = f'List of {arrayitems["longformtype"]}'
-        elif prop["type"] == "object":
+        elif prop_type == "object":
             template = self.env.get_template("docs-subproperty.md")
             docs_path = self.root / "docs"
 

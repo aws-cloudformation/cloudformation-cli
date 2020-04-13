@@ -177,6 +177,29 @@ def test_generate_no_handlers(project):
     mock_plugin.generate.assert_called_once_with(project)
 
 
+def test_generate_no_type_defined(project, tmp_path_factory):
+    project.schema = resource_json(__name__, "data/schema/valid/valid_no_type.json")
+    project.type_name = "AWS::Color::Red"
+    # tmpdir conflicts with other tests, make a unique one
+    project.root = tmp_path_factory.mktemp("generate_with_no_type_defined")
+    mock_plugin = MagicMock(spec=["generate"])
+    with patch.object(project, "_plugin", mock_plugin):
+        project.generate()
+        project.generate_docs()
+    mock_plugin.generate.assert_called_once_with(project)
+
+    docs_dir = project.root / "docs"
+    readme_file = project.root / "docs" / "README.md"
+
+    assert docs_dir.is_dir()
+    assert readme_file.is_file()
+    with patch.object(project, "_plugin", mock_plugin):
+        project.generate()
+        project.generate_docs()
+    readme_contents = readme_file.read_text(encoding="utf-8")
+    assert project.type_name in readme_contents
+
+
 def test_generate_with_docs(project, tmp_path_factory):
     project.schema = resource_json(
         __name__, "data/schema/valid/valid_type_complex.json"
