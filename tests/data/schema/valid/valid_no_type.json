@@ -1,0 +1,23 @@
+{
+    "typeName": "AWS::Valid::TypeName",
+    "description": "a test schema",
+    "definitions": {
+        "obj1def": {
+            "properties": {
+                "str1": {
+                    "type": "string",
+                    "minLength": 2
+                }
+            }
+        }
+    },
+    "properties": {
+        "property1": {
+            "$ref": "#/definitions/obj1def"
+        }
+    },
+    "primaryIdentifier": [
+        "/properties/property1"
+    ],
+    "additionalProperties": false
+}
