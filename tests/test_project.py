@@ -19,6 +19,7 @@ from rpdk.core.exceptions import (
     DownstreamError,
     InternalError,
     InvalidProjectError,
+    InvalidSchemaPropertyError,
     SpecValidationError,
 )
 from rpdk.core.plugin_base import LanguagePlugin
@@ -28,6 +29,7 @@ from rpdk.core.project import (
     SCHEMA_UPLOAD_FILENAME,
     SETTINGS_FILENAME,
     Project,
+    escape_markdown,
 )
 from rpdk.core.test import empty_override
 from rpdk.core.upload import Uploader
@@ -56,6 +58,25 @@ DESCRIBE_TYPE_FAILED_RETURN = {
     "Description": "Some detailed progress message.",
     "ProgressStatus": "FAILED",
 }
+
+
+@pytest.mark.parametrize(
+    "string", ["^[a-z]$", "([a-z])", ".*", "*."],
+)
+def test_escape_markdown_with_regex_names(string):
+    assert escape_markdown(string).startswith("\\")
+
+
+def test_escape_markdown_with_empty_string():
+    assert escape_markdown("") == ""
+    assert escape_markdown(None) is None
+
+
+@pytest.mark.parametrize(
+    "string", ["Hello", "SomeProperty"],
+)
+def test_escape_markdown(string):
+    assert escape_markdown(string) == string
 
 
 @pytest.fixture
@@ -186,6 +207,10 @@ def test_generate_no_handlers(project):
             "generate_with_docs_type_complex",
         ),
         (
+            "data/schema/valid/valid_pattern_properties.json",
+            "generate_with_docs_pattern_properties",
+        ),
+        (
             "data/schema/valid/valid_nested_property_object.json",
             "generate_with_docs_nested_object",
         ),
@@ -216,6 +241,19 @@ def test_generate_with_docs(project, tmp_path_factory, schema_path, path):
         project.generate_docs()
     readme_contents = readme_file.read_text(encoding="utf-8")
     assert project.type_name in readme_contents
+
+
+def test_generate_with_docs_no_properties(project, tmp_path_factory):
+    project.schema = resource_json(
+        __name__, "data/schema/invalid/invalid_no_properties.json"
+    )
+    project.type_name = "AWS::Color::Red"
+    # tmpdir conflicts with other tests, make a unique one
+    project.root = tmp_path_factory.mktemp("generate_with_docs_no_properties")
+    mock_plugin = MagicMock(spec=["generate"])
+    with patch.object(project, "_plugin", mock_plugin):
+        with pytest.raises(InvalidSchemaPropertyError):
+            project.generate_docs()
 
 
 def test_generate_with_docs_invalid_property_type(project, tmp_path_factory):

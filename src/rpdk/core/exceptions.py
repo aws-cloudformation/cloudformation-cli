@@ -34,7 +34,7 @@ class InvalidProjectError(SysExitRecommendedError):
     pass
 
 
-class InvalidPropertyError(InvalidProjectError):
+class InvalidSchemaPropertyError(InvalidProjectError):
     pass
 
 

@@ -17,7 +17,7 @@ from .exceptions import (
     DownstreamError,
     InternalError,
     InvalidProjectError,
-    InvalidSchemaProperty,
+    InvalidSchemaPropertyError,
     SpecValidationError,
 )
 from .jsonutils.pointer import fragment_decode, fragment_encode
@@ -79,6 +79,7 @@ BASIC_TYPE_MAPPINGS = {
 
 MARKDOWN_RESERVED_CHARACTERS = frozenset({"^", "*", "+", ".", "(", "[", "{", "#"})
 
+
 def escape_markdown(string):
     """Escapes the reserved Markdown characters."""
     if not string:
@@ -86,6 +87,7 @@ def escape_markdown(string):
     if string[0] in MARKDOWN_RESERVED_CHARACTERS:
         return "\\{}".format(string)
     return string
+
 
 class Project:  # pylint: disable=too-many-instance-attributes
     def __init__(self, overwrite_enabled=False, root=None):
@@ -446,19 +448,19 @@ class Project:  # pylint: disable=too-many-instance-attributes
             docs_path = self.root / "docs"
 
             if "properties" in prop:
-                object_properties = prop["properties"]
+                prop["properties"] = {
+                    name: self._set_docs_properties(name, value, proppath + (name,))
+                    for name, value in prop["properties"].items()
+                }
             elif "patternProperties" in prop:
-                object_properties = prop["patternProperties"]
+                prop["properties"] = {
+                    name: self._set_docs_properties(name, value, proppath + (name,))
+                    for name, value in prop["patternProperties"].items()
+                }
             else:
-                raise InvalidSchemaProperty(
+                raise InvalidSchemaPropertyError(
                     "Object property require a properties or patternProperties field"
                 )
-
-            prop["properties"] = {
-                name: self._set_docs_properties(name, value, proppath + (name,))
-                for name, value in object_properties.items()
-            }
-
 
             subproperty_name = " ".join(proppath)
             subproperty_filename = "-".join(proppath).lower() + ".md"
