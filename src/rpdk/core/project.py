@@ -76,6 +76,16 @@ BASIC_TYPE_MAPPINGS = {
 }
 
 
+MARKDOWN_RESERVED_CHARACTERS = frozenset({"^", "*", "+", ".", "(", "[", "{", "#"})
+
+def escape_markdown(string):
+    """Escapes the reserved Markdown characters."""
+    if not string:
+        return string
+    if string[0] in MARKDOWN_RESERVED_CHARACTERS:
+        return "\\{}".format(string)
+    return string
+
 class Project:  # pylint: disable=too-many-instance-attributes
     def __init__(self, overwrite_enabled=False, root=None):
         self.overwrite_enabled = overwrite_enabled
@@ -97,6 +107,8 @@ class Project:  # pylint: disable=too-many-instance-attributes
             loader=PackageLoader(__name__, "templates/"),
             autoescape=select_autoescape(["html", "htm", "xml", "md"]),
         )
+
+        self.env.filters["escape_markdown"] = escape_markdown
 
         LOG.debug("Root directory: %s", self.root)
 
@@ -432,10 +444,18 @@ class Project:  # pylint: disable=too-many-instance-attributes
             template = self.env.get_template("docs-subproperty.md")
             docs_path = self.root / "docs"
 
+            if "properties" in prop:
+                object_properties = prop["properties"]
+            elif "patternProperties" in prop:
+                object_properties = prop["patternProperties"]
+            else:
+                raise Exception("Opala")
+
             prop["properties"] = {
                 name: self._set_docs_properties(name, value, proppath + (name,))
-                for name, value in prop["properties"].items()
+                for name, value in object_properties.items()
             }
+
 
             subproperty_name = " ".join(proppath)
             subproperty_filename = "-".join(proppath).lower() + ".md"
