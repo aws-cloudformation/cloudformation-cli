@@ -17,6 +17,7 @@ from .exceptions import (
     DownstreamError,
     InternalError,
     InvalidProjectError,
+    InvalidSchemaProperty,
     SpecValidationError,
 )
 from .jsonutils.pointer import fragment_decode, fragment_encode
@@ -449,7 +450,9 @@ class Project:  # pylint: disable=too-many-instance-attributes
             elif "patternProperties" in prop:
                 object_properties = prop["patternProperties"]
             else:
-                raise Exception("Opala")
+                raise InvalidSchemaProperty(
+                    "Object property require a properties or patternProperties field"
+                )
 
             prop["properties"] = {
                 name: self._set_docs_properties(name, value, proppath + (name,))

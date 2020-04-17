@@ -34,6 +34,10 @@ class InvalidProjectError(SysExitRecommendedError):
     pass
 
 
+class InvalidPropertyError(InvalidProjectError):
+    pass
+
+
 class CLIMisconfiguredError(SysExitRecommendedError):
     pass
 
