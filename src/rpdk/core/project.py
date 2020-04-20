@@ -414,7 +414,9 @@ class Project:  # pylint: disable=too-many-instance-attributes
             for prop in docs_schema.get("readOnlyProperties", [])
         ]
 
-    def _set_docs_properties(self, propname, prop, proppath):
+    def _set_docs_properties(
+        self, propname, prop, proppath
+    ):  # pylint: disable=too-many-locals
         if "$ref" in prop:
             prop = RefResolver.from_schema(self.schema).resolve(prop["$ref"])[1]
 
@@ -447,20 +449,21 @@ class Project:  # pylint: disable=too-many-instance-attributes
             template = self.env.get_template("docs-subproperty.md")
             docs_path = self.root / "docs"
 
-            if "properties" in prop:
-                prop["properties"] = {
-                    name: self._set_docs_properties(name, value, proppath + (name,))
-                    for name, value in prop["properties"].items()
-                }
-            elif "patternProperties" in prop:
-                prop["properties"] = {
-                    name: self._set_docs_properties(name, value, proppath + (name,))
-                    for name, value in prop["patternProperties"].items()
-                }
-            else:
-                raise InvalidSchemaPropertyError(
-                    "Object property require a properties or patternProperties field"
+            try:
+                object_properties = (
+                    prop["properties"]
+                    if "properties" in prop
+                    else prop["patternProperties"]
                 )
+            except KeyError:
+                raise InvalidSchemaPropertyError(
+                    "Object property requires a properties or patternProperties field"
+                )
+
+            prop["properties"] = {
+                name: self._set_docs_properties(name, value, proppath + (name,))
+                for name, value in object_properties.items()
+            }
 
             subproperty_name = " ".join(proppath)
             subproperty_filename = "-".join(proppath).lower() + ".md"
