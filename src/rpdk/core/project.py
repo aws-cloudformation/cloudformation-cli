@@ -17,7 +17,6 @@ from .exceptions import (
     DownstreamError,
     InternalError,
     InvalidProjectError,
-    InvalidSchemaPropertyError,
     SpecValidationError,
 )
 from .jsonutils.pointer import fragment_decode, fragment_encode
@@ -449,16 +448,9 @@ class Project:  # pylint: disable=too-many-instance-attributes
             template = self.env.get_template("docs-subproperty.md")
             docs_path = self.root / "docs"
 
-            try:
-                object_properties = (
-                    prop["properties"]
-                    if "properties" in prop
-                    else prop["patternProperties"]
-                )
-            except KeyError:
-                raise InvalidSchemaPropertyError(
-                    "Object property requires a properties or patternProperties field"
-                )
+            object_properties = (
+                prop.get("properties") or prop.get("patternProperties") or {}
+            )
 
             prop["properties"] = {
                 name: self._set_docs_properties(name, value, proppath + (name,))

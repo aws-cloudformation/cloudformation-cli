@@ -34,10 +34,6 @@ class InvalidProjectError(SysExitRecommendedError):
     pass
 
 
-class InvalidSchemaPropertyError(InvalidProjectError):
-    pass
-
-
 class CLIMisconfiguredError(SysExitRecommendedError):
     pass
 
