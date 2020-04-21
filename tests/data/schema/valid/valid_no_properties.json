@@ -1,0 +1,17 @@
+{
+    "typeName": "AWS::Valid::TypeName",
+    "description": "a test schema",
+    "properties": {
+        "obj2": {
+            "type": "object",
+            "description": "obj with no props"
+        }
+    },
+    "primaryIdentifier": [
+        "/properties/enum1"
+    ],
+    "readOnlyProperties": [
+        "/properties/str3"
+    ],
+    "additionalProperties": false
+}
