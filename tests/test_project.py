@@ -28,6 +28,7 @@ from rpdk.core.project import (
     SCHEMA_UPLOAD_FILENAME,
     SETTINGS_FILENAME,
     Project,
+    escape_markdown,
 )
 from rpdk.core.test import empty_override
 from rpdk.core.upload import Uploader
@@ -56,6 +57,25 @@ DESCRIBE_TYPE_FAILED_RETURN = {
     "Description": "Some detailed progress message.",
     "ProgressStatus": "FAILED",
 }
+
+
+@pytest.mark.parametrize(
+    "string", ["^[a-z]$", "([a-z])", ".*", "*."],
+)
+def test_escape_markdown_with_regex_names(string):
+    assert escape_markdown(string).startswith("\\")
+
+
+def test_escape_markdown_with_empty_string():
+    assert escape_markdown("") == ""
+    assert escape_markdown(None) is None
+
+
+@pytest.mark.parametrize(
+    "string", ["Hello", "SomeProperty"],
+)
+def test_escape_markdown(string):
+    assert escape_markdown(string) == string
 
 
 @pytest.fixture
@@ -184,6 +204,14 @@ def test_generate_no_handlers(project):
         (
             "data/schema/valid/valid_type_complex.json",
             "generate_with_docs_type_complex",
+        ),
+        (
+            "data/schema/valid/valid_pattern_properties.json",
+            "generate_with_docs_pattern_properties",
+        ),
+        (
+            "data/schema/valid/valid_no_properties.json",
+            "generate_with_docs_no_properties",
         ),
         (
             "data/schema/valid/valid_nested_property_object.json",

@@ -41,7 +41,7 @@ To declare this entity in your AWS CloudFormation template, use the following sy
 
 {% for propname, prop in schema.properties.items() %}
 {% if not prop.readonly %}
-#### {{ propname }}
+#### {{ propname | escape_markdown }}
 {% if prop.description %}
 
 {{ prop.description }}
