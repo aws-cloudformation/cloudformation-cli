@@ -204,11 +204,11 @@ class Project:  # pylint: disable=too-many-instance-attributes
 
         self.overwrite(self.settings_path, _write)
 
-    def init(self, type_name, language):
+    def init(self, type_name, language, settings=None):
         self.type_name = type_name
         self.language = language
         self._plugin = load_plugin(language)
-        self.settings = {}
+        self.settings = settings or {}
 
         self._write_example_schema()
         self._plugin.init(self)
