@@ -13,12 +13,12 @@ from rpdk.core.contract.suite.handler_commons import (
 
 @pytest.fixture(scope="module")
 def updated_resource(resource_client):
-    create_request = resource_client.generate_create_example()
+    create_request = model = resource_client.generate_create_example()
     try:
         _status, response, _error = resource_client.call_and_assert(
             Action.CREATE, OperationStatus.SUCCESS, create_request
         )
-        created_model = response["resourceModel"]
+        created_model = model = response["resourceModel"]
         update_request = resource_client.generate_update_example(created_model)
         _status, response, _error = resource_client.call_and_assert(
             Action.UPDATE, OperationStatus.SUCCESS, update_request, created_model
@@ -26,9 +26,7 @@ def updated_resource(resource_client):
         updated_model = response["resourceModel"]
         yield create_request, created_model, update_request, updated_model
     finally:
-        resource_client.call_and_assert(
-            Action.DELETE, OperationStatus.SUCCESS, updated_model
-        )
+        resource_client.call_and_assert(Action.DELETE, OperationStatus.SUCCESS, model)
 
 
 @pytest.mark.update
