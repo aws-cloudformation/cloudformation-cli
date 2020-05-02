@@ -80,6 +80,7 @@ Plugins must provide the same interface as `LanguagePlugin` (in `plugin_base.py`
 | Java     | Available         | [cloudformation-cli-java-plugin](https://github.com/aws-cloudformation/cloudformation-cli-java-plugin/)     | [cloudformation-cli-java-plugin](https://pypi.org/project/cloudformation-cli-java-plugin/) |
 | Go       | Available         | [cloudformation-cli-go-plugin](https://github.com/aws-cloudformation/cloudformation-cli-go-plugin/)         | [cloudformation-cli-go-plugin](https://pypi.org/project/cloudformation-cli-go-plugin/)     |
 | Python   | Developer Preview | [cloudformation-cli-python-plugin](https://github.com/aws-cloudformation/cloudformation-cli-python-plugin/) | N/A                                                                                        |
+| TypeScript / <br/>JavaScript   | Developer Preview <br/>(Community Driven) | [cloudformation-cli-typescript-plugin](https://github.com/eduardomourar/cloudformation-cli-typescript-plugin/) | N/A                                                                                        |
 
 ## License
 
