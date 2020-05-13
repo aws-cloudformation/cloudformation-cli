@@ -8,7 +8,6 @@ from pathlib import Path
 from subprocess import check_output
 from unittest.mock import ANY, create_autospec, patch
 
-import jsonschema
 import pytest
 import yaml
 from jsonschema.exceptions import RefResolutionError, ValidationError
@@ -222,21 +221,14 @@ def plugin():
     return mock_plugin
 
 
-def test_make_validator_handlers_time_out():
-    from time import sleep
-
-    @Request.application
-    def application(request):  # pylint: disable=unused-argument
-        sleep(3)
-        return Response("true", mimetype="application/json")
-
-    with wsgi_serve(application) as server:
-        with pytest.raises(jsonschema.exceptions.RefResolutionError) as excinfo:
-            validator = make_validator(
-                {"$ref": server.url}, base_uri="http://localhost/", timeout=0.5
-            )
-            validator.validate(True)
-    assert "Read timed out" in str(excinfo.value)
+def test_make_validator_handlers_use_local_meta_schema():
+    try:
+        validator = make_validator(
+            {"$ref": "https://somewhere/does/not/exist"}, base_uri="http://localhost/"
+        )
+        validator.validate(True)
+    except Exception:  # pylint: disable=broad-except
+        pytest.fail("Unexpect error, should success")
 
 
 def mock_pkg_resource_stream(bytes_in, func=resource_stream):

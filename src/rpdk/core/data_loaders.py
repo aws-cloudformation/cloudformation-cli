@@ -1,11 +1,11 @@
 import json
 import logging
+import os
 import shutil
 from io import TextIOWrapper
 from pathlib import Path
 
 import pkg_resources
-import requests
 import yaml
 from jsonschema import Draft7Validator, RefResolver
 from jsonschema.exceptions import RefResolutionError, ValidationError
@@ -14,7 +14,6 @@ from .exceptions import InternalError, SpecValidationError
 from .jsonutils.inliner import RefInliner
 
 LOG = logging.getLogger(__name__)
-
 
 TIMEOUT_IN_SECONDS = 10
 STDIN_NAME = "<stdin>"
@@ -52,24 +51,27 @@ def copy_resource(package_name, resource_name, out_path):
         shutil.copyfileobj(fsrc, fdst)
 
 
-def make_validator(schema, base_uri=None, timeout=TIMEOUT_IN_SECONDS):
+def make_validator(schema, base_uri=None):
     if not base_uri:
         base_uri = Draft7Validator.ID_OF(schema)
 
-    def get_with_timeout(uri):
-        return requests.get(uri, timeout=timeout).json()
+    def get_from_local(uri):  # pylint: disable=unused-argument
+        meta_schema = Path(os.path.dirname(os.path.realpath(__file__))).joinpath(
+            "data/schema/meta-schema.json"
+        )
+        return json.load(meta_schema.open())
 
     resolver = RefResolver(
         base_uri=base_uri,
         referrer=schema,
-        handlers={"http": get_with_timeout, "https": get_with_timeout},
+        handlers={"http": get_from_local, "https": get_from_local},
     )
     return Draft7Validator(schema, resolver=resolver)
 
 
-def make_resource_validator(base_uri=None, timeout=TIMEOUT_IN_SECONDS):
+def make_resource_validator():
     schema = resource_json(__name__, "data/schema/provider.definition.schema.v1.json")
-    return make_validator(schema, base_uri=base_uri, timeout=timeout)
+    return make_validator(schema)
 
 
 def get_file_base_uri(file):
