@@ -33,6 +33,16 @@ To refresh auto-generated code, use the `generate` command. Usually, plugins try
 cfn generate
 ```
 
+### Command: test
+
+To run the contract tests, use the `test` command.
+
+```bash
+cfn test
+cfn test -- -k contract_delete_update #to run a single test
+```
+
+
 ## Development
 
 For developing, it's strongly suggested to install the development dependencies inside a virtual environment. (This isn't required if you just want to use this tool.)
