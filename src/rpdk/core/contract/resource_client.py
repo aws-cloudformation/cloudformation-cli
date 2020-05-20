@@ -237,10 +237,10 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
 
     @staticmethod
     def assert_time(start_time, end_time, action):
-        timeout_in_seconds = 60
-        if action in (Action.READ, Action.LIST):
-            timeout_in_seconds = 30
-        assert end_time - start_time <= timeout_in_seconds
+        timeout_in_seconds = 30 if action in (Action.READ, Action.LIST) else 60
+        assert end_time - start_time <= timeout_in_seconds, (
+            "Handler %r timed out." % action
+        )
 
     def _make_payload(self, action, request):
         return {

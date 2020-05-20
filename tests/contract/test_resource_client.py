@@ -552,3 +552,13 @@ def test_assert_create_time(resource_client):
 
 def test_assert_read_time(resource_client):
     resource_client.assert_time(time.time() - 10, time.time(), "READ")
+
+
+def test_assert_update_time_fail(resource_client):
+    with pytest.raises(AssertionError):
+        resource_client.assert_time(time.time() - 120, time.time(), "UPDATE")
+
+
+def test_assert_list_time_fail(resource_client):
+    with pytest.raises(AssertionError):
+        resource_client.assert_time(time.time() - 120, time.time(), "LIST")
