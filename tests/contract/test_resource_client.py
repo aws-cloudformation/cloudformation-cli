@@ -1,5 +1,6 @@
 # fixture and parameter have the same name
 # pylint: disable=redefined-outer-name,protected-access
+import time
 from io import StringIO
 from unittest.mock import ANY, patch
 
@@ -543,3 +544,11 @@ def test_has_update_handler(resource_client):
     schema = {"handlers": {"update": {"permissions": ["permission"]}}}
     resource_client._update_schema(schema)
     assert resource_client.has_update_handler()
+
+
+def test_assert_create_time(resource_client):
+    resource_client.assert_time(time.time() - 30, time.time(), "CREATE")
+
+
+def test_assert_read_time(resource_client):
+    resource_client.assert_time(time.time() - 10, time.time(), "READ")

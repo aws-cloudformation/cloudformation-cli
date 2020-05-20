@@ -1,6 +1,7 @@
 # pylint: disable=import-outside-toplevel
 import json
 import logging
+import time
 from time import sleep
 from uuid import uuid4
 
@@ -234,6 +235,13 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
     def generate_token():
         return str(uuid4())
 
+    @staticmethod
+    def assert_time(start_time, end_time, action):
+        timeout_in_seconds = 60
+        if action in (Action.READ, Action.LIST):
+            timeout_in_seconds = 30
+        assert end_time - start_time <= timeout_in_seconds
+
     def _make_payload(self, action, request):
         return {
             "credentials": self._creds.copy(),
@@ -258,7 +266,10 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         if assert_status not in [OperationStatus.SUCCESS, OperationStatus.FAILED]:
             raise ValueError("Assert status {} not supported.".format(assert_status))
         request = self.make_request(current_model, previous_model, **kwargs)
+
+        start_time = time.time()
         status, response = self.call(action, request)
+        self.assert_time(start_time, time.time(), action)
         if assert_status == OperationStatus.SUCCESS:
             self.assert_success(status, response)
             error_code = None
