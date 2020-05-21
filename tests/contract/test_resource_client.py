@@ -546,19 +546,23 @@ def test_has_update_handler(resource_client):
     assert resource_client.has_update_handler()
 
 
-def test_assert_create_time(resource_client):
-    resource_client.assert_time(time.time() - 30, time.time(), "CREATE")
+@pytest.mark.parametrize("action", [Action.CREATE, Action.UPDATE, Action.DELETE])
+def test_assert_CUD_time(resource_client, action):
+    resource_client.assert_time(time.time() - 59, time.time(), action)
 
 
-def test_assert_read_time(resource_client):
-    resource_client.assert_time(time.time() - 10, time.time(), "READ")
+@pytest.mark.parametrize("action", [Action.READ, Action.LIST])
+def test_assert_RL_time(resource_client, action):
+    resource_client.assert_time(time.time() - 29, time.time(), action)
 
 
-def test_assert_update_time_fail(resource_client):
+@pytest.mark.parametrize("action", [Action.CREATE, Action.UPDATE, Action.DELETE])
+def test_assert_CUD_time_fail(resource_client, action):
     with pytest.raises(AssertionError):
-        resource_client.assert_time(time.time() - 120, time.time(), "UPDATE")
+        resource_client.assert_time(time.time() - 61, time.time(), action)
 
 
-def test_assert_list_time_fail(resource_client):
+@pytest.mark.parametrize("action", [Action.READ, Action.LIST])
+def test_assert_RL_time_fail(resource_client, action):
     with pytest.raises(AssertionError):
-        resource_client.assert_time(time.time() - 120, time.time(), "LIST")
+        resource_client.assert_time(time.time() - 31, time.time(), action)
