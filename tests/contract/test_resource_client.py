@@ -1,5 +1,6 @@
 # fixture and parameter have the same name
 # pylint: disable=redefined-outer-name,protected-access
+import time
 from io import StringIO
 from unittest.mock import ANY, patch
 
@@ -543,3 +544,25 @@ def test_has_update_handler(resource_client):
     schema = {"handlers": {"update": {"permissions": ["permission"]}}}
     resource_client._update_schema(schema)
     assert resource_client.has_update_handler()
+
+
+@pytest.mark.parametrize("action", [Action.CREATE, Action.UPDATE, Action.DELETE])
+def test_assert_CUD_time(resource_client, action):
+    resource_client.assert_time(time.time() - 59, time.time(), action)
+
+
+@pytest.mark.parametrize("action", [Action.READ, Action.LIST])
+def test_assert_RL_time(resource_client, action):
+    resource_client.assert_time(time.time() - 29, time.time(), action)
+
+
+@pytest.mark.parametrize("action", [Action.CREATE, Action.UPDATE, Action.DELETE])
+def test_assert_CUD_time_fail(resource_client, action):
+    with pytest.raises(AssertionError):
+        resource_client.assert_time(time.time() - 61, time.time(), action)
+
+
+@pytest.mark.parametrize("action", [Action.READ, Action.LIST])
+def test_assert_RL_time_fail(resource_client, action):
+    with pytest.raises(AssertionError):
+        resource_client.assert_time(time.time() - 31, time.time(), action)
