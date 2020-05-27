@@ -170,6 +170,33 @@ def test_strategy(resource_client):
     assert resource_client._strategy is strategy
 
 
+def test_invalid_strategy(resource_client):
+    schema = {
+        "properties": {
+            "a": {"type": "number", "const": 1},
+            "b": {"type": "number", "const": 2},
+            "c": {"type": "number", "const": 3},
+            "d": {"type": "number", "const": 4},
+        },
+        "readOnlyProperties": ["/properties/c"],
+        "createOnlyProperties": ["/properties/d"],
+    }
+    resource_client._update_schema(schema)
+
+    assert resource_client._schema is schema
+    assert resource_client._strategy is None
+
+    strategy = resource_client.invalid_strategy
+
+    assert resource_client._strategy is strategy
+    assert strategy.example() == {"a": 1, "b": 2, "c": 3, "d": 4}
+
+    cached = resource_client.invalid_strategy
+
+    assert cached is strategy
+    assert resource_client._strategy is strategy
+
+
 def test_update_strategy(resource_client):
     schema = {
         "properties": {
@@ -197,6 +224,33 @@ def test_update_strategy(resource_client):
     assert resource_client._update_strategy is update_strategy
 
 
+def test_update_invalid_strategy(resource_client):
+    schema = {
+        "properties": {
+            "a": {"type": "number", "const": 1},
+            "b": {"type": "number", "const": 2},
+            "c": {"type": "number", "const": 3},
+            "d": {"type": "number", "const": 4},
+        },
+        "readOnlyProperties": ["/properties/c"],
+        "createOnlyProperties": ["/properties/d"],
+    }
+    resource_client._update_schema(schema)
+
+    assert resource_client._schema is schema
+    assert resource_client._update_strategy is None
+
+    update_strategy = resource_client.update_invalid_strategy
+
+    assert resource_client._update_strategy is update_strategy
+    assert update_strategy.example() == {"a": 1, "b": 2, "c": 3, "d": 4}
+
+    cached = resource_client.update_invalid_strategy
+
+    assert cached is update_strategy
+    assert resource_client._update_strategy is update_strategy
+
+
 def test_generate_create_example(resource_client):
     schema = {
         "properties": {
@@ -208,6 +262,19 @@ def test_generate_create_example(resource_client):
     resource_client._update_schema(schema)
     example = resource_client.generate_create_example()
     assert example == {"a": 1}
+
+
+def test_generate_invalid_create_example(resource_client):
+    schema = {
+        "properties": {
+            "a": {"type": "number", "const": 1},
+            "b": {"type": "number", "const": 2},
+        },
+        "readOnlyProperties": ["/properties/b"],
+    }
+    resource_client._update_schema(schema)
+    example = resource_client.generate_invalid_create_example()
+    assert example == {"a": 1, "b": 2}
 
 
 def test_generate_update_example(resource_client):
@@ -225,6 +292,25 @@ def test_generate_update_example(resource_client):
     model_from_created_resource = {"b": 2, "a": 4}
     example = resource_client.generate_update_example(model_from_created_resource)
     assert example == {"a": 1, "b": 2}
+
+
+def test_generate_invalid_update_example(resource_client):
+    schema = {
+        "properties": {
+            "a": {"type": "number", "const": 1},
+            "b": {"type": "number", "const": 2},
+            "c": {"type": "number", "const": 3},
+        },
+        "readOnlyProperties": ["/properties/b"],
+        "createOnlyProperties": ["/properties/c"],
+    }
+    resource_client._update_schema(schema)
+    resource_client._overrides = {}
+    model_from_created_resource = {"b": 2, "a": 4}
+    example = resource_client.generate_invalid_update_example(
+        model_from_created_resource
+    )
+    assert example == {"a": 1, "b": 2, "c": 3}
 
 
 def test_generate_update_example_update_override(resource_client):
@@ -566,3 +652,69 @@ def test_assert_CUD_time_fail(resource_client, action):
 def test_assert_RL_time_fail(resource_client, action):
     with pytest.raises(AssertionError):
         resource_client.assert_time(time.time() - 31, time.time(), action)
+
+
+def test_get_primary_identifier(resource_client):
+    schema = {
+        "properties": {
+            "a": {"type": "number", "const": 1},
+            "b": {"type": "number", "const": 2},
+            "c": {"type": "number", "const": 3},
+        },
+        "readOnlyProperties": ["/properties/b"],
+        "createOnlyProperties": ["/properties/c"],
+        "primaryIdentifier": ["/properties/c"],
+    }
+    resource_client._update_schema(schema)
+    assert resource_client.get_primary_identifier() == {("properties", "c")}
+
+
+def test_has_empty_readable_identifier(resource_client):
+    assert resource_client.has_readable_identifier() is False
+
+
+def test_has_readable_identifier(resource_client):
+    schema = {
+        "properties": {
+            "a": {"type": "number", "const": 1},
+            "b": {"type": "number", "const": 2},
+            "c": {"type": "number", "const": 3},
+        },
+        "readOnlyProperties": ["/properties/b"],
+        "createOnlyProperties": ["/properties/c"],
+        "primaryIdentifier": ["/properties/c"],
+    }
+    resource_client._update_schema(schema)
+    assert resource_client.has_readable_identifier()
+
+
+def test_has_empty_read_create_property(resource_client):
+    assert resource_client.has_read_create_property() is False
+
+
+def test_has_read_property(resource_client):
+    schema = {
+        "properties": {
+            "a": {"type": "number", "const": 1},
+            "b": {"type": "number", "const": 2},
+            "c": {"type": "number", "const": 3},
+        },
+        "createOnlyProperties": ["/properties/b"],
+    }
+    resource_client._update_schema(schema)
+    assert resource_client.has_read_create_property()
+
+
+def test_has_read_create_property(resource_client):
+    schema = {
+        "properties": {
+            "a": {"type": "number", "const": 1},
+            "b": {"type": "number", "const": 2},
+            "c": {"type": "number", "const": 3},
+        },
+        "readOnlyProperties": ["/properties/b"],
+        "createOnlyProperties": ["/properties/c"],
+        "primaryIdentifier": ["/properties/c"],
+    }
+    resource_client._update_schema(schema)
+    assert resource_client.has_read_create_property()

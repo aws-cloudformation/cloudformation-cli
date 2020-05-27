@@ -9,7 +9,22 @@ def test_create_success(resource_client, current_resource_model):
     _status, response, _error_code = resource_client.call_and_assert(
         Action.CREATE, OperationStatus.SUCCESS, current_resource_model
     )
+    test_primary_identifier_exists(
+        current_resource_model, resource_client.get_primary_identifier()
+    )
     return response
+
+
+def test_create_fail(resource_client, resource_model):
+    if resource_client.has_readable_identifier():
+        _status, response, _error_code = resource_client.call_and_assert(
+            Action.CREATE, OperationStatus.FAILED, resource_model
+        )
+        assert response["message"]
+        assert _error_code == HandlerErrorCode.InvalidRequest
+        test_primary_identifier_should_not_exist(
+            resource_model, resource_client.get_primary_identifier()
+        )
 
 
 def test_create_failure_if_repeat_writeable_id(resource_client, current_resource_model):
@@ -27,7 +42,6 @@ def test_create_failure_if_repeat_writeable_id(resource_client, current_resource
         assert (
             error_code == HandlerErrorCode.AlreadyExists
         ), "creating the same resource should not be possible"
-
     else:
         LOG.debug("no identifiers are writeable; skipping duplicate-CREATE-failed test")
 
@@ -37,6 +51,9 @@ def test_read_success(resource_client, current_resource_model):
         Action.READ, OperationStatus.SUCCESS, current_resource_model
     )
     assert response["resourceModel"] == current_resource_model
+    test_primary_identifier_exists(
+        current_resource_model, resource_client.get_primary_identifier()
+    )
     return response
 
 
@@ -95,3 +112,27 @@ def test_delete_failure_not_found(resource_client, current_resource_model):
         Action.DELETE, OperationStatus.FAILED, current_resource_model
     )
     assert error_code == HandlerErrorCode.NotFound
+
+
+def test_primary_identifier_not_updated(
+    created_model, updated_model, primary_identifier
+):
+    for identifiers in primary_identifier:
+        for identifier in identifiers:
+            if identifier != "properties":
+                assert created_model.get(identifier) == updated_model.get(identifier)
+
+
+def test_primary_identifier_exists(created_model, primary_identifier):
+    for identifiers in primary_identifier:
+        for identifier in identifiers:
+            if identifier != "properties":
+                assert created_model[identifier] is not None
+                assert created_model[identifier]
+
+
+def test_primary_identifier_should_not_exist(created_model, primary_identifier):
+    for identifiers in primary_identifier:
+        for identifier in identifiers:
+            if identifier != "properties":
+                assert not created_model[identifier]

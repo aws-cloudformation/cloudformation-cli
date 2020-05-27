@@ -1,4 +1,5 @@
 # pylint: disable=import-outside-toplevel
+# pylint: disable=R0904
 import json
 import logging
 import time
@@ -120,6 +121,9 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
             for identifier in additional_identifiers
         ]
 
+    def get_primary_identifier(self):
+        return self._primary_identifier_paths
+
     def has_writable_identifier(self):
         for path in self._primary_identifier_paths:
             if path not in self.read_only_paths:
@@ -128,6 +132,18 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
             for path in identifier_paths:
                 if path not in self.read_only_paths:
                     return True
+        return False
+
+    def has_readable_identifier(self):
+        if len(self.read_only_paths) > 0:
+            return True
+        return False
+
+    def has_read_create_property(self):
+        if len(self.read_only_paths) > 0:
+            return True
+        if len(self._create_only_paths) > 0:
+            return True
         return False
 
     @property
@@ -143,6 +159,21 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         schema = json.loads(json.dumps(self._schema))
 
         prune_properties(schema, self.read_only_paths)
+
+        self._strategy = ResourceGenerator(schema).generate_schema_strategy(schema)
+        return self._strategy
+
+    @property
+    def invalid_strategy(self):
+        # an empty strategy (i.e. false-y) is valid
+        if self._strategy is not None:
+            return self._strategy
+
+        # imported here to avoid hypothesis being loaded before pytest is loaded
+        from .resource_generator import ResourceGenerator
+
+        # make a copy so the original schema is never modified
+        schema = json.loads(json.dumps(self._schema))
 
         self._strategy = ResourceGenerator(schema).generate_schema_strategy(schema)
         return self._strategy
@@ -167,13 +198,39 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         )
         return self._update_strategy
 
+    @property
+    def update_invalid_strategy(self):
+        # an empty strategy (i.e. false-y) is valid
+        if self._update_strategy is not None:
+            return self._update_strategy
+
+        # imported here to avoid hypothesis being loaded before pytest is loaded
+        from .resource_generator import ResourceGenerator
+
+        # make a copy so the original schema is never modified
+        schema = json.loads(json.dumps(self._schema))
+
+        self._update_strategy = ResourceGenerator(schema).generate_schema_strategy(
+            schema
+        )
+        return self._update_strategy
+
     def generate_create_example(self):
         example = self.strategy.example()
+        return override_properties(example, self._overrides.get("CREATE", {}))
+
+    def generate_invalid_create_example(self):
+        example = self.invalid_strategy.example()
         return override_properties(example, self._overrides.get("CREATE", {}))
 
     def generate_update_example(self, create_model):
         overrides = self._overrides.get("UPDATE", self._overrides.get("CREATE", {}))
         example = override_properties(self.update_strategy.example(), overrides)
+        return {**create_model, **example}
+
+    def generate_invalid_update_example(self, create_model):
+        overrides = self._overrides.get("UPDATE", self._overrides.get("CREATE", {}))
+        example = override_properties(self.update_invalid_strategy.example(), overrides)
         return {**create_model, **example}
 
     @staticmethod
