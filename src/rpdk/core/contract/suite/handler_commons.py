@@ -7,24 +7,27 @@ LOG = logging.getLogger(__name__)
 
 def test_create_success(resource_client, current_resource_model):
     _status, response, _error_code = resource_client.call_and_assert(
-        Action.CREATE, OperationStatus.SUCCESS, current_resource_model
+        Action.CREATE,
+        OperationStatus.SUCCESS,
+        current_resource_model,
+        resource_client.primary_identifier_paths,
     )
-    test_primary_identifier_exists(
-        current_resource_model, resource_client.get_primary_identifier()
+    resource_client.assert_primary_identifier(
+        resource_client.primary_identifier_paths, current_resource_model
     )
     return response
 
 
 def test_create_fail(resource_client, resource_model):
-    if resource_client.has_readable_identifier():
+    if len(resource_client.read_only_paths) > 0:
         _status, response, _error_code = resource_client.call_and_assert(
-            Action.CREATE, OperationStatus.FAILED, resource_model
+            Action.CREATE,
+            OperationStatus.FAILED,
+            resource_model,
+            resource_client.primary_identifier_paths,
         )
         assert response["message"]
         assert _error_code == HandlerErrorCode.InvalidRequest
-        test_primary_identifier_should_not_exist(
-            resource_model, resource_client.get_primary_identifier()
-        )
 
 
 def test_create_failure_if_repeat_writeable_id(resource_client, current_resource_model):
@@ -37,7 +40,10 @@ def test_create_failure_if_repeat_writeable_id(resource_client, current_resource
         # resource model means that the same resource is trying to be
         # created twice.
         _status, _response, error_code = resource_client.call_and_assert(
-            Action.CREATE, OperationStatus.FAILED, current_resource_model
+            Action.CREATE,
+            OperationStatus.FAILED,
+            current_resource_model,
+            resource_client.primary_identifier_paths,
         )
         assert (
             error_code == HandlerErrorCode.AlreadyExists
@@ -48,25 +54,34 @@ def test_create_failure_if_repeat_writeable_id(resource_client, current_resource
 
 def test_read_success(resource_client, current_resource_model):
     _status, response, _error_code = resource_client.call_and_assert(
-        Action.READ, OperationStatus.SUCCESS, current_resource_model
+        Action.READ,
+        OperationStatus.SUCCESS,
+        current_resource_model,
+        resource_client.primary_identifier_paths,
     )
     assert response["resourceModel"] == current_resource_model
-    test_primary_identifier_exists(
-        current_resource_model, resource_client.get_primary_identifier()
+    resource_client.assert_primary_identifier(
+        resource_client.primary_identifier_paths, current_resource_model
     )
     return response
 
 
 def test_read_failure_not_found(resource_client, current_resource_model):
     _status, _response, error_code = resource_client.call_and_assert(
-        Action.READ, OperationStatus.FAILED, current_resource_model
+        Action.READ,
+        OperationStatus.FAILED,
+        current_resource_model,
+        resource_client.primary_identifier_paths,
     )
     assert error_code == HandlerErrorCode.NotFound
 
 
 def test_list_success(resource_client, current_resource_model):
     _status, response, _error_code = resource_client.call_and_assert(
-        Action.LIST, OperationStatus.SUCCESS, current_resource_model
+        Action.LIST,
+        OperationStatus.SUCCESS,
+        current_resource_model,
+        resource_client.primary_identifier_paths,
     )
     next_token = response.get("nextToken")
     resource_models = response["resourceModels"]
@@ -75,6 +90,7 @@ def test_list_success(resource_client, current_resource_model):
             Action.LIST,
             OperationStatus.SUCCESS,
             current_resource_model,
+            resource_client.primary_identifier_paths,
             nextToken=next_token,
         )
         resource_models.extend(next_response["resourceModels"])
@@ -84,7 +100,11 @@ def test_list_success(resource_client, current_resource_model):
 
 def test_update_success(resource_client, update_model, current_model):
     _status, response, _error_code = resource_client.call_and_assert(
-        Action.UPDATE, OperationStatus.SUCCESS, update_model, current_model
+        Action.UPDATE,
+        OperationStatus.SUCCESS,
+        update_model,
+        current_model,
+        resource_client.primary_identifier_paths,
     )
     # The response model should be the same as the create output model,
     # except the update-able properties should be overridden.
@@ -95,44 +115,30 @@ def test_update_success(resource_client, update_model, current_model):
 def test_update_failure_not_found(resource_client, current_resource_model):
     update_model = resource_client.generate_update_example(current_resource_model)
     _status, _response, error_code = resource_client.call_and_assert(
-        Action.UPDATE, OperationStatus.FAILED, update_model, current_resource_model
+        Action.UPDATE,
+        OperationStatus.FAILED,
+        update_model,
+        current_resource_model,
+        resource_client.primary_identifier_paths,
     )
     assert error_code == HandlerErrorCode.NotFound
 
 
 def test_delete_success(resource_client, current_resource_model):
     _status, response, _error_code = resource_client.call_and_assert(
-        Action.DELETE, OperationStatus.SUCCESS, current_resource_model
+        Action.DELETE,
+        OperationStatus.SUCCESS,
+        current_resource_model,
+        resource_client.primary_identifier_paths,
     )
     return response
 
 
 def test_delete_failure_not_found(resource_client, current_resource_model):
     _status, _response, error_code = resource_client.call_and_assert(
-        Action.DELETE, OperationStatus.FAILED, current_resource_model
+        Action.DELETE,
+        OperationStatus.FAILED,
+        current_resource_model,
+        resource_client.primary_identifier_paths,
     )
     assert error_code == HandlerErrorCode.NotFound
-
-
-def test_primary_identifier_not_updated(
-    created_model, updated_model, primary_identifier
-):
-    for identifiers in primary_identifier:
-        for identifier in identifiers:
-            if identifier != "properties":
-                assert created_model.get(identifier) == updated_model.get(identifier)
-
-
-def test_primary_identifier_exists(created_model, primary_identifier):
-    for identifiers in primary_identifier:
-        for identifier in identifiers:
-            if identifier != "properties":
-                assert created_model[identifier] is not None
-                assert created_model[identifier]
-
-
-def test_primary_identifier_should_not_exist(created_model, primary_identifier):
-    for identifiers in primary_identifier:
-        for identifier in identifiers:
-            if identifier != "properties":
-                assert not created_model[identifier]

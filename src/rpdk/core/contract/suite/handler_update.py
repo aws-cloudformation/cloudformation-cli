@@ -8,7 +8,6 @@ import pytest
 from rpdk.core.contract.interface import Action, HandlerErrorCode, OperationStatus
 from rpdk.core.contract.suite.handler_commons import (
     test_list_success,
-    test_primary_identifier_not_updated,
     test_read_success,
 )
 
@@ -39,8 +38,8 @@ def contract_update_read_success(updated_resource, resource_client):
     # should be able to use the created model
     # to read since physical resource id is immutable
     _create_request, _created_model, _update_request, updated_model = updated_resource
-    test_primary_identifier_not_updated(
-        _created_model, updated_model, resource_client.get_primary_identifier()
+    resource_client.assert_primary_identifier_not_updated(
+        resource_client.primary_identifier_paths, _created_model, updated_model
     )
     test_read_success(resource_client, updated_model)
 
@@ -51,8 +50,8 @@ def contract_update_list_success(updated_resource, resource_client):
     # should be able to use the created model
     # to read since physical resource id is immutable
     _create_request, _created_model, _update_request, updated_model = updated_resource
-    test_primary_identifier_not_updated(
-        _created_model, updated_model, resource_client.get_primary_identifier()
+    resource_client.assert_primary_identifier_not_updated(
+        resource_client.primary_identifier_paths, _created_model, updated_model
     )
     models = test_list_success(resource_client, updated_model)
     assert updated_model in models
@@ -74,9 +73,9 @@ def contract_update_invalid_property(resource_client):
                 Action.UPDATE, OperationStatus.FAILED, update_request, created_model
             )
             assert response["message"]
-            assert _error == HandlerErrorCode.NotUpdatable, (
-                "updating readOnly or createOnly properties should" " not possible"
-            )
+            assert (
+                _error == HandlerErrorCode.NotUpdatable
+            ), "updating readOnly or createOnly properties should not be possible"
         finally:
             resource_client.call_and_assert(
                 Action.DELETE, OperationStatus.SUCCESS, created_model
