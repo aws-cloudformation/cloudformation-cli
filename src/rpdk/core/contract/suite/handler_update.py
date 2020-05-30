@@ -59,7 +59,8 @@ def contract_update_list_success(updated_resource, resource_client):
 
 @pytest.mark.update
 def contract_update_invalid_property(resource_client):
-    if resource_client.has_read_create_property:
+
+    if resource_client.create_only_paths:
         create_request = resource_client.generate_create_example()
         try:
             _status, response, _error = resource_client.call_and_assert(

@@ -142,7 +142,7 @@ def test_update_schema(resource_client):
     assert resource_client.primary_identifier_paths == {("properties", "a")}
     assert resource_client.read_only_paths == {("properties", "b")}
     assert resource_client._write_only_paths == {("properties", "c")}
-    assert resource_client._create_only_paths == {("properties", "d")}
+    assert resource_client.create_only_paths == {("properties", "d")}
 
 
 def test_strategy(resource_client):
@@ -428,7 +428,7 @@ def test_call_async(resource_client, action):
 
 @pytest.mark.parametrize("action", [Action.CREATE, Action.UPDATE, Action.DELETE])
 def test_call_async_fail(resource_client, action):
-    with pytest.raises(KeyError):
+    with pytest.raises(AssertionError):
         mock_client = resource_client._client
 
         mock_client.invoke.side_effect = [
@@ -703,7 +703,7 @@ def test_assert_primary_identifier_success(resource_client):
 
 
 def test_assert_primary_identifier_fail(resource_client):
-    with pytest.raises(KeyError):
+    with pytest.raises(AssertionError):
         schema = {
             "properties": {
                 "a": {"type": "number", "const": 1},

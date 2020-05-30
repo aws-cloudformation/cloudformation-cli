@@ -16,11 +16,7 @@ from ..boto_helpers import (
     create_sdk_session,
     get_temporary_credentials,
 )
-from ..jsonutils.pointer import (
-    fragment_decode,
-    fragment_decode_primary_identifier,
-    fragment_encode,
-)
+from ..jsonutils.pointer import fragment_decode
 from ..jsonutils.utils import traverse
 
 LOG = logging.getLogger(__name__)
@@ -119,7 +115,7 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         self.primary_identifier_paths = self._properties_to_paths("primaryIdentifier")
         self.read_only_paths = self._properties_to_paths("readOnlyProperties")
         self._write_only_paths = self._properties_to_paths("writeOnlyProperties")
-        self._create_only_paths = self._properties_to_paths("createOnlyProperties")
+        self.create_only_paths = self._properties_to_paths("createOnlyProperties")
 
         additional_identifiers = self._schema.get("additionalIdentifiers", [])
         self._additional_identifiers_paths = [
@@ -140,7 +136,7 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
     def has_read_create_property(self):
         if len(self.read_only_paths) > 0:
             return True
-        if len(self._create_only_paths) > 0:
+        if len(self.create_only_paths) > 0:
             return True
         return False
 
@@ -191,7 +187,7 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         schema = json.loads(json.dumps(self._schema))
 
         prune_properties(schema, self.read_only_paths)
-        prune_properties(schema, self._create_only_paths)
+        prune_properties(schema, self.create_only_paths)
 
         self._update_strategy = ResourceGenerator(schema).generate_schema_strategy(
             schema
@@ -283,16 +279,11 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         )
 
     @staticmethod
-    def get_decoded_identifier_list(primary_identifier_path):
-        tuple_identifier = []
-        primary_identifier_list = []
-        for identifier in primary_identifier_path:
-            tuple_identifier.append(fragment_encode(identifier))
-        for identifier in tuple_identifier:
-            primary_identifier_list.append(
-                fragment_decode_primary_identifier(identifier)
-            )
-        return primary_identifier_list
+    def get_decoded_identifier_list(identifier_path):
+        list_identifier = [
+            identifier[len(identifier) - 1] for identifier in list(identifier_path)
+        ]
+        return list_identifier
 
     @staticmethod
     def assert_primary_identifier(primary_identifier_path, resource_model):
@@ -300,7 +291,7 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
             primary_identifier_path
         )
         for primary_identifier in primary_identifiers_list:
-            assert traverse(resource_model, primary_identifier) is not None
+            assert resource_model.get(primary_identifier) is not None
 
     @staticmethod
     def assert_primary_identifier_not_updated(

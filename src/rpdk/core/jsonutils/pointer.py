@@ -95,23 +95,3 @@ def fragment_decode(pointer, prefix="#", output=tuple):
     if prefix != actual:
         raise ValueError("Expected prefix '{}', but was '{}'".format(prefix, actual))
     return output(decoded)
-
-
-def fragment_decode_primary_identifier(pointer, output=tuple):
-    """Decode all segments of a JSON pointer from the URI fragment
-    identifier representation.
-
-    >>> fragment_decode_primary_identifier("#")
-    ('#',)
-    >>> fragment_decode_primary_identifier("#/foo/bar")
-    ('bar',)
-    >>> fragment_decode_primary_identifier("#/foo/bar", output=list)
-    ['bar']
-    >>> fragment_decode_primary_identifier("#/0/%20/~0")
-    ('~',)
-    >>> fragment_decode_primary_identifier("/foo")
-    ('foo',)
-    """
-    segments = pointer.split("/")
-    decoded = (part_decode(unquote(segments[-1])),)
-    return output(decoded)
