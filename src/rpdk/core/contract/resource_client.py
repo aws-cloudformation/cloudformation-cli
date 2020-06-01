@@ -301,8 +301,8 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
             primary_identifier_path
         )
         for primary_identifier in primary_identifiers_list:
-            assert traverse(created_model, primary_identifier) == traverse(
-                updated_model, primary_identifier
+            assert created_model.get(primary_identifier) == updated_model.get(
+                primary_identifier
             )
 
     def _make_payload(self, action, request):

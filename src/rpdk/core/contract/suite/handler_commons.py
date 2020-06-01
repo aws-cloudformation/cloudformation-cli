@@ -18,7 +18,7 @@ def test_create_success(resource_client, current_resource_model):
     return response
 
 
-def test_create_fail(resource_client, resource_model):
+def test_create_fail_if_read_only_property_in_input(resource_client, resource_model):
     if len(resource_client.read_only_paths) > 0:
         _status, response, _error_code = resource_client.call_and_assert(
             Action.CREATE,

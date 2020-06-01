@@ -8,7 +8,7 @@ import pytest
 # when being loaded by pytest
 from rpdk.core.contract.interface import Action, OperationStatus
 from rpdk.core.contract.suite.handler_commons import (
-    test_create_fail,
+    test_create_fail_if_read_only_property_in_input,
     test_create_failure_if_repeat_writeable_id,
     test_create_success,
     test_delete_success,
@@ -47,7 +47,7 @@ def contract_create_delete(resource_client):
 @pytest.mark.create
 def contract_invalid_create(resource_client):
     requested_model = resource_client.generate_invalid_create_example()
-    test_create_fail(resource_client, requested_model)
+    test_create_fail_if_read_only_property_in_input(resource_client, requested_model)
 
 
 @pytest.mark.create
