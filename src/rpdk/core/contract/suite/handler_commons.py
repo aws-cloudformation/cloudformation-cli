@@ -9,6 +9,9 @@ def test_create_success(resource_client, current_resource_model):
     _status, response, _error_code = resource_client.call_and_assert(
         Action.CREATE, OperationStatus.SUCCESS, current_resource_model
     )
+    resource_client.assert_primary_identifier(
+        resource_client.primary_identifier_paths, current_resource_model
+    )
     return response
 
 
@@ -27,7 +30,6 @@ def test_create_failure_if_repeat_writeable_id(resource_client, current_resource
         assert (
             error_code == HandlerErrorCode.AlreadyExists
         ), "creating the same resource should not be possible"
-
     else:
         LOG.debug("no identifiers are writeable; skipping duplicate-CREATE-failed test")
 
@@ -37,6 +39,9 @@ def test_read_success(resource_client, current_resource_model):
         Action.READ, OperationStatus.SUCCESS, current_resource_model
     )
     assert response["resourceModel"] == current_resource_model
+    resource_client.assert_primary_identifier(
+        resource_client.primary_identifier_paths, current_resource_model
+    )
     return response
 
 

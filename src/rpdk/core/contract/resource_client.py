@@ -1,4 +1,5 @@
 # pylint: disable=import-outside-toplevel
+# pylint: disable=R0904
 import json
 import logging
 import time
@@ -15,7 +16,7 @@ from ..boto_helpers import (
     create_sdk_session,
     get_temporary_credentials,
 )
-from ..jsonutils.pointer import fragment_decode
+from ..jsonutils.pointer import fragment_decode, fragment_list
 from ..jsonutils.utils import traverse
 
 LOG = logging.getLogger(__name__)
@@ -97,6 +98,7 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         self._schema = None
         self._strategy = None
         self._update_strategy = None
+        self._invalid_strategy = None
         self._overrides = overrides
         self._update_schema(schema)
 
@@ -108,11 +110,12 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         self._schema = schema
         self._strategy = None
         self._update_strategy = None
+        self._invalid_strategy = None
 
-        self._primary_identifier_paths = self._properties_to_paths("primaryIdentifier")
+        self.primary_identifier_paths = self._properties_to_paths("primaryIdentifier")
         self.read_only_paths = self._properties_to_paths("readOnlyProperties")
         self._write_only_paths = self._properties_to_paths("writeOnlyProperties")
-        self._create_only_paths = self._properties_to_paths("createOnlyProperties")
+        self.create_only_paths = self._properties_to_paths("createOnlyProperties")
 
         additional_identifiers = self._schema.get("additionalIdentifiers", [])
         self._additional_identifiers_paths = [
@@ -121,7 +124,7 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         ]
 
     def has_writable_identifier(self):
-        for path in self._primary_identifier_paths:
+        for path in self.primary_identifier_paths:
             if path not in self.read_only_paths:
                 return True
         for identifier_paths in self._additional_identifiers_paths:
@@ -148,6 +151,23 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         return self._strategy
 
     @property
+    def invalid_strategy(self):
+        # an empty strategy (i.e. false-y) is valid
+        if self._invalid_strategy is not None:
+            return self._invalid_strategy
+
+        # imported here to avoid hypothesis being loaded before pytest is loaded
+        from .resource_generator import ResourceGenerator
+
+        # make a copy so the original schema is never modified
+        schema = json.loads(json.dumps(self._schema))
+
+        self._invalid_strategy = ResourceGenerator(schema).generate_schema_strategy(
+            schema
+        )
+        return self._invalid_strategy
+
+    @property
     def update_strategy(self):
         # an empty strategy (i.e. false-y) is valid
         if self._update_strategy is not None:
@@ -160,7 +180,7 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         schema = json.loads(json.dumps(self._schema))
 
         prune_properties(schema, self.read_only_paths)
-        prune_properties(schema, self._create_only_paths)
+        prune_properties(schema, self.create_only_paths)
 
         self._update_strategy = ResourceGenerator(schema).generate_schema_strategy(
             schema
@@ -171,9 +191,18 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         example = self.strategy.example()
         return override_properties(example, self._overrides.get("CREATE", {}))
 
+    def generate_invalid_create_example(self):
+        example = self.invalid_strategy.example()
+        return override_properties(example, self._overrides.get("CREATE", {}))
+
     def generate_update_example(self, create_model):
         overrides = self._overrides.get("UPDATE", self._overrides.get("CREATE", {}))
         example = override_properties(self.update_strategy.example(), overrides)
+        return {**create_model, **example}
+
+    def generate_invalid_update_example(self, create_model):
+        overrides = self._overrides.get("UPDATE", self._overrides.get("CREATE", {}))
+        example = override_properties(self.invalid_strategy.example(), overrides)
         return {**create_model, **example}
 
     @staticmethod
@@ -242,6 +271,25 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
             "Handler %r timed out." % action
         )
 
+    @staticmethod
+    def assert_primary_identifier(primary_identifier_paths, resource_model):
+        assert all(
+            traverse(resource_model, fragment_list(primary_identifier, "properties"))[0]
+            for primary_identifier in primary_identifier_paths
+        )
+
+    @staticmethod
+    def assert_primary_identifier_not_updated(
+        primary_identifier_path, created_model, updated_model
+    ):
+        assert all(
+            traverse(created_model, fragment_list(primary_identifier, "properties"))[0]
+            == traverse(updated_model, fragment_list(primary_identifier, "properties"))[
+                0
+            ]
+            for primary_identifier in list(primary_identifier_path)
+        )
+
     def _make_payload(self, action, request):
         return {
             "credentials": self._creds.copy(),
@@ -289,6 +337,9 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
 
         while status == OperationStatus.IN_PROGRESS:
             callback_delay_seconds = self.assert_in_progress(status, response)
+            self.assert_primary_identifier(
+                self.primary_identifier_paths, response.get("resourceModel")
+            )
             sleep(callback_delay_seconds)
 
             payload["callbackContext"] = response.get("callbackContext")

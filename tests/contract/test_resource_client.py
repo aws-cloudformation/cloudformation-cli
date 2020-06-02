@@ -1,5 +1,6 @@
 # fixture and parameter have the same name
 # pylint: disable=redefined-outer-name,protected-access
+import logging
 import time
 from io import StringIO
 from unittest.mock import ANY, patch
@@ -22,6 +23,7 @@ from rpdk.core.test import (
 )
 
 EMPTY_OVERRIDE = empty_override()
+LOG = logging.getLogger(__name__)
 
 
 @pytest.fixture
@@ -124,7 +126,7 @@ def test_make_request():
     }
 
 
-def test__update_schema(resource_client):
+def test_update_schema(resource_client):
     resource_client._strategy = object()
 
     schema = {
@@ -137,10 +139,10 @@ def test__update_schema(resource_client):
 
     assert resource_client._schema is schema
     assert resource_client._strategy is None
-    assert resource_client._primary_identifier_paths == {("properties", "a")}
+    assert resource_client.primary_identifier_paths == {("properties", "a")}
     assert resource_client.read_only_paths == {("properties", "b")}
     assert resource_client._write_only_paths == {("properties", "c")}
-    assert resource_client._create_only_paths == {("properties", "d")}
+    assert resource_client.create_only_paths == {("properties", "d")}
 
 
 def test_strategy(resource_client):
@@ -168,6 +170,33 @@ def test_strategy(resource_client):
 
     assert cached is strategy
     assert resource_client._strategy is strategy
+
+
+def test_invalid_strategy(resource_client):
+    schema = {
+        "properties": {
+            "a": {"type": "number", "const": 1},
+            "b": {"type": "number", "const": 2},
+            "c": {"type": "number", "const": 3},
+            "d": {"type": "number", "const": 4},
+        },
+        "readOnlyProperties": ["/properties/c"],
+        "createOnlyProperties": ["/properties/d"],
+    }
+    resource_client._update_schema(schema)
+
+    assert resource_client._schema is schema
+    assert resource_client._strategy is None
+
+    invalid_strategy = resource_client.invalid_strategy
+
+    assert resource_client._invalid_strategy is invalid_strategy
+    assert invalid_strategy.example() == {"a": 1, "b": 2, "c": 3, "d": 4}
+
+    cached = resource_client.invalid_strategy
+
+    assert cached is invalid_strategy
+    assert resource_client._invalid_strategy is invalid_strategy
 
 
 def test_update_strategy(resource_client):
@@ -210,6 +239,19 @@ def test_generate_create_example(resource_client):
     assert example == {"a": 1}
 
 
+def test_generate_invalid_create_example(resource_client):
+    schema = {
+        "properties": {
+            "a": {"type": "number", "const": 1},
+            "b": {"type": "number", "const": 2},
+        },
+        "readOnlyProperties": ["/properties/b"],
+    }
+    resource_client._update_schema(schema)
+    example = resource_client.generate_invalid_create_example()
+    assert example == {"a": 1, "b": 2}
+
+
 def test_generate_update_example(resource_client):
     schema = {
         "properties": {
@@ -225,6 +267,25 @@ def test_generate_update_example(resource_client):
     model_from_created_resource = {"b": 2, "a": 4}
     example = resource_client.generate_update_example(model_from_created_resource)
     assert example == {"a": 1, "b": 2}
+
+
+def test_generate_invalid_update_example(resource_client):
+    schema = {
+        "properties": {
+            "a": {"type": "number", "const": 1},
+            "b": {"type": "number", "const": 2},
+            "c": {"type": "number", "const": 3},
+        },
+        "readOnlyProperties": ["/properties/b"],
+        "createOnlyProperties": ["/properties/c"],
+    }
+    resource_client._update_schema(schema)
+    resource_client._overrides = {}
+    model_from_created_resource = {"b": 2, "a": 4}
+    example = resource_client.generate_invalid_update_example(
+        model_from_created_resource
+    )
+    assert example == {"a": 1, "b": 2, "c": 3}
 
 
 def test_generate_update_example_update_override(resource_client):
@@ -334,9 +395,18 @@ def test__make_payload(resource_client):
 @pytest.mark.parametrize("action", [Action.READ, Action.LIST])
 def test_call_sync(resource_client, action):
     mock_client = resource_client._client
-
+    schema = {
+        "properties": {
+            "a": {"type": "number", "const": 1},
+            "b": {"type": "number", "const": 2},
+            "c": {"type": "number", "const": 3},
+        },
+        "readOnlyProperties": ["/properties/b"],
+        "createOnlyProperties": ["/properties/c"],
+        "primaryIdentifier": ["/properties/c"],
+    }
     mock_client.invoke.return_value = {"Payload": StringIO('{"status": "SUCCESS"}')}
-    status, response = resource_client.call(action, {})
+    status, response = resource_client.call(action, {"resourceModel": schema})
 
     assert status == OperationStatus.SUCCESS
     assert response == {"status": OperationStatus.SUCCESS.value}
@@ -347,7 +417,7 @@ def test_call_async(resource_client, action):
     mock_client = resource_client._client
 
     mock_client.invoke.side_effect = [
-        {"Payload": StringIO('{"status": "IN_PROGRESS"}')},
+        {"Payload": StringIO('{"status": "IN_PROGRESS", "resourceModel": {"c": 3} }')},
         {"Payload": StringIO('{"status": "SUCCESS"}')},
     ]
     status, response = resource_client.call(action, {})
@@ -566,3 +636,77 @@ def test_assert_CUD_time_fail(resource_client, action):
 def test_assert_RL_time_fail(resource_client, action):
     with pytest.raises(AssertionError):
         resource_client.assert_time(time.time() - 31, time.time(), action)
+
+
+def test_assert_primary_identifier_success(resource_client):
+    schema = {
+        "properties": {
+            "a": {"type": "number", "const": 1},
+            "b": {"type": "number", "const": 2},
+            "c": {"type": "number", "const": 3},
+        },
+        "readOnlyProperties": ["/properties/b"],
+        "createOnlyProperties": ["/properties/c"],
+        "primaryIdentifier": ["/properties/c"],
+    }
+    resource_client._update_schema(schema)
+    resource_client.assert_primary_identifier(
+        resource_client.primary_identifier_paths, {"a": 1, "b": 2, "c": 3}
+    )
+
+
+def test_assert_primary_identifier_fail(resource_client):
+    with pytest.raises(KeyError):
+        schema = {
+            "properties": {
+                "a": {"type": "number", "const": 1},
+                "b": {"type": "number", "const": 2},
+                "c": {"type": "number", "const": 3},
+            },
+            "readOnlyProperties": ["/properties/b"],
+            "createOnlyProperties": ["/properties/c"],
+            "primaryIdentifier": ["/properties/c"],
+        }
+        resource_client._update_schema(schema)
+        resource_client.assert_primary_identifier(
+            resource_client.primary_identifier_paths, {"a": 1, "b": 2}
+        )
+
+
+def test_assert_primary_identifier_not_updated_success(resource_client):
+    schema = {
+        "properties": {
+            "a": {"type": "number", "const": 1},
+            "b": {"type": "number", "const": 2},
+            "c": {"type": "number", "const": 3},
+        },
+        "readOnlyProperties": ["/properties/b"],
+        "createOnlyProperties": ["/properties/c"],
+        "primaryIdentifier": ["/properties/c"],
+    }
+    resource_client._update_schema(schema)
+    resource_client.assert_primary_identifier_not_updated(
+        resource_client.primary_identifier_paths,
+        {"a": 1, "b": 2, "c": 3},
+        {"a": 1, "b": 2, "c": 3},
+    )
+
+
+def test_assert_primary_identifier_not_updated_fail(resource_client):
+    with pytest.raises(AssertionError):
+        schema = {
+            "properties": {
+                "a": {"type": "number", "const": 1},
+                "b": {"type": "number", "const": 2},
+                "c": {"type": "number", "const": 3},
+            },
+            "readOnlyProperties": ["/properties/b"],
+            "createOnlyProperties": ["/properties/c"],
+            "primaryIdentifier": ["/properties/c"],
+        }
+        resource_client._update_schema(schema)
+        resource_client.assert_primary_identifier_not_updated(
+            resource_client.primary_identifier_paths,
+            {"a": 1, "b": 2, "c": 3},
+            {"a": 1, "b": 2, "c": 4},
+        )

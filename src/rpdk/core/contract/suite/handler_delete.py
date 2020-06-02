@@ -30,7 +30,10 @@ def deleted_resource(resource_client):
             Action.CREATE, OperationStatus.SUCCESS, request
         )
         model = response["resourceModel"]
-        resource_client.call_and_assert(Action.DELETE, OperationStatus.SUCCESS, model)
+        _status, response, _error = resource_client.call_and_assert(
+            Action.DELETE, OperationStatus.SUCCESS, model
+        )
+        assert "resourceModel" not in response
         yield model, request
     finally:
         request = resource_client.make_request(model, None)
