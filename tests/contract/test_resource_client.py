@@ -704,7 +704,6 @@ def test_assert_primary_identifier_not_updated_fail(resource_client):
             "createOnlyProperties": ["/properties/c"],
             "primaryIdentifier": ["/properties/c"],
         }
-        print(resource_client.primary_identifier_paths)
         resource_client._update_schema(schema)
         resource_client.assert_primary_identifier_not_updated(
             resource_client.primary_identifier_paths,
