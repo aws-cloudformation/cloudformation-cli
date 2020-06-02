@@ -420,25 +420,10 @@ def test_call_async(resource_client, action):
         {"Payload": StringIO('{"status": "IN_PROGRESS", "resourceModel": {"c": 3} }')},
         {"Payload": StringIO('{"status": "SUCCESS"}')},
     ]
-    status, response = resource_client.call(action, {}, {("properties", "c")})
+    status, response = resource_client.call(action, {})
 
     assert status == OperationStatus.SUCCESS
     assert response == {"status": OperationStatus.SUCCESS.value}
-
-
-@pytest.mark.parametrize("action", [Action.CREATE, Action.UPDATE, Action.DELETE])
-def test_call_async_fail(resource_client, action):
-    with pytest.raises(AssertionError):
-        mock_client = resource_client._client
-
-        mock_client.invoke.side_effect = [
-            {
-                "Payload": StringIO(
-                    '{"status": "IN_PROGRESS", "resourceModel": {"d": 3} }'
-                )
-            },
-        ]
-        resource_client.call(action, {}, {("properties", "c")})
 
 
 def test_call_and_assert_success(resource_client):
@@ -651,38 +636,6 @@ def test_assert_CUD_time_fail(resource_client, action):
 def test_assert_RL_time_fail(resource_client, action):
     with pytest.raises(AssertionError):
         resource_client.assert_time(time.time() - 31, time.time(), action)
-
-
-def test_has_empty_read_create_property(resource_client):
-    assert resource_client.has_read_create_property() is False
-
-
-def test_has_read_property(resource_client):
-    schema = {
-        "properties": {
-            "a": {"type": "number", "const": 1},
-            "b": {"type": "number", "const": 2},
-            "c": {"type": "number", "const": 3},
-        },
-        "createOnlyProperties": ["/properties/b"],
-    }
-    resource_client._update_schema(schema)
-    assert resource_client.has_read_create_property()
-
-
-def test_has_read_create_property(resource_client):
-    schema = {
-        "properties": {
-            "a": {"type": "number", "const": 1},
-            "b": {"type": "number", "const": 2},
-            "c": {"type": "number", "const": 3},
-        },
-        "readOnlyProperties": ["/properties/b"],
-        "createOnlyProperties": ["/properties/c"],
-        "primaryIdentifier": ["/properties/c"],
-    }
-    resource_client._update_schema(schema)
-    assert resource_client.has_read_create_property()
 
 
 def test_assert_primary_identifier_success(resource_client):

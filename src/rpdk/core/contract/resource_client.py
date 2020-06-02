@@ -133,13 +133,6 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
                     return True
         return False
 
-    def has_read_create_property(self):
-        if len(self.read_only_paths) > 0:
-            return True
-        if len(self.create_only_paths) > 0:
-            return True
-        return False
-
     @property
     def strategy(self):
         # an empty strategy (i.e. false-y) is valid
@@ -279,15 +272,12 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         )
 
     @staticmethod
-    def get_decoded_identifier_list(identifier_path):
-        list_identifier = [
-            identifier[len(identifier) - 1] for identifier in list(identifier_path)
-        ]
-        return list_identifier
+    def get_identifier_list(identifier_path):
+        return [identifier[-1] for identifier in list(identifier_path)]
 
     @staticmethod
     def assert_primary_identifier(primary_identifier_path, resource_model):
-        primary_identifiers_list = ResourceClient.get_decoded_identifier_list(
+        primary_identifiers_list = ResourceClient.get_identifier_list(
             primary_identifier_path
         )
         for primary_identifier in primary_identifiers_list:
@@ -297,7 +287,7 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
     def assert_primary_identifier_not_updated(
         primary_identifier_path, created_model, updated_model
     ):
-        primary_identifiers_list = ResourceClient.get_decoded_identifier_list(
+        primary_identifiers_list = ResourceClient.get_identifier_list(
             primary_identifier_path
         )
         for primary_identifier in primary_identifiers_list:
@@ -325,20 +315,14 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
 
     # pylint: disable=too-many-arguments
     def call_and_assert(
-        self,
-        action,
-        assert_status,
-        current_model,
-        primary_identifier_path=None,
-        previous_model=None,
-        **kwargs
+        self, action, assert_status, current_model, previous_model=None, **kwargs
     ):
         if assert_status not in [OperationStatus.SUCCESS, OperationStatus.FAILED]:
             raise ValueError("Assert status {} not supported.".format(assert_status))
         request = self.make_request(current_model, previous_model, **kwargs)
 
         start_time = time.time()
-        status, response = self.call(action, request, primary_identifier_path)
+        status, response = self.call(action, request)
         self.assert_time(start_time, time.time(), action)
         if assert_status == OperationStatus.SUCCESS:
             self.assert_success(status, response)
@@ -347,7 +331,7 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
             error_code = self.assert_failed(status, response)
         return status, response, error_code
 
-    def call(self, action, request, primary_identifier_path=None):
+    def call(self, action, request):
         payload = self._make_payload(action, request)
         response = self._call(payload)
 
@@ -360,7 +344,7 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         while status == OperationStatus.IN_PROGRESS:
             callback_delay_seconds = self.assert_in_progress(status, response)
             self.assert_primary_identifier(
-                primary_identifier_path, response.get("resourceModel")
+                self.primary_identifier_paths, response.get("resourceModel")
             )
             sleep(callback_delay_seconds)
 
