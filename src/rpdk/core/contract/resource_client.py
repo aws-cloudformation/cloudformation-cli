@@ -16,7 +16,7 @@ from ..boto_helpers import (
     create_sdk_session,
     get_temporary_credentials,
 )
-from ..jsonutils.pointer import fragment_decode
+from ..jsonutils.pointer import fragment_decode, fragment_list
 from ..jsonutils.utils import traverse
 
 LOG = logging.getLogger(__name__)
@@ -272,28 +272,23 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         )
 
     @staticmethod
-    def get_identifier_list(identifier_path):
-        return [identifier[-1] for identifier in list(identifier_path)]
-
-    @staticmethod
-    def assert_primary_identifier(primary_identifier_path, resource_model):
-        primary_identifiers_list = ResourceClient.get_identifier_list(
-            primary_identifier_path
+    def assert_primary_identifier(primary_identifier_paths, resource_model):
+        assert all(
+            traverse(resource_model, fragment_list(primary_identifier, "properties"))[0]
+            for primary_identifier in primary_identifier_paths
         )
-        for primary_identifier in primary_identifiers_list:
-            assert resource_model.get(primary_identifier) is not None
 
     @staticmethod
     def assert_primary_identifier_not_updated(
         primary_identifier_path, created_model, updated_model
     ):
-        primary_identifiers_list = ResourceClient.get_identifier_list(
-            primary_identifier_path
+        assert all(
+            traverse(created_model, fragment_list(primary_identifier, "properties"))[0]
+            == traverse(updated_model, fragment_list(primary_identifier, "properties"))[
+                0
+            ]
+            for primary_identifier in list(primary_identifier_path)
         )
-        for primary_identifier in primary_identifiers_list:
-            assert created_model.get(primary_identifier) == updated_model.get(
-                primary_identifier
-            )
 
     def _make_payload(self, action, request):
         return {

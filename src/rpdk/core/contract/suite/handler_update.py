@@ -81,6 +81,8 @@ def contract_update_create_only_property(resource_client):
             resource_client.call_and_assert(
                 Action.DELETE, OperationStatus.SUCCESS, created_model
             )
+    else:
+        pytest.skip("No createOnly Properties. Skipping test.")
 
 
 @pytest.mark.update

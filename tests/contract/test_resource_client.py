@@ -656,7 +656,7 @@ def test_assert_primary_identifier_success(resource_client):
 
 
 def test_assert_primary_identifier_fail(resource_client):
-    with pytest.raises(AssertionError):
+    with pytest.raises(KeyError):
         schema = {
             "properties": {
                 "a": {"type": "number", "const": 1},
