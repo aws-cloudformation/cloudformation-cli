@@ -308,7 +308,6 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         LOG.debug("Received response\n%s", payload)
         return payload
 
-    # pylint: disable=too-many-arguments
     def call_and_assert(
         self, action, assert_status, current_model, previous_model=None, **kwargs
     ):
