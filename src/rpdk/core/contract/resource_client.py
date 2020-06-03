@@ -114,7 +114,7 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
 
         self.primary_identifier_paths = self._properties_to_paths("primaryIdentifier")
         self.read_only_paths = self._properties_to_paths("readOnlyProperties")
-        self._write_only_paths = self._properties_to_paths("writeOnlyProperties")
+        self.write_only_paths = self._properties_to_paths("writeOnlyProperties")
         self.create_only_paths = self._properties_to_paths("createOnlyProperties")
 
         additional_identifiers = self._schema.get("additionalIdentifiers", [])
@@ -290,6 +290,18 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
             for primary_identifier in list(primary_identifier_path)
         )
 
+    @staticmethod
+    def assert_write_only_property_does_not_exist(
+        resource_model, write_only_properties
+    ):
+        if write_only_properties:
+            assert not all(
+                traverse(
+                    resource_model, fragment_list(write_only_property, "properties")
+                )
+                for write_only_property in write_only_properties
+            )
+
     def _make_payload(self, action, request):
         return {
             "credentials": self._creds.copy(),
@@ -337,8 +349,15 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
 
         while status == OperationStatus.IN_PROGRESS:
             callback_delay_seconds = self.assert_in_progress(status, response)
+            _status, read_response, _error = self.call_and_assert(
+                Action.READ, OperationStatus.SUCCESS, response["resourceModel"]
+            )
+            assert read_response["resourceModel"] == response["resourceModel"]
             self.assert_primary_identifier(
                 self.primary_identifier_paths, response.get("resourceModel")
+            )
+            self.assert_write_only_property_does_not_exist(
+                read_response["resourceModel"], self.write_only_paths
             )
             sleep(callback_delay_seconds)
 
