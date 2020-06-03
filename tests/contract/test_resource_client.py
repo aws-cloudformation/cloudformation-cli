@@ -25,6 +25,17 @@ from rpdk.core.test import (
 EMPTY_OVERRIDE = empty_override()
 LOG = logging.getLogger(__name__)
 
+SCHEMA = {
+    "properties": {
+        "a": {"type": "number", "const": 1},
+        "b": {"type": "number", "const": 2},
+        "c": {"type": "number", "const": 3},
+    },
+    "readOnlyProperties": ["/properties/b"],
+    "createOnlyProperties": ["/properties/c"],
+    "primaryIdentifier": ["/properties/c"],
+}
+
 
 @pytest.fixture
 def resource_client():
@@ -639,17 +650,7 @@ def test_assert_RL_time_fail(resource_client, action):
 
 
 def test_assert_primary_identifier_success(resource_client):
-    schema = {
-        "properties": {
-            "a": {"type": "number", "const": 1},
-            "b": {"type": "number", "const": 2},
-            "c": {"type": "number", "const": 3},
-        },
-        "readOnlyProperties": ["/properties/b"],
-        "createOnlyProperties": ["/properties/c"],
-        "primaryIdentifier": ["/properties/c"],
-    }
-    resource_client._update_schema(schema)
+    resource_client._update_schema(SCHEMA)
     resource_client.assert_primary_identifier(
         resource_client.primary_identifier_paths, {"a": 1, "b": 2, "c": 3}
     )
@@ -657,98 +658,25 @@ def test_assert_primary_identifier_success(resource_client):
 
 def test_assert_primary_identifier_fail(resource_client):
     with pytest.raises(KeyError):
-        schema = {
-            "properties": {
-                "a": {"type": "number", "const": 1},
-                "b": {"type": "number", "const": 2},
-                "c": {"type": "number", "const": 3},
-            },
-            "readOnlyProperties": ["/properties/b"],
-            "createOnlyProperties": ["/properties/c"],
-            "primaryIdentifier": ["/properties/c"],
-        }
-        resource_client._update_schema(schema)
+        resource_client._update_schema(SCHEMA)
         resource_client.assert_primary_identifier(
             resource_client.primary_identifier_paths, {"a": 1, "b": 2}
         )
 
 
-def test_assert_primary_identifier_not_updated_success(resource_client):
-    schema = {
-        "properties": {
-            "a": {"type": "number", "const": 1},
-            "b": {"type": "number", "const": 2},
-            "c": {"type": "number", "const": 3},
-        },
-        "readOnlyProperties": ["/properties/b"],
-        "createOnlyProperties": ["/properties/c"],
-        "primaryIdentifier": ["/properties/c"],
-    }
-    resource_client._update_schema(schema)
-    resource_client.assert_primary_identifier_not_updated(
+def test_assert_primary_identifier_equal_success(resource_client):
+    resource_client._update_schema(SCHEMA)
+    assert resource_client.assert_primary_identifier_equal(
         resource_client.primary_identifier_paths,
         {"a": 1, "b": 2, "c": 3},
         {"a": 1, "b": 2, "c": 3},
     )
 
 
-def test_assert_primary_identifier_not_updated_fail(resource_client):
-    with pytest.raises(AssertionError):
-        schema = {
-            "properties": {
-                "a": {"type": "number", "const": 1},
-                "b": {"type": "number", "const": 2},
-                "c": {"type": "number", "const": 3},
-            },
-            "readOnlyProperties": ["/properties/b"],
-            "createOnlyProperties": ["/properties/c"],
-            "primaryIdentifier": ["/properties/c"],
-        }
-        resource_client._update_schema(schema)
-        resource_client.assert_primary_identifier_not_updated(
-            resource_client.primary_identifier_paths,
-            {"a": 1, "b": 2, "c": 3},
-            {"a": 1, "b": 2, "c": 4},
-        )
-
-
-def test_does_primary_identifier_exist_success(resource_client):
-    schema = {
-        "properties": {
-            "a": {"type": "number", "const": 1},
-            "b": {"type": "number", "const": 2},
-            "c": {"type": "number", "const": 3},
-        },
-        "readOnlyProperties": ["/properties/b"],
-        "createOnlyProperties": ["/properties/c"],
-        "primaryIdentifier": ["/properties/c"],
-    }
-    resource_client._update_schema(schema)
-    resource_model = {"a": 1, "b": 2, "c": 3}
-
-    assert resource_client.does_primary_identifier_exist(
-        resource_client.primary_identifier_paths, resource_model, resource_model
-    )
-
-
-def test_does_primary_identifier_exist_fail(resource_client):
-    schema = {
-        "properties": {
-            "a": {"type": "number", "const": 1},
-            "b": {"type": "number", "const": 2},
-            "c": {"type": "number", "const": 3},
-        },
-        "readOnlyProperties": ["/properties/b"],
-        "createOnlyProperties": ["/properties/c"],
-        "primaryIdentifier": ["/properties/c"],
-    }
-    resource_client._update_schema(schema)
-    resource_model = {"a": 1, "b": 2, "c": 3}
-    updated_resource_model = {"a": 1, "b": 2, "c": 4}
-    assert not (
-        resource_client.does_primary_identifier_exist(
-            resource_client.primary_identifier_paths,
-            resource_model,
-            updated_resource_model,
-        )
+def test_assert_primary_identifier_equal_fail(resource_client):
+    resource_client._update_schema(SCHEMA)
+    assert not resource_client.assert_primary_identifier_equal(
+        resource_client.primary_identifier_paths,
+        {"a": 1, "b": 2, "c": 3},
+        {"a": 1, "b": 2, "c": 4},
     )

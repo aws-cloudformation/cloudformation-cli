@@ -279,32 +279,16 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         )
 
     @staticmethod
-    def assert_primary_identifier_not_updated(
+    def assert_primary_identifier_equal(
         primary_identifier_path, created_model, updated_model
     ):
-        assert all(
+        return all(
             traverse(created_model, fragment_list(primary_identifier, "properties"))[0]
             == traverse(updated_model, fragment_list(primary_identifier, "properties"))[
                 0
             ]
             for primary_identifier in primary_identifier_path
         )
-
-    @staticmethod
-    def does_primary_identifier_exist(
-        primary_identifier_path, created_model, updated_model
-    ):
-        result = True
-        for primary_identifier in primary_identifier_path:
-            result = result & (
-                traverse(
-                    created_model, fragment_list(primary_identifier, "properties")
-                )[0]
-                == traverse(
-                    updated_model, fragment_list(primary_identifier, "properties")
-                )[0]
-            )
-        return result
 
     def _make_payload(self, action, request):
         return {

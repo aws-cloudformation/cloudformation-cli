@@ -38,12 +38,10 @@ def contract_list_read_success(created_resource, resource_client):
 def contract_list_empty(resource_client):
     model = resource_client.generate_create_example()
     resource_models = get_resource_model_list(resource_client, model)
-    for resource_model in resource_models:
-        resource_client.call_and_assert(
-            Action.DELETE, OperationStatus.SUCCESS, resource_model
+    if not resource_models:
+        _status, response, _error_code = resource_client.call_and_assert(
+            Action.LIST, OperationStatus.SUCCESS, model
         )
-
-    _status, response, _error_code = resource_client.call_and_assert(
-        Action.LIST, OperationStatus.SUCCESS, model
-    )
-    assert len(response["resourceModels"]) == 0
+        assert len(response["resourceModels"]) == 0
+    else:
+        pytest.skip("Resources exist in the current account")
