@@ -73,5 +73,4 @@ def contract_create_read_success(created_resource, resource_client):
 @pytest.mark.list
 def contract_create_list_success(created_resource, resource_client):
     created_model, _request = created_resource
-    models = test_list_success(resource_client, created_model)
-    assert created_model in models
+    assert test_list_success(resource_client, created_model)

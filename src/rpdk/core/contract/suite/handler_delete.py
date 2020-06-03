@@ -62,8 +62,7 @@ def contract_delete_list(resource_client, deleted_resource):
     #       remove the model from the list, however.
 
     deleted_model, _request = deleted_resource
-    list_models = test_list_success(resource_client, deleted_model)
-    assert deleted_model not in list_models
+    assert not test_list_success(resource_client, deleted_model)
 
 
 @pytest.mark.delete

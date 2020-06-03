@@ -53,8 +53,7 @@ def contract_update_list_success(updated_resource, resource_client):
     resource_client.assert_primary_identifier_not_updated(
         resource_client.primary_identifier_paths, _created_model, updated_model
     )
-    models = test_list_success(resource_client, updated_model)
-    assert updated_model in models
+    assert test_list_success(resource_client, updated_model)
 
 
 @pytest.mark.update

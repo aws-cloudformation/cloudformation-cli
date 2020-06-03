@@ -287,8 +287,24 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
             == traverse(updated_model, fragment_list(primary_identifier, "properties"))[
                 0
             ]
-            for primary_identifier in list(primary_identifier_path)
+            for primary_identifier in primary_identifier_path
         )
+
+    @staticmethod
+    def does_primary_identifier_exist(
+        primary_identifier_path, created_model, updated_model
+    ):
+        result = True
+        for primary_identifier in primary_identifier_path:
+            result = result & (
+                traverse(
+                    created_model, fragment_list(primary_identifier, "properties")
+                )[0]
+                == traverse(
+                    updated_model, fragment_list(primary_identifier, "properties")
+                )[0]
+            )
+        return result
 
     def _make_payload(self, action, request):
         return {
@@ -333,6 +349,7 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         status = OperationStatus[response["status"]]
 
         if action in (Action.READ, Action.LIST):
+            assert status != OperationStatus.IN_PROGRESS
             return status, response
 
         while status == OperationStatus.IN_PROGRESS:
