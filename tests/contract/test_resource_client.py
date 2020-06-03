@@ -406,18 +406,8 @@ def test__make_payload(resource_client):
 @pytest.mark.parametrize("action", [Action.READ, Action.LIST])
 def test_call_sync(resource_client, action):
     mock_client = resource_client._client
-    schema = {
-        "properties": {
-            "a": {"type": "number", "const": 1},
-            "b": {"type": "number", "const": 2},
-            "c": {"type": "number", "const": 3},
-        },
-        "readOnlyProperties": ["/properties/b"],
-        "createOnlyProperties": ["/properties/c"],
-        "primaryIdentifier": ["/properties/c"],
-    }
     mock_client.invoke.return_value = {"Payload": StringIO('{"status": "SUCCESS"}')}
-    status, response = resource_client.call(action, {"resourceModel": schema})
+    status, response = resource_client.call(action, {"resourceModel": SCHEMA})
 
     assert status == OperationStatus.SUCCESS
     assert response == {"status": OperationStatus.SUCCESS.value}
