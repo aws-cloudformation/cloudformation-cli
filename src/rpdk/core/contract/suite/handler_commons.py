@@ -70,11 +70,11 @@ def get_resource_model_list(resource_client, current_resource_model):
     return resource_models
 
 
-def test_list_success(resource_client, current_resource_model):
+def test_model_in_list(resource_client, current_resource_model):
     resource_models = get_resource_model_list(resource_client, current_resource_model)
     result = False
     for resource_model in resource_models:
-        result = result | resource_client.assert_primary_identifier_equal(
+        result = result | resource_client.is_primary_identifier_equal(
             resource_client.primary_identifier_paths,
             resource_model,
             current_resource_model,

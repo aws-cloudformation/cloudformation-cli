@@ -654,18 +654,18 @@ def test_assert_primary_identifier_fail(resource_client):
         )
 
 
-def test_assert_primary_identifier_equal_success(resource_client):
+def test_is_primary_identifier_equal_success(resource_client):
     resource_client._update_schema(SCHEMA)
-    assert resource_client.assert_primary_identifier_equal(
+    assert resource_client.is_primary_identifier_equal(
         resource_client.primary_identifier_paths,
         {"a": 1, "b": 2, "c": 3},
         {"a": 1, "b": 2, "c": 3},
     )
 
 
-def test_assert_primary_identifier_equal_fail(resource_client):
+def test_is_primary_identifier_equal_fail(resource_client):
     resource_client._update_schema(SCHEMA)
-    assert not resource_client.assert_primary_identifier_equal(
+    assert not resource_client.is_primary_identifier_equal(
         resource_client.primary_identifier_paths,
         {"a": 1, "b": 2, "c": 3},
         {"a": 1, "b": 2, "c": 4},

@@ -279,7 +279,7 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         )
 
     @staticmethod
-    def assert_primary_identifier_equal(
+    def is_primary_identifier_equal(
         primary_identifier_path, created_model, updated_model
     ):
         return all(

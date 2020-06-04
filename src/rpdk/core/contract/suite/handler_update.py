@@ -7,7 +7,7 @@ import pytest
 # when being loaded by pytest
 from rpdk.core.contract.interface import Action, HandlerErrorCode, OperationStatus
 from rpdk.core.contract.suite.handler_commons import (
-    test_list_success,
+    test_model_in_list,
     test_read_success,
 )
 
@@ -38,7 +38,7 @@ def contract_update_read_success(updated_resource, resource_client):
     # should be able to use the created model
     # to read since physical resource id is immutable
     _create_request, _created_model, _update_request, updated_model = updated_resource
-    assert resource_client.assert_primary_identifier_equal(
+    assert resource_client.is_primary_identifier_equal(
         resource_client.primary_identifier_paths, _created_model, updated_model
     )
     test_read_success(resource_client, updated_model)
@@ -50,10 +50,10 @@ def contract_update_list_success(updated_resource, resource_client):
     # should be able to use the created model
     # to read since physical resource id is immutable
     _create_request, _created_model, _update_request, updated_model = updated_resource
-    assert resource_client.assert_primary_identifier_equal(
+    assert resource_client.is_primary_identifier_equal(
         resource_client.primary_identifier_paths, _created_model, updated_model
     )
-    assert test_list_success(resource_client, updated_model)
+    assert test_model_in_list(resource_client, updated_model)
 
 
 @pytest.mark.update
