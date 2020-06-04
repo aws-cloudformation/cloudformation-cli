@@ -11,7 +11,7 @@ from rpdk.core.contract.suite.handler_commons import (
     test_create_failure_if_repeat_writeable_id,
     test_create_success,
     test_delete_success,
-    test_list_success,
+    test_model_in_list,
     test_read_success,
 )
 
@@ -71,7 +71,8 @@ def contract_create_read_success(created_resource, resource_client):
 
 @pytest.mark.create
 @pytest.mark.list
+@pytest.mark.read
 def contract_create_list_success(created_resource, resource_client):
     created_model, _request = created_resource
-    models = test_list_success(resource_client, created_model)
-    assert created_model in models
+    assert test_model_in_list(resource_client, created_model)
+    test_read_success(resource_client, created_model)
