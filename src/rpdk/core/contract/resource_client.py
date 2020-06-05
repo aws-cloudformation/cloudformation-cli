@@ -138,7 +138,7 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
             assert not any(
                 traverse(
                     resource_model, fragment_list(write_only_property, "properties")
-                )
+                )[0]
                 for write_only_property in self.write_only_paths
             )
 
