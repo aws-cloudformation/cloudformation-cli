@@ -133,6 +133,15 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
                     return True
         return False
 
+    def assert_write_only_property_does_not_exist(self, resource_model):
+        if self.write_only_paths:
+            assert not any(
+                traverse(
+                    resource_model, fragment_list(write_only_property, "properties")
+                )
+                for write_only_property in self.write_only_paths
+            )
+
     @property
     def strategy(self):
         # an empty strategy (i.e. false-y) is valid
@@ -290,18 +299,6 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
             for primary_identifier in primary_identifier_path
         )
 
-    @staticmethod
-    def assert_write_only_property_does_not_exist(
-        resource_model, write_only_properties
-    ):
-        if write_only_properties:
-            assert not all(
-                traverse(
-                    resource_model, fragment_list(write_only_property, "properties")
-                )
-                for write_only_property in write_only_properties
-            )
-
     def _make_payload(self, action, request):
         return {
             "credentials": self._creds.copy(),
@@ -353,9 +350,7 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
             self.assert_primary_identifier(
                 self.primary_identifier_paths, response.get("resourceModel")
             )
-            self.assert_write_only_property_does_not_exist(
-                response["resourceModel"], self.write_only_paths
-            )
+            self.assert_write_only_property_does_not_exist(response["resourceModel"])
             sleep(callback_delay_seconds)
 
             payload["callbackContext"] = response.get("callbackContext")

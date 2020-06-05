@@ -679,9 +679,7 @@ def test_assert_write_only_property_does_not_exist(resource_client):
         "c": {"type": "number", "const": 3},
     }
     resource_client._update_schema(schema)
-    resource_client.assert_write_only_property_does_not_exist(
-        schema, resource_client.write_only_paths
-    )
+    resource_client.assert_write_only_property_does_not_exist(schema)
 
 
 def test_assert_write_only_property_does_not_exist_success(resource_client):
@@ -700,9 +698,7 @@ def test_assert_write_only_property_does_not_exist_success(resource_client):
         }
         created_resource = {"a": 1, "b": 2, "c": 3}
         resource_client._update_schema(schema)
-        resource_client.assert_write_only_property_does_not_exist(
-            created_resource, resource_client.write_only_paths
-        )
+        resource_client.assert_write_only_property_does_not_exist(created_resource)
 
 
 def test_assert_write_only_property_does_not_exist_fail(resource_client):
@@ -717,7 +713,7 @@ def test_assert_write_only_property_does_not_exist_fail(resource_client):
             "readOnlyProperties": ["/properties/b"],
             "createOnlyProperties": ["/properties/c"],
             "primaryIdentifier": ["/properties/c"],
-            "writeOnlyProperties": ["/properties/d"],
+            "writeOnlyProperties": ["/properties/d", "/properties/a"],
         }
         created_resource = {
             "a": 1,
@@ -726,6 +722,4 @@ def test_assert_write_only_property_does_not_exist_fail(resource_client):
             "d": 4,
         }
         resource_client._update_schema(schema)
-        resource_client.assert_write_only_property_does_not_exist(
-            created_resource, resource_client.write_only_paths
-        )
+        resource_client.assert_write_only_property_does_not_exist(created_resource)
