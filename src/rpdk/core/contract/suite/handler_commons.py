@@ -12,6 +12,9 @@ def test_create_success(resource_client, current_resource_model):
     resource_client.assert_primary_identifier(
         resource_client.primary_identifier_paths, current_resource_model
     )
+    resource_client.assert_write_only_property_does_not_exist(
+        current_resource_model, resource_client.write_only_paths
+    )
     return response
 
 
@@ -41,6 +44,9 @@ def test_read_success(resource_client, current_resource_model):
     assert response["resourceModel"] == current_resource_model
     resource_client.assert_primary_identifier(
         resource_client.primary_identifier_paths, current_resource_model
+    )
+    resource_client.assert_write_only_property_does_not_exist(
+        current_resource_model, resource_client.write_only_paths
     )
     return response
 
@@ -85,6 +91,9 @@ def test_model_in_list(resource_client, current_resource_model):
 def test_update_success(resource_client, update_model, current_model):
     _status, response, _error_code = resource_client.call_and_assert(
         Action.UPDATE, OperationStatus.SUCCESS, update_model, current_model
+    )
+    resource_client.assert_write_only_property_does_not_exist(
+        update_model, resource_client.write_only_paths
     )
     # The response model should be the same as the create output model,
     # except the update-able properties should be overridden.
