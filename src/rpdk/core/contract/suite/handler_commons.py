@@ -58,7 +58,7 @@ def test_read_failure_not_found(resource_client, current_resource_model):
     assert error_code == HandlerErrorCode.NotFound
 
 
-def test_list_success(resource_client, current_resource_model):
+def get_resource_model_list(resource_client, current_resource_model):
     _status, response, _error_code = resource_client.call_and_assert(
         Action.LIST, OperationStatus.SUCCESS, current_resource_model
     )
@@ -74,6 +74,18 @@ def test_list_success(resource_client, current_resource_model):
         resource_models.extend(next_response["resourceModels"])
         next_token = next_response.get("nextToken")
     return resource_models
+
+
+def test_model_in_list(resource_client, current_resource_model):
+    resource_models = get_resource_model_list(resource_client, current_resource_model)
+    return any(
+        resource_client.is_primary_identifier_equal(
+            resource_client.primary_identifier_paths,
+            resource_model,
+            current_resource_model,
+        )
+        for resource_model in resource_models
+    )
 
 
 def test_update_success(resource_client, update_model, current_model):

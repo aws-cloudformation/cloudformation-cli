@@ -11,7 +11,7 @@ from rpdk.core.contract.resource_client import prune_properties_from_model
 from rpdk.core.contract.suite.handler_commons import (
     test_create_success,
     test_delete_failure_not_found,
-    test_list_success,
+    test_model_in_list,
     test_read_failure_not_found,
     test_update_failure_not_found,
 )
@@ -62,8 +62,7 @@ def contract_delete_list(resource_client, deleted_resource):
     #       remove the model from the list, however.
 
     deleted_model, _request = deleted_resource
-    list_models = test_list_success(resource_client, deleted_model)
-    assert deleted_model not in list_models
+    assert not test_model_in_list(resource_client, deleted_model)
 
 
 @pytest.mark.delete

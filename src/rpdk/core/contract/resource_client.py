@@ -279,15 +279,15 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         )
 
     @staticmethod
-    def assert_primary_identifier_not_updated(
+    def is_primary_identifier_equal(
         primary_identifier_path, created_model, updated_model
     ):
-        assert all(
+        return all(
             traverse(created_model, fragment_list(primary_identifier, "properties"))[0]
             == traverse(updated_model, fragment_list(primary_identifier, "properties"))[
                 0
             ]
-            for primary_identifier in list(primary_identifier_path)
+            for primary_identifier in primary_identifier_path
         )
 
     @staticmethod
@@ -345,6 +345,7 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         status = OperationStatus[response["status"]]
 
         if action in (Action.READ, Action.LIST):
+            assert status != OperationStatus.IN_PROGRESS
             return status, response
 
         while status == OperationStatus.IN_PROGRESS:
