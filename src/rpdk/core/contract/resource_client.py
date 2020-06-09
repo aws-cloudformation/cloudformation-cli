@@ -136,9 +136,7 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
     def assert_write_only_property_does_not_exist(self, resource_model):
         if self.write_only_paths:
             assert not any(
-                traverse(
-                    resource_model, fragment_list(write_only_property, "properties")
-                )[0]
+                self.key_error_safe_traverse(resource_model, write_only_property)
                 for write_only_property in self.write_only_paths
             )
 
@@ -213,6 +211,15 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         overrides = self._overrides.get("UPDATE", self._overrides.get("CREATE", {}))
         example = override_properties(self.invalid_strategy.example(), overrides)
         return {**create_model, **example}
+
+    @staticmethod
+    def key_error_safe_traverse(resource_model, write_only_property):
+        try:
+            return traverse(
+                resource_model, fragment_list(write_only_property, "properties")
+            )[0]
+        except KeyError:
+            return None
 
     @staticmethod
     def assert_in_progress(status, response):

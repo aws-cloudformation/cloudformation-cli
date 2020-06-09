@@ -699,7 +699,7 @@ def test_assert_write_only_property_does_not_exist(resource_client):
 
 @pytest.mark.parametrize("schema", [SCHEMA, SCHEMA_WITH_MULTIPLE_WRITE_PROPERTIES])
 def test_assert_write_only_property_does_not_exist_success(resource_client, schema):
-    created_resource = {"a": None, "b": 2, "c": 3, "d": None}
+    created_resource = {"a": None, "b": 2, "c": 3}
     resource_client._update_schema(schema)
     resource_client.assert_write_only_property_does_not_exist(created_resource)
 
