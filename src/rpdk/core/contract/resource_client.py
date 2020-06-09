@@ -114,7 +114,7 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
 
         self.primary_identifier_paths = self._properties_to_paths("primaryIdentifier")
         self.read_only_paths = self._properties_to_paths("readOnlyProperties")
-        self._write_only_paths = self._properties_to_paths("writeOnlyProperties")
+        self.write_only_paths = self._properties_to_paths("writeOnlyProperties")
         self.create_only_paths = self._properties_to_paths("createOnlyProperties")
 
         additional_identifiers = self._schema.get("additionalIdentifiers", [])
@@ -132,6 +132,13 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
                 if path not in self.read_only_paths:
                     return True
         return False
+
+    def assert_write_only_property_does_not_exist(self, resource_model):
+        if self.write_only_paths:
+            assert not any(
+                self.key_error_safe_traverse(resource_model, write_only_property)
+                for write_only_property in self.write_only_paths
+            )
 
     @property
     def strategy(self):
@@ -204,6 +211,15 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         overrides = self._overrides.get("UPDATE", self._overrides.get("CREATE", {}))
         example = override_properties(self.invalid_strategy.example(), overrides)
         return {**create_model, **example}
+
+    @staticmethod
+    def key_error_safe_traverse(resource_model, write_only_property):
+        try:
+            return traverse(
+                resource_model, fragment_list(write_only_property, "properties")
+            )[0]
+        except KeyError:
+            return None
 
     @staticmethod
     def assert_in_progress(status, response):
@@ -341,6 +357,7 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
             self.assert_primary_identifier(
                 self.primary_identifier_paths, response.get("resourceModel")
             )
+            self.assert_write_only_property_does_not_exist(response["resourceModel"])
             sleep(callback_delay_seconds)
 
             payload["callbackContext"] = response.get("callbackContext")

@@ -30,10 +30,25 @@ SCHEMA = {
         "a": {"type": "number", "const": 1},
         "b": {"type": "number", "const": 2},
         "c": {"type": "number", "const": 3},
+        "d": {"type": "number", "const": 4},
     },
     "readOnlyProperties": ["/properties/b"],
     "createOnlyProperties": ["/properties/c"],
     "primaryIdentifier": ["/properties/c"],
+    "writeOnlyProperties": ["/properties/d"],
+}
+
+SCHEMA_WITH_MULTIPLE_WRITE_PROPERTIES = {
+    "properties": {
+        "a": {"type": "number", "const": 1},
+        "b": {"type": "number", "const": 2},
+        "c": {"type": "number", "const": 3},
+        "d": {"type": "number", "const": 4},
+    },
+    "readOnlyProperties": ["/properties/b"],
+    "createOnlyProperties": ["/properties/c"],
+    "primaryIdentifier": ["/properties/c"],
+    "writeOnlyProperties": ["/properties/d", "/properties/a"],
 }
 
 
@@ -152,7 +167,7 @@ def test_update_schema(resource_client):
     assert resource_client._strategy is None
     assert resource_client.primary_identifier_paths == {("properties", "a")}
     assert resource_client.read_only_paths == {("properties", "b")}
-    assert resource_client._write_only_paths == {("properties", "c")}
+    assert resource_client.write_only_paths == {("properties", "c")}
     assert resource_client.create_only_paths == {("properties", "d")}
 
 
@@ -670,3 +685,28 @@ def test_is_primary_identifier_equal_fail(resource_client):
         {"a": 1, "b": 2, "c": 3},
         {"a": 1, "b": 2, "c": 4},
     )
+
+
+def test_assert_write_only_property_does_not_exist(resource_client):
+    schema = {
+        "a": {"type": "number", "const": 1},
+        "b": {"type": "number", "const": 2},
+        "c": {"type": "number", "const": 3},
+    }
+    resource_client._update_schema(schema)
+    resource_client.assert_write_only_property_does_not_exist(schema)
+
+
+@pytest.mark.parametrize("schema", [SCHEMA, SCHEMA_WITH_MULTIPLE_WRITE_PROPERTIES])
+def test_assert_write_only_property_does_not_exist_success(resource_client, schema):
+    created_resource = {"a": None, "b": 2, "c": 3}
+    resource_client._update_schema(schema)
+    resource_client.assert_write_only_property_does_not_exist(created_resource)
+
+
+@pytest.mark.parametrize("schema", [SCHEMA, SCHEMA_WITH_MULTIPLE_WRITE_PROPERTIES])
+def test_assert_write_only_property_does_not_exist_fail(resource_client, schema):
+    with pytest.raises(AssertionError):
+        created_resource = {"a": 1, "b": 2, "c": 3, "d": 4}
+        resource_client._update_schema(schema)
+        resource_client.assert_write_only_property_does_not_exist(created_resource)
