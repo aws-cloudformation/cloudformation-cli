@@ -4,6 +4,7 @@ Projects can be created via the 'init' sub command.
 """
 import json
 import logging
+import os
 from argparse import SUPPRESS
 from contextlib import contextmanager
 from pathlib import Path
@@ -29,6 +30,7 @@ LOG = logging.getLogger(__name__)
 DEFAULT_ENDPOINT = "http://127.0.0.1:3001"
 DEFAULT_FUNCTION = "TestEntrypoint"
 DEFAULT_REGION = "us-east-1"
+INPUTS = "inputs"
 
 OVERRIDES_VALIDATOR = Draft6Validator(
     {
@@ -119,6 +121,40 @@ def get_overrides(root, region_name, endpoint_url):
     return overrides
 
 
+# pylint: disable=R0914
+def get_inputs(root, region_name, endpoint_url, value):
+    inputs = []
+    if not root:
+        return None
+
+    path = root / INPUTS
+    if not os.path.isdir(path):
+        return None
+
+    file_prefix = INPUTS + str(value) + "_"
+
+    directories = os.listdir(path)
+    if len(directories) > 0:
+        for file in directories:
+            if file_prefix in file:
+                index = get_index(file)
+                file_path = path / file
+                with file_path.open("r", encoding="utf-8") as f:
+                    overrides_raw = render_jinja(f.read(), region_name, endpoint_url)
+                overrides = {}
+                for pointer, obj in overrides_raw.items():
+                    overrides[pointer] = obj
+                inputs.insert(index, overrides)
+        return inputs
+    return None
+
+
+def get_index(file_name):
+    file = file_name.replace(".json", "")
+    separate_list = file.split("_")
+    return int(separate_list[-1]) - 1
+
+
 def get_marker_options(schema):
     lowercase_actions = {action.lower() for action in Action}
     excluded_actions = lowercase_actions - schema.get("handlers", {}).keys()
@@ -134,6 +170,21 @@ def test(args):
         project.root, args.region, args.cloudformation_endpoint_url
     )
 
+    index = 1
+    while True:
+        inputs = get_inputs(
+            project.root, args.region, args.cloudformation_endpoint_url, index
+        )
+        if not inputs:
+            break
+        invoke_test(args, project, overrides, inputs)
+        index = index + 1
+
+    if index == 1:
+        invoke_test(args, project, overrides, None)
+
+
+def invoke_test(args, project, overrides, inputs):
     plugin = ContractPlugin(
         ResourceClient(
             args.function_name,
@@ -141,6 +192,7 @@ def test(args):
             args.region,
             project.schema,
             overrides,
+            inputs,
             args.role_arn,
         )
     )

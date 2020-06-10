@@ -70,7 +70,14 @@ def override_properties(document, overrides):
 
 class ResourceClient:  # pylint: disable=too-many-instance-attributes
     def __init__(
-        self, function_name, endpoint, region, schema, overrides, role_arn=None
+        self,
+        function_name,
+        endpoint,
+        region,
+        schema,
+        overrides,
+        inputs=None,
+        role_arn=None,
     ):  # pylint: disable=too-many-arguments
         self._schema = schema
         self._session = create_sdk_session(region)
@@ -101,6 +108,7 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         self._invalid_strategy = None
         self._overrides = overrides
         self._update_schema(schema)
+        self._inputs = inputs
 
     def _properties_to_paths(self, key):
         return {fragment_decode(prop, prefix="") for prop in self._schema.get(key, [])}
@@ -195,19 +203,27 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         return self._update_strategy
 
     def generate_create_example(self):
+        if self._inputs:
+            return self._inputs[0]
         example = self.strategy.example()
         return override_properties(example, self._overrides.get("CREATE", {}))
 
     def generate_invalid_create_example(self):
+        if self._inputs:
+            return self._inputs[2]
         example = self.invalid_strategy.example()
         return override_properties(example, self._overrides.get("CREATE", {}))
 
     def generate_update_example(self, create_model):
+        if self._inputs:
+            return {**create_model, **self._inputs[1]}
         overrides = self._overrides.get("UPDATE", self._overrides.get("CREATE", {}))
         example = override_properties(self.update_strategy.example(), overrides)
         return {**create_model, **example}
 
     def generate_invalid_update_example(self, create_model):
+        if self._inputs:
+            return {**create_model, **self._inputs[2]}
         overrides = self._overrides.get("UPDATE", self._overrides.get("CREATE", {}))
         example = override_properties(self.invalid_strategy.example(), overrides)
         return {**create_model, **example}

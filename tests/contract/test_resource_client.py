@@ -81,6 +81,40 @@ def resource_client():
     return client
 
 
+@pytest.fixture
+def resource_client_inputs():
+    endpoint = "https://"
+    patch_sesh = patch(
+        "rpdk.core.contract.resource_client.create_sdk_session", autospec=True
+    )
+    patch_creds = patch(
+        "rpdk.core.contract.resource_client.get_temporary_credentials",
+        autospec=True,
+        return_value={},
+    )
+    with patch_sesh as mock_create_sesh, patch_creds as mock_creds:
+        mock_sesh = mock_create_sesh.return_value
+        mock_sesh.region_name = DEFAULT_REGION
+        client = ResourceClient(
+            DEFAULT_FUNCTION,
+            endpoint,
+            DEFAULT_REGION,
+            {},
+            EMPTY_OVERRIDE,
+            [{"a": 1}, {"a": 2}, {"b": 2}],
+        )
+
+    mock_sesh.client.assert_called_once_with("lambda", endpoint_url=endpoint)
+    mock_creds.assert_called_once_with(mock_sesh, LOWER_CAMEL_CRED_KEYS, None)
+
+    assert client._creds == {}
+    assert client._function_name == DEFAULT_FUNCTION
+    assert client._schema == {}
+    assert client._overrides == EMPTY_OVERRIDE
+
+    return client
+
+
 def test_prune_properties():
     document = {
         "foo": "bar",
@@ -697,3 +731,22 @@ def test_assert_write_only_property_does_not_exist_fail(resource_client, schema)
         created_resource = {"a": 1, "b": 2, "c": 3, "d": 4}
         resource_client._update_schema(schema)
         resource_client.assert_write_only_property_does_not_exist(created_resource)
+
+
+def test_generate_create_example_with_inputs(resource_client_inputs):
+    assert resource_client_inputs.generate_create_example() == {"a": 1}
+
+
+def test_generate_invalid_create_example_with_inputs(resource_client_inputs):
+    assert resource_client_inputs.generate_invalid_create_example() == {"b": 2}
+
+
+def test_generate_update_example_with_inputs(resource_client_inputs):
+    assert resource_client_inputs.generate_update_example({"a": 1}) == {"a": 2}
+
+
+def test_generate_invalid_update_example_with_inputs(resource_client_inputs):
+    assert resource_client_inputs.generate_invalid_update_example({"a": 1}) == {
+        "a": 1,
+        "b": 2,
+    }
