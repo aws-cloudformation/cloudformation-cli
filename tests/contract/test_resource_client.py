@@ -539,11 +539,6 @@ def test_assert_success_callback_delay_seconds_set():
         )
 
 
-def test_assert_success_callback_context_set():
-    with pytest.raises(AssertionError):
-        ResourceClient.assert_success(OperationStatus.SUCCESS, {"callbackContext": []})
-
-
 @pytest.mark.parametrize(
     "status", [OperationStatus.IN_PROGRESS, OperationStatus.SUCCESS]
 )
@@ -589,14 +584,6 @@ def test_assert_failed_resource_models_set():
         ResourceClient.assert_failed(
             OperationStatus.FAILED,
             {"errorCode": HandlerErrorCode.AccessDenied.value, "resourceModels": []},
-        )
-
-
-def test_assert_failed_callback_context_set():
-    with pytest.raises(AssertionError):
-        ResourceClient.assert_failed(
-            OperationStatus.FAILED,
-            {"errorCode": HandlerErrorCode.AccessDenied.value, "callbackContext": []},
         )
 
 

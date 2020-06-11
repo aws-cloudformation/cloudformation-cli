@@ -242,9 +242,6 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         assert (
             response.get("callbackDelaySeconds", 0) == 0
         ), "SUCCESS events should have no callback delay"
-        assert (
-            response.get("callbackContext") is None
-        ), "SUCCESS events should not return a callback context"
 
     @staticmethod
     def assert_failed(status, response):
@@ -261,9 +258,6 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         assert (
             response.get("resourceModels") is None
         ), "FAILED events should not include any resource models"
-        assert (
-            response.get("callbackContext") is None
-        ), "FAILED events should not return a callback context"
 
         return error_code
 
