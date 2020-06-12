@@ -101,7 +101,7 @@ def resource_client_inputs():
             DEFAULT_REGION,
             {},
             EMPTY_OVERRIDE,
-            [{"a": 1}, {"a": 2}, {"b": 2}],
+            {"CREATE": {"a": 1}, "UPDATE": {"a": 2}, "INVALID": {"b": 2}},
         )
 
     mock_sesh.client.assert_called_once_with("lambda", endpoint_url=endpoint)

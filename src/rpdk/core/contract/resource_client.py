@@ -204,26 +204,26 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
 
     def generate_create_example(self):
         if self._inputs:
-            return self._inputs[0]
+            return self._inputs["CREATE"]
         example = self.strategy.example()
         return override_properties(example, self._overrides.get("CREATE", {}))
 
     def generate_invalid_create_example(self):
         if self._inputs:
-            return self._inputs[2]
+            return self._inputs["INVALID"]
         example = self.invalid_strategy.example()
         return override_properties(example, self._overrides.get("CREATE", {}))
 
     def generate_update_example(self, create_model):
         if self._inputs:
-            return {**create_model, **self._inputs[1]}
+            return {**create_model, **self._inputs["UPDATE"]}
         overrides = self._overrides.get("UPDATE", self._overrides.get("CREATE", {}))
         example = override_properties(self.update_strategy.example(), overrides)
         return {**create_model, **example}
 
     def generate_invalid_update_example(self, create_model):
         if self._inputs:
-            return {**create_model, **self._inputs[2]}
+            return {**create_model, **self._inputs["INVALID"]}
         overrides = self._overrides.get("UPDATE", self._overrides.get("CREATE", {}))
         example = override_properties(self.invalid_strategy.example(), overrides)
         return {**create_model, **example}

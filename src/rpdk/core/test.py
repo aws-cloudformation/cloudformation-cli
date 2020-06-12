@@ -123,7 +123,7 @@ def get_overrides(root, region_name, endpoint_url):
 
 # pylint: disable=R0914
 def get_inputs(root, region_name, endpoint_url, value):
-    inputs = []
+    inputs = {}
     if not root:
         return None
 
@@ -131,28 +131,36 @@ def get_inputs(root, region_name, endpoint_url, value):
     if not os.path.isdir(path):
         return None
 
-    file_prefix = INPUTS + str(value) + "_"
+    file_prefix = INPUTS + "_"
+    file_postfix = "_" + str(value) + ".json"
 
     directories = os.listdir(path)
     if len(directories) > 0:
         for file in directories:
-            if file_prefix in file:
-                index = get_index(file)
+            if file.endswith(file_postfix) and file.startswith(file_prefix):
+                input_type = get_type(file)
+                if not input_type:
+                    continue
+
                 file_path = path / file
                 with file_path.open("r", encoding="utf-8") as f:
                     overrides_raw = render_jinja(f.read(), region_name, endpoint_url)
                 overrides = {}
                 for pointer, obj in overrides_raw.items():
                     overrides[pointer] = obj
-                inputs.insert(index, overrides)
+                inputs[input_type] = overrides
         return inputs
     return None
 
 
-def get_index(file_name):
-    file = file_name.replace(".json", "")
-    separate_list = file.split("_")
-    return int(separate_list[-1]) - 1
+def get_type(file_name):
+    if "create" in file_name:
+        return "CREATE"
+    if "update" in file_name:
+        return "UPDATE"
+    if "invalid" in file_name:
+        return "INVALID"
+    return None
 
 
 def get_marker_options(schema):

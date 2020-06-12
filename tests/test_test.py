@@ -43,17 +43,26 @@ def create_input_file(base, create_string, update_string, invalid_string):
     path = base / "inputs"
     os.mkdir(path, mode=0o777)
 
-    path_create = path / "inputs1_001.json"
+    path_create = path / "inputs_create_1.json"
     with path_create.open("w", encoding="utf-8") as f:
         f.write(create_string)
 
-    path_update = path / "inputs1_002.json"
+    path_update = path / "inputs_update_1.json"
     with path_update.open("w", encoding="utf-8") as f:
         f.write(update_string)
 
-    path_invalid = path / "inputs1_003.json"
+    path_invalid = path / "inputs_invalid_1.json"
     with path_invalid.open("w", encoding="utf-8") as f:
         f.write(invalid_string)
+
+
+def create_invalid_input_file(base):
+    path = base / "inputs"
+    os.mkdir(path, mode=0o777)
+
+    path_create = path / "inputs_test_1.json"
+    with path_create.open("w", encoding="utf-8") as f:
+        f.write('{"a": 1}')
 
 
 @pytest.mark.parametrize(
@@ -108,7 +117,7 @@ def test_test_command_happy_path(
         region,
         mock_project.schema,
         EMPTY_OVERRIDE,
-        [{"a": 1}, {"a": 2}, {"b": 1}],
+        {"CREATE": {"a": 1}, "UPDATE": {"a": 2}, "INVALID": {"b": 1}},
         None,
     )
     mock_plugin.assert_called_once_with(mock_client.return_value)
@@ -270,9 +279,13 @@ def test_get_marker_options(schema, expected_marker_keywords):
         (
             '{"Name": "TestName"}',
             '{"Name": "TestNameNew"}',
-            "{}",
+            '{"Name": "TestNameNew"}',
             [{"Exports": [{"Value": "TestValue", "Name": "Test"}]}],
-            [{"Name": "TestName"}, {"Name": "TestNameNew"}, {}],
+            {
+                "CREATE": {"Name": "TestName"},
+                "UPDATE": {"Name": "TestNameNew"},
+                "INVALID": {"Name": "TestNameNew"},
+            },
         )
     ],
 )
@@ -298,6 +311,23 @@ def test_with_inputs(
         result = get_inputs(base, DEFAULT_REGION, None, 1)
 
     assert result == expected_inputs
+
+
+def test_with_inputs_invalid(base):
+    mock_cfn_client = Mock(spec=["get_paginator"])
+    mock_paginator = Mock(spec=["paginate"])
+    mock_cfn_client.get_paginator.return_value = mock_paginator
+    mock_paginator.paginate.return_value = (
+        '[{"Exports": [{"Value": "TestValue", "Name": "Test"}]}]'
+    )
+    patch_sdk = patch("rpdk.core.test.create_sdk_session", autospec=True)
+
+    create_invalid_input_file(base)
+    with patch_sdk as mock_sdk:
+        mock_sdk.return_value.client.side_effect = [mock_cfn_client, Mock()]
+        result = get_inputs(base, DEFAULT_REGION, None, 1)
+
+    assert not result
 
 
 def test_get_input_invalid_root():
