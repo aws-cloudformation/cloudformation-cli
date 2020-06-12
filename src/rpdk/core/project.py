@@ -20,6 +20,7 @@ from .exceptions import (
     SpecValidationError,
 )
 from .jsonutils.pointer import fragment_decode, fragment_encode
+from .jsonutils.resolver import MULTIPLE, convert_list_to_object
 from .jsonutils.utils import traverse
 from .plugin_registry import load_plugin
 from .upload import Uploader
@@ -73,6 +74,7 @@ BASIC_TYPE_MAPPINGS = {
     "number": "Double",
     "integer": "Double",
     "boolean": "Boolean",
+    MULTIPLE: "Object",
 }
 
 
@@ -432,7 +434,7 @@ class Project:  # pylint: disable=too-many-instance-attributes
         ):
             prop["readonly"] = True
 
-        prop_type = prop.get("type", "object")
+        prop_type = convert_list_to_object(prop.get("type", "object"))
 
         if prop_type in BASIC_TYPE_MAPPINGS:
             mapped = BASIC_TYPE_MAPPINGS[prop_type]

@@ -54,6 +54,12 @@
             "items": {
                 "$ref": "#/definitions/obj2def"
             }
+        },
+        "obj3": {
+            "type": [
+                "object"
+            ],
+            "description": ""
         }
     },
     "primaryIdentifier": [

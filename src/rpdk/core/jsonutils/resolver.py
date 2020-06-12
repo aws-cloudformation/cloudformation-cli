@@ -6,6 +6,7 @@ from .flattener import JsonSchemaFlattener
 from .utils import BASE, fragment_encode
 
 UNDEFINED = "undefined"
+MULTIPLE = "multiple"
 
 
 class ContainerType(Enum):
@@ -26,6 +27,14 @@ class ResolvedType:
 
     def __eq__(self, other):
         return self.container == other.container and self.type == other.type
+
+
+def convert_list_to_object(prop_type):
+    if isinstance(
+        prop_type, list
+    ):  # generate a generic type Object which will be casted on the client side
+        return MULTIPLE
+    return prop_type
 
 
 class ModelResolver:
@@ -104,7 +113,7 @@ class ModelResolver:
             return self._get_array_lang_type(property_schema)
         if schema_type == "object":
             return self._get_object_lang_type(property_schema)
-        return self._get_primitive_lang_type(schema_type)
+        return self._get_primitive_lang_type(convert_list_to_object(schema_type))
 
     @staticmethod
     def _get_array_container_type(property_schema):
