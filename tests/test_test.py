@@ -43,15 +43,15 @@ def create_input_file(base, create_string, update_string, invalid_string):
     path = base / "inputs"
     os.mkdir(path, mode=0o777)
 
-    path_create = path / "inputs_create_1.json"
+    path_create = path / "inputs_1_create.json"
     with path_create.open("w", encoding="utf-8") as f:
         f.write(create_string)
 
-    path_update = path / "inputs_update_1.json"
+    path_update = path / "inputs_1_update.json"
     with path_update.open("w", encoding="utf-8") as f:
         f.write(update_string)
 
-    path_invalid = path / "inputs_invalid_1.json"
+    path_invalid = path / "inputs_1_invalid.json"
     with path_invalid.open("w", encoding="utf-8") as f:
         f.write(invalid_string)
 
@@ -60,7 +60,7 @@ def create_invalid_input_file(base):
     path = base / "inputs"
     os.mkdir(path, mode=0o777)
 
-    path_create = path / "inputs_test_1.json"
+    path_create = path / "inputs_1_test.json"
     with path_create.open("w", encoding="utf-8") as f:
         f.write('{"a": 1}')
 

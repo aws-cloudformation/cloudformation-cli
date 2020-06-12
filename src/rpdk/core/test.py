@@ -131,13 +131,12 @@ def get_inputs(root, region_name, endpoint_url, value):
     if not os.path.isdir(path):
         return None
 
-    file_prefix = INPUTS + "_"
-    file_postfix = "_" + str(value) + ".json"
+    file_prefix = INPUTS + "_" + str(value)
 
     directories = os.listdir(path)
     if len(directories) > 0:
         for file in directories:
-            if file.endswith(file_postfix) and file.startswith(file_prefix):
+            if file.startswith(file_prefix) and file.endswith(".json"):
                 input_type = get_type(file)
                 if not input_type:
                     continue
