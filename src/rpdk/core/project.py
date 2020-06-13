@@ -20,7 +20,7 @@ from .exceptions import (
     SpecValidationError,
 )
 from .jsonutils.pointer import fragment_decode, fragment_encode
-from .jsonutils.resolver import MULTIPLE, convert_list_to_object
+from .jsonutils.resolver import MULTIPLE
 from .jsonutils.utils import traverse
 from .plugin_registry import load_plugin
 from .upload import Uploader
@@ -74,9 +74,11 @@ BASIC_TYPE_MAPPINGS = {
     "number": "Double",
     "integer": "Double",
     "boolean": "Boolean",
-    MULTIPLE: "Object",
 }
 
+MULTIPLE_TYPE_MAPPINGS = {
+    MULTIPLE: "Object",
+}
 
 MARKDOWN_RESERVED_CHARACTERS = frozenset({"^", "*", "+", ".", "(", "[", "{", "#"})
 
@@ -434,9 +436,12 @@ class Project:  # pylint: disable=too-many-instance-attributes
         ):
             prop["readonly"] = True
 
-        prop_type = convert_list_to_object(prop.get("type", "object"))
+        prop_type = prop.get("type", "object")
 
-        if prop_type in BASIC_TYPE_MAPPINGS:
+        if isinstance(prop_type, list):
+            mapped = MULTIPLE_TYPE_MAPPINGS[MULTIPLE]
+            prop["jsontype"] = prop["yamltype"] = prop["longformtype"] = mapped
+        elif prop_type in BASIC_TYPE_MAPPINGS:
             mapped = BASIC_TYPE_MAPPINGS[prop_type]
             prop["jsontype"] = prop["yamltype"] = prop["longformtype"] = mapped
         elif prop_type == "array":
