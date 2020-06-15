@@ -447,7 +447,9 @@ class Project:  # pylint: disable=too-many-instance-attributes
 
         prop_type = prop.get("type", "object")
 
-        if prop_type in BASIC_TYPE_MAPPINGS:
+        if isinstance(prop_type, list):
+            prop["jsontype"] = prop["yamltype"] = prop["longformtype"] = "Object"
+        elif prop_type in BASIC_TYPE_MAPPINGS:
             mapped = BASIC_TYPE_MAPPINGS[prop_type]
             prop["jsontype"] = prop["yamltype"] = prop["longformtype"] = mapped
         elif prop_type == "array":
