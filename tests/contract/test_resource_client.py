@@ -746,7 +746,4 @@ def test_generate_update_example_with_inputs(resource_client_inputs):
 
 
 def test_generate_invalid_update_example_with_inputs(resource_client_inputs):
-    assert resource_client_inputs.generate_invalid_update_example({"a": 1}) == {
-        "a": 1,
-        "b": 2,
-    }
+    assert resource_client_inputs.generate_invalid_update_example({"a": 1}) == {"b": 2}
