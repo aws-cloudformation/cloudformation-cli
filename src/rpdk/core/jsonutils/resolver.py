@@ -109,7 +109,7 @@ class ModelResolver:
         if isinstance(
             schema_type, list
         ):  # generate a generic type Object which will be casted on the client side
-            return self._get_multiple_lang_type()
+            return self._get_multiple_lang_type(MULTIPLE)
         return self._get_primitive_lang_type(schema_type)
 
     @staticmethod
@@ -123,8 +123,8 @@ class ModelResolver:
         return ContainerType.SET
 
     @staticmethod
-    def _get_multiple_lang_type():
-        return ResolvedType(ContainerType.MULTIPLE, MULTIPLE)
+    def _get_multiple_lang_type(schema_type):
+        return ResolvedType(ContainerType.MULTIPLE, schema_type)
 
     @staticmethod
     def _get_primitive_lang_type(schema_type):
