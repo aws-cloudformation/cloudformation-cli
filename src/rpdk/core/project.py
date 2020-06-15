@@ -1,5 +1,6 @@
 import json
 import logging
+import os
 import shutil
 import zipfile
 from pathlib import Path
@@ -29,6 +30,7 @@ LOG = logging.getLogger(__name__)
 SETTINGS_FILENAME = ".rpdk-config"
 SCHEMA_UPLOAD_FILENAME = "schema.json"
 OVERRIDES_FILENAME = "overrides.json"
+INPUTS_FOLDER = "inputs"
 ROLE_TEMPLATE_FILENAME = "resource-role.yaml"
 TYPE_NAME_REGEX = "^[a-zA-Z0-9]{2,64}::[a-zA-Z0-9]{2,64}::[a-zA-Z0-9]{2,64}$"
 
@@ -137,6 +139,10 @@ class Project:  # pylint: disable=too-many-instance-attributes
     @property
     def overrides_path(self):
         return self.root / OVERRIDES_FILENAME
+
+    @property
+    def inputs_path(self):
+        return self.root / INPUTS_FOLDER
 
     @staticmethod
     def _raise_invalid_project(msg, e):
@@ -333,6 +339,13 @@ class Project:  # pylint: disable=too-many-instance-attributes
                     LOG.debug(
                         "%s not found. Not writing to package.", OVERRIDES_FILENAME
                     )
+                if os.path.isdir(self.inputs_path):
+                    for filename in os.listdir(self.inputs_path):
+                        absolute_path = self.inputs_path / filename
+                        zip_file.write(absolute_path, INPUTS_FOLDER + "/" + filename)
+                        LOG.debug("%s found. Writing to package.", filename)
+                else:
+                    LOG.debug("%s not found. Not writing to package.", INPUTS_FOLDER)
                 self._plugin.package(self, zip_file)
 
             if dry_run:

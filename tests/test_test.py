@@ -1,6 +1,7 @@
 # fixture and parameter have the same name
 # pylint: disable=redefined-outer-name
 import json
+import os
 from contextlib import contextmanager
 from pathlib import Path
 from unittest.mock import Mock, patch
@@ -15,6 +16,7 @@ from rpdk.core.test import (
     DEFAULT_FUNCTION,
     DEFAULT_REGION,
     empty_override,
+    get_inputs,
     get_marker_options,
     get_overrides,
     temporary_ini_file,
@@ -27,9 +29,40 @@ EMPTY_OVERRIDE = empty_override()
 SCHEMA = {"handlers": {action.lower(): [] for action in Action}}
 
 
+@pytest.fixture
+def base(tmpdir):
+    return Path(tmpdir)
+
+
 @contextmanager
 def mock_temporary_ini_file():
     yield RANDOM_INI
+
+
+def create_input_file(base, create_string, update_string, invalid_string):
+    path = base / "inputs"
+    os.mkdir(path, mode=0o777)
+
+    path_create = path / "inputs_1_create.json"
+    with path_create.open("w", encoding="utf-8") as f:
+        f.write(create_string)
+
+    path_update = path / "inputs_1_update.json"
+    with path_update.open("w", encoding="utf-8") as f:
+        f.write(update_string)
+
+    path_invalid = path / "inputs_1_invalid.json"
+    with path_invalid.open("w", encoding="utf-8") as f:
+        f.write(invalid_string)
+
+
+def create_invalid_input_file(base):
+    path = base / "inputs"
+    os.mkdir(path, mode=0o777)
+
+    path_create = path / "inputs_1_test.json"
+    with path_create.open("w", encoding="utf-8") as f:
+        f.write('{"a": 1}')
 
 
 @pytest.mark.parametrize(
@@ -51,11 +84,12 @@ def mock_temporary_ini_file():
     ],
 )
 def test_test_command_happy_path(
-    capsys, args_in, pytest_args, plugin_args
+    base, capsys, args_in, pytest_args, plugin_args
 ):  # pylint: disable=too-many-locals
+    create_input_file(base, '{"a": 1}', '{"a": 2}', '{"b": 1}')
     mock_project = Mock(spec=Project)
     mock_project.schema = SCHEMA
-    mock_project.root = None
+    mock_project.root = base
 
     patch_project = patch(
         "rpdk.core.test.Project", autospec=True, return_value=mock_project
@@ -78,7 +112,13 @@ def test_test_command_happy_path(
     mock_project.load.assert_called_once_with()
     function_name, endpoint, region = plugin_args
     mock_client.assert_called_once_with(
-        function_name, endpoint, region, mock_project.schema, EMPTY_OVERRIDE, None
+        function_name,
+        endpoint,
+        region,
+        mock_project.schema,
+        EMPTY_OVERRIDE,
+        {"CREATE": {"a": 1}, "UPDATE": {"a": 2}, "INVALID": {"b": 1}},
+        None,
     )
     mock_plugin.assert_called_once_with(mock_client.return_value)
     mock_ini.assert_called_once_with()
@@ -121,11 +161,6 @@ def test_temporary_ini_file():
 
 def test_get_overrides_no_root():
     assert get_overrides(None, DEFAULT_REGION, "") == EMPTY_OVERRIDE
-
-
-@pytest.fixture
-def base(tmpdir):
-    return Path(tmpdir)
 
 
 def test_get_overrides_file_not_found(base):
@@ -235,3 +270,75 @@ def test_get_overrides_with_jinja(
 def test_get_marker_options(schema, expected_marker_keywords):
     marker_options = get_marker_options(schema)
     assert all(keyword in marker_options for keyword in expected_marker_keywords)
+
+
+@pytest.mark.parametrize(
+    "create_string,update_string,invalid_string,"
+    "list_exports_return_value,expected_inputs",
+    [
+        (
+            '{"Name": "TestName"}',
+            '{"Name": "TestNameNew"}',
+            '{"Name": "TestNameNew"}',
+            [{"Exports": [{"Value": "TestValue", "Name": "Test"}]}],
+            {
+                "CREATE": {"Name": "TestName"},
+                "UPDATE": {"Name": "TestNameNew"},
+                "INVALID": {"Name": "TestNameNew"},
+            },
+        )
+    ],
+)
+# pylint: disable=R0913
+# pylint: disable=R0914
+def test_with_inputs(
+    base,
+    create_string,
+    update_string,
+    invalid_string,
+    list_exports_return_value,
+    expected_inputs,
+):
+    mock_cfn_client = Mock(spec=["get_paginator"])
+    mock_paginator = Mock(spec=["paginate"])
+    mock_cfn_client.get_paginator.return_value = mock_paginator
+    mock_paginator.paginate.return_value = list_exports_return_value
+    patch_sdk = patch("rpdk.core.test.create_sdk_session", autospec=True)
+
+    create_input_file(base, create_string, update_string, invalid_string)
+    with patch_sdk as mock_sdk:
+        mock_sdk.return_value.client.side_effect = [mock_cfn_client, Mock()]
+        result = get_inputs(base, DEFAULT_REGION, None, 1)
+
+    assert result == expected_inputs
+
+
+def test_with_inputs_invalid(base):
+    mock_cfn_client = Mock(spec=["get_paginator"])
+    mock_paginator = Mock(spec=["paginate"])
+    mock_cfn_client.get_paginator.return_value = mock_paginator
+    mock_paginator.paginate.return_value = (
+        '[{"Exports": [{"Value": "TestValue", "Name": "Test"}]}]'
+    )
+    patch_sdk = patch("rpdk.core.test.create_sdk_session", autospec=True)
+
+    create_invalid_input_file(base)
+    with patch_sdk as mock_sdk:
+        mock_sdk.return_value.client.side_effect = [mock_cfn_client, Mock()]
+        result = get_inputs(base, DEFAULT_REGION, None, 1)
+
+    assert not result
+
+
+def test_get_input_invalid_root():
+    assert not get_inputs("", DEFAULT_REGION, "", 1)
+
+
+def test_get_input_input_folder_does_not_exist(base):
+    assert not get_inputs(base, DEFAULT_REGION, "", 1)
+
+
+def test_get_input_file_not_found(base):
+    path = base / "inputs"
+    os.mkdir(path, mode=0o777)
+    assert not get_inputs(base, DEFAULT_REGION, "", 1)

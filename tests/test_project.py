@@ -57,6 +57,9 @@ DESCRIBE_TYPE_FAILED_RETURN = {
     "Description": "Some detailed progress message.",
     "ProgressStatus": "FAILED",
 }
+CREATE_INPUTS_FILE = "inputs/inputs_1_create.json"
+UPDATE_INPUTS_FILE = "inputs/inputs_1_update.json"
+INVALID_INPUTS_FILE = "inputs/inputs_1_invalid.json"
 
 
 @pytest.mark.parametrize(
@@ -489,6 +492,24 @@ def test_settings_not_found(project):
     assert "init" in str(excinfo.value)
 
 
+def create_input_file(base):
+    path = base / "inputs"
+    os.mkdir(path, mode=0o777)
+
+    path_create = base / CREATE_INPUTS_FILE
+    with path_create.open("w", encoding="utf-8") as f:
+        f.write("{}")
+
+    path_update = base / UPDATE_INPUTS_FILE
+    with path_update.open("w", encoding="utf-8") as f:
+        f.write("{}")
+
+    path_invalid = base / INVALID_INPUTS_FILE
+    with path_invalid.open("w", encoding="utf-8") as f:
+        f.write("{}")
+
+
+# pylint: disable=too-many-arguments, too-many-locals
 def test_submit_dry_run(project):
     project.type_name = TYPE_NAME
     project.runtime = RUNTIME
@@ -500,6 +521,8 @@ def test_submit_dry_run(project):
 
     with project.overrides_path.open("w", encoding="utf-8") as f:
         f.write(json.dumps(empty_override()))
+
+    create_input_file(project.root)
 
     project.write_settings()
 
@@ -532,6 +555,9 @@ def test_submit_dry_run(project):
             SCHEMA_UPLOAD_FILENAME,
             SETTINGS_FILENAME,
             OVERRIDES_FILENAME,
+            CREATE_INPUTS_FILE,
+            INVALID_INPUTS_FILE,
+            UPDATE_INPUTS_FILE,
         }
         schema_contents = zip_file.read(SCHEMA_UPLOAD_FILENAME).decode("utf-8")
         assert schema_contents == CONTENTS_UTF8
@@ -540,6 +566,12 @@ def test_submit_dry_run(project):
         overrides = json.loads(zip_file.read(OVERRIDES_FILENAME).decode("utf-8"))
         assert "CREATE" in overrides
         # https://docs.python.org/3/library/zipfile.html#zipfile.ZipFile.testzip
+        input_create = json.loads(zip_file.read(CREATE_INPUTS_FILE).decode("utf-8"))
+        assert input_create == {}
+        input_invalid = json.loads(zip_file.read(UPDATE_INPUTS_FILE).decode("utf-8"))
+        assert input_invalid == {}
+        input_update = json.loads(zip_file.read(INVALID_INPUTS_FILE).decode("utf-8"))
+        assert input_update == {}
         assert zip_file.testzip() is None
 
 
