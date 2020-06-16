@@ -1,6 +1,8 @@
 import logging
 from datetime import datetime
 
+import botocore.loaders
+import botocore.regions
 from boto3 import Session as Boto3Session
 from botocore.exceptions import ClientError
 
@@ -31,7 +33,11 @@ def create_sdk_session(region_name=None):
 
 
 def get_temporary_credentials(session, key_names=BOTO_CRED_KEYS, role_arn=None):
-    sts_client = session.client("sts")
+    sts_client = session.client(
+        "sts",
+        endpoint_url=get_service_endpoint("sts", session.region_name),
+        region_name=session.region_name,
+    )
     if role_arn:
         session_name = "CloudFormationContractTest-{:%Y%m%d%H%M%S}".format(
             datetime.now()
@@ -62,3 +68,11 @@ def get_temporary_credentials(session, key_names=BOTO_CRED_KEYS, role_arn=None):
             temp = response["Credentials"]
             creds = (temp["AccessKeyId"], temp["SecretAccessKey"], temp["SessionToken"])
     return dict(zip(key_names, creds))
+
+
+def get_service_endpoint(service, region):
+    loader = botocore.loaders.create_loader()
+    data = loader.load_data("endpoints")
+    resolver = botocore.regions.EndpointResolver(data)
+    endpoint_data = resolver.construct_endpoint(service, region)
+    return "https://" + endpoint_data["hostname"]
