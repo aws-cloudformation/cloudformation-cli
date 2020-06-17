@@ -341,9 +341,7 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
             raise ValueError("Assert status {} not supported.".format(assert_status))
         request = self.make_request(current_model, previous_model, **kwargs)
 
-        start_time = time.time()
         status, response = self.call(action, request)
-        self.assert_time(start_time, time.time(), action)
         if assert_status == OperationStatus.SUCCESS:
             self.assert_success(status, response)
             error_code = None
@@ -353,7 +351,9 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
 
     def call(self, action, request):
         payload = self._make_payload(action, request)
+        start_time = time.time()
         response = self._call(payload)
+        self.assert_time(start_time, time.time(), action)
 
         # this throws a KeyError if status isn't present, or if it isn't a valid status
         status = OperationStatus[response["status"]]
