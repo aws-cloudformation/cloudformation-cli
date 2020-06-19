@@ -20,7 +20,7 @@ As a result of the distributed nature of cloud service development, a range of d
 
 A canonical example of API disparity is in the way some APIs will allow a `Create` action to return `200`/`Success` when a resource by named identifier already existed at the time the `Create` request was applied. This is a form of "upsert" behavior from database services - create if not exists, or update if it does. Contrast this with many other APIs which will treat a duplicate `Create` request by responding with a `409`/`Conflict` or some other form of `AlreadyExistsException`. This disparity means that customers must account for these divergent behaviours in their own workflows and tooling and manage this over time.
 
-In the new Resource Provider model, the [Resource Type Contract](https://github.com/aws-cloudformation/aws-cloudformation-resource-schema) defines handling for this specific scenario with the following statement;
+In the new Resource Provider model, the [Resource Type Contract](https://docs.aws.amazon.com/cloudformation-cli/latest/userguide/resource-type-test-contract.html) defines handling for this specific scenario with the following statement;
 
 > A create handler MUST return FAILED with an AlreadyExists error code if the resource already existed prior to the create request.
 
