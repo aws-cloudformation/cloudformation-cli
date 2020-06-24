@@ -371,9 +371,9 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
             sleep(callback_delay_seconds)
 
             request["desiredResourceState"] = response.get("resourceModel")
-            payload = self._make_payload(
-                action, request, response.get("callbackContext")
-            )
+            payload["callbackContext"] = response.get("callbackContext")
+            payload["request"] = request
+
             response = self._call(payload)
             status = OperationStatus[response["status"]]
 
