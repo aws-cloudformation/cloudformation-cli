@@ -316,12 +316,12 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
             for primary_identifier in primary_identifier_path
         )
 
-    def _make_payload(self, action, request):
+    def _make_payload(self, action, request, callback_context=None):
         return {
             "credentials": self._creds.copy(),
             "action": action,
             "request": {"clientRequestToken": self.generate_token(), **request},
-            "callbackContext": None,
+            "callbackContext": callback_context,
         }
 
     def _call(self, payload):
@@ -370,7 +370,10 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
             self.assert_write_only_property_does_not_exist(response["resourceModel"])
             sleep(callback_delay_seconds)
 
+            request["desiredResourceState"] = response.get("resourceModel")
             payload["callbackContext"] = response.get("callbackContext")
+            payload["request"] = request
+
             response = self._call(payload)
             status = OperationStatus[response["status"]]
 
