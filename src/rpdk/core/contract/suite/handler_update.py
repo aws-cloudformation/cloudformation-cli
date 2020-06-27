@@ -33,30 +33,6 @@ def updated_resource(resource_client):
 
 
 @pytest.mark.update
-@pytest.mark.read
-def contract_update_read_success(updated_resource, resource_client):
-    # should be able to use the created model
-    # to read since physical resource id is immutable
-    _create_request, _created_model, _update_request, updated_model = updated_resource
-    assert resource_client.is_primary_identifier_equal(
-        resource_client.primary_identifier_paths, _created_model, updated_model
-    )
-    test_read_success(resource_client, updated_model)
-
-
-@pytest.mark.update
-@pytest.mark.list
-def contract_update_list_success(updated_resource, resource_client):
-    # should be able to use the created model
-    # to read since physical resource id is immutable
-    _create_request, _created_model, _update_request, updated_model = updated_resource
-    assert resource_client.is_primary_identifier_equal(
-        resource_client.primary_identifier_paths, _created_model, updated_model
-    )
-    assert test_model_in_list(resource_client, updated_model)
-
-
-@pytest.mark.update
 def contract_update_create_only_property(resource_client):
 
     if resource_client.create_only_paths:
@@ -95,3 +71,27 @@ def contract_update_non_existent_resource(resource_client):
     assert (
         _error == HandlerErrorCode.NotFound
     ), "cannot update a resource which does not exist"
+
+
+@pytest.mark.update
+@pytest.mark.read
+def contract_update_read_success(updated_resource, resource_client):
+    # should be able to use the created model
+    # to read since physical resource id is immutable
+    _create_request, _created_model, _update_request, updated_model = updated_resource
+    assert resource_client.is_primary_identifier_equal(
+        resource_client.primary_identifier_paths, _created_model, updated_model
+    )
+    test_read_success(resource_client, updated_model)
+
+
+@pytest.mark.update
+@pytest.mark.list
+def contract_update_list_success(updated_resource, resource_client):
+    # should be able to use the created model
+    # to read since physical resource id is immutable
+    _create_request, _created_model, _update_request, updated_model = updated_resource
+    assert resource_client.is_primary_identifier_equal(
+        resource_client.primary_identifier_paths, _created_model, updated_model
+    )
+    assert test_model_in_list(resource_client, updated_model)
