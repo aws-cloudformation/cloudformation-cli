@@ -268,19 +268,30 @@ def test_flatten_combiners_no_clobber(combiner):
 
 @pytest.mark.parametrize("combiner", COMBINERS)
 def test_flatten_combiners_resolve_types(combiner):
+    ref_type = ("definitions", "obj_type")
     ref = ("definitions", "obj")
     test_schema = {
         "typeName": "AWS::Valid::TypeName",
-        "definitions": {"obj": {"type": "object"}},
+        "definitions": {
+            "obj_type": {"type": "object"},
+            "obj": {"properties": {"Foo": {"type": "object"}}},
+        },
         "properties": {
-            "p": {combiner: [{"type": "string"}, {"$ref": fragment_encode(ref)}]}
+            "p": {
+                combiner: [
+                    {"type": "string"},
+                    {"type": "integer"},
+                    {"$ref": fragment_encode(ref_type)},
+                ]
+            },
+            "p2": {combiner: [{"type": "string"}, {"$ref": fragment_encode(ref)}]},
         },
     }
 
     flattener = JsonSchemaFlattener(test_schema)
-    with pytest.raises(ConstraintError) as excinfo:
-        flattener.flatten_schema()
-    assert "declared multiple values for 'type'" in str(excinfo.value)
+    flattener.flatten_schema()
+
+    assert ref in flattener._schema_map
 
 
 @pytest.mark.parametrize("combiner", COMBINERS)

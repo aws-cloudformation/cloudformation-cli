@@ -2,7 +2,7 @@ from collections.abc import Mapping, Sequence
 
 from .pointer import fragment_encode
 
-NON_MERGABLE_KEYS = ("type", "$ref", "uniqueItems", "insertionOrder")
+NON_MERGABLE_KEYS = ("$ref", "uniqueItems", "insertionOrder")
 
 
 class FlatteningError(Exception):
@@ -103,7 +103,7 @@ def traverse(document, path_parts):
     return document, tuple(path), parent
 
 
-def schema_merge(target, src, path):
+def schema_merge(target, src, path):  # noqa: C901
     """Merges the src schema into the target schema in place.
 
     If there are duplicate keys, src will overwrite target.
@@ -128,10 +128,7 @@ def schema_merge(target, src, path):
     >>> schema_merge(a, b, ('foo',))
     {'Foo': {'$ref': 'a', 'type': 'b'}}
     >>> schema_merge({'type': 'a'}, {'type': 'b'}, ()) # doctest: +NORMALIZE_WHITESPACE
-    Traceback (most recent call last):
-    ...
-    core.jsonutils.utils.ConstraintError:
-    Object at path '#' declared multiple values for 'type': found 'a' and 'b'
+    {'type': ['a', 'b']}
     """
     if not (isinstance(target, Mapping) and isinstance(src, Mapping)):
         raise TypeError("Both schemas must be dictionaries")
@@ -146,7 +143,12 @@ def schema_merge(target, src, path):
             try:
                 target[key] = schema_merge(target_schema, src_schema, next_path)
             except TypeError:
-                if key == "required":
+                if key == "type":
+                    if isinstance(target_schema, list):
+                        target_schema.append(src_schema)
+                        continue
+                    target[key] = [target_schema, src_schema]
+                elif key == "required":
                     target[key] = sorted(set(target_schema) | set(src_schema))
                 else:
                     if key in NON_MERGABLE_KEYS and target_schema != src_schema:
