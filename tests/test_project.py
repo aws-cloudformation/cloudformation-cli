@@ -187,7 +187,7 @@ def test_safewrite_exists(project, tmpdir, caplog):
         project.safewrite(path, CONTENTS_UTF8)
 
     last_record = caplog.records[-1]
-    assert last_record.levelname == "WARNING"
+    assert last_record.levelname == "INFO"
     assert str(path) in last_record.message
 
 

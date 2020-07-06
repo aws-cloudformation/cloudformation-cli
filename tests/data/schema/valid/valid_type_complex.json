@@ -22,7 +22,14 @@
             ]
         },
         "str2": {
-            "type": "string",
+            "anyOf": [
+                {
+                    "type": "string"
+                },
+                {
+                    "type": "integer"
+                }
+            ],
             "description": "some description"
         },
         "obj1": {

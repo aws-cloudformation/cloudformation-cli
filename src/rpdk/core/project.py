@@ -9,8 +9,10 @@ from uuid import uuid4
 
 from botocore.exceptions import ClientError, WaiterError
 from jinja2 import Environment, PackageLoader, select_autoescape
-from jsonschema import Draft6Validator, RefResolver
+from jsonschema import Draft6Validator
 from jsonschema.exceptions import ValidationError
+
+from rpdk.core.jsonutils.flattener import JsonSchemaFlattener
 
 from .boto_helpers import create_sdk_session
 from .data_loaders import load_resource_spec, resource_json
@@ -100,6 +102,7 @@ class Project:  # pylint: disable=too-many-instance-attributes
         self._plugin = None
         self.settings = None
         self.schema = None
+        self._flattened_schema = None
         self.runtime = "noexec"
         self.entrypoint = None
         self.test_entrypoint = None
@@ -249,7 +252,7 @@ class Project:  # pylint: disable=too-many-instance-attributes
                     else:
                         f.write(contents)
             except FileExistsError:
-                LOG.warning("File already exists, not overwriting '%s'", path)
+                LOG.info("File already exists, not overwriting '%s'", path)
 
     def generate(self):
         # generate template for IAM role assumed by cloudformation
@@ -374,10 +377,15 @@ class Project:  # pylint: disable=too-many-instance-attributes
 
         # take care not to modify the master schema
         docs_schema = json.loads(json.dumps(self.schema))
+        self._flattened_schema = JsonSchemaFlattener(
+            json.loads(json.dumps(self.schema))
+        ).flatten_schema()
 
         docs_schema["properties"] = {
             name: self._set_docs_properties(name, value, (name,))
-            for name, value in docs_schema["properties"].items()
+            for name, value in self._flattened_schema[()][
+                "properties"
+            ].items()  # docs_schema["properties"].items()
         }
 
         LOG.debug("Finished documenting nested properties")
@@ -426,11 +434,15 @@ class Project:  # pylint: disable=too-many-instance-attributes
             for prop in docs_schema.get("readOnlyProperties", [])
         ]
 
-    def _set_docs_properties(
+    def _set_docs_properties(  # noqa: C901
         self, propname, prop, proppath
     ):  # pylint: disable=too-many-locals
         if "$ref" in prop:
-            prop = RefResolver.from_schema(self.schema).resolve(prop["$ref"])[1]
+            ref = self._flattened_schema[prop["$ref"]]
+            propname = prop["$ref"][1]
+            # this is to tie object to a definition and not to a property
+            proppath = (propname,)
+            prop = ref
 
         proppath_ptr = fragment_encode(("properties",) + proppath, prefix="")
         if (
@@ -445,52 +457,75 @@ class Project:  # pylint: disable=too-many-instance-attributes
         ):
             prop["readonly"] = True
 
+        def __join(item1, item2):
+            if not item1 or item2 == item1:
+                return item2
+            return "{}, {}".format(item1, item2)
+
+        def __set_property_type(prop_type):
+            nonlocal prop
+            if prop_type in BASIC_TYPE_MAPPINGS:
+                mapped = BASIC_TYPE_MAPPINGS[prop_type]
+                prop["jsontype"] = __join(prop.get("jsontype"), mapped)
+                prop["yamltype"] = __join(prop.get("yamltype"), mapped)
+                prop["longformtype"] = __join(prop.get("longformtype"), mapped)
+            elif prop_type == "array":
+                prop["arrayitems"] = arrayitems = self._set_docs_properties(
+                    propname, prop["items"], proppath
+                )
+                prop["jsontype"] = __join(
+                    prop.get("jsontype"), f'[ {arrayitems["jsontype"]}, ... ]'
+                )
+                prop["yamltype"] = __join(
+                    prop.get("yamltype"), f'\n      - {arrayitems["yamltype"]}'
+                )
+                prop["longformtype"] = __join(
+                    prop.get("longformtype"), f'List of {arrayitems["longformtype"]}'
+                )
+            elif prop_type == "object":
+                template = self.env.get_template("docs-subproperty.md")
+                docs_path = self.root / "docs"
+
+                object_properties = (
+                    prop.get("properties") or prop.get("patternProperties") or {}
+                )
+
+                prop["properties"] = {
+                    name: self._set_docs_properties(name, value, proppath + (name,))
+                    for name, value in object_properties.items()
+                }
+
+                subproperty_name = " ".join(proppath)
+                subproperty_filename = "-".join(proppath).lower() + ".md"
+                subproperty_path = docs_path / subproperty_filename
+
+                LOG.debug("Writing docs %s: %s", subproperty_filename, subproperty_path)
+                contents = template.render(
+                    type_name=self.type_name,
+                    subproperty_name=subproperty_name,
+                    schema=prop,
+                )
+                self.safewrite(subproperty_path, contents)
+
+                href = f'<a href="{subproperty_filename}">{propname}</a>'
+                prop["jsontype"] = __join(prop.get("jsontype"), href)
+                prop["yamltype"] = __join(prop.get("yamltype"), href)
+                prop["longformtype"] = __join(prop.get("longformtype"), href)
+            else:
+                prop["jsontype"] = __join(prop.get("jsontype"), "Unknown")
+                prop["yamltype"] = __join(prop.get("yamltype"), "Unknown")
+                prop["longformtype"] = __join(prop.get("longformtype"), "Unknown")
+
+            if "enum" in prop:
+                prop["allowedvalues"] = prop["enum"]
+
         prop_type = prop.get("type", "object")
 
-        if isinstance(prop_type, list):
-            prop["jsontype"] = prop["yamltype"] = prop["longformtype"] = "Object"
-        elif prop_type in BASIC_TYPE_MAPPINGS:
-            mapped = BASIC_TYPE_MAPPINGS[prop_type]
-            prop["jsontype"] = prop["yamltype"] = prop["longformtype"] = mapped
-        elif prop_type == "array":
-            prop["arrayitems"] = arrayitems = self._set_docs_properties(
-                propname, prop["items"], proppath
-            )
-            prop["jsontype"] = f'[ {arrayitems["jsontype"]}, ... ]'
-            prop["yamltype"] = f'\n      - {arrayitems["longformtype"]}'
-            prop["longformtype"] = f'List of {arrayitems["longformtype"]}'
-        elif prop_type == "object":
-            template = self.env.get_template("docs-subproperty.md")
-            docs_path = self.root / "docs"
+        if not isinstance(prop_type, list):
+            prop_type = [prop_type]
 
-            object_properties = (
-                prop.get("properties") or prop.get("patternProperties") or {}
-            )
-
-            prop["properties"] = {
-                name: self._set_docs_properties(name, value, proppath + (name,))
-                for name, value in object_properties.items()
-            }
-
-            subproperty_name = " ".join(proppath)
-            subproperty_filename = "-".join(proppath).lower() + ".md"
-            subproperty_path = docs_path / subproperty_filename
-
-            LOG.debug("Writing docs %s: %s", subproperty_filename, subproperty_path)
-            contents = template.render(
-                type_name=self.type_name, subproperty_name=subproperty_name, schema=prop
-            )
-            self.safewrite(subproperty_path, contents)
-
-            href = f'<a href="{subproperty_filename}">{propname}</a>'
-            prop["jsontype"] = prop["yamltype"] = prop["longformtype"] = href
-        else:
-            prop["jsontype"] = "Unknown"
-            prop["yamltype"] = "Unknown"
-            prop["longformtype"] = "Unknown"
-
-        if "enum" in prop:
-            prop["allowedvalues"] = prop["enum"]
+        for prop_item in prop_type:
+            __set_property_type(prop_item)
 
         return prop
 
