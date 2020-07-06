@@ -30,6 +30,21 @@ def updated_resource(resource_client):
         resource_client.call_and_assert(Action.DELETE, OperationStatus.SUCCESS, model)
 
 
+# This test must be run before any tests that use the updated_resource fixture
+# are run as it is expecting to not have resources created initially.
+@pytest.mark.update
+def contract_update_non_existent_resource(resource_client):
+    create_request = resource_client.generate_create_example()
+    update_request = resource_client.generate_update_example(create_request)
+    _status, response, _error = resource_client.call_and_assert(
+        Action.UPDATE, OperationStatus.FAILED, update_request, create_request
+    )
+    assert response["message"]
+    assert (
+        _error == HandlerErrorCode.NotFound
+    ), "cannot update a resource which does not exist"
+
+
 @pytest.mark.update
 @pytest.mark.read
 def contract_update_read_success(updated_resource, resource_client):
@@ -55,41 +70,23 @@ def contract_update_list_success(updated_resource, resource_client):
 
 
 @pytest.mark.update
-def contract_update_create_only_property(resource_client):
+def contract_update_create_only_property(updated_resource, resource_client):
 
     if resource_client.create_only_paths:
-        create_request = resource_client.generate_create_example()
-        try:
-            _status, response, _error = resource_client.call_and_assert(
-                Action.CREATE, OperationStatus.SUCCESS, create_request
-            )
-            created_model = response["resourceModel"]
-            update_request = resource_client.generate_invalid_update_example(
-                created_model
-            )
-            _status, response, _error = resource_client.call_and_assert(
-                Action.UPDATE, OperationStatus.FAILED, update_request, created_model
-            )
-            assert response["message"]
-            assert (
-                _error == HandlerErrorCode.NotUpdatable
-            ), "updating readOnly or createOnly properties should not be possible"
-        finally:
-            resource_client.call_and_assert(
-                Action.DELETE, OperationStatus.SUCCESS, created_model
-            )
+        (
+            _create_request,
+            created_model,
+            _update_request,
+            _updated_model,
+        ) = updated_resource
+
+        update_request = resource_client.generate_invalid_update_example(created_model)
+        _status, response, _error = resource_client.call_and_assert(
+            Action.UPDATE, OperationStatus.FAILED, update_request, created_model
+        )
+        assert response["message"]
+        assert (
+            _error == HandlerErrorCode.NotUpdatable
+        ), "updating readOnly or createOnly properties should not be possible"
     else:
         pytest.skip("No createOnly Properties. Skipping test.")
-
-
-@pytest.mark.update
-def contract_update_non_existent_resource(resource_client):
-    create_request = resource_client.generate_create_example()
-    update_request = resource_client.generate_update_example(create_request)
-    _status, response, _error = resource_client.call_and_assert(
-        Action.UPDATE, OperationStatus.FAILED, update_request, create_request
-    )
-    assert response["message"]
-    assert (
-        _error == HandlerErrorCode.NotFound
-    ), "cannot update a resource which does not exist"
