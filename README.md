@@ -13,7 +13,7 @@ Primary documentation for the CloudFormation CLI can be found at the [AWS Docume
 This tool can be installed using [pip](https://pypi.org/project/pip/) from the Python Package Index (PyPI). It requires Python 3. The tool requires at least one language plugin. The language plugins are also available on PyPI and as such can be installed all at once:
 
 ```bash
-pip install cloudformation-cli cloudformation-cli-java-plugin cloudformation-cli-go-plugin
+pip install cloudformation-cli cloudformation-cli-java-plugin cloudformation-cli-go-plugin cloudformation-cli-python-plugin
 ```
 
 
