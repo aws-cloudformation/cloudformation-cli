@@ -42,6 +42,8 @@ setup(
         "Jinja2>=2.10",
         "jsonschema>=3.0.1",
         "pytest>=4.5.0",
+        "pytest-random-order>=1.0.4",
+        "pytest-localserver>=0.5.0",
         "Werkzeug>=0.15",
         "PyYAML>=5.1",
         "requests>=2.22",

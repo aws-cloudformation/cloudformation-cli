@@ -62,9 +62,7 @@ UPDATE_INPUTS_FILE = "inputs/inputs_1_update.json"
 INVALID_INPUTS_FILE = "inputs/inputs_1_invalid.json"
 
 
-@pytest.mark.parametrize(
-    "string", ["^[a-z]$", "([a-z])", ".*", "*."],
-)
+@pytest.mark.parametrize("string", ["^[a-z]$", "([a-z])", ".*", "*."])
 def test_escape_markdown_with_regex_names(string):
     assert escape_markdown(string).startswith("\\")
 
@@ -74,9 +72,7 @@ def test_escape_markdown_with_empty_string():
     assert escape_markdown(None) is None
 
 
-@pytest.mark.parametrize(
-    "string", ["Hello", "SomeProperty"],
-)
+@pytest.mark.parametrize("string", ["Hello", "SomeProperty"])
 def test_escape_markdown(string):
     assert escape_markdown(string) == string
 
