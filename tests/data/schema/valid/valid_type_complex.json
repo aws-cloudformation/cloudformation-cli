@@ -46,7 +46,8 @@
         "/properties/enum1"
     ],
     "readOnlyProperties": [
-        "/properties/str3"
+        "/properties/str3",
+        "/properties/enum1"
     ],
     "additionalIdentifiers": [
         [

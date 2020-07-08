@@ -3,14 +3,10 @@
     "description": "a test schema",
     "properties": {
         "property1": {
-            "type": "object",
-            "additionalProperties": true
+            "type": "array"
         }
     },
     "primaryIdentifier": [
-        "/properties/property1"
-    ],
-    "readOnlyProperties": [
         "/properties/property1"
     ],
     "additionalProperties": false

@@ -12,5 +12,8 @@
     "remote": {
         "schema01": {}
     },
+    "readOnlyProperties": [
+        "/properties/property1"
+    ],
     "additionalProperties": false
 }

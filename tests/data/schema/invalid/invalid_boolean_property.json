@@ -4,5 +4,11 @@
     "properties": {
         "property1": true
     },
+    "primaryIdentifier": [
+        "/properties/property1"
+    ],
+    "readOnlyProperties": [
+        "/properties/property1"
+    ],
     "additionalProperties": false
 }
