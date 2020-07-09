@@ -9,7 +9,7 @@ from uuid import uuid4
 
 from botocore.exceptions import ClientError, WaiterError
 from jinja2 import Environment, PackageLoader, select_autoescape
-from jsonschema import Draft6Validator
+from jsonschema import Draft7Validator
 from jsonschema.exceptions import ValidationError
 
 from rpdk.core.jsonutils.flattener import JsonSchemaFlattener
@@ -56,7 +56,7 @@ LAMBDA_RUNTIMES = {
     "nodejs12.x",
 }
 
-SETTINGS_VALIDATOR = Draft6Validator(
+SETTINGS_VALIDATOR = Draft7Validator(
     {
         "properties": {
             "language": {"type": "string"},
@@ -464,24 +464,16 @@ class Project:  # pylint: disable=too-many-instance-attributes
 
         def __set_property_type(prop_type):
             nonlocal prop
+            type_json = type_yaml = type_longform = "Unknown"
             if prop_type in BASIC_TYPE_MAPPINGS:
-                mapped = BASIC_TYPE_MAPPINGS[prop_type]
-                prop["jsontype"] = __join(prop.get("jsontype"), mapped)
-                prop["yamltype"] = __join(prop.get("yamltype"), mapped)
-                prop["longformtype"] = __join(prop.get("longformtype"), mapped)
+                type_json = type_yaml = type_longform = BASIC_TYPE_MAPPINGS[prop_type]
             elif prop_type == "array":
                 prop["arrayitems"] = arrayitems = self._set_docs_properties(
                     propname, prop["items"], proppath
                 )
-                prop["jsontype"] = __join(
-                    prop.get("jsontype"), f'[ {arrayitems["jsontype"]}, ... ]'
-                )
-                prop["yamltype"] = __join(
-                    prop.get("yamltype"), f'\n      - {arrayitems["yamltype"]}'
-                )
-                prop["longformtype"] = __join(
-                    prop.get("longformtype"), f'List of {arrayitems["longformtype"]}'
-                )
+                type_json = f'[ {arrayitems["jsontype"]}, ... ]'
+                type_yaml = f'\n      - {arrayitems["yamltype"]}'
+                type_longform = f'List of {arrayitems["longformtype"]}'
             elif prop_type == "object":
                 template = self.env.get_template("docs-subproperty.md")
                 docs_path = self.root / "docs"
@@ -490,31 +482,36 @@ class Project:  # pylint: disable=too-many-instance-attributes
                     prop.get("properties") or prop.get("patternProperties") or {}
                 )
 
-                prop["properties"] = {
-                    name: self._set_docs_properties(name, value, proppath + (name,))
-                    for name, value in object_properties.items()
-                }
+                type_json = type_yaml = type_longform = "Map"
+                if object_properties:
+                    prop["properties"] = {
+                        name: self._set_docs_properties(name, value, proppath + (name,))
+                        for name, value in object_properties.items()
+                    }
 
-                subproperty_name = " ".join(proppath)
-                subproperty_filename = "-".join(proppath).lower() + ".md"
-                subproperty_path = docs_path / subproperty_filename
+                    subproperty_name = " ".join(proppath)
+                    subproperty_filename = "-".join(proppath).lower() + ".md"
+                    subproperty_path = docs_path / subproperty_filename
 
-                LOG.debug("Writing docs %s: %s", subproperty_filename, subproperty_path)
-                contents = template.render(
-                    type_name=self.type_name,
-                    subproperty_name=subproperty_name,
-                    schema=prop,
-                )
-                self.safewrite(subproperty_path, contents)
+                    LOG.debug(
+                        "Writing docs %s: %s", subproperty_filename, subproperty_path
+                    )
+                    contents = template.render(
+                        type_name=self.type_name,
+                        subproperty_name=subproperty_name,
+                        schema=prop,
+                    )
+                    self.safewrite(subproperty_path, contents)
 
-                href = f'<a href="{subproperty_filename}">{propname}</a>'
-                prop["jsontype"] = __join(prop.get("jsontype"), href)
-                prop["yamltype"] = __join(prop.get("yamltype"), href)
-                prop["longformtype"] = __join(prop.get("longformtype"), href)
-            else:
-                prop["jsontype"] = __join(prop.get("jsontype"), "Unknown")
-                prop["yamltype"] = __join(prop.get("yamltype"), "Unknown")
-                prop["longformtype"] = __join(prop.get("longformtype"), "Unknown")
+                    type_json = (
+                        type_yaml
+                    ) = (
+                        type_longform
+                    ) = f'<a href="{subproperty_filename}">{propname}</a>'
+
+            prop["jsontype"] = __join(prop.get("jsontype"), type_json)
+            prop["yamltype"] = __join(prop.get("yamltype"), type_yaml)
+            prop["longformtype"] = __join(prop.get("longformtype"), type_longform)
 
             if "enum" in prop:
                 prop["allowedvalues"] = prop["enum"]
