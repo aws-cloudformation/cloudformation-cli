@@ -68,8 +68,8 @@ def create_invalid_input_file(base):
 @pytest.mark.parametrize(
     "args_in,pytest_args,plugin_args",
     [
-        ([], [], [DEFAULT_FUNCTION, DEFAULT_ENDPOINT, DEFAULT_REGION, None]),
-        (["--endpoint", "foo"], [], [DEFAULT_FUNCTION, "foo", DEFAULT_REGION, None]),
+        ([], [], [DEFAULT_FUNCTION, DEFAULT_ENDPOINT, DEFAULT_REGION, "30"]),
+        (["--endpoint", "foo"], [], [DEFAULT_FUNCTION, "foo", DEFAULT_REGION, "30"]),
         (
             ["--function-name", "bar", "--enforce-timeout", "60"],
             [],
@@ -78,12 +78,12 @@ def create_invalid_input_file(base):
         (
             ["--", "-k", "create"],
             ["-k", "create"],
-            [DEFAULT_FUNCTION, DEFAULT_ENDPOINT, DEFAULT_REGION, None],
+            [DEFAULT_FUNCTION, DEFAULT_ENDPOINT, DEFAULT_REGION, "30"],
         ),
         (
             ["--region", "us-west-2", "--", "--collect-only"],
             ["--collect-only"],
-            [DEFAULT_FUNCTION, DEFAULT_ENDPOINT, "us-west-2", None],
+            [DEFAULT_FUNCTION, DEFAULT_ENDPOINT, "us-west-2", "30"],
         ),
     ],
 )
