@@ -201,6 +201,7 @@ def invoke_test(args, project, overrides, inputs):
             overrides,
             inputs,
             args.role_arn,
+            args.enforce_timeout,
         )
     )
 
@@ -230,6 +231,10 @@ def setup_subparser(subparsers, parents):
 
     parser.add_argument(
         "--cloudformation-endpoint-url", help="CloudFormation endpoint to use."
+    )
+
+    parser.add_argument(
+        "--enforce-timeout", help="Enforce a different timeout for handlers"
     )
 
     parser.add_argument("passed_to_pytest", nargs="*", help=SUPPRESS)

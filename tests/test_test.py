@@ -68,18 +68,22 @@ def create_invalid_input_file(base):
 @pytest.mark.parametrize(
     "args_in,pytest_args,plugin_args",
     [
-        ([], [], [DEFAULT_FUNCTION, DEFAULT_ENDPOINT, DEFAULT_REGION]),
-        (["--endpoint", "foo"], [], [DEFAULT_FUNCTION, "foo", DEFAULT_REGION]),
-        (["--function-name", "bar"], [], ["bar", DEFAULT_ENDPOINT, DEFAULT_REGION]),
+        ([], [], [DEFAULT_FUNCTION, DEFAULT_ENDPOINT, DEFAULT_REGION, None]),
+        (["--endpoint", "foo"], [], [DEFAULT_FUNCTION, "foo", DEFAULT_REGION, None]),
+        (
+            ["--function-name", "bar", "--enforce-timeout", "60"],
+            [],
+            ["bar", DEFAULT_ENDPOINT, DEFAULT_REGION, "60"],
+        ),
         (
             ["--", "-k", "create"],
             ["-k", "create"],
-            [DEFAULT_FUNCTION, DEFAULT_ENDPOINT, DEFAULT_REGION],
+            [DEFAULT_FUNCTION, DEFAULT_ENDPOINT, DEFAULT_REGION, None],
         ),
         (
             ["--region", "us-west-2", "--", "--collect-only"],
             ["--collect-only"],
-            [DEFAULT_FUNCTION, DEFAULT_ENDPOINT, "us-west-2"],
+            [DEFAULT_FUNCTION, DEFAULT_ENDPOINT, "us-west-2", None],
         ),
     ],
 )
@@ -110,7 +114,7 @@ def test_test_command_happy_path(
     # fmt: on
 
     mock_project.load.assert_called_once_with()
-    function_name, endpoint, region = plugin_args
+    function_name, endpoint, region, enforce_timeout = plugin_args
     mock_client.assert_called_once_with(
         function_name,
         endpoint,
@@ -119,6 +123,7 @@ def test_test_command_happy_path(
         EMPTY_OVERRIDE,
         {"CREATE": {"a": 1}, "UPDATE": {"a": 2}, "INVALID": {"b": 1}},
         None,
+        enforce_timeout,
     )
     mock_plugin.assert_called_once_with(mock_client.return_value)
     mock_ini.assert_called_once_with()
