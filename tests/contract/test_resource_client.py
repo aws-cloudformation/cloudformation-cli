@@ -476,6 +476,42 @@ def test_call_async(resource_client, action):
     assert response == {"status": OperationStatus.SUCCESS.value}
 
 
+@pytest.mark.parametrize("action", [Action.CREATE, Action.UPDATE, Action.DELETE])
+def test_call_async_write_only_properties_are_removed(resource_client, action):
+    mock_client = resource_client._client
+
+    mock_client.invoke.side_effect = [
+        {
+            "Payload": StringIO(
+                '{"status": "SUCCESS", "resourceModel": {"c": 3, "d": 4} }'
+            )
+        }
+    ]
+
+    resource_client._update_schema(SCHEMA)
+    with pytest.raises(AssertionError):
+        resource_client.call(action, {})
+
+
+@pytest.mark.parametrize("action", [Action.CREATE, Action.UPDATE, Action.DELETE])
+def test_call_async_write_only_properties_are_not_removed_for_in_progress(
+    resource_client, action
+):
+    mock_client = resource_client._client
+
+    mock_client.invoke.side_effect = [
+        {
+            "Payload": StringIO(
+                '{"status": "IN_PROGRESS", "resourceModel": {"c": 3, "d": 4} }'
+            )
+        },
+        {"Payload": StringIO('{"status": "SUCCESS"}')},
+    ]
+
+    resource_client._update_schema(SCHEMA)
+    resource_client.call(action, {})
+
+
 def test_call_and_assert_success(resource_client):
     mock_client = resource_client._client
     mock_client.invoke.return_value = {"Payload": StringIO('{"status": "SUCCESS"}')}

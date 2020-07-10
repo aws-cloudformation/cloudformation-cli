@@ -367,7 +367,6 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
             self.assert_primary_identifier(
                 self.primary_identifier_paths, response.get("resourceModel")
             )
-            self.assert_write_only_property_does_not_exist(response["resourceModel"])
             sleep(callback_delay_seconds)
 
             request["desiredResourceState"] = response.get("resourceModel")
@@ -376,6 +375,10 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
 
             response = self._call(payload)
             status = OperationStatus[response["status"]]
+
+        # ensure writeOnlyProperties are not returned on final responses
+        if "resourceModel" in response.keys():
+            self.assert_write_only_property_does_not_exist(response["resourceModel"])
 
         return status, response
 
