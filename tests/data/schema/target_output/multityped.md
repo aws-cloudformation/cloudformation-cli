@@ -24,8 +24,7 @@ To declare this entity in your AWS CloudFormation template, use the following sy
 <pre>
 Type: AWS::Color::Red
 Properties:
-    <a href="#property1" title="property1">property1</a>: <i>String, Double, Map,
-      - <a href="obj2def.md">obj2def</a></i>
+    <a href="#property1" title="property1">property1</a>: <i>String, Double, Map, [ <a href="obj2def.md">obj2def</a>, ... ]</i>
     <a href="#obj1" title="obj1">obj1</a>: <i><a href="obj2def.md">obj2def</a></i>
     <a href="#arr1" title="arr1">arr1</a>: <i>
       - <a href="obj2def.md">obj2def</a></i>

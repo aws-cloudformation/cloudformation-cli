@@ -462,7 +462,7 @@ class Project:  # pylint: disable=too-many-instance-attributes
                 return item2
             return "{}, {}".format(item1, item2)
 
-        def __set_property_type(prop_type):
+        def __set_property_type(prop_type, single_type=True):
             nonlocal prop
             type_json = type_yaml = type_longform = "Unknown"
             if prop_type in BASIC_TYPE_MAPPINGS:
@@ -472,7 +472,11 @@ class Project:  # pylint: disable=too-many-instance-attributes
                     propname, prop["items"], proppath
                 )
                 type_json = f'[ {arrayitems["jsontype"]}, ... ]'
-                type_yaml = f'\n      - {arrayitems["yamltype"]}'
+                type_yaml = (
+                    f'\n      - {arrayitems["yamltype"]}'
+                    if single_type
+                    else f'[ {arrayitems["yamltype"]}, ... ]'
+                )
                 type_longform = f'List of {arrayitems["longformtype"]}'
             elif prop_type == "object":
                 template = self.env.get_template("docs-subproperty.md")
@@ -518,11 +522,13 @@ class Project:  # pylint: disable=too-many-instance-attributes
 
         prop_type = prop.get("type", "object")
 
+        single_item = False
         if not isinstance(prop_type, list):
             prop_type = [prop_type]
+            single_item = True
 
         for prop_item in prop_type:
-            __set_property_type(prop_item)
+            __set_property_type(prop_item, single_type=single_item)
 
         return prop
 
