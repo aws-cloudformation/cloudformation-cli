@@ -78,7 +78,7 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         overrides,
         inputs=None,
         role_arn=None,
-        timeout_in_seconds=None,
+        timeout_in_seconds="30",
     ):  # pylint: disable=too-many-arguments
         self._schema = schema
         self._session = create_sdk_session(region)
@@ -110,9 +110,7 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         self._overrides = overrides
         self._update_schema(schema)
         self._inputs = inputs
-        self._timeout_in_seconds = (
-            30 if timeout_in_seconds is None else int(timeout_in_seconds)
-        )
+        self._timeout_in_seconds = int(timeout_in_seconds)
 
     def _properties_to_paths(self, key):
         return {fragment_decode(prop, prefix="") for prop in self._schema.get(key, [])}
