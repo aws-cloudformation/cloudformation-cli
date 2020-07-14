@@ -30,6 +30,7 @@ LOG = logging.getLogger(__name__)
 DEFAULT_ENDPOINT = "http://127.0.0.1:3001"
 DEFAULT_FUNCTION = "TestEntrypoint"
 DEFAULT_REGION = "us-east-1"
+DEFAULT_TIMEOUT = "30"
 INPUTS = "inputs"
 
 OVERRIDES_VALIDATOR = Draft6Validator(
@@ -201,6 +202,7 @@ def invoke_test(args, project, overrides, inputs):
             overrides,
             inputs,
             args.role_arn,
+            args.enforce_timeout,
         )
     )
 
@@ -230,6 +232,12 @@ def setup_subparser(subparsers, parents):
 
     parser.add_argument(
         "--cloudformation-endpoint-url", help="CloudFormation endpoint to use."
+    )
+
+    parser.add_argument(
+        "--enforce-timeout",
+        default=DEFAULT_TIMEOUT,
+        help="Enforce a different timeout for handlers",
     )
 
     parser.add_argument("passed_to_pytest", nargs="*", help=SUPPRESS)
