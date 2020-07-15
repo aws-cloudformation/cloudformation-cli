@@ -638,17 +638,6 @@ def test_assert_failed_callback_delay_seconds_set():
         )
 
 
-def test_assert_failed_resource_model_set():
-    with pytest.raises(AssertionError):
-        ResourceClient.assert_failed(
-            OperationStatus.FAILED,
-            {
-                "errorCode": HandlerErrorCode.AccessDenied.value,
-                "resourceModel": {"a": 1},
-            },
-        )
-
-
 def test_assert_failed_resource_models_set():
     with pytest.raises(AssertionError):
         ResourceClient.assert_failed(
