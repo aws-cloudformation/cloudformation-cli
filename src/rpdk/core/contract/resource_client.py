@@ -271,9 +271,6 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
             response.get("callbackDelaySeconds", 0) == 0
         ), "FAILED events should have no callback delay"
         assert (
-            response.get("resourceModel") is None
-        ), "FAILED events should not include a resource model"
-        assert (
             response.get("resourceModels") is None
         ), "FAILED events should not include any resource models"
 
