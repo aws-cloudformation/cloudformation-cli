@@ -249,7 +249,7 @@ class Project:  # pylint: disable=too-many-instance-attributes
                     else:
                         f.write(contents)
             except FileExistsError:
-                LOG.warning("File already exists, not overwriting '%s'", path)
+                LOG.info("File already exists, not overwriting '%s'", path)
 
     def generate(self):
         # generate template for IAM role assumed by cloudformation

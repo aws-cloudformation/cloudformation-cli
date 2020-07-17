@@ -1,6 +1,7 @@
 # fixture and parameter have the same name
 # pylint: disable=redefined-outer-name,useless-super-delegation,protected-access
 import json
+import logging
 import os
 import random
 import string
@@ -174,6 +175,7 @@ def test_safewrite_doesnt_exist(project, tmpdir):
 
 
 def test_safewrite_exists(project, tmpdir, caplog):
+    caplog.set_level(logging.INFO)
     path = Path(tmpdir.join("test")).resolve()
 
     with path.open("w", encoding="utf-8") as f:
@@ -183,7 +185,7 @@ def test_safewrite_exists(project, tmpdir, caplog):
         project.safewrite(path, CONTENTS_UTF8)
 
     last_record = caplog.records[-1]
-    assert last_record.levelname == "WARNING"
+    assert last_record.levelname == "INFO"
     assert str(path) in last_record.message
 
 

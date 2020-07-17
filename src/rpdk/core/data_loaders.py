@@ -118,7 +118,7 @@ def load_resource_spec(resource_spec_file):  # noqa: C901
 
     primary_id = resource_spec["primaryIdentifier"]
     if not in_readonly(primary_id) and not in_createonly(primary_id):
-        raise SpecValidationError(
+        LOG.warning(
             "Property 'primaryIdentifier' must be specified \
 as either readOnly or createOnly"
         )
