@@ -88,6 +88,11 @@ def test_update_success(resource_client, update_model, current_model):
     _status, response, _error_code = resource_client.call_and_assert(
         Action.UPDATE, OperationStatus.SUCCESS, update_model, current_model
     )
+    resource_client.is_primary_identifier_equal(
+        resource_client.primary_identifier_paths,
+        current_model,
+        response["resourceModel"],
+    )
     resource_client.assert_write_only_property_does_not_exist(response["resourceModel"])
     # The response model should be the same as the create output model,
     # except the update-able properties should be overridden.
