@@ -12,7 +12,7 @@ from rpdk.core.contract.suite.handler_commons import (
 )
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="function")
 def updated_resource(resource_client):
     create_request = model = resource_client.generate_create_example()
     try:
