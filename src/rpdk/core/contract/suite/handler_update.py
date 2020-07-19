@@ -6,6 +6,7 @@ import pytest
 # WARNING: contract tests should use fully qualified imports to avoid issues
 # when being loaded by pytest
 from rpdk.core.contract.interface import Action, HandlerErrorCode, OperationStatus
+from rpdk.core.contract.suite.contract_asserts import failed_event
 from rpdk.core.contract.suite.handler_commons import (
     test_model_in_list,
     test_read_success,
@@ -55,6 +56,10 @@ def contract_update_list_success(updated_resource, resource_client):
 
 
 @pytest.mark.update
+@failed_event(
+    error_code=HandlerErrorCode.NotUpdatable,
+    msg="updating readOnly or createOnly properties should not be possible",
+)
 def contract_update_create_only_property(resource_client):
 
     if resource_client.create_only_paths:
@@ -71,9 +76,7 @@ def contract_update_create_only_property(resource_client):
                 Action.UPDATE, OperationStatus.FAILED, update_request, created_model
             )
             assert response["message"]
-            assert (
-                _error == HandlerErrorCode.NotUpdatable
-            ), "updating readOnly or createOnly properties should not be possible"
+            return _error
         finally:
             resource_client.call_and_assert(
                 Action.DELETE, OperationStatus.SUCCESS, created_model
@@ -83,6 +86,10 @@ def contract_update_create_only_property(resource_client):
 
 
 @pytest.mark.update
+@failed_event(
+    error_code=HandlerErrorCode.NotFound,
+    msg="cannot update a resource which does not exist",
+)
 def contract_update_non_existent_resource(resource_client):
     create_request = resource_client.generate_create_example()
     update_request = resource_client.generate_update_example(create_request)
@@ -90,6 +97,4 @@ def contract_update_non_existent_resource(resource_client):
         Action.UPDATE, OperationStatus.FAILED, update_request, create_request
     )
     assert response["message"]
-    assert (
-        _error == HandlerErrorCode.NotFound
-    ), "cannot update a resource which does not exist"
+    return _error
