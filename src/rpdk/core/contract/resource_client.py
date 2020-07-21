@@ -78,6 +78,7 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         overrides,
         inputs=None,
         role_arn=None,
+        timeout_in_seconds="30",
     ):  # pylint: disable=too-many-arguments
         self._schema = schema
         self._session = create_sdk_session(region)
@@ -109,6 +110,7 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         self._overrides = overrides
         self._update_schema(schema)
         self._inputs = inputs
+        self._timeout_in_seconds = int(timeout_in_seconds)
 
     def _properties_to_paths(self, key):
         return {fragment_decode(prop, prefix="") for prop in self._schema.get(key, [])}
@@ -269,9 +271,6 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
             response.get("callbackDelaySeconds", 0) == 0
         ), "FAILED events should have no callback delay"
         assert (
-            response.get("resourceModel") is None
-        ), "FAILED events should not include a resource model"
-        assert (
             response.get("resourceModels") is None
         ), "FAILED events should not include any resource models"
 
@@ -290,9 +289,12 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
     def generate_token():
         return str(uuid4())
 
-    @staticmethod
-    def assert_time(start_time, end_time, action):
-        timeout_in_seconds = 30 if action in (Action.READ, Action.LIST) else 60
+    def assert_time(self, start_time, end_time, action):
+        timeout_in_seconds = (
+            self._timeout_in_seconds
+            if action in (Action.READ, Action.LIST)
+            else self._timeout_in_seconds * 2
+        )
         assert end_time - start_time <= timeout_in_seconds, (
             "Handler %r timed out." % action
         )
@@ -367,7 +369,6 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
             self.assert_primary_identifier(
                 self.primary_identifier_paths, response.get("resourceModel")
             )
-            self.assert_write_only_property_does_not_exist(response["resourceModel"])
             sleep(callback_delay_seconds)
 
             request["desiredResourceState"] = response.get("resourceModel")
@@ -376,6 +377,10 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
 
             response = self._call(payload)
             status = OperationStatus[response["status"]]
+
+        # ensure writeOnlyProperties are not returned on final responses
+        if "resourceModel" in response.keys():
+            self.assert_write_only_property_does_not_exist(response["resourceModel"])
 
         return status, response
 

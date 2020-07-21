@@ -14,20 +14,22 @@
         }
     },
     "properties": {
-        "enum1": {
-            "type": "string",
-            "enum": [
-                "test",
-                "test2"
-            ]
-        },
-        "str2": {
+        "property1": {
             "anyOf": [
                 {
                     "type": "string"
                 },
                 {
                     "type": "integer"
+                },
+                {
+                    "type": "object"
+                },
+                {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/obj2def"
+                    }
                 }
             ],
             "description": "some description"
@@ -53,8 +55,7 @@
         "/properties/enum1"
     ],
     "readOnlyProperties": [
-        "/properties/str3",
-        "/properties/enum1"
+        "/properties/str3"
     ],
     "additionalIdentifiers": [
         [
