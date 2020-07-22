@@ -63,16 +63,22 @@ def resource_client():
         autospec=True,
         return_value={},
     )
+    patch_account = patch(
+        "rpdk.core.contract.resource_client.get_account",
+        autospec=True,
+        return_value={},
+    )
     with patch_sesh as mock_create_sesh, patch_creds as mock_creds:
-        mock_sesh = mock_create_sesh.return_value
-        mock_sesh.region_name = DEFAULT_REGION
-        client = ResourceClient(
-            DEFAULT_FUNCTION, endpoint, DEFAULT_REGION, {}, EMPTY_OVERRIDE
-        )
+        with patch_account as mock_account:
+            mock_sesh = mock_create_sesh.return_value
+            mock_sesh.region_name = DEFAULT_REGION
+            client = ResourceClient(
+                DEFAULT_FUNCTION, endpoint, DEFAULT_REGION, {}, EMPTY_OVERRIDE
+            )
 
     mock_sesh.client.assert_called_once_with("lambda", endpoint_url=endpoint)
     mock_creds.assert_called_once_with(mock_sesh, LOWER_CAMEL_CRED_KEYS, None)
-
+    mock_account.assert_called_once_with(mock_sesh)
     assert client._creds == {}
     assert client._function_name == DEFAULT_FUNCTION
     assert client._schema == {}
@@ -92,20 +98,27 @@ def resource_client_inputs():
         autospec=True,
         return_value={},
     )
+    patch_account = patch(
+        "rpdk.core.contract.resource_client.get_account",
+        autospec=True,
+        return_value={},
+    )
     with patch_sesh as mock_create_sesh, patch_creds as mock_creds:
-        mock_sesh = mock_create_sesh.return_value
-        mock_sesh.region_name = DEFAULT_REGION
-        client = ResourceClient(
-            DEFAULT_FUNCTION,
-            endpoint,
-            DEFAULT_REGION,
-            {},
-            EMPTY_OVERRIDE,
-            {"CREATE": {"a": 1}, "UPDATE": {"a": 2}, "INVALID": {"b": 2}},
-        )
+        with patch_account as mock_account:
+            mock_sesh = mock_create_sesh.return_value
+            mock_sesh.region_name = DEFAULT_REGION
+            client = ResourceClient(
+                DEFAULT_FUNCTION,
+                endpoint,
+                DEFAULT_REGION,
+                {},
+                EMPTY_OVERRIDE,
+                {"CREATE": {"a": 1}, "UPDATE": {"a": 2}, "INVALID": {"b": 2}},
+            )
 
     mock_sesh.client.assert_called_once_with("lambda", endpoint_url=endpoint)
     mock_creds.assert_called_once_with(mock_sesh, LOWER_CAMEL_CRED_KEYS, None)
+    mock_account.assert_called_once_with(mock_sesh)
 
     assert client._creds == {}
     assert client._function_name == DEFAULT_FUNCTION
@@ -152,17 +165,24 @@ def test_init_sam_cli_client():
     patch_creds = patch(
         "rpdk.core.contract.resource_client.get_temporary_credentials", autospec=True
     )
+    patch_account = patch(
+        "rpdk.core.contract.resource_client.get_account",
+        autospec=True,
+        return_value={},
+    )
     with patch_sesh as mock_create_sesh, patch_creds as mock_creds:
-        mock_sesh = mock_create_sesh.return_value
-        mock_sesh.region_name = DEFAULT_REGION
-        ResourceClient(
-            DEFAULT_FUNCTION, DEFAULT_ENDPOINT, DEFAULT_REGION, {}, EMPTY_OVERRIDE
-        )
+        with patch_account as mock_account:
+            mock_sesh = mock_create_sesh.return_value
+            mock_sesh.region_name = DEFAULT_REGION
+            ResourceClient(
+                DEFAULT_FUNCTION, DEFAULT_ENDPOINT, DEFAULT_REGION, {}, EMPTY_OVERRIDE
+            )
 
     mock_sesh.client.assert_called_once_with(
         "lambda", endpoint_url=DEFAULT_ENDPOINT, use_ssl=False, verify=False, config=ANY
     )
     mock_creds.assert_called_once_with(mock_sesh, LOWER_CAMEL_CRED_KEYS, None)
+    mock_account.assert_called_once_with(mock_sesh)
 
 
 def test_generate_token():
@@ -176,13 +196,21 @@ def test_make_request():
     previous_resource_state = object()
     token = object()
     request = ResourceClient.make_request(
-        desired_resource_state, previous_resource_state, clientRequestToken=token
+        desired_resource_state,
+        previous_resource_state,
+        "us-west-2",
+        "11111111",
+        "aws",
+        clientRequestToken=token,
     )
     assert request == {
         "desiredResourceState": desired_resource_state,
         "previousResourceState": previous_resource_state,
         "logicalResourceIdentifier": None,
         "clientRequestToken": token,
+        "region": "us-west-2",
+        "awsPartition": "aws",
+        "awsAccountId": "11111111",
     }
 
 
@@ -772,3 +800,17 @@ def test_generate_update_example_with_inputs(resource_client_inputs):
 
 def test_generate_invalid_update_example_with_inputs(resource_client_inputs):
     assert resource_client_inputs.generate_invalid_update_example({"a": 1}) == {"b": 2}
+
+
+def test_get_partition_aws(resource_client):
+    assert resource_client._get_partition() == "aws"
+
+
+def test_get_partition_aws_cn(resource_client):
+    resource_client.region = "cn-north-1"
+    assert resource_client._get_partition() == "aws-cn"
+
+
+def test_get_partition_aws_gov(resource_client):
+    resource_client.region = "us-gov-west-1"
+    assert resource_client._get_partition() == "aws-gov"
