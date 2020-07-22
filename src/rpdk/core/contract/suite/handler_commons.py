@@ -22,26 +22,29 @@ def test_create_success(resource_client, current_resource_model):
     return response
 
 
+def test_create_failure_if_repeat_writeable_id(resource_client, current_resource_model):
+    if resource_client.has_writable_identifier():
+        _create_failure_with_writable_id(resource_client, current_resource_model)
+    else:
+        LOG.debug("no identifiers are writeable; skipping duplicate-CREATE-failed test")
+
+
 @failed_event(
     error_code=HandlerErrorCode.AlreadyExists,
     msg="creating the same resource should not be possible",
 )
-def test_create_failure_if_repeat_writeable_id(resource_client, current_resource_model):
-    if resource_client.has_writable_identifier():
-        LOG.debug(
-            "at least one identifier is writeable; "
-            "performing duplicate-CREATE-failed test"
-        )
-        # Should fail, because different clientRequestToken for the same
-        # resource model means that the same resource is trying to be
-        # created twice.
-        _status, _response, error_code = resource_client.call_and_assert(
-            Action.CREATE, OperationStatus.FAILED, current_resource_model
-        )
-        return error_code
-    else:
-        LOG.debug("no identifiers are writeable; skipping duplicate-CREATE-failed test")
-        return
+def _create_failure_with_writable_id(resource_client, current_resource_model):
+    LOG.debug(
+        "at least one identifier is writeable; "
+        "performing duplicate-CREATE-failed test"
+    )
+    # Should fail, because different clientRequestToken for the same
+    # resource model means that the same resource is trying to be
+    # created twice.
+    _status, _response, error_code = resource_client.call_and_assert(
+        Action.CREATE, OperationStatus.FAILED, current_resource_model
+    )
+    return error_code
 
 
 @primary_identifier

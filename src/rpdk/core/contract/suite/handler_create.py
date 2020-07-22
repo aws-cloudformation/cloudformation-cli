@@ -45,18 +45,21 @@ def contract_create_delete(resource_client):
 
 
 @pytest.mark.create
-@failed_event(error_code=HandlerErrorCode.InvalidRequest)
 def contract_invalid_create(resource_client):
     if resource_client.read_only_paths:
-        requested_model = resource_client.generate_invalid_create_example()
-        print("resource MODEL:", requested_model)
-        _status, response, _error_code = resource_client.call_and_assert(
-            Action.CREATE, OperationStatus.FAILED, requested_model
-        )
-        assert response["message"]
-        return _error_code
+        _create_with_invalid_model(resource_client)
     else:
         pytest.skip("No readOnly Properties. Skipping test.")
+
+
+@failed_event(error_code=HandlerErrorCode.InvalidRequest)
+def _create_with_invalid_model(resource_client):
+    requested_model = resource_client.generate_invalid_create_example()
+    _status, response, _error_code = resource_client.call_and_assert(
+        Action.CREATE, OperationStatus.FAILED, requested_model
+    )
+    assert response["message"]
+    return _error_code
 
 
 @pytest.mark.create

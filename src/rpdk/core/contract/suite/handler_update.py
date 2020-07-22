@@ -56,15 +56,11 @@ def contract_update_list_success(updated_resource, resource_client):
 
 
 @pytest.mark.update
-@failed_event(
-    error_code=HandlerErrorCode.NotUpdatable,
-    msg="updating readOnly or createOnly properties should not be possible",
-)
 def contract_update_create_only_property(resource_client):
 
     if resource_client.create_only_paths:
-        create_request = resource_client.generate_create_example()
         try:
+            create_request = resource_client.generate_create_example()
             _status, response, _error = resource_client.call_and_assert(
                 Action.CREATE, OperationStatus.SUCCESS, create_request
             )
@@ -72,17 +68,25 @@ def contract_update_create_only_property(resource_client):
             update_request = resource_client.generate_invalid_update_example(
                 created_model
             )
-            _status, response, _error = resource_client.call_and_assert(
-                Action.UPDATE, OperationStatus.FAILED, update_request, created_model
-            )
-            assert response["message"]
-            return _error
+            _update_invalid_model(resource_client, created_model, update_request)
         finally:
             resource_client.call_and_assert(
                 Action.DELETE, OperationStatus.SUCCESS, created_model
             )
     else:
         pytest.skip("No createOnly Properties. Skipping test.")
+
+
+@failed_event(
+    error_code=HandlerErrorCode.NotUpdatable,
+    msg="updating readOnly or createOnly properties should not be possible",
+)
+def _update_invalid_model(resource_client, created_model, update_request):
+    _status, response, _error = resource_client.call_and_assert(
+        Action.UPDATE, OperationStatus.FAILED, update_request, created_model
+    )
+    assert response["message"]
+    return _error
 
 
 @pytest.mark.update
