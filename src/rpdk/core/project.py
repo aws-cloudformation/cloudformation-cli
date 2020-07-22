@@ -527,8 +527,11 @@ class Project:  # pylint: disable=too-many-instance-attributes
             prop_type = [prop_type]
             single_item = True
 
+        visited = set()
         for prop_item in prop_type:
-            __set_property_type(prop_item, single_type=single_item)
+            if prop_item not in visited:
+                visited.add(prop_item)
+                __set_property_type(prop_item, single_type=single_item)
 
         return prop
 
