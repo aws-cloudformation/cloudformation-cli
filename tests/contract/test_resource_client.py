@@ -23,6 +23,7 @@ from rpdk.core.test import (
 )
 
 EMPTY_OVERRIDE = empty_override()
+ACCOUNT = "11111111"
 LOG = logging.getLogger(__name__)
 
 SCHEMA = {
@@ -66,7 +67,7 @@ def resource_client():
     patch_account = patch(
         "rpdk.core.contract.resource_client.get_account",
         autospec=True,
-        return_value={},
+        return_value=ACCOUNT,
     )
     with patch_sesh as mock_create_sesh, patch_creds as mock_creds:
         with patch_account as mock_account:
@@ -83,6 +84,7 @@ def resource_client():
     assert client._function_name == DEFAULT_FUNCTION
     assert client._schema == {}
     assert client._overrides == EMPTY_OVERRIDE
+    assert client.account == ACCOUNT
 
     return client
 
@@ -101,7 +103,7 @@ def resource_client_inputs():
     patch_account = patch(
         "rpdk.core.contract.resource_client.get_account",
         autospec=True,
-        return_value={},
+        return_value=ACCOUNT,
     )
     with patch_sesh as mock_create_sesh, patch_creds as mock_creds:
         with patch_account as mock_account:
@@ -124,6 +126,7 @@ def resource_client_inputs():
     assert client._function_name == DEFAULT_FUNCTION
     assert client._schema == {}
     assert client._overrides == EMPTY_OVERRIDE
+    assert client.account == ACCOUNT
 
     return client
 
@@ -168,13 +171,13 @@ def test_init_sam_cli_client():
     patch_account = patch(
         "rpdk.core.contract.resource_client.get_account",
         autospec=True,
-        return_value={},
+        return_value=ACCOUNT,
     )
     with patch_sesh as mock_create_sesh, patch_creds as mock_creds:
         with patch_account as mock_account:
             mock_sesh = mock_create_sesh.return_value
             mock_sesh.region_name = DEFAULT_REGION
-            ResourceClient(
+            client = ResourceClient(
                 DEFAULT_FUNCTION, DEFAULT_ENDPOINT, DEFAULT_REGION, {}, EMPTY_OVERRIDE
             )
 
@@ -183,6 +186,7 @@ def test_init_sam_cli_client():
     )
     mock_creds.assert_called_once_with(mock_sesh, LOWER_CAMEL_CRED_KEYS, None)
     mock_account.assert_called_once_with(mock_sesh)
+    assert client.account == ACCOUNT
 
 
 def test_generate_token():

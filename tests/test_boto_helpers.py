@@ -8,6 +8,7 @@ from rpdk.core.boto_helpers import (
     BOTO_CRED_KEYS,
     LOWER_CAMEL_CRED_KEYS,
     create_sdk_session,
+    get_account,
     get_temporary_credentials,
 )
 from rpdk.core.exceptions import CLIMisconfiguredError, DownstreamError
@@ -197,3 +198,12 @@ def test_get_temporary_credentials_assume_role():
     assert len(creds) == 3
     assert tuple(creds.keys()) == LOWER_CAMEL_CRED_KEYS
     assert tuple(creds.values()) == (access_key, secret_key, token)
+
+
+def test_get_account():
+    session = create_autospec(spec=Session, spec_set=True)
+    client = session.client.return_value
+    get_account(session)
+
+    session.client.assert_called_once_with("sts")
+    client.get_caller_identity.assert_called_once()
