@@ -56,17 +56,19 @@ def decorate(decorator: object):
 
 
 @decorate
-def write_only_properties(resource_client, response):
+def response_does_not_contain_write_only_properties(resource_client, response):
     resource_client.assert_write_only_property_does_not_exist(response["resourceModel"])
 
 
 @decorate
-def resource_model_equal_created(response, current_resource_model):
+def response_contains_resource_model_equal_current_model(
+    response, current_resource_model
+):
     assert response["resourceModel"] == current_resource_model
 
 
 @decorate
-def resource_model_equal_updated(
+def response_contains_resource_model_equal_updated_model(
     response, current_resource_model, update_resource_model
 ):
     assert response["resourceModel"] == {
@@ -76,14 +78,16 @@ def resource_model_equal_updated(
 
 
 @decorate
-def primary_identifier(resource_client, response):
+def response_contains_primary_identifier(resource_client, response):
     resource_client.assert_primary_identifier(
         resource_client.primary_identifier_paths, response["resourceModel"]
     )
 
 
 @decorate
-def primary_identifier_not_changed(resource_client, response, current_resource_model):
+def response_contains_unchanged_primary_identifier(
+    resource_client, response, current_resource_model
+):
     resource_client.is_primary_identifier_equal(
         resource_client.primary_identifier_paths,
         current_resource_model,

@@ -3,18 +3,18 @@ import logging
 from rpdk.core.contract.interface import Action, HandlerErrorCode, OperationStatus
 from rpdk.core.contract.suite.contract_asserts import (
     failed_event,
-    primary_identifier,
-    primary_identifier_not_changed,
-    resource_model_equal_created,
-    resource_model_equal_updated,
-    write_only_properties,
+    response_contains_primary_identifier,
+    response_contains_resource_model_equal_current_model,
+    response_contains_resource_model_equal_updated_model,
+    response_contains_unchanged_primary_identifier,
+    response_does_not_contain_write_only_properties,
 )
 
 LOG = logging.getLogger(__name__)
 
 
-@primary_identifier
-@write_only_properties
+@response_contains_primary_identifier
+@response_does_not_contain_write_only_properties
 def test_create_success(resource_client, current_resource_model):
     _status, response, _error_code = resource_client.call_and_assert(
         Action.CREATE, OperationStatus.SUCCESS, current_resource_model
@@ -47,9 +47,9 @@ def _create_failure_with_writable_id(resource_client, current_resource_model):
     return error_code
 
 
-@primary_identifier
-@write_only_properties
-@resource_model_equal_created
+@response_contains_primary_identifier
+@response_does_not_contain_write_only_properties
+@response_contains_resource_model_equal_current_model
 def test_read_success(resource_client, current_resource_model):
     _status, response, _error_code = resource_client.call_and_assert(
         Action.READ, OperationStatus.SUCCESS, current_resource_model
@@ -95,10 +95,10 @@ def test_model_in_list(resource_client, current_resource_model):
     )
 
 
-@primary_identifier
-@primary_identifier_not_changed
-@resource_model_equal_updated
-@write_only_properties
+@response_contains_primary_identifier
+@response_contains_unchanged_primary_identifier
+@response_contains_resource_model_equal_updated_model
+@response_does_not_contain_write_only_properties
 def test_update_success(resource_client, update_resource_model, current_resource_model):
     _status, response, _error_code = resource_client.call_and_assert(
         Action.UPDATE,
