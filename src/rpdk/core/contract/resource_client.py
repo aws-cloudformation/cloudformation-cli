@@ -14,6 +14,7 @@ from rpdk.core.contract.interface import Action, HandlerErrorCode, OperationStat
 from ..boto_helpers import (
     LOWER_CAMEL_CRED_KEYS,
     create_sdk_session,
+    get_account,
     get_temporary_credentials,
 )
 from ..jsonutils.pointer import fragment_decode, fragment_list
@@ -85,6 +86,9 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         self._creds = get_temporary_credentials(
             self._session, LOWER_CAMEL_CRED_KEYS, role_arn
         )
+        self.region = region
+        self.account = get_account(self._session)
+        self.partition = self._get_partition()
         self._function_name = function_name
         if endpoint.startswith("http://"):
             self._client = self._session.client(
@@ -111,6 +115,13 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         self._update_schema(schema)
         self._inputs = inputs
         self._timeout_in_seconds = int(timeout_in_seconds)
+
+    def _get_partition(self):
+        if self.region.startswith("cn"):
+            return "aws-cn"
+        if self.region.startswith("us-gov"):
+            return "aws-gov"
+        return "aws"
 
     def _properties_to_paths(self, key):
         return {fragment_decode(prop, prefix="") for prop in self._schema.get(key, [])}
@@ -271,21 +282,28 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
             response.get("callbackDelaySeconds", 0) == 0
         ), "FAILED events should have no callback delay"
         assert (
-            response.get("resourceModel") is None
-        ), "FAILED events should not include a resource model"
-        assert (
             response.get("resourceModels") is None
         ), "FAILED events should not include any resource models"
 
         return error_code
 
     @staticmethod
-    def make_request(desired_resource_state, previous_resource_state, **kwargs):
+    def make_request(
+        desired_resource_state,
+        previous_resource_state,
+        region,
+        account,
+        partition,
+        **kwargs
+    ):
         return {
             "desiredResourceState": desired_resource_state,
             "previousResourceState": previous_resource_state,
             "logicalResourceIdentifier": None,
             **kwargs,
+            "region": region,
+            "awsPartition": partition,
+            "awsAccountId": account,
         }
 
     @staticmethod
@@ -344,7 +362,14 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
     ):
         if assert_status not in [OperationStatus.SUCCESS, OperationStatus.FAILED]:
             raise ValueError("Assert status {} not supported.".format(assert_status))
-        request = self.make_request(current_model, previous_model, **kwargs)
+        request = self.make_request(
+            current_model,
+            previous_model,
+            self.region,
+            self.account,
+            self.partition,
+            **kwargs
+        )
 
         status, response = self.call(action, request)
         if assert_status == OperationStatus.SUCCESS:

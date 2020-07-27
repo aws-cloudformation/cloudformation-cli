@@ -41,6 +41,7 @@ To run the contract tests, use the `test` command.
 cfn test
 cfn test -- -k contract_delete_update #to run a single test
 cfn test --enforce-timeout 60 #set the RL handler timeout to 60 seconds and CUD handler timeout to 120 seconds.
+cfn test --enforce-timeout 60 -- -k contract_delete_update # combine args
 ```
 
 

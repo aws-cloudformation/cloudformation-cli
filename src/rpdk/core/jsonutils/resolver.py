@@ -102,14 +102,18 @@ class ModelResolver:
             return ResolvedType(ContainerType.MODEL, self._models[ref_path])
 
         schema_type = property_schema.get("type", "object")
+
+        if isinstance(
+            schema_type, list
+        ):  # generate a generic type Object which will be casted on the client side
+            if len(set(schema_type)) > 1:
+                return self._get_multiple_lang_type(MULTIPLE)
+            schema_type = schema_type[0]
+
         if schema_type == "array":
             return self._get_array_lang_type(property_schema)
         if schema_type == "object":
             return self._get_object_lang_type(property_schema)
-        if isinstance(
-            schema_type, list
-        ):  # generate a generic type Object which will be casted on the client side
-            return self._get_multiple_lang_type(MULTIPLE)
         return self._get_primitive_lang_type(schema_type)
 
     @staticmethod
