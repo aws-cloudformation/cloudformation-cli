@@ -13,6 +13,7 @@ Description: AWS SAM template for the {{ resource_type }} resource type
 Globals:
   Function:
     Timeout: 180  # docker start-up times can be long for SAM CLI
+    MemorySize: 256
 
 Resources:
 {% if functions %}
