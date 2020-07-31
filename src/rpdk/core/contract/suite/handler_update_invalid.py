@@ -26,8 +26,9 @@ def contract_update_create_only_property(resource_client):
                 Action.UPDATE, OperationStatus.FAILED, update_request, created_model
             )
             assert response["message"]
-            assert (
-                _error == HandlerErrorCode.NotUpdatable
+            assert _error in (
+                HandlerErrorCode.NotUpdatable,
+                HandlerErrorCode.NotFound,
             ), "updating readOnly or createOnly properties should not be possible"
         finally:
             resource_client.call_and_assert(
