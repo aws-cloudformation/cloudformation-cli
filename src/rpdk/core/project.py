@@ -301,13 +301,13 @@ class Project:  # pylint: disable=too-many-instance-attributes
                 "Project file not found. Have you run 'init'?", e
             )
 
-        LOG.info("Validating your resource specification...")
+        LOG.info("Validating your resource schema...")
         try:
             self.load_schema()
         except FileNotFoundError as e:
-            self._raise_invalid_project("Resource specification not found.", e)
+            self._raise_invalid_project("Resource schema not found.", e)
         except SpecValidationError as e:
-            msg = "Resource specification is invalid: " + str(e)
+            msg = "Resource schema is invalid: " + str(e)
             self._raise_invalid_project(msg, e)
 
     def submit(
