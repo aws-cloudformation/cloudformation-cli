@@ -1,4 +1,4 @@
-"""This sub command validates a project's resource specification.
+"""This sub command validates a project's resource schema.
 
 Projects can be created via the 'init' sub command.
 """
@@ -13,7 +13,7 @@ def validate(_args):
     project = Project()
     project.load()
 
-    LOG.warning("Resource specification for %s is valid", project.type_name)
+    LOG.warning("Resource schema for %s is valid", project.type_name)
 
 
 def setup_subparser(subparsers, parents):

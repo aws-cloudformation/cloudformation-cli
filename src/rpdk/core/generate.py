@@ -1,4 +1,4 @@
-"""This sub command generates code from the project and resource specification.
+"""This sub command generates code from the project and resource schema.
 
 Projects can be created via the 'init' sub command.
 """
