@@ -1372,7 +1372,7 @@ Once you have completed implementing and testing your resource provided, the fin
   The CloudFormation CLI validates the included resource provider schema, packages your resource provide project and uploads it to the CloudFormation registry, and then returns a registration token\.
 
   ```
-  Validating your resource specification...
+  Validating your resource schema...
   Packaging Java project
   Creating managed upload infrastructure stack
   Managed upload infrastructure stack was successfully created
