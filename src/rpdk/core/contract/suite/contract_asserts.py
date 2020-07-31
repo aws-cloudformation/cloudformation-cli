@@ -46,7 +46,7 @@ def decorate(after=True):
             @wraps(func)
             def function(*args, **kwargs):
                 response_arg = {}
-                if after:  # running function before so the decorated check
+                if after:  # running function before the decorated check
                     response = func(*args, **kwargs)  # calling target function
                     response_arg = {"response": response}
 
@@ -57,6 +57,8 @@ def decorate(after=True):
                     *bound_arguments.args, **bound_arguments.kwargs
                 )  # calling a decorated function to execute check
 
+                # this allows to make a pre-execution check
+                # e.g. if skip function
                 if not after:  # running function after the decorated check
                     response = func(*args, **kwargs)  # calling target function
                 return response
@@ -68,19 +70,19 @@ def decorate(after=True):
     return inner_decorator
 
 
-@decorate
+@decorate()
 def response_does_not_contain_write_only_properties(resource_client, response):
     resource_client.assert_write_only_property_does_not_exist(response["resourceModel"])
 
 
-@decorate
+@decorate()
 def response_contains_resource_model_equal_current_model(
     response, current_resource_model
 ):
     assert response["resourceModel"] == current_resource_model
 
 
-@decorate
+@decorate()
 def response_contains_resource_model_equal_updated_model(
     response, current_resource_model, update_resource_model
 ):
@@ -90,14 +92,14 @@ def response_contains_resource_model_equal_updated_model(
     }
 
 
-@decorate
+@decorate()
 def response_contains_primary_identifier(resource_client, response):
     resource_client.assert_primary_identifier(
         resource_client.primary_identifier_paths, response["resourceModel"]
     )
 
 
-@decorate
+@decorate()
 def response_contains_unchanged_primary_identifier(
     resource_client, response, current_resource_model
 ):
