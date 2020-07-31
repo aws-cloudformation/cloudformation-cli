@@ -54,12 +54,15 @@ def contract_invalid_create(resource_client):
 
 @failed_event(error_code=HandlerErrorCode.InvalidRequest)
 def _create_with_invalid_model(resource_client):
-    requested_model = resource_client.generate_invalid_create_example()
-    _status, response, _error_code = resource_client.call_and_assert(
-        Action.CREATE, OperationStatus.FAILED, requested_model
-    )
-    assert response["message"]
-    return _error_code
+    try:
+        requested_model = resource_client.generate_invalid_create_example()
+        _status, response, _error_code = resource_client.call_and_assert(
+            Action.CREATE, OperationStatus.FAILED, requested_model
+        )
+        assert response["message"]
+        return _error_code
+    finally:
+        resource_client.call(Action.DELETE, requested_model)
 
 
 @pytest.mark.create
