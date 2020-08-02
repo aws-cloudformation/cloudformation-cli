@@ -470,6 +470,15 @@ def test_init(project):
     with project.schema_path.open("r", encoding="utf-8") as f:
         assert json.load(f)
 
+    for file_inputs in (
+        "inputs_1_create.json",
+        "inputs_1_update.json",
+        "inputs_1_invalid.json",
+    ):
+        path_file = project.inputs_path / file_inputs
+        with path_file.open("r", encoding="utf-8") as f:
+            assert json.load(f)
+
     # ends with newline
     with project.schema_path.open("rb") as f:
         f.seek(-1, os.SEEK_END)

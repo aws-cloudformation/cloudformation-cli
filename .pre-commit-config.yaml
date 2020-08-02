@@ -33,6 +33,7 @@ repos:
     - flake8-pep3101>=1.2.1
     # language_version: python3.6
   - id: pretty-format-json
+    exclude: inputs.json
     args:
     - --autofix
     - --indent=4

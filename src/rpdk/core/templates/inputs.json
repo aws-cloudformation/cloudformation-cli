@@ -1,0 +1,6 @@
+{
+    {% for property in properties %}
+    "{{ property }}": "...",
+    {% endfor %}
+    "{{ last_property }}": "..."
+}
