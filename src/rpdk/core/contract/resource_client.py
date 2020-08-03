@@ -80,6 +80,7 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         inputs=None,
         role_arn=None,
         timeout_in_seconds="30",
+        soft_delete="false",
     ):  # pylint: disable=too-many-arguments
         self._schema = schema
         self._session = create_sdk_session(region)
@@ -115,6 +116,7 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         self._update_schema(schema)
         self._inputs = inputs
         self._timeout_in_seconds = int(timeout_in_seconds)
+        self.soft_delete = bool(soft_delete == "true")
 
     def _get_partition(self):
         if self.region.startswith("cn"):

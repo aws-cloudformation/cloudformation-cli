@@ -203,6 +203,7 @@ def invoke_test(args, project, overrides, inputs):
             inputs,
             args.role_arn,
             args.enforce_timeout,
+            args.soft_delete,
         )
     )
 
@@ -266,4 +267,9 @@ def _sam_arguments(parser):
         help=(
             "The region used for temporary credentials " f"(Default: {DEFAULT_REGION})"
         ),
+    )
+    parser.add_argument(
+        "--soft-delete",
+        default="false",
+        help=("Resource supports soft delete (Default: false)"),
     )

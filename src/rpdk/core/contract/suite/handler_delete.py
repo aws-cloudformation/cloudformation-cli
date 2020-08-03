@@ -56,8 +56,11 @@ def deleted_resource(resource_client):
 @pytest.mark.delete
 @pytest.mark.read
 def contract_delete_read(resource_client, deleted_resource):
-    deleted_model, _request = deleted_resource
-    test_read_failure_not_found(resource_client, deleted_model)
+    if resource_client.soft_delete:
+        deleted_model, _request = deleted_resource
+        test_read_failure_not_found(resource_client, deleted_model)
+    else:
+        pytest.skip("This resource supports soft delete")
 
 
 @pytest.mark.delete
@@ -66,22 +69,30 @@ def contract_delete_list(resource_client, deleted_resource):
     # LIST: Should not fail after deletion, since it is a list of all
     #       current resources of the resource type. Deletion should
     #       remove the model from the list, however.
-
-    deleted_model, _request = deleted_resource
-    assert not test_model_in_list(resource_client, deleted_model)
+    if resource_client.soft_delete:
+        deleted_model, _request = deleted_resource
+        assert not test_model_in_list(resource_client, deleted_model)
+    else:
+        pytest.skip("This resource supports soft delete")
 
 
 @pytest.mark.delete
 @pytest.mark.update
 def contract_delete_update(resource_client, deleted_resource):
-    deleted_model, _request = deleted_resource
-    test_update_failure_not_found(resource_client, deleted_model)
+    if resource_client.soft_delete:
+        deleted_model, _request = deleted_resource
+        test_update_failure_not_found(resource_client, deleted_model)
+    else:
+        pytest.skip("This resource supports soft delete")
 
 
 @pytest.mark.delete
 def contract_delete_delete(resource_client, deleted_resource):
-    deleted_model, _request = deleted_resource
-    test_delete_failure_not_found(resource_client, deleted_model)
+    if resource_client.soft_delete:
+        deleted_model, _request = deleted_resource
+        test_delete_failure_not_found(resource_client, deleted_model)
+    else:
+        pytest.skip("This resource supports soft delete")
 
 
 @pytest.mark.create

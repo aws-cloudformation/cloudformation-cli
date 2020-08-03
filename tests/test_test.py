@@ -68,22 +68,33 @@ def create_invalid_input_file(base):
 @pytest.mark.parametrize(
     "args_in,pytest_args,plugin_args",
     [
-        ([], [], [DEFAULT_FUNCTION, DEFAULT_ENDPOINT, DEFAULT_REGION, "30"]),
-        (["--endpoint", "foo"], [], [DEFAULT_FUNCTION, "foo", DEFAULT_REGION, "30"]),
+        ([], [], [DEFAULT_FUNCTION, DEFAULT_ENDPOINT, DEFAULT_REGION, "30", "false"]),
         (
-            ["--function-name", "bar", "--enforce-timeout", "60"],
+            ["--endpoint", "foo"],
             [],
-            ["bar", DEFAULT_ENDPOINT, DEFAULT_REGION, "60"],
+            [DEFAULT_FUNCTION, "foo", DEFAULT_REGION, "30", "false"],
+        ),
+        (
+            [
+                "--function-name",
+                "bar",
+                "--enforce-timeout",
+                "60",
+                "--soft-delete",
+                "true",
+            ],
+            [],
+            ["bar", DEFAULT_ENDPOINT, DEFAULT_REGION, "60", "true"],
         ),
         (
             ["--", "-k", "create"],
             ["-k", "create"],
-            [DEFAULT_FUNCTION, DEFAULT_ENDPOINT, DEFAULT_REGION, "30"],
+            [DEFAULT_FUNCTION, DEFAULT_ENDPOINT, DEFAULT_REGION, "30", "false"],
         ),
         (
             ["--region", "us-west-2", "--", "--collect-only"],
             ["--collect-only"],
-            [DEFAULT_FUNCTION, DEFAULT_ENDPOINT, "us-west-2", "30"],
+            [DEFAULT_FUNCTION, DEFAULT_ENDPOINT, "us-west-2", "30", "false"],
         ),
     ],
 )
@@ -114,7 +125,7 @@ def test_test_command_happy_path(
     # fmt: on
 
     mock_project.load.assert_called_once_with()
-    function_name, endpoint, region, enforce_timeout = plugin_args
+    function_name, endpoint, region, enforce_timeout, soft_delete = plugin_args
     mock_client.assert_called_once_with(
         function_name,
         endpoint,
@@ -124,6 +135,7 @@ def test_test_command_happy_path(
         {"CREATE": {"a": 1}, "UPDATE": {"a": 2}, "INVALID": {"b": 1}},
         None,
         enforce_timeout,
+        soft_delete,
     )
     mock_plugin.assert_called_once_with(mock_client.return_value)
     mock_ini.assert_called_once_with()
