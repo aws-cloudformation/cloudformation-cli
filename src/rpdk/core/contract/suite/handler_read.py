@@ -10,5 +10,7 @@ from rpdk.core.contract.suite.handler_commons import test_read_failure_not_found
 
 @pytest.mark.read
 def contract_read_without_create(resource_client):
-    model = resource_client.generate_create_example()
+    model = (
+        resource_client.generate_invalid_create_example()
+    )  # to allow invalid (correctly formatted primary id)
     test_read_failure_not_found(resource_client, model)

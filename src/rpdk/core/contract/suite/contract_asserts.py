@@ -1,6 +1,8 @@
 from functools import wraps
 from inspect import Parameter, signature
 
+import pytest
+
 
 def _rebind(decorator, func, *args, **kwargs):
     """Helper function to construct decorated arguments
@@ -27,8 +29,11 @@ def _rebind(decorator, func, *args, **kwargs):
     return {k: kwargs.get(k) or positional_kwargs[k] for k in decorated_parameters}
 
 
-def decorate(decorator: object):
+def decorate(after=True):
     """Helper function to construct decorator from a simple function
+
+    arg: after means that decorated check should be run after the
+    target function
 
     This is a 'decorate' meta function that wraps new decorator around
     target function and merges decorated arguments with target arguments
@@ -36,38 +41,48 @@ def decorate(decorator: object):
     which is an output of a target function
     """
 
-    def new_decorator(func: object):
-        @wraps(func)
-        def function(*args, **kwargs):
-            response = func(*args, **kwargs)  # calling target function
-            kvargs = _rebind(
-                decorator, func, *args, **{**kwargs, **{"response": response}}
-            )
-            decorated_sig = signature(decorator)
-            bound_arguments = decorated_sig.bind(**kvargs)
-            decorator(
-                *bound_arguments.args, **bound_arguments.kwargs
-            )  # calling a decorated funciont to execute check
-            return response
+    def inner_decorator(decorator: object):
+        def new_decorator(func: object):
+            @wraps(func)
+            def function(*args, **kwargs):
+                response_arg = {}
+                if after:  # running function before the decorated check
+                    response = func(*args, **kwargs)  # calling target function
+                    response_arg = {"response": response}
 
-        return function
+                kvargs = _rebind(decorator, func, *args, **{**kwargs, **response_arg})
+                decorated_sig = signature(decorator)
+                bound_arguments = decorated_sig.bind(**kvargs)
+                decorator(
+                    *bound_arguments.args, **bound_arguments.kwargs
+                )  # calling a decorated function to execute check
 
-    return new_decorator
+                # this allows to make a pre-execution check
+                # e.g. if skip function
+                if not after:  # running function after the decorated check
+                    response = func(*args, **kwargs)  # calling target function
+                return response
+
+            return function
+
+        return new_decorator
+
+    return inner_decorator
 
 
-@decorate
+@decorate()
 def response_does_not_contain_write_only_properties(resource_client, response):
     resource_client.assert_write_only_property_does_not_exist(response["resourceModel"])
 
 
-@decorate
+@decorate()
 def response_contains_resource_model_equal_current_model(
     response, current_resource_model
 ):
     assert response["resourceModel"] == current_resource_model
 
 
-@decorate
+@decorate()
 def response_contains_resource_model_equal_updated_model(
     response, current_resource_model, update_resource_model
 ):
@@ -77,14 +92,14 @@ def response_contains_resource_model_equal_updated_model(
     }
 
 
-@decorate
+@decorate()
 def response_contains_primary_identifier(resource_client, response):
     resource_client.assert_primary_identifier(
         resource_client.primary_identifier_paths, response["resourceModel"]
     )
 
 
-@decorate
+@decorate()
 def response_contains_unchanged_primary_identifier(
     resource_client, response, current_resource_model
 ):
@@ -93,6 +108,12 @@ def response_contains_unchanged_primary_identifier(
         current_resource_model,
         response["resourceModel"],
     )
+
+
+@decorate(after=False)
+def skip_not_writable_identifier(resource_client):
+    if not resource_client.has_writable_identifier():
+        pytest.skip("No writable identifiers. Skipping test.")
 
 
 def failed_event(error_code, msg=""):

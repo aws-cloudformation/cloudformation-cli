@@ -22,18 +22,11 @@ def test_create_success(resource_client, current_resource_model):
     return response
 
 
-def test_create_failure_if_repeat_writeable_id(resource_client, current_resource_model):
-    if resource_client.has_writable_identifier():
-        _create_failure_with_writable_id(resource_client, current_resource_model)
-    else:
-        LOG.debug("no identifiers are writeable; skipping duplicate-CREATE-failed test")
-
-
 @failed_event(
     error_code=HandlerErrorCode.AlreadyExists,
     msg="creating the same resource should not be possible",
 )
-def _create_failure_with_writable_id(resource_client, current_resource_model):
+def test_create_failure_if_repeat_writeable_id(resource_client, current_resource_model):
     LOG.debug(
         "at least one identifier is writeable; "
         "performing duplicate-CREATE-failed test"

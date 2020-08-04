@@ -7,7 +7,10 @@ import pytest
 # WARNING: contract tests should use fully qualified imports to avoid issues
 # when being loaded by pytest
 from rpdk.core.contract.interface import Action, HandlerErrorCode, OperationStatus
-from rpdk.core.contract.suite.contract_asserts import failed_event
+from rpdk.core.contract.suite.contract_asserts import (
+    failed_event,
+    skip_not_writable_identifier,
+)
 from rpdk.core.contract.suite.handler_commons import (
     test_create_failure_if_repeat_writeable_id,
     test_create_success,
@@ -66,6 +69,7 @@ def _create_with_invalid_model(resource_client):
 
 
 @pytest.mark.create
+@skip_not_writable_identifier
 def contract_create_duplicate(created_resource, resource_client):
     _created_model, request = created_resource
     test_create_failure_if_repeat_writeable_id(resource_client, request)
