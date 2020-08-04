@@ -116,7 +116,7 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         self._update_schema(schema)
         self._inputs = inputs
         self._timeout_in_seconds = int(timeout_in_seconds)
-        self.soft_delete = bool(soft_delete == "true")
+        self.soft_delete = soft_delete == "true"
 
     def _get_partition(self):
         if self.region.startswith("cn"):
