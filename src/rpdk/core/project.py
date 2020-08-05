@@ -75,7 +75,7 @@ SETTINGS_VALIDATOR = Draft7Validator(
 BASIC_TYPE_MAPPINGS = {
     "string": "String",
     "number": "Double",
-    "integer": "Double",
+    "integer": "Integer",
     "boolean": "Boolean",
 }
 
