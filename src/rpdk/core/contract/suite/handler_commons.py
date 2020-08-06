@@ -1,6 +1,7 @@
 import logging
 
 from rpdk.core.contract.interface import Action, HandlerErrorCode, OperationStatus
+from rpdk.core.contract.resource_client import prune_properties_from_model
 from rpdk.core.contract.suite.contract_asserts import (
     failed_event,
     response_contains_primary_identifier,
@@ -124,3 +125,13 @@ def test_delete_failure_not_found(resource_client, current_resource_model):
         Action.DELETE, OperationStatus.FAILED, current_resource_model
     )
     return error_code
+
+
+def test_input_equals_output(resource_client, input_model, output_model):
+    prune_properties_from_model(input_model, resource_client.create_only_paths)
+    prune_properties_from_model(input_model, resource_client.write_only_paths)
+
+    prune_properties_from_model(output_model, resource_client.read_only_paths)
+    prune_properties_from_model(output_model, resource_client.create_only_paths)
+
+    assert input_model == output_model

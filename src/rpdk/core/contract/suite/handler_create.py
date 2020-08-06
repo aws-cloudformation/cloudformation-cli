@@ -15,6 +15,7 @@ from rpdk.core.contract.suite.handler_commons import (
     test_create_failure_if_repeat_writeable_id,
     test_create_success,
     test_delete_success,
+    test_input_equals_output,
     test_model_in_list,
     test_read_success,
 )
@@ -24,12 +25,13 @@ LOG = logging.getLogger(__name__)
 
 @pytest.fixture(scope="module")
 def created_resource(resource_client):
-    request = model = resource_client.generate_create_example()
+    request = input_model = model = resource_client.generate_create_example()
     try:
         _status, response, _error = resource_client.call_and_assert(
             Action.CREATE, OperationStatus.SUCCESS, request
         )
-        model = response["resourceModel"]
+        model = output_model = response["resourceModel"]
+        test_input_equals_output(resource_client, input_model, output_model)
         yield model, request
     finally:
         resource_client.call_and_assert(Action.DELETE, OperationStatus.SUCCESS, model)
@@ -38,11 +40,14 @@ def created_resource(resource_client):
 @pytest.mark.create
 @pytest.mark.delete
 def contract_create_delete(resource_client):
-    requested_model = delete_model = resource_client.generate_create_example()
+    requested_model = (
+        delete_model
+    ) = input_model = resource_client.generate_create_example()
     try:
         response = test_create_success(resource_client, requested_model)
         # check response here
-        delete_model = response["resourceModel"]
+        output_model = delete_model = response["resourceModel"]
+        test_input_equals_output(resource_client, input_model, output_model)
     finally:
         test_delete_success(resource_client, delete_model)
 

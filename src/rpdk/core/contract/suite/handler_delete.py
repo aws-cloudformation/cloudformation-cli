@@ -11,6 +11,7 @@ from rpdk.core.contract.resource_client import prune_properties_from_model
 from rpdk.core.contract.suite.handler_commons import (
     test_create_success,
     test_delete_failure_not_found,
+    test_input_equals_output,
     test_model_in_list,
     test_read_failure_not_found,
     test_update_failure_not_found,
@@ -24,12 +25,13 @@ LOG = logging.getLogger(__name__)
 
 @pytest.fixture(scope="module")
 def deleted_resource(resource_client):
-    request = model = resource_client.generate_create_example()
+    request = input_model = model = resource_client.generate_create_example()
     try:
         _status, response, _error = resource_client.call_and_assert(
             Action.CREATE, OperationStatus.SUCCESS, request
         )
-        model = response["resourceModel"]
+        output_model = model = response["resourceModel"]
+        test_input_equals_output(resource_client, input_model, output_model)
         _status, response, _error = resource_client.call_and_assert(
             Action.DELETE, OperationStatus.SUCCESS, model
         )
