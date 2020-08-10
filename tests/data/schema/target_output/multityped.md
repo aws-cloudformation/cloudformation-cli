@@ -12,7 +12,7 @@ To declare this entity in your AWS CloudFormation template, use the following sy
 {
     "Type" : "AWS::Color::Red",
     "Properties" : {
-        "<a href="#property1" title="property1">property1</a>" : <i>String, Integer, Map, [ <a href="obj2def.md">obj2def</a>, ... ]</i>,
+        "<a href="#property1" title="property1">property1</a>" : <i>String, Double, Map, [ <a href="obj2def.md">obj2def</a>, ... ]</i>,
         "<a href="#obj1" title="obj1">obj1</a>" : <i><a href="obj2def.md">obj2def</a></i>,
         "<a href="#arr1" title="arr1">arr1</a>" : <i>[ <a href="obj2def.md">obj2def</a>, ... ]</i>
     }
@@ -24,7 +24,7 @@ To declare this entity in your AWS CloudFormation template, use the following sy
 <pre>
 Type: AWS::Color::Red
 Properties:
-    <a href="#property1" title="property1">property1</a>: <i>String, Integer, Map, [ <a href="obj2def.md">obj2def</a>, ... ]</i>
+    <a href="#property1" title="property1">property1</a>: <i>String, Double, Map, [ <a href="obj2def.md">obj2def</a>, ... ]</i>
     <a href="#obj1" title="obj1">obj1</a>: <i><a href="obj2def.md">obj2def</a></i>
     <a href="#arr1" title="arr1">arr1</a>: <i>
       - <a href="obj2def.md">obj2def</a></i>
@@ -38,7 +38,7 @@ some description
 
 _Required_: No
 
-_Type_: String, Integer, Map, List of <a href="obj2def.md">obj2def</a>
+_Type_: String, Double, Map, List of <a href="obj2def.md">obj2def</a>
 
 _Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
 
