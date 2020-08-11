@@ -2,6 +2,7 @@ import logging
 
 from rpdk.core.contract.interface import Action, HandlerErrorCode, OperationStatus
 from rpdk.core.contract.resource_client import (
+    prune_properties_except_identifier,
     prune_properties_from_model,
     prune_properties_if_not_exist_in_path,
 )
@@ -48,16 +49,22 @@ def test_create_failure_if_repeat_writeable_id(resource_client, current_resource
 @response_does_not_contain_write_only_properties
 @response_contains_resource_model_equal_current_model
 def test_read_success(resource_client, current_resource_model):
+    pruned_model = prune_properties_except_identifier(
+        current_resource_model.copy(), resource_client.primary_identifier_paths,
+    )
     _status, response, _error_code = resource_client.call_and_assert(
-        Action.READ, OperationStatus.SUCCESS, current_resource_model
+        Action.READ, OperationStatus.SUCCESS, pruned_model
     )
     return response
 
 
 @failed_event(error_code=HandlerErrorCode.NotFound)
 def test_read_failure_not_found(resource_client, current_resource_model):
+    pruned_model = prune_properties_except_identifier(
+        current_resource_model.copy(), resource_client.primary_identifier_paths,
+    )
     _status, _response, error_code = resource_client.call_and_assert(
-        Action.READ, OperationStatus.FAILED, current_resource_model
+        Action.READ, OperationStatus.FAILED, pruned_model
     )
     return error_code
 
@@ -116,16 +123,22 @@ def test_update_failure_not_found(resource_client, current_resource_model):
 
 
 def test_delete_success(resource_client, current_resource_model):
+    pruned_model = prune_properties_except_identifier(
+        current_resource_model.copy(), resource_client.primary_identifier_paths,
+    )
     _status, response, _error_code = resource_client.call_and_assert(
-        Action.DELETE, OperationStatus.SUCCESS, current_resource_model
+        Action.DELETE, OperationStatus.SUCCESS, pruned_model
     )
     return response
 
 
 @failed_event(error_code=HandlerErrorCode.NotFound)
 def test_delete_failure_not_found(resource_client, current_resource_model):
+    pruned_model = prune_properties_except_identifier(
+        current_resource_model.copy(), resource_client.primary_identifier_paths,
+    )
     _status, _response, error_code = resource_client.call_and_assert(
-        Action.DELETE, OperationStatus.FAILED, current_resource_model
+        Action.DELETE, OperationStatus.FAILED, pruned_model
     )
     return error_code
 

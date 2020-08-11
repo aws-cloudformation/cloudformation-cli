@@ -7,6 +7,7 @@ import pytest
 # WARNING: contract tests should use fully qualified imports to avoid issues
 # when being loaded by pytest
 from rpdk.core.contract.interface import Action, HandlerErrorCode, OperationStatus
+from rpdk.core.contract.resource_client import prune_properties_except_identifier
 from rpdk.core.contract.suite.contract_asserts import (
     failed_event,
     skip_not_writable_identifier,
@@ -34,7 +35,12 @@ def created_resource(resource_client):
         test_input_equals_output(resource_client, input_model, model)
         yield model, request
     finally:
-        resource_client.call_and_assert(Action.DELETE, OperationStatus.SUCCESS, model)
+        pruned_model = prune_properties_except_identifier(
+            model, resource_client.primary_identifier_paths
+        )
+        resource_client.call_and_assert(
+            Action.DELETE, OperationStatus.SUCCESS, pruned_model
+        )
 
 
 @pytest.mark.create

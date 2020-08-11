@@ -7,7 +7,10 @@ import pytest
 # WARNING: contract tests should use fully qualified imports to avoid issues
 # when being loaded by pytest
 from rpdk.core.contract.interface import Action, HandlerErrorCode, OperationStatus
-from rpdk.core.contract.resource_client import prune_properties_from_model
+from rpdk.core.contract.resource_client import (
+    prune_properties_except_identifier,
+    prune_properties_from_model,
+)
 from rpdk.core.contract.suite.handler_commons import (
     test_create_success,
     test_delete_failure_not_found,
@@ -32,13 +35,23 @@ def deleted_resource(resource_client):
         )
         model = response["resourceModel"]
         test_input_equals_output(resource_client, input_model, model)
+        pruned_model = prune_properties_except_identifier(
+            model.copy(), resource_client.primary_identifier_paths,
+        )
         _status, response, _error = resource_client.call_and_assert(
-            Action.DELETE, OperationStatus.SUCCESS, model
+            Action.DELETE, OperationStatus.SUCCESS, pruned_model
         )
         assert "resourceModel" not in response
         yield model, request
     finally:
-        status, response = resource_client.call(Action.DELETE, model)
+        request = resource_client.make_request(
+            pruned_model,
+            None,
+            resource_client.region,
+            resource_client.account,
+            resource_client.partition,
+        )
+        status, response = resource_client.call(Action.DELETE, request)
 
         # a failed status is allowed if the error code is NotFound
         if status == OperationStatus.FAILED:
