@@ -348,8 +348,14 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         }
 
     def _call(self, payload):
+        payload_to_log = {
+            key: payload[key] for key in ["callbackContext", "action", "request"]
+        }
+        LOG.debug(
+            "Sending request\n%s",
+            json.dumps(payload_to_log, ensure_ascii=False, indent=2),
+        )
         payload = json.dumps(payload, ensure_ascii=False, indent=2)
-        LOG.debug("Sending request\n%s", payload)
         result = self._client.invoke(
             FunctionName=self._function_name, Payload=payload.encode("utf-8")
         )
