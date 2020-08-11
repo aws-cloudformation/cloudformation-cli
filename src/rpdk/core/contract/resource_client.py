@@ -407,7 +407,7 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
             status = OperationStatus[response["status"]]
 
         # ensure writeOnlyProperties are not returned on final responses
-        if "resourceModel" in response.keys():
+        if "resourceModel" in response.keys() and status == OperationStatus.SUCCESS:
             self.assert_write_only_property_does_not_exist(response["resourceModel"])
 
         return status, response
