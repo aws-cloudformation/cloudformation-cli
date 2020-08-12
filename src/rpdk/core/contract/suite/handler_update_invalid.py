@@ -10,6 +10,7 @@ from rpdk.core.contract.suite.contract_asserts import failed_event
 
 
 @pytest.mark.update
+@failed_event(error_code=(HandlerErrorCode.NotUpdatable, HandlerErrorCode.NotFound))
 def contract_update_create_only_property(resource_client):
 
     if resource_client.create_only_paths:
@@ -22,13 +23,10 @@ def contract_update_create_only_property(resource_client):
             update_request = resource_client.generate_invalid_update_example(
                 created_model
             )
-            _status, response, _error = resource_client.call_and_assert(
+            _status, response, _error_code = resource_client.call_and_assert(
                 Action.UPDATE, OperationStatus.FAILED, update_request, created_model
             )
             assert response["message"]
-            assert (
-                _error == HandlerErrorCode.NotUpdatable
-            ), "updating readOnly or createOnly properties should not be possible"
         finally:
             resource_client.call_and_assert(
                 Action.DELETE, OperationStatus.SUCCESS, created_model

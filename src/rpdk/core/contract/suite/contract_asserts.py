@@ -1,7 +1,10 @@
 from functools import wraps
 from inspect import Parameter, signature
+from unittest.test.testmock.support import is_instance
 
 import pytest
+
+from rpdk.core.contract.interface import HandlerErrorCode
 
 
 def _rebind(decorator, func, *args, **kwargs):
@@ -120,10 +123,12 @@ def failed_event(error_code, msg=""):
     def decorator_wrapper(func: object):
         @wraps(func)
         def wrapper(*args, **kwargs):
-            response = func(*args, **kwargs)
-            if response is not None:
-                assert response == error_code, msg
-            return response
+            response_error = func(*args, **kwargs)
+            if response_error is not None:
+                if is_instance(error_code, HandlerErrorCode):
+                    error_code_tuple = (error_code,)
+                assert response_error in error_code_tuple, msg
+            return response_error
 
         return wrapper
 
