@@ -7,6 +7,10 @@ import pytest
 # WARNING: contract tests should use fully qualified imports to avoid issues
 # when being loaded by pytest
 from rpdk.core.contract.interface import Action, HandlerErrorCode, OperationStatus
+from rpdk.core.contract.suite.contract_asserts import (
+    failed_event,
+    skip_not_writable_identifier,
+)
 from rpdk.core.contract.suite.handler_commons import (
     test_create_failure_if_repeat_writeable_id,
     test_create_success,
@@ -46,17 +50,26 @@ def contract_create_delete(resource_client):
 @pytest.mark.create
 def contract_invalid_create(resource_client):
     if resource_client.read_only_paths:
+        _create_with_invalid_model(resource_client)
+    else:
+        pytest.skip("No readOnly Properties. Skipping test.")
+
+
+@failed_event(error_code=HandlerErrorCode.InvalidRequest)
+def _create_with_invalid_model(resource_client):
+    try:
         requested_model = resource_client.generate_invalid_create_example()
         _status, response, _error_code = resource_client.call_and_assert(
             Action.CREATE, OperationStatus.FAILED, requested_model
         )
         assert response["message"]
-        assert _error_code == HandlerErrorCode.InvalidRequest
-    else:
-        pytest.skip("No readOnly Properties. Skipping test.")
+        return _error_code
+    finally:
+        resource_client.call(Action.DELETE, requested_model)
 
 
 @pytest.mark.create
+@skip_not_writable_identifier
 def contract_create_duplicate(created_resource, resource_client):
     _created_model, request = created_resource
     test_create_failure_if_repeat_writeable_id(resource_client, request)

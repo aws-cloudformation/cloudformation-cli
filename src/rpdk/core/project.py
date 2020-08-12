@@ -75,7 +75,7 @@ SETTINGS_VALIDATOR = Draft7Validator(
 BASIC_TYPE_MAPPINGS = {
     "string": "String",
     "number": "Double",
-    "integer": "Double",
+    "integer": "Integer",
     "boolean": "Boolean",
 }
 
@@ -310,13 +310,13 @@ class Project:  # pylint: disable=too-many-instance-attributes
                 "Project file not found. Have you run 'init'?", e
             )
 
-        LOG.info("Validating your resource specification...")
+        LOG.info("Validating your resource schema...")
         try:
             self.load_schema()
         except FileNotFoundError as e:
-            self._raise_invalid_project("Resource specification not found.", e)
+            self._raise_invalid_project("Resource schema not found.", e)
         except SpecValidationError as e:
-            msg = "Resource specification is invalid: " + str(e)
+            msg = "Resource schema is invalid: " + str(e)
             self._raise_invalid_project(msg, e)
 
     def submit(
@@ -527,8 +527,11 @@ class Project:  # pylint: disable=too-many-instance-attributes
             prop_type = [prop_type]
             single_item = True
 
+        visited = set()
         for prop_item in prop_type:
-            __set_property_type(prop_item, single_type=single_item)
+            if prop_item not in visited:
+                visited.add(prop_item)
+                __set_property_type(prop_item, single_type=single_item)
 
         return prop
 

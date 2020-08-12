@@ -1,6 +1,6 @@
 # Resource Provider Schema<a name="resource-type-schema"></a>
 
-In order to be considered valid, your resource provider's schema must adhere to the [Resource Provider Definition Schema](https://github.com/aws-cloudformation/aws-cloudformation-rpdk/blob/master/src/rpdk/core/data/schema/provider.definition.schema.v1.json)\. This meta\-schema provides a means of validating your resource specification during resource development\.
+In order to be considered valid, your resource provider's schema must adhere to the [Resource Provider Definition Schema](https://github.com/aws-cloudformation/aws-cloudformation-rpdk/blob/master/src/rpdk/core/data/schema/provider.definition.schema.v1.json)\. This meta\-schema provides a means of validating your resource schema during resource development\.
 
 ## Syntax<a name="resource-type-schema-syntax"></a>
 

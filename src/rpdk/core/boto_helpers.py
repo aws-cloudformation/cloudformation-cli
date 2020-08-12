@@ -76,3 +76,9 @@ def get_service_endpoint(service, region):
     resolver = botocore.regions.EndpointResolver(data)
     endpoint_data = resolver.construct_endpoint(service, region)
     return "https://" + endpoint_data["hostname"]
+
+
+def get_account(session):
+    sts_client = session.client("sts")
+    response = sts_client.get_caller_identity()
+    return response.get("Account")

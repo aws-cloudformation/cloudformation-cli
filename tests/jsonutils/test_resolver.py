@@ -200,6 +200,13 @@ def test_modelresolver__schema_to_lang_type_primitive():
 
 def test_modelresolver__schema_to_lang_type_multiple():
     resolver = ModelResolver({})
-    resolved_type = resolver._schema_to_lang_type({"type": ["string"]})
+    resolved_type = resolver._schema_to_lang_type({"type": ["string", "object"]})
     assert resolved_type.container == ContainerType.MULTIPLE
     assert resolved_type.type == "multiple"
+
+
+def test_modelresolver__schema_to_lang_duplicatetype():
+    resolver = ModelResolver({})
+    resolved_type = resolver._schema_to_lang_type({"type": ["string", "string"]})
+    assert resolved_type.container == ContainerType.PRIMITIVE
+    assert resolved_type.type == "string"
