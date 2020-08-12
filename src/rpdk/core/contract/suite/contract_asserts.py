@@ -2,9 +2,9 @@ from functools import wraps
 from inspect import Parameter, signature
 from unittest.test.testmock.support import is_instance
 
-from rpdk.core.contract.interface import HandlerErrorCode
-
 import pytest
+
+from rpdk.core.contract.interface import HandlerErrorCode
 
 
 def _rebind(decorator, func, *args, **kwargs):
@@ -126,9 +126,8 @@ def failed_event(error_code, msg=""):
             response_error = func(*args, **kwargs)
             if response_error is not None:
                 if is_instance(error_code, HandlerErrorCode):
-                    assert response_error == error_code, msg
-                else:
-                    assert response_error in error_code
+                    error_code_tuple = (error_code,)
+                assert response_error in error_code_tuple, msg
             return response_error
 
         return wrapper
