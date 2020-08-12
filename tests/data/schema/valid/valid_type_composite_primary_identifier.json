@@ -13,5 +13,9 @@
         "/properties/property1",
         "/properties/property2"
     ],
+    "readOnlyProperties": [
+        "/properties/property1",
+        "/properties/property2"
+    ],
     "additionalProperties": false
 }

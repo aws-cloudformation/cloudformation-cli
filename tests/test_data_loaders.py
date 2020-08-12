@@ -36,6 +36,7 @@ BASIC_SCHEMA = {
     "description": "test schema",
     "properties": {"foo": {"type": "string"}},
     "primaryIdentifier": ["/properties/foo"],
+    "readOnlyProperties": ["/properties/foo"],
     "additionalProperties": False,
 }
 
@@ -112,6 +113,7 @@ def test_load_resource_spec_remote_key_is_invalid():
         "description": "test schema",
         "properties": {"foo": {"type": "string"}},
         "primaryIdentifier": ["/properties/foo"],
+        "readOnlyProperties": ["/properties/foo"],
         "remote": {},
     }
     with pytest.raises(SpecValidationError) as excinfo:
