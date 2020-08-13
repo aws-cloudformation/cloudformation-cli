@@ -1,5 +1,8 @@
 dist: bionic
 language: python
+stages:
+  - Tests
+  - Deploy
 cache:
   - pip
 env:
