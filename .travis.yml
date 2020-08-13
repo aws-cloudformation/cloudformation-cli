@@ -25,6 +25,9 @@ jobs:
     - python: "3.6"
     - python: "3.7"
     - python: "3.8"
+    - stage: Tests
+      python: 3.8
+      env: TOXENV=pylint38
     - stage: Deploy
       script: skip
       python: 3.8
