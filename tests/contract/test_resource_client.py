@@ -495,7 +495,7 @@ def test_has_writable_identifier_compound_is_writeable(resource_client):
     assert resource_client.has_writable_identifier()
 
 
-def test__make_payload(resource_client):
+def test_make_payload(resource_client):
     resource_client._creds = {}
 
     token = "ecba020e-b2e6-4742-a7d0-8a06ae7c4b2f"
@@ -503,10 +503,21 @@ def test__make_payload(resource_client):
         payload = resource_client._make_payload("CREATE", {"foo": "bar"})
 
     assert payload == {
-        "credentials": {},
+        "requestData": {
+            "callerCredentials": {},
+            "providerCredentials": {},
+            "resourceProperties": {"foo": "bar"},
+            "previousResourceProperties": None,
+            "logicalResourceIdentifier": None,
+            "providerLogGroupName": "test_resource_contract_test",
+        },
+        "region": DEFAULT_REGION,
+        "awsPartition": "aws",
+        "awsAccountId": "11111111",
         "action": "CREATE",
-        "request": {"clientRequestToken": token, "foo": "bar"},
         "callbackContext": None,
+        "bearerToken": token,
+        "resourceType": "AWS::CloudWatch::Alarm",
     }
 
 

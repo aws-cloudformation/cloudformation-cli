@@ -317,22 +317,36 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         return error_code
 
     @staticmethod
+    # pylint: disable=R0913
     def make_request(
         desired_resource_state,
         previous_resource_state,
         region,
         account,
         partition,
+        action,
+        creds,
+        client_token,
+        callback_context=None,
         **kwargs
     ):
         return {
-            "desiredResourceState": desired_resource_state,
-            "previousResourceState": previous_resource_state,
-            "logicalResourceIdentifier": "test",
-            **kwargs,
+            "requestData": {
+                "callerCredentials": creds,
+                "providerCredentials": creds,
+                "resourceProperties": desired_resource_state,
+                "previousResourceProperties": previous_resource_state,
+                "logicalResourceIdentifier": "test",
+                "providerLogGroupName": "test_resource_contract_test",
+            },
             "region": region,
             "awsPartition": partition,
             "awsAccountId": account,
+            "action": action,
+            "callbackContext": callback_context,
+            "bearerToken": client_token,
+            "resourceType": "AWS::CloudWatch::Alarm",
+            **kwargs,
         }
 
     @staticmethod
@@ -368,17 +382,32 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
             for primary_identifier in primary_identifier_path
         )
 
-    def _make_payload(self, action, request, callback_context=None):
-        return {
-            "credentials": self._creds.copy(),
-            "action": action,
-            "request": {"clientRequestToken": self.generate_token(), **request},
-            "callbackContext": callback_context,
-        }
+    def _make_payload(self, action, current_model, previous_model=None, **kwargs):
+        return self.make_request(
+            current_model,
+            previous_model,
+            self.region,
+            self.account,
+            self.partition,
+            action,
+            self._creds.copy(),
+            self.generate_token(),
+            **kwargs
+        )
 
     def _call(self, payload):
         payload_to_log = {
-            key: payload[key] for key in ["callbackContext", "action", "request"]
+            key: payload[key]
+            for key in [
+                "callbackContext",
+                "action",
+                "requestData",
+                "region",
+                "awsPartition",
+                "awsAccountId",
+                "bearerToken",
+                "resourceType",
+            ]
         }
         LOG.debug(
             "Sending request\n%s",
@@ -397,16 +426,8 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
     ):
         if assert_status not in [OperationStatus.SUCCESS, OperationStatus.FAILED]:
             raise ValueError("Assert status {} not supported.".format(assert_status))
-        request = self.make_request(
-            current_model,
-            previous_model,
-            self.region,
-            self.account,
-            self.partition,
-            **kwargs
-        )
 
-        status, response = self.call(action, request)
+        status, response = self.call(action, current_model, previous_model, **kwargs)
         if assert_status == OperationStatus.SUCCESS:
             self.assert_success(status, response)
             error_code = None
@@ -414,10 +435,10 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
             error_code = self.assert_failed(status, response)
         return status, response, error_code
 
-    def call(self, action, request):
-        payload = self._make_payload(action, request)
+    def call(self, action, current_model, previous_model=None, **kwargs):
+        request = self._make_payload(action, current_model, previous_model, **kwargs)
         start_time = time.time()
-        response = self._call(payload)
+        response = self._call(request)
         self.assert_time(start_time, time.time(), action)
 
         # this throws a KeyError if status isn't present, or if it isn't a valid status
@@ -434,11 +455,10 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
             )
             sleep(callback_delay_seconds)
 
-            request["desiredResourceState"] = response.get("resourceModel")
-            payload["callbackContext"] = response.get("callbackContext")
-            payload["request"] = request
+            request["requestData"]["resourceProperties"] = response.get("resourceModel")
+            request["callbackContext"] = response.get("callbackContext")
 
-            response = self._call(payload)
+            response = self._call(request)
             status = OperationStatus[response["status"]]
 
         # ensure writeOnlyProperties are not returned on final responses

@@ -12,6 +12,7 @@ from rpdk.core.invoke import _needs_reinvocation
 from rpdk.core.project import Project
 
 ACTIONS = list(Action.__members__)
+ACCOUNT = "11111111"
 
 
 @pytest.fixture
@@ -20,9 +21,16 @@ def payload_path(tmp_path):
     with path.open("w", encoding="utf-8") as f:
         json.dump(
             {
-                "desiredResourceState": None,
-                "previousResourceState": None,
-                "logicalResourceIdentifier": None,
+                "requestData": {
+                    "resourceProperties": {},
+                    "previousResourceProperties": None,
+                    "logicalResourceIdentifier": None,
+                    "providerLogGroupName": "test_resource_contract_test",
+                },
+                "region": "us-west-2",
+                "awsPartition": "aws",
+                "awsAccountId": "11111111",
+                "resourceType": "test",
             },
             f,
         )

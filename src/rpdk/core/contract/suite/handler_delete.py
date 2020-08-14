@@ -38,14 +38,7 @@ def deleted_resource(resource_client):
         assert "resourceModel" not in response
         yield model, request
     finally:
-        request = resource_client.make_request(
-            model,
-            None,
-            resource_client.region,
-            resource_client.account,
-            resource_client.partition,
-        )
-        status, response = resource_client.call(Action.DELETE, request)
+        status, response = resource_client.call(Action.DELETE, model)
 
         # a failed status is allowed if the error code is NotFound
         if status == OperationStatus.FAILED:

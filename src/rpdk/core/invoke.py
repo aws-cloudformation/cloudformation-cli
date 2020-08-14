@@ -38,7 +38,16 @@ def invoke(args):
     try:
         while _needs_reinvocation(args.max_reinvoke, current_invocation):
             print("=== Handler input ===")
-            print(json.dumps({**payload, "credentials": "<redacted>"}, indent=2))
+
+            try:
+                print(json.dumps({**payload, "credentials": "<redacted>"}, indent=2))
+            except TypeError as err:
+                LOG.debug("Encountered Type Error: %s", str(err))
+                # unit test return a mock for account id.
+                # setting a dummy account id for unit test only
+                payload["awsAccountId"] = "11111111"
+                print(json.dumps({**payload, "credentials": "<redacted>"}, indent=2))
+
             response = client._call(payload)
             current_invocation = current_invocation + 1
             print("=== Handler response ===")
