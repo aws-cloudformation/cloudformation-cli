@@ -345,7 +345,7 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
             "action": action,
             "callbackContext": callback_context,
             "bearerToken": client_token,
-            "resourceType": "AWS::CloudWatch::Alarm",
+            "resourceType": "AWS::Service::ResourceName",
             **kwargs,
         }
 

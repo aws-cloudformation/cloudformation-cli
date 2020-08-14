@@ -231,16 +231,26 @@ def test_make_request():
         "us-west-2",
         "11111111",
         "aws",
-        clientRequestToken=token,
+        "CREATE",
+        {},
+        token,
     )
     assert request == {
-        "desiredResourceState": desired_resource_state,
-        "previousResourceState": previous_resource_state,
-        "logicalResourceIdentifier": "test",
-        "clientRequestToken": token,
+        "requestData": {
+            "callerCredentials": {},
+            "providerCredentials": {},
+            "resourceProperties": desired_resource_state,
+            "previousResourceProperties": previous_resource_state,
+            "logicalResourceIdentifier": None,
+            "providerLogGroupName": "test_resource_contract_test",
+        },
         "region": "us-west-2",
         "awsPartition": "aws",
         "awsAccountId": "11111111",
+        "action": "CREATE",
+        "callbackContext": None,
+        "bearerToken": token,
+        "resourceType": "AWS::Service::ResourceName"
     }
 
 
@@ -517,7 +527,7 @@ def test_make_payload(resource_client):
         "action": "CREATE",
         "callbackContext": None,
         "bearerToken": token,
-        "resourceType": "AWS::CloudWatch::Alarm",
+        "resourceType": "AWS::Service::ResourceName",
     }
 
 
