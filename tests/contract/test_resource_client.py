@@ -171,7 +171,7 @@ def test_prune_null_properties_in_path():
         "array": ["first", "second"],
     }
     {("properties", "AlarmName")}
-    prune_null_properties_in_path(
+    model = prune_null_properties_in_path(
         model,
         [
             ("properties", "foo"),
@@ -199,7 +199,7 @@ def test_prune_properties_from_model_in_path():
         "one": "two",
         "array": ["first", "second"],
     }
-    prune_properties_from_model_in_path(
+    model = prune_properties_from_model_in_path(
         model,
         previous_model,
         [("properties", "foo"), ("properties", "spam"), ("properties", "array", "1")],

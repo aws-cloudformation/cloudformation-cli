@@ -135,10 +135,9 @@ def test_input_equals_output(resource_client, input_model, output_model):
     prune_null_properties_in_path(input_model, resource_client.create_only_paths)
     prune_properties_from_model(input_model, resource_client.write_only_paths)
 
-    output_model_copy = output_model.copy()
-    prune_properties_from_model(output_model_copy, resource_client.read_only_paths)
+    prune_properties_from_model(output_model, resource_client.read_only_paths)
     prune_properties_from_model_in_path(
-        output_model_copy, input_model, resource_client.create_only_paths
+        output_model, input_model, resource_client.create_only_paths
     )
 
-    assert input_model == output_model_copy
+    assert input_model == output_model
