@@ -30,8 +30,8 @@ def created_resource(resource_client):
         _status, response, _error = resource_client.call_and_assert(
             Action.CREATE, OperationStatus.SUCCESS, request
         )
-        model = output_model = response["resourceModel"]
-        test_input_equals_output(resource_client, input_model, output_model)
+        model = response["resourceModel"]
+        test_input_equals_output(resource_client, input_model, model)
         yield model, request
     finally:
         resource_client.call_and_assert(Action.DELETE, OperationStatus.SUCCESS, model)
@@ -46,8 +46,8 @@ def contract_create_delete(resource_client):
     try:
         response = test_create_success(resource_client, requested_model)
         # check response here
-        output_model = delete_model = response["resourceModel"]
-        test_input_equals_output(resource_client, input_model, output_model)
+        delete_model = response["resourceModel"]
+        test_input_equals_output(resource_client, input_model, delete_model)
     finally:
         test_delete_success(resource_client, delete_model)
 

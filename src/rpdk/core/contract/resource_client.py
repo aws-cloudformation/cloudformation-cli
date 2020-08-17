@@ -41,6 +41,45 @@ def prune_properties(document, paths):
     return document
 
 
+def prune_null_properties_in_path(model, paths):
+    """Prune given properties from a document.
+
+    This assumes properties will always have an object (dict) as a parent.
+    The function modifies the document in-place, but also returns the document
+    for convenience. (The return value may be ignored.)
+    """
+    document = {"properties": model}
+    for path in paths:
+        try:
+            prop, resolved_path, parent = traverse(document, path)
+        except LookupError:
+            pass  # not found means nothing to delete
+        else:
+            if prop is None or prop == "":
+                key = resolved_path[-1]
+                del parent[key]
+    return document
+
+
+def prune_properties_from_model_in_path(model, pruned_model, paths):
+    """Prune given properties from a document.
+
+    This assumes properties will always have an object (dict) as a parent.
+    The function modifies the document in-place, but also returns the document
+    for convenience. (The return value may be ignored.)
+    """
+    document = {"properties": model}
+    pruned_document = {"properties": pruned_model}
+    for path in paths:
+        try:
+            _prop, _resolved_path, _parent = traverse(pruned_document, path)
+        except LookupError:
+            _prop, resolved_path, parent = traverse(document, path)
+            key = resolved_path[-1]
+            del parent[key]
+    return document
+
+
 def prune_properties_from_model(model, paths):
     """Prune given properties from a resource model.
 
@@ -299,7 +338,7 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         return {
             "desiredResourceState": desired_resource_state,
             "previousResourceState": previous_resource_state,
-            "logicalResourceIdentifier": None,
+            "logicalResourceIdentifier": "test",
             **kwargs,
             "region": region,
             "awsPartition": partition,

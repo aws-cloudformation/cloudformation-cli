@@ -20,8 +20,8 @@ def updated_resource(resource_client):
         _status, response, _error = resource_client.call_and_assert(
             Action.CREATE, OperationStatus.SUCCESS, create_request
         )
-        output_model = created_model = model = response["resourceModel"]
-        test_input_equals_output(resource_client, input_model, output_model)
+        created_model = model = response["resourceModel"]
+        test_input_equals_output(resource_client, input_model, created_model)
 
         updated_input_model = update_request = resource_client.generate_update_example(
             created_model
@@ -29,10 +29,8 @@ def updated_resource(resource_client):
         _status, response, _error = resource_client.call_and_assert(
             Action.UPDATE, OperationStatus.SUCCESS, update_request, created_model
         )
-        updated_output_model = updated_model = response["resourceModel"]
-        test_input_equals_output(
-            resource_client, updated_input_model, updated_output_model
-        )
+        updated_model = response["resourceModel"]
+        test_input_equals_output(resource_client, updated_input_model, updated_model)
 
         yield create_request, created_model, update_request, updated_model
     finally:

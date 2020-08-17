@@ -12,8 +12,10 @@ from rpdk.core.contract.interface import Action, HandlerErrorCode, OperationStat
 from rpdk.core.contract.resource_client import (
     ResourceClient,
     override_properties,
+    prune_null_properties_in_path,
     prune_properties,
     prune_properties_from_model,
+    prune_properties_from_model_in_path,
 )
 from rpdk.core.test import (
     DEFAULT_ENDPOINT,
@@ -161,6 +163,54 @@ def test_prune_properties_from_model():
     assert document == {"one": "two", "array": ["first"]}
 
 
+def test_prune_null_properties_in_path():
+    model = {
+        "foo": "",
+        "spam": "eggs",
+        "one": "two",
+        "array": ["first", "second"],
+    }
+    {("properties", "AlarmName")}
+    prune_null_properties_in_path(
+        model,
+        [
+            ("properties", "foo"),
+            ("properties", "spam"),
+            ("properties", "not_found"),
+            ("properties", "array", "1"),
+        ],
+    )
+    assert model == {
+        "array": ["first", "second"],
+        "one": "two",
+        "spam": "eggs",
+    }
+
+
+def test_prune_properties_from_model_in_path():
+    previous_model = {
+        "spam": "eggs",
+        "one": "two",
+        "array": ["first", "second"],
+    }
+    model = {
+        "foo": "bar",
+        "spam": "eggs",
+        "one": "two",
+        "array": ["first", "second"],
+    }
+    prune_properties_from_model_in_path(
+        model,
+        previous_model,
+        [("properties", "foo"), ("properties", "spam"), ("properties", "array", "1")],
+    )
+    assert model == {
+        "array": ["first", "second"],
+        "one": "two",
+        "spam": "eggs",
+    }
+
+
 def test_init_sam_cli_client():
     patch_sesh = patch(
         "rpdk.core.contract.resource_client.create_sdk_session", autospec=True
@@ -210,7 +260,7 @@ def test_make_request():
     assert request == {
         "desiredResourceState": desired_resource_state,
         "previousResourceState": previous_resource_state,
-        "logicalResourceIdentifier": None,
+        "logicalResourceIdentifier": "test",
         "clientRequestToken": token,
         "region": "us-west-2",
         "awsPartition": "aws",

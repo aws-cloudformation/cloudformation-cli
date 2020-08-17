@@ -30,8 +30,8 @@ def deleted_resource(resource_client):
         _status, response, _error = resource_client.call_and_assert(
             Action.CREATE, OperationStatus.SUCCESS, request
         )
-        output_model = model = response["resourceModel"]
-        test_input_equals_output(resource_client, input_model, output_model)
+        model = response["resourceModel"]
+        test_input_equals_output(resource_client, input_model, model)
         _status, response, _error = resource_client.call_and_assert(
             Action.DELETE, OperationStatus.SUCCESS, model
         )
