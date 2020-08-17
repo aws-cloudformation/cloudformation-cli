@@ -89,8 +89,8 @@ def contract_delete_delete(resource_client, deleted_resource):
 def contract_delete_create(resource_client, deleted_resource):
     if resource_client.has_writable_identifier():
         deleted_model, request = deleted_resource
-        created_response = response = test_create_success(resource_client, request)
-
+        response = test_create_success(resource_client, request)
+        created_response = response.copy()
         # read-only properties should be excluded from the comparison
         prune_properties_from_model(deleted_model, resource_client.read_only_paths)
         prune_properties_from_model(
