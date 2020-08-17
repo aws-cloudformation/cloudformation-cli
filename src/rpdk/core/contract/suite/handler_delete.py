@@ -90,7 +90,7 @@ def contract_delete_create(resource_client, deleted_resource):
     if resource_client.has_writable_identifier():
         deleted_model, request = deleted_resource
         response = test_create_success(resource_client, request)
-
+        created_response = response.copy()
         # read-only properties should be excluded from the comparison
         prune_properties_from_model(deleted_model, resource_client.read_only_paths)
         prune_properties_from_model(
@@ -98,5 +98,8 @@ def contract_delete_create(resource_client, deleted_resource):
         )
 
         assert deleted_model == response["resourceModel"]
+        resource_client.call_and_assert(
+            Action.DELETE, OperationStatus.SUCCESS, created_response["resourceModel"]
+        )
     else:
         pytest.skip("No writable identifiers. Skipping test.")
