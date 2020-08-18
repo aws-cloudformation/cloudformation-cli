@@ -41,23 +41,33 @@ def prune_properties(document, paths):
     return document
 
 
-def prune_properties_from_model_in_path(output_model, input_model, paths):
+def prune_properties_if_not_exist_in_path(output_model, input_model, paths):
     """Prune given properties from a document.
 
     This assumes properties will always have an object (dict) as a parent.
-    The function modifies the document in-place, but also returns the document
-    for convenience. (The return value may be ignored.)
+    The function returns the document after pruning the path which exists
+    in the paths tuple but not in the input_model
     """
     output_document = {"properties": output_model.copy()}
     input_document = {"properties": input_model.copy()}
     for path in paths:
         try:
-            _prop, _resolved_path, _parent = traverse(input_document, path)
+            if not path_exists(input_document, path):
+                _prop, resolved_path, parent = traverse(output_document, path)
+                key = resolved_path[-1]
+                del parent[key]
         except LookupError:
-            _prop, resolved_path, parent = traverse(output_document, path)
-            key = resolved_path[-1]
-            del parent[key]
+            pass
     return output_document["properties"]
+
+
+def path_exists(document, path):
+    try:
+        _prop, _resolved_path, _parent = traverse(document, path)
+    except LookupError:
+        return False
+    else:
+        return True
 
 
 def prune_properties_from_model(model, paths):

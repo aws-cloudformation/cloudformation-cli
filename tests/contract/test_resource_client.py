@@ -14,7 +14,7 @@ from rpdk.core.contract.resource_client import (
     override_properties,
     prune_properties,
     prune_properties_from_model,
-    prune_properties_from_model_in_path,
+    prune_properties_if_not_exist_in_path,
 )
 from rpdk.core.test import (
     DEFAULT_ENDPOINT,
@@ -162,7 +162,7 @@ def test_prune_properties_from_model():
     assert document == {"one": "two", "array": ["first"]}
 
 
-def test_prune_properties_from_model_in_path():
+def test_prune_properties_if_not_exist_in_path():
     previous_model = {
         "spam": "eggs",
         "one": "two",
@@ -174,10 +174,15 @@ def test_prune_properties_from_model_in_path():
         "one": "two",
         "array": ["first", "second"],
     }
-    model = prune_properties_from_model_in_path(
+    model = prune_properties_if_not_exist_in_path(
         model,
         previous_model,
-        [("properties", "foo"), ("properties", "spam"), ("properties", "array", "1")],
+        [
+            ("properties", "foo"),
+            ("properties", "spam"),
+            ("properties", "array", "1"),
+            ("properties", "invalid"),
+        ],
     )
     assert model == previous_model
 
