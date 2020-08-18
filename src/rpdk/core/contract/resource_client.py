@@ -70,13 +70,18 @@ def prune_properties_from_model_in_path(output_model, input_model, paths):
     """
     output_document = {"properties": output_model.copy()}
     input_document = {"properties": input_model.copy()}
+    LOG.debug("This is output %s, input %s", output_document, input_document)
     for path in paths:
         try:
+            LOG.debug("This is path %s", path)
             _prop, _resolved_path, _parent = traverse(input_document, path)
         except LookupError:
+            LOG.debug("in exception")
             _prop, resolved_path, parent = traverse(output_document, path)
+            LOG.debug("Not exception")
             key = resolved_path[-1]
             del parent[key]
+    LOG.debug("final output: %s", output_document["properties"])
     return output_document["properties"]
 
 
