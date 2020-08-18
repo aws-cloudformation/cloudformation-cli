@@ -12,7 +12,6 @@ from rpdk.core.contract.interface import Action, HandlerErrorCode, OperationStat
 from rpdk.core.contract.resource_client import (
     ResourceClient,
     override_properties,
-    prune_null_properties_in_path,
     prune_properties,
     prune_properties_from_model,
     prune_properties_from_model_in_path,
@@ -163,30 +162,6 @@ def test_prune_properties_from_model():
     assert document == {"one": "two", "array": ["first"]}
 
 
-def test_prune_null_properties_in_path():
-    model = {
-        "foo": "",
-        "spam": "eggs",
-        "one": "two",
-        "array": ["first", "second"],
-    }
-    {("properties", "AlarmName")}
-    model = prune_null_properties_in_path(
-        model,
-        [
-            ("properties", "foo"),
-            ("properties", "spam"),
-            ("properties", "not_found"),
-            ("properties", "array", "1"),
-        ],
-    )
-    assert model == {
-        "array": ["first", "second"],
-        "one": "two",
-        "spam": "eggs",
-    }
-
-
 def test_prune_properties_from_model_in_path():
     previous_model = {
         "spam": "eggs",
@@ -204,11 +179,7 @@ def test_prune_properties_from_model_in_path():
         previous_model,
         [("properties", "foo"), ("properties", "spam"), ("properties", "array", "1")],
     )
-    assert model == {
-        "array": ["first", "second"],
-        "one": "two",
-        "spam": "eggs",
-    }
+    assert model == previous_model
 
 
 def test_init_sam_cli_client():

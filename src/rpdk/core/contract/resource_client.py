@@ -41,26 +41,6 @@ def prune_properties(document, paths):
     return document
 
 
-def prune_null_properties_in_path(model, paths):
-    """Prune given properties from a document.
-
-    This assumes properties will always have an object (dict) as a parent.
-    The function modifies the document in-place, but also returns the document
-    for convenience. (The return value may be ignored.)
-    """
-    document = {"properties": model.copy()}
-    for path in paths:
-        try:
-            prop, resolved_path, parent = traverse(document, path)
-        except LookupError:
-            pass  # not found means nothing to delete
-        else:
-            if not prop:
-                key = resolved_path[-1]
-                del parent[key]
-    return document["properties"]
-
-
 def prune_properties_from_model_in_path(output_model, input_model, paths):
     """Prune given properties from a document.
 
@@ -70,18 +50,13 @@ def prune_properties_from_model_in_path(output_model, input_model, paths):
     """
     output_document = {"properties": output_model.copy()}
     input_document = {"properties": input_model.copy()}
-    LOG.debug("This is output %s, input %s", output_document, input_document)
     for path in paths:
         try:
-            LOG.debug("This is path %s", path)
             _prop, _resolved_path, _parent = traverse(input_document, path)
         except LookupError:
-            LOG.debug("in exception")
             _prop, resolved_path, parent = traverse(output_document, path)
-            LOG.debug("Not exception")
             key = resolved_path[-1]
             del parent[key]
-    LOG.debug("final output: %s", output_document["properties"])
     return output_document["properties"]
 
 
