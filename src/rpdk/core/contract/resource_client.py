@@ -41,6 +41,35 @@ def prune_properties(document, paths):
     return document
 
 
+def prune_properties_if_not_exist_in_path(output_model, input_model, paths):
+    """Prune given properties from a document.
+
+    This assumes properties will always have an object (dict) as a parent.
+    The function returns the document after pruning the path which exists
+    in the paths tuple but not in the input_model
+    """
+    output_document = {"properties": output_model.copy()}
+    input_document = {"properties": input_model.copy()}
+    for path in paths:
+        try:
+            if not path_exists(input_document, path):
+                _prop, resolved_path, parent = traverse(output_document, path)
+                key = resolved_path[-1]
+                del parent[key]
+        except LookupError:
+            pass
+    return output_document["properties"]
+
+
+def path_exists(document, path):
+    try:
+        _prop, _resolved_path, _parent = traverse(document, path)
+    except LookupError:
+        return False
+    else:
+        return True
+
+
 def prune_properties_from_model(model, paths):
     """Prune given properties from a resource model.
 
@@ -299,7 +328,7 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         return {
             "desiredResourceState": desired_resource_state,
             "previousResourceState": previous_resource_state,
-            "logicalResourceIdentifier": None,
+            "logicalResourceIdentifier": "test",
             **kwargs,
             "region": region,
             "awsPartition": partition,
