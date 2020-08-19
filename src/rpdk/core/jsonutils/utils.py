@@ -159,3 +159,56 @@ def schema_merge(target, src, path):  # noqa: C901
                         raise ConstraintError(msg, path, key, target_schema, src_schema)
                     target[key] = src_schema
     return target
+
+
+# pylint: disable=R0912,C0301
+def schema_merge_path(target, src, path):  # noqa: C901
+    # doctest: +NORMALIZE_WHITESPACE
+    """Merges the src schema into the target schema in place.
+
+    If there are duplicate keys, src will overwrite target.
+
+    :raises TypeError: either schema is not of type dict
+    :raises ConstraintError: the schema tries to override "type" or "$ref"
+    >>> schema_merge_path({"a": {"test"}}, {"a": {"test1"}}, ("a"))
+    {'a': {'test1'}}
+    >>> schema_merge_path({"m": {"m1": "1", "m2": "2"}}, {"m": {"m1": "2", "m2": "2"}}, ("m", "m1")) # noqa: E501
+    {'m': {'m1': '2', 'm2': '2'}}
+    >>> schema_merge_path({"m": ["m1", "m2"]}, {"m": ["1", "2"]}, ("m", 0)) # noqa: E501
+    {'m': ['1', 'm1', 'm2']}
+    """
+    for key, src_schema in src.items():
+        if str(key) == path[0]:
+            try:
+                target_schema = target[key]
+                if isinstance(src_schema, Mapping):
+                    target[key] = is_map(target_schema, src_schema, path)
+                elif isinstance(src_schema, list):
+                    target[key] = is_list(target_schema, src_schema, path)
+                else:
+                    target[key] = src_schema
+            except KeyError:
+                if isinstance(src_schema, Mapping):
+                    target[key] = is_map({}, src_schema, path)
+                elif isinstance(src_schema, list):
+                    target[key] = is_list([], src_schema, path)
+                else:
+                    target[key] = src_schema
+            except TypeError:
+                target = {key: src_schema}
+    return target
+
+
+def is_map(target_schema, src_schema, path):
+    return schema_merge_path(target_schema, src_schema, path[1:])
+
+
+def is_list(target_schema, src_schema, path):
+    target_list = target_schema
+    if len(path[1:]) == 1:
+        target_list.insert(path[-1], src_schema[path[-1]])
+    else:
+        target_list.insert(
+            path[1], schema_merge_path(target_schema, src_schema[path[1]], path[2:])
+        )
+    return target_list

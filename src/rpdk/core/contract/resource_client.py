@@ -18,7 +18,7 @@ from ..boto_helpers import (
     get_temporary_credentials,
 )
 from ..jsonutils.pointer import fragment_decode, fragment_list
-from ..jsonutils.utils import traverse
+from ..jsonutils.utils import schema_merge_path, traverse
 
 LOG = logging.getLogger(__name__)
 
@@ -98,28 +98,23 @@ def override_properties(document, overrides):
     return document
 
 
-def prune_properties_except_identifier(model, paths):
+def create_model_with_properties_in_path(src_document, paths):
     """Prune all properties except given ones from the document.
 
     This assumes properties will always have an object (dict) as a parent.
     The function modifies the document in-place, but also returns the document
     for convenience. (The return value may be ignored.)
     """
-    document = {"properties": model}
-    for path in list(model):
-        path_tmp = (
-            "properties",
-            path,
-        )
-        _prop, resolved_path, parent = traverse(document, path_tmp)
-        key = resolved_path[-1]
-        key_path = (
-            "properties",
-            key,
-        )
-        if key_path not in paths:
-            del parent[key]
-    return document["properties"]
+    dest_document = {}
+    for path in paths:
+        try:
+            _prop, resolved_path, _parent = traverse(src_document, path[1:])
+            dest_document = schema_merge_path(
+                dest_document, src_document, resolved_path
+            )
+        except LookupError:
+            pass
+    return dest_document
 
 
 class ResourceClient:  # pylint: disable=too-many-instance-attributes

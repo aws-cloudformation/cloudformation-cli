@@ -6,7 +6,7 @@ import pytest
 # WARNING: contract tests should use fully qualified imports to avoid issues
 # when being loaded by pytest
 from rpdk.core.contract.interface import Action, HandlerErrorCode, OperationStatus
-from rpdk.core.contract.resource_client import prune_properties_except_identifier
+from rpdk.core.contract.resource_client import create_model_with_properties_in_path
 from rpdk.core.contract.suite.contract_asserts import failed_event
 
 
@@ -29,7 +29,7 @@ def contract_update_create_only_property(resource_client):
             )
             assert response["message"]
         finally:
-            pruned_model = prune_properties_except_identifier(
+            pruned_model = create_model_with_properties_in_path(
                 created_model, resource_client.primary_identifier_paths,
             )
             resource_client.call_and_assert(

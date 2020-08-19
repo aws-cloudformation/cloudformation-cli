@@ -8,7 +8,7 @@ import pytest
 # when being loaded by pytest
 from rpdk.core.contract.interface import Action, HandlerErrorCode, OperationStatus
 from rpdk.core.contract.resource_client import (
-    prune_properties_except_identifier,
+    create_model_with_properties_in_path,
     prune_properties_from_model,
 )
 from rpdk.core.contract.suite.handler_commons import (
@@ -28,15 +28,15 @@ LOG = logging.getLogger(__name__)
 
 @pytest.fixture(scope="module")
 def deleted_resource(resource_client):
-    request = input_model = model = resource_client.generate_create_example()
+    request = input_model = pruned_model = resource_client.generate_create_example()
     try:
         _status, response, _error = resource_client.call_and_assert(
             Action.CREATE, OperationStatus.SUCCESS, request
         )
         model = response["resourceModel"]
         test_input_equals_output(resource_client, input_model, model)
-        pruned_model = prune_properties_except_identifier(
-            model.copy(), resource_client.primary_identifier_paths,
+        pruned_model = create_model_with_properties_in_path(
+            model, resource_client.primary_identifier_paths,
         )
         _status, response, _error = resource_client.call_and_assert(
             Action.DELETE, OperationStatus.SUCCESS, pruned_model

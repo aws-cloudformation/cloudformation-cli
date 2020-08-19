@@ -11,6 +11,7 @@ from rpdk.core.boto_helpers import LOWER_CAMEL_CRED_KEYS
 from rpdk.core.contract.interface import Action, HandlerErrorCode, OperationStatus
 from rpdk.core.contract.resource_client import (
     ResourceClient,
+    create_model_with_properties_in_path,
     override_properties,
     prune_properties,
     prune_properties_except_identifier,
@@ -212,6 +213,25 @@ def test_prune_properties_except_identifier():
         "map": {"map1": {"test": "1", "not_test": "2"}},
     }
 
+def test_create_model_with_properties_in_path():
+    model = {
+        "foo": "bar",
+        "spam": "eggs",
+        "one": "two"
+    }
+
+    model = create_model_with_properties_in_path(
+        model,
+        [
+            ("properties", "foo"),
+            ("properties", "spam"),
+            ("properties", "invaild")
+        ],
+    )
+    assert model == {
+        "foo": "bar",
+        "spam": "eggs"
+    }
 
 def test_init_sam_cli_client():
     patch_sesh = patch(

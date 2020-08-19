@@ -2,7 +2,7 @@ import logging
 
 from rpdk.core.contract.interface import Action, HandlerErrorCode, OperationStatus
 from rpdk.core.contract.resource_client import (
-    prune_properties_except_identifier,
+    create_model_with_properties_in_path,
     prune_properties_from_model,
     prune_properties_if_not_exist_in_path,
 )
@@ -49,7 +49,7 @@ def test_create_failure_if_repeat_writeable_id(resource_client, current_resource
 @response_does_not_contain_write_only_properties
 @response_contains_resource_model_equal_current_model
 def test_read_success(resource_client, current_resource_model):
-    pruned_model = prune_properties_except_identifier(
+    pruned_model = create_model_with_properties_in_path(
         current_resource_model.copy(), resource_client.primary_identifier_paths,
     )
     _status, response, _error_code = resource_client.call_and_assert(
@@ -60,8 +60,8 @@ def test_read_success(resource_client, current_resource_model):
 
 @failed_event(error_code=HandlerErrorCode.NotFound)
 def test_read_failure_not_found(resource_client, current_resource_model):
-    pruned_model = prune_properties_except_identifier(
-        current_resource_model.copy(), resource_client.primary_identifier_paths,
+    pruned_model = create_model_with_properties_in_path(
+        current_resource_model, resource_client.primary_identifier_paths,
     )
     _status, _response, error_code = resource_client.call_and_assert(
         Action.READ, OperationStatus.FAILED, pruned_model
@@ -123,8 +123,8 @@ def test_update_failure_not_found(resource_client, current_resource_model):
 
 
 def test_delete_success(resource_client, current_resource_model):
-    pruned_model = prune_properties_except_identifier(
-        current_resource_model.copy(), resource_client.primary_identifier_paths,
+    pruned_model = create_model_with_properties_in_path(
+        current_resource_model, resource_client.primary_identifier_paths,
     )
     _status, response, _error_code = resource_client.call_and_assert(
         Action.DELETE, OperationStatus.SUCCESS, pruned_model
@@ -134,8 +134,8 @@ def test_delete_success(resource_client, current_resource_model):
 
 @failed_event(error_code=HandlerErrorCode.NotFound)
 def test_delete_failure_not_found(resource_client, current_resource_model):
-    pruned_model = prune_properties_except_identifier(
-        current_resource_model.copy(), resource_client.primary_identifier_paths,
+    pruned_model = create_model_with_properties_in_path(
+        current_resource_model, resource_client.primary_identifier_paths,
     )
     _status, _response, error_code = resource_client.call_and_assert(
         Action.DELETE, OperationStatus.FAILED, pruned_model
@@ -144,15 +144,15 @@ def test_delete_failure_not_found(resource_client, current_resource_model):
 
 
 def test_input_equals_output(resource_client, input_model, output_model):
-    input_model = prune_properties_from_model(
-        input_model, resource_client.write_only_paths
+    pruned_input_model = prune_properties_from_model(
+        input_model.copy(), resource_client.write_only_paths
     )
 
-    output_model = prune_properties_from_model(
-        output_model, resource_client.read_only_paths
+    pruned_output_model = prune_properties_from_model(
+        output_model.copy(), resource_client.read_only_paths
     )
-    output_model = prune_properties_if_not_exist_in_path(
-        output_model, input_model, resource_client.create_only_paths
+    pruned_output_model = prune_properties_if_not_exist_in_path(
+        pruned_output_model, pruned_input_model, resource_client.create_only_paths
     )
 
-    assert input_model == output_model
+    assert pruned_input_model == pruned_output_model
