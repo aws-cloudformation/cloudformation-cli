@@ -42,7 +42,7 @@ REGION = "us-east-1"
 ENDPOINT = "cloudformation.beta.com"
 RUNTIME = random.choice(list(LAMBDA_RUNTIMES))
 BLANK_CLIENT_ERROR = {"Error": {"Code": "", "Message": ""}}
-
+LOG = logging.getLogger(__name__)
 REGISTRATION_TOKEN = "foo"
 TYPE_ARN = "arn:aws:cloudformation:us-east-1:123456789012:type/resource/Foo-Bar-Foo"
 TYPE_VERSION_ARN = (
@@ -276,6 +276,9 @@ def test_generate_docs_with_multityped_property(project, tmp_path_factory):
 
     read_me_stripped = readme_contents.strip().replace(" ", "")
     read_me_target_stripped = readme_contents_target.read().strip().replace(" ", "")
+
+    LOG.debug("read_me_stripped %s", read_me_stripped)
+    LOG.debug("read_me_target_stripped %s", read_me_target_stripped)
 
     assert project.type_name in readme_contents
     assert read_me_stripped == read_me_target_stripped

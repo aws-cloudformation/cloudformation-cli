@@ -28,7 +28,7 @@ from .project import Project
 LOG = logging.getLogger(__name__)
 
 DEFAULT_ENDPOINT = "http://127.0.0.1:3001"
-DEFAULT_FUNCTION = "TestEntrypoint"
+DEFAULT_FUNCTION = "TypeFunction"
 DEFAULT_REGION = "us-east-1"
 DEFAULT_TIMEOUT = "30"
 INPUTS = "inputs"

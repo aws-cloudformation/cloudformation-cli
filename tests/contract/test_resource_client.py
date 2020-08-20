@@ -228,19 +228,25 @@ def test_make_request():
     request = ResourceClient.make_request(
         desired_resource_state,
         previous_resource_state,
-        "us-west-2",
-        "11111111",
+        "us-east-1",
+        ACCOUNT,
         "aws",
-        clientRequestToken=token,
+        "CREATE",
+        {},
+        token,
     )
     assert request == {
-        "desiredResourceState": desired_resource_state,
-        "previousResourceState": previous_resource_state,
-        "logicalResourceIdentifier": "test",
-        "clientRequestToken": token,
-        "region": "us-west-2",
+        "requestData": {
+            "callerCredentials": {},
+            "resourceProperties": desired_resource_state,
+            "previousResourceProperties": previous_resource_state,
+            "logicalResourceIdentifier": token,
+        },
+        "region": DEFAULT_REGION,
         "awsPartition": "aws",
-        "awsAccountId": "11111111",
+        "awsAccountId": ACCOUNT,
+        "action": "CREATE",
+        "callbackContext": None,
     }
 
 
@@ -495,7 +501,7 @@ def test_has_writable_identifier_compound_is_writeable(resource_client):
     assert resource_client.has_writable_identifier()
 
 
-def test__make_payload(resource_client):
+def test_make_payload(resource_client):
     resource_client._creds = {}
 
     token = "ecba020e-b2e6-4742-a7d0-8a06ae7c4b2f"
@@ -503,9 +509,16 @@ def test__make_payload(resource_client):
         payload = resource_client._make_payload("CREATE", {"foo": "bar"})
 
     assert payload == {
-        "credentials": {},
+        "requestData": {
+            "callerCredentials": {},
+            "resourceProperties": {"foo": "bar"},
+            "previousResourceProperties": None,
+            "logicalResourceIdentifier": token,
+        },
+        "region": DEFAULT_REGION,
+        "awsPartition": "aws",
+        "awsAccountId": ACCOUNT,
         "action": "CREATE",
-        "request": {"clientRequestToken": token, "foo": "bar"},
         "callbackContext": None,
     }
 

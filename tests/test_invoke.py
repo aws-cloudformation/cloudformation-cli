@@ -12,6 +12,7 @@ from rpdk.core.invoke import _needs_reinvocation
 from rpdk.core.project import Project
 
 ACTIONS = list(Action.__members__)
+ACCOUNT = "11111111"
 
 
 @pytest.fixture
@@ -20,9 +21,16 @@ def payload_path(tmp_path):
     with path.open("w", encoding="utf-8") as f:
         json.dump(
             {
-                "desiredResourceState": None,
-                "previousResourceState": None,
-                "logicalResourceIdentifier": None,
+                "requestData": {
+                    "resourceProperties": {},
+                    "previousResourceProperties": None,
+                    "logicalResourceIdentifier": None,
+                    "providerLogGroupName": "test_resource_contract_test",
+                },
+                "region": "us-west-2",
+                "awsPartition": "aws",
+                "awsAccountId": "11111111",
+                "resourceType": "test",
             },
             f,
         )
@@ -163,14 +171,22 @@ def _invoke_and_expect(status, payload_path, command, *args):
         autospec=True,
         return_value={},
     )
+    patch_account = patch(
+        "rpdk.core.contract.resource_client.get_account",
+        autospec=True,
+        return_value=ACCOUNT,
+    )
 
     with patch_project, patch_session as mock_session, patch_creds as mock_creds:
-        mock_client = mock_session.return_value.client.return_value
-        mock_client.invoke.side_effect = lambda **_kwargs: {
-            "Payload": StringIO(json.dumps({"status": status}))
-        }
-        main(args_in=["invoke", command, str(payload_path), *args])
+        with patch_account as mock_account:
+            mock_client = mock_session.return_value.client.return_value
+            mock_client.invoke.side_effect = lambda **_kwargs: {
+                "Payload": StringIO(json.dumps({"status": status}))
+            }
+            mock_account.return_value = ACCOUNT
+            main(args_in=["invoke", command, str(payload_path), *args])
 
+    # mock_account.assert_called_once_with(mock_client)
     mock_creds.assert_called_once()
 
     return mock_project, mock_client.invoke
