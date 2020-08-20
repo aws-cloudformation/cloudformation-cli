@@ -228,8 +228,8 @@ def test_make_request():
     request = ResourceClient.make_request(
         desired_resource_state,
         previous_resource_state,
-        "us-west-2",
-        "11111111",
+        "us-east-1",
+        ACCOUNT,
         "aws",
         "CREATE",
         {},
@@ -238,19 +238,16 @@ def test_make_request():
     assert request == {
         "requestData": {
             "callerCredentials": {},
-            "providerCredentials": {},
+            "providerCredentials": None,
             "resourceProperties": desired_resource_state,
             "previousResourceProperties": previous_resource_state,
-            "logicalResourceIdentifier": None,
-            "providerLogGroupName": "test_resource_contract_test",
+            "logicalResourceIdentifier": token,
         },
-        "region": "us-west-2",
+        "region": DEFAULT_REGION,
         "awsPartition": "aws",
-        "awsAccountId": "11111111",
+        "awsAccountId": ACCOUNT,
         "action": "CREATE",
         "callbackContext": None,
-        "bearerToken": token,
-        "resourceType": "AWS::Service::ResourceName"
     }
 
 
@@ -515,19 +512,16 @@ def test_make_payload(resource_client):
     assert payload == {
         "requestData": {
             "callerCredentials": {},
-            "providerCredentials": {},
+            "providerCredentials": None,
             "resourceProperties": {"foo": "bar"},
             "previousResourceProperties": None,
-            "logicalResourceIdentifier": None,
-            "providerLogGroupName": "test_resource_contract_test",
+            "logicalResourceIdentifier": token,
         },
         "region": DEFAULT_REGION,
         "awsPartition": "aws",
-        "awsAccountId": "11111111",
+        "awsAccountId": ACCOUNT,
         "action": "CREATE",
         "callbackContext": None,
-        "bearerToken": token,
-        "resourceType": "AWS::Service::ResourceName",
     }
 
 

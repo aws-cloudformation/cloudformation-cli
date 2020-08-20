@@ -333,19 +333,16 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         return {
             "requestData": {
                 "callerCredentials": creds,
-                "providerCredentials": creds,
+                "providerCredentials": None,
                 "resourceProperties": desired_resource_state,
                 "previousResourceProperties": previous_resource_state,
-                "logicalResourceIdentifier": "test",
-                "providerLogGroupName": "test_resource_contract_test",
+                "logicalResourceIdentifier": client_token,
             },
             "region": region,
             "awsPartition": partition,
             "awsAccountId": account,
             "action": action,
             "callbackContext": callback_context,
-            "bearerToken": client_token,
-            "resourceType": "AWS::Service::ResourceName",
             **kwargs,
         }
 
@@ -405,8 +402,6 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
                 "region",
                 "awsPartition",
                 "awsAccountId",
-                "bearerToken",
-                "resourceType",
             ]
         }
         LOG.debug(

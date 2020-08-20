@@ -171,14 +171,22 @@ def _invoke_and_expect(status, payload_path, command, *args):
         autospec=True,
         return_value={},
     )
+    patch_account = patch(
+        "rpdk.core.contract.resource_client.get_account",
+        autospec=True,
+        return_value=ACCOUNT,
+    )
 
     with patch_project, patch_session as mock_session, patch_creds as mock_creds:
-        mock_client = mock_session.return_value.client.return_value
-        mock_client.invoke.side_effect = lambda **_kwargs: {
-            "Payload": StringIO(json.dumps({"status": status}))
-        }
-        main(args_in=["invoke", command, str(payload_path), *args])
+        with patch_account as mock_account:
+            mock_client = mock_session.return_value.client.return_value
+            mock_client.invoke.side_effect = lambda **_kwargs: {
+                "Payload": StringIO(json.dumps({"status": status}))
+            }
+            mock_account.return_value = ACCOUNT
+            main(args_in=["invoke", command, str(payload_path), *args])
 
+    # mock_account.assert_called_once_with(mock_client)
     mock_creds.assert_called_once()
 
     return mock_project, mock_client.invoke
