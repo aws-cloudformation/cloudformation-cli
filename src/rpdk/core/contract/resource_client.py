@@ -326,17 +326,16 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         partition,
         action,
         creds,
-        client_token,
+        token,
         callback_context=None,
         **kwargs
     ):
         return {
             "requestData": {
                 "callerCredentials": creds,
-                "providerCredentials": None,
                 "resourceProperties": desired_resource_state,
                 "previousResourceProperties": previous_resource_state,
-                "logicalResourceIdentifier": client_token,
+                "logicalResourceIdentifier": token,
             },
             "region": region,
             "awsPartition": partition,

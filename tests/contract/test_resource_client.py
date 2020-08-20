@@ -238,7 +238,6 @@ def test_make_request():
     assert request == {
         "requestData": {
             "callerCredentials": {},
-            "providerCredentials": None,
             "resourceProperties": desired_resource_state,
             "previousResourceProperties": previous_resource_state,
             "logicalResourceIdentifier": token,
@@ -512,7 +511,6 @@ def test_make_payload(resource_client):
     assert payload == {
         "requestData": {
             "callerCredentials": {},
-            "providerCredentials": None,
             "resourceProperties": {"foo": "bar"},
             "previousResourceProperties": None,
             "logicalResourceIdentifier": token,
