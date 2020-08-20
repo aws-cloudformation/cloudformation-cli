@@ -117,6 +117,11 @@ Resources:
           Statement:
           - Effect: Allow
             Action:
+            - kms:Encrypt
+            - kms:Decrypt
+            - kms:ReEncrypt*
+            - kms:GenerateDataKey*
+            - kms:DescribeKey
             - logs:CreateLogGroup
             - logs:CreateLogStream
             - logs:DescribeLogGroups
@@ -124,7 +129,10 @@ Resources:
             - logs:PutLogEvents
             - cloudwatch:ListMetrics
             - cloudwatch:PutMetricData
-            Resource: "*"
+            - s3:PutObject
+            Resource:
+            - !GetAtt EncryptionKey.Arn
+            - !GetAtt ArtifactBucket.Arn
 
 Outputs:
   CloudFormationManagedUploadBucketName:
