@@ -203,7 +203,37 @@ def test_get_temporary_credentials_assume_role():
 def test_get_account():
     session = create_autospec(spec=Session, spec_set=True)
     client = session.client.return_value
+    session.region_name = "us-east-1"
     get_account(session)
 
-    session.client.assert_called_once_with("sts")
+    session.client.assert_called_once_with(
+        "sts",
+        endpoint_url="https://sts.us-east-1.amazonaws.com",
+        region_name="us-east-1",
+    )
+    client.get_caller_identity.assert_called_once()
+
+
+def test_get_account_with_temporary_credentials():
+    session = create_autospec(spec=Session, spec_set=True)
+    client = session.client.return_value
+    session.region_name = "us-east-1"
+    access_key = object()
+    secret_key = object()
+    token = object()
+    creds = {
+        "accessKeyId": access_key,
+        "secretAccessKey": secret_key,
+        "sessionToken": token,
+    }
+    get_account(session, creds)
+
+    session.client.assert_called_once_with(
+        "sts",
+        aws_access_key_id=access_key,
+        aws_secret_access_key=secret_key,
+        aws_session_token=token,
+        endpoint_url="https://sts.us-east-1.amazonaws.com",
+        region_name="us-east-1",
+    )
     client.get_caller_identity.assert_called_once()

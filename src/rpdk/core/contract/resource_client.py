@@ -132,7 +132,7 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
             self._session, LOWER_CAMEL_CRED_KEYS, role_arn
         )
         self.region = region
-        self.account = get_account(self._session)
+        self.account = get_account(self._session, self._creds)
         self.partition = self._get_partition()
         self._function_name = function_name
         if endpoint.startswith("http://"):

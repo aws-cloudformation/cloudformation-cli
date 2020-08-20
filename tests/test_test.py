@@ -24,6 +24,12 @@ from rpdk.core.test import (
 
 RANDOM_INI = "pytest_SOYPKR.ini"
 EMPTY_OVERRIDE = empty_override()
+ROLE_ARN = "role_arn"
+CREDENTIALS = {
+    "AccessKeyId": object(),
+    "SecretAccessKey": object(),
+    "SessionToken": object(),
+}
 
 
 SCHEMA = {"handlers": {action.lower(): [] for action in Action}}
@@ -165,7 +171,7 @@ def test_temporary_ini_file():
 
 
 def test_get_overrides_no_root():
-    assert get_overrides(None, DEFAULT_REGION, "") == EMPTY_OVERRIDE
+    assert get_overrides(None, DEFAULT_REGION, "", None) == EMPTY_OVERRIDE
 
 
 def test_get_overrides_file_not_found(base):
@@ -174,20 +180,20 @@ def test_get_overrides_file_not_found(base):
         path.unlink()
     except FileNotFoundError:
         pass
-    assert get_overrides(path, DEFAULT_REGION, "") == EMPTY_OVERRIDE
+    assert get_overrides(path, DEFAULT_REGION, "", None) == EMPTY_OVERRIDE
 
 
 def test_get_overrides_invalid_file(base):
     path = base / "overrides.json"
     path.write_text("{}")
-    assert get_overrides(base, DEFAULT_REGION, "") == EMPTY_OVERRIDE
+    assert get_overrides(base, DEFAULT_REGION, "", None) == EMPTY_OVERRIDE
 
 
 def test_get_overrides_empty_overrides(base):
     path = base / "overrides.json"
     with path.open("w", encoding="utf-8") as f:
         json.dump(EMPTY_OVERRIDE, f)
-    assert get_overrides(base, DEFAULT_REGION, "") == EMPTY_OVERRIDE
+    assert get_overrides(base, DEFAULT_REGION, "", None) == EMPTY_OVERRIDE
 
 
 def test_get_overrides_invalid_pointer_skipped(base):
@@ -197,7 +203,7 @@ def test_get_overrides_invalid_pointer_skipped(base):
     path = base / "overrides.json"
     with path.open("w", encoding="utf-8") as f:
         json.dump(overrides, f)
-    assert get_overrides(base, DEFAULT_REGION, "") == EMPTY_OVERRIDE
+    assert get_overrides(base, DEFAULT_REGION, "", None) == EMPTY_OVERRIDE
 
 
 def test_get_overrides_good_path(base):
@@ -207,7 +213,9 @@ def test_get_overrides_good_path(base):
     path = base / "overrides.json"
     with path.open("w", encoding="utf-8") as f:
         json.dump(overrides, f)
-    assert get_overrides(base, DEFAULT_REGION, "") == {"CREATE": {("foo", "bar"): {}}}
+    assert get_overrides(base, DEFAULT_REGION, "", None) == {
+        "CREATE": {("foo", "bar"): {}}
+    }
 
 
 @pytest.mark.parametrize(
@@ -242,18 +250,25 @@ def test_get_overrides_good_path(base):
 def test_get_overrides_with_jinja(
     base, overrides_string, list_exports_return_value, expected_overrides
 ):
+    mock_sts_client = Mock(spec=["get_session_token"])
     mock_cfn_client = Mock(spec=["get_paginator"])
     mock_paginator = Mock(spec=["paginate"])
     mock_cfn_client.get_paginator.return_value = mock_paginator
     mock_paginator.paginate.return_value = list_exports_return_value
+    mock_sts_client.get_session_token.return_value = CREDENTIALS
     patch_sdk = patch("rpdk.core.test.create_sdk_session", autospec=True)
 
     path = base / "overrides.json"
     with path.open("w", encoding="utf-8") as f:
         f.write(overrides_string)
     with patch_sdk as mock_sdk:
-        mock_sdk.return_value.client.side_effect = [mock_cfn_client, Mock()]
-        result = get_overrides(base, DEFAULT_REGION, None)
+        mock_sdk.return_value.region_name = "us-east-1"
+        mock_sdk.return_value.client.side_effect = [
+            mock_sts_client,
+            mock_cfn_client,
+            Mock(),
+        ]
+        result = get_overrides(base, DEFAULT_REGION, None, None)
 
     assert result == expected_overrides
 
@@ -304,6 +319,8 @@ def test_with_inputs(
     list_exports_return_value,
     expected_inputs,
 ):
+    mock_sts_client = Mock(spec=["get_session_token"])
+    mock_sts_client.get_session_token.return_value = CREDENTIALS
     mock_cfn_client = Mock(spec=["get_paginator"])
     mock_paginator = Mock(spec=["paginate"])
     mock_cfn_client.get_paginator.return_value = mock_paginator
@@ -312,13 +329,20 @@ def test_with_inputs(
 
     create_input_file(base, create_string, update_string, invalid_string)
     with patch_sdk as mock_sdk:
-        mock_sdk.return_value.client.side_effect = [mock_cfn_client, Mock()]
-        result = get_inputs(base, DEFAULT_REGION, None, 1)
+        mock_sdk.return_value.region_name = "us-east-1"
+        mock_sdk.return_value.client.side_effect = [
+            mock_sts_client,
+            mock_cfn_client,
+            Mock(),
+        ]
+        result = get_inputs(base, DEFAULT_REGION, None, 1, None)
 
     assert result == expected_inputs
 
 
 def test_with_inputs_invalid(base):
+    mock_sts_client = Mock(spec=["get_session_token"])
+    mock_sts_client.get_session_token.return_value = CREDENTIALS
     mock_cfn_client = Mock(spec=["get_paginator"])
     mock_paginator = Mock(spec=["paginate"])
     mock_cfn_client.get_paginator.return_value = mock_paginator
@@ -329,21 +353,26 @@ def test_with_inputs_invalid(base):
 
     create_invalid_input_file(base)
     with patch_sdk as mock_sdk:
-        mock_sdk.return_value.client.side_effect = [mock_cfn_client, Mock()]
-        result = get_inputs(base, DEFAULT_REGION, None, 1)
+        mock_sdk.return_value.region_name = "us-east-1"
+        mock_sdk.return_value.client.side_effect = [
+            mock_sts_client,
+            mock_cfn_client,
+            Mock(),
+        ]
+        result = get_inputs(base, DEFAULT_REGION, None, 1, None)
 
     assert not result
 
 
 def test_get_input_invalid_root():
-    assert not get_inputs("", DEFAULT_REGION, "", 1)
+    assert not get_inputs("", DEFAULT_REGION, "", 1, None)
 
 
 def test_get_input_input_folder_does_not_exist(base):
-    assert not get_inputs(base, DEFAULT_REGION, "", 1)
+    assert not get_inputs(base, DEFAULT_REGION, "", 1, None)
 
 
 def test_get_input_file_not_found(base):
     path = base / "inputs"
     os.mkdir(path, mode=0o777)
-    assert not get_inputs(base, DEFAULT_REGION, "", 1)
+    assert not get_inputs(base, DEFAULT_REGION, "", 1, None)
