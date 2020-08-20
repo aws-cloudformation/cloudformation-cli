@@ -49,22 +49,22 @@ def test_create_failure_if_repeat_writeable_id(resource_client, current_resource
 @response_does_not_contain_write_only_properties
 @response_contains_resource_model_equal_current_model
 def test_read_success(resource_client, current_resource_model):
-    pruned_model = create_model_with_properties_in_path(
+    primay_identifier_only_model = create_model_with_properties_in_path(
         current_resource_model.copy(), resource_client.primary_identifier_paths,
     )
     _status, response, _error_code = resource_client.call_and_assert(
-        Action.READ, OperationStatus.SUCCESS, pruned_model
+        Action.READ, OperationStatus.SUCCESS, primay_identifier_only_model
     )
     return response
 
 
 @failed_event(error_code=HandlerErrorCode.NotFound)
 def test_read_failure_not_found(resource_client, current_resource_model):
-    pruned_model = create_model_with_properties_in_path(
+    primay_identifier_only_model = create_model_with_properties_in_path(
         current_resource_model, resource_client.primary_identifier_paths,
     )
     _status, _response, error_code = resource_client.call_and_assert(
-        Action.READ, OperationStatus.FAILED, pruned_model
+        Action.READ, OperationStatus.FAILED, primay_identifier_only_model
     )
     return error_code
 
@@ -123,22 +123,22 @@ def test_update_failure_not_found(resource_client, current_resource_model):
 
 
 def test_delete_success(resource_client, current_resource_model):
-    pruned_model = create_model_with_properties_in_path(
+    primay_identifier_only_model = create_model_with_properties_in_path(
         current_resource_model, resource_client.primary_identifier_paths,
     )
     _status, response, _error_code = resource_client.call_and_assert(
-        Action.DELETE, OperationStatus.SUCCESS, pruned_model
+        Action.DELETE, OperationStatus.SUCCESS, primay_identifier_only_model
     )
     return response
 
 
 @failed_event(error_code=HandlerErrorCode.NotFound)
 def test_delete_failure_not_found(resource_client, current_resource_model):
-    pruned_model = create_model_with_properties_in_path(
+    primay_identifier_only_model = create_model_with_properties_in_path(
         current_resource_model, resource_client.primary_identifier_paths,
     )
     _status, _response, error_code = resource_client.call_and_assert(
-        Action.DELETE, OperationStatus.FAILED, pruned_model
+        Action.DELETE, OperationStatus.FAILED, primay_identifier_only_model
     )
     return error_code
 

@@ -35,11 +35,11 @@ def deleted_resource(resource_client):
         )
         model = response["resourceModel"]
         test_input_equals_output(resource_client, input_model, model)
-        pruned_model = create_model_with_properties_in_path(
+        primay_identifier_only_model = create_model_with_properties_in_path(
             model, resource_client.primary_identifier_paths,
         )
         _status, response, _error = resource_client.call_and_assert(
-            Action.DELETE, OperationStatus.SUCCESS, pruned_model
+            Action.DELETE, OperationStatus.SUCCESS, primay_identifier_only_model
         )
         assert "resourceModel" not in response
         yield model, request

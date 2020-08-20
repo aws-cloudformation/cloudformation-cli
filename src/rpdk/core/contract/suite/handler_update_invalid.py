@@ -29,11 +29,11 @@ def contract_update_create_only_property(resource_client):
             )
             assert response["message"]
         finally:
-            pruned_model = create_model_with_properties_in_path(
+            primay_identifier_only_model = create_model_with_properties_in_path(
                 created_model, resource_client.primary_identifier_paths,
             )
             resource_client.call_and_assert(
-                Action.DELETE, OperationStatus.SUCCESS, pruned_model
+                Action.DELETE, OperationStatus.SUCCESS, primay_identifier_only_model
             )
     else:
         pytest.skip("No createOnly Properties. Skipping test.")

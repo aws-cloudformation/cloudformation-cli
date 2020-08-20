@@ -99,11 +99,10 @@ def override_properties(document, overrides):
 
 
 def create_model_with_properties_in_path(src_document, paths):
-    """Prune all properties except given ones from the document.
+    """Creates a model with values preset in the paths.
 
     This assumes properties will always have an object (dict) as a parent.
-    The function modifies the document in-place, but also returns the document
-    for convenience. (The return value may be ignored.)
+    The function returns the created model.
     """
     dest_document = {}
     for path in paths:

@@ -35,11 +35,11 @@ def updated_resource(resource_client):
 
         yield create_request, created_model, update_request, updated_model
     finally:
-        pruned_model = create_model_with_properties_in_path(
+        primay_identifier_only_model = create_model_with_properties_in_path(
             model, resource_client.primary_identifier_paths
         )
         resource_client.call_and_assert(
-            Action.DELETE, OperationStatus.SUCCESS, pruned_model
+            Action.DELETE, OperationStatus.SUCCESS, primay_identifier_only_model
         )
 
 
