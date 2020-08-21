@@ -148,8 +148,8 @@ def test_input_equals_output(resource_client, input_model, output_model):
         input_model.copy(), resource_client.write_only_paths
     )
 
-    pruned_output_model = prune_properties_from_model(
-        output_model.copy(), resource_client.read_only_paths
+    pruned_output_model = prune_properties_if_not_exist_in_path(
+        output_model.copy(), pruned_input_model, resource_client.read_only_paths
     )
     pruned_output_model = prune_properties_if_not_exist_in_path(
         pruned_output_model, pruned_input_model, resource_client.create_only_paths

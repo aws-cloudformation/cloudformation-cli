@@ -18,7 +18,7 @@ from ..boto_helpers import (
     get_temporary_credentials,
 )
 from ..jsonutils.pointer import fragment_decode, fragment_list
-from ..jsonutils.utils import schema_merge_path, traverse
+from ..jsonutils.utils import traverse
 
 LOG = logging.getLogger(__name__)
 
@@ -104,16 +104,14 @@ def create_model_with_properties_in_path(src_document, paths):
     This assumes properties will always have an object (dict) as a parent.
     The function returns the created model.
     """
-    dest_document = {}
-    for path in paths:
-        try:
-            _prop, resolved_path, _parent = traverse(src_document, path[1:])
-            dest_document = schema_merge_path(
-                dest_document, src_document, resolved_path
-            )
-        except LookupError:
-            pass
-    return dest_document
+    try:
+        pruned_model = {}
+        for path in paths:
+            pruned_path = path[-1]
+            pruned_model[pruned_path] = src_document[pruned_path]
+    except LookupError:
+        pass
+    return pruned_model
 
 
 class ResourceClient:  # pylint: disable=too-many-instance-attributes
