@@ -12,7 +12,6 @@ from rpdk.core.invoke import _needs_reinvocation
 from rpdk.core.project import Project
 
 ACTIONS = list(Action.__members__)
-ACCOUNT = "11111111"
 
 
 @pytest.fixture
@@ -21,16 +20,9 @@ def payload_path(tmp_path):
     with path.open("w", encoding="utf-8") as f:
         json.dump(
             {
-                "requestData": {
-                    "resourceProperties": {},
-                    "previousResourceProperties": None,
-                    "logicalResourceIdentifier": None,
-                    "providerLogGroupName": "test_resource_contract_test",
-                },
-                "region": "us-west-2",
-                "awsPartition": "aws",
-                "awsAccountId": "11111111",
-                "resourceType": "test",
+                "desiredResourceState": None,
+                "previousResourceState": None,
+                "logicalResourceIdentifier": None,
             },
             f,
         )
@@ -107,8 +99,13 @@ def test_value_error_on_json_load(capsys, invalid_payload, command):
         autospec=True,
         return_value={},
     )
+    patch_account = patch(
+        "rpdk.core.contract.resource_client.get_account",
+        autospec=True,
+        return_value="",
+    )
 
-    with patch_project, patch_session, patch_creds:
+    with patch_project, patch_session, patch_creds, patch_account:
         with pytest.raises(SystemExit):
             main(args_in=["invoke", command, str(invalid_payload)])
 
@@ -133,11 +130,22 @@ def test_keyboard_interrupt(capsys, payload_path, command):
         autospec=True,
         return_value={},
     )
+    patch_account = patch(
+        "rpdk.core.contract.resource_client.get_account",
+        autospec=True,
+        return_value="",
+    )
     patch_dumps = patch.object(json, "dumps", side_effect=KeyboardInterrupt)
 
-    with patch_project, patch_creds, patch_dumps, patch_session as mock_session:
+    # fmt: off
+    with patch_project, \
+         patch_creds, \
+         patch_dumps, \
+         patch_account, \
+         patch_session as mock_session:
         mock_client = mock_session.return_value.client.return_value
         main(args_in=["invoke", command, str(payload_path)])
+    # fmt: on
 
     mock_project.load.assert_called_once_with()
     mock_client.invoke.assert_not_called()
@@ -174,19 +182,20 @@ def _invoke_and_expect(status, payload_path, command, *args):
     patch_account = patch(
         "rpdk.core.contract.resource_client.get_account",
         autospec=True,
-        return_value=ACCOUNT,
+        return_value="",
     )
 
-    with patch_project, patch_session as mock_session, patch_creds as mock_creds:
-        with patch_account as mock_account:
-            mock_client = mock_session.return_value.client.return_value
-            mock_client.invoke.side_effect = lambda **_kwargs: {
-                "Payload": StringIO(json.dumps({"status": status}))
-            }
-            mock_account.return_value = ACCOUNT
-            main(args_in=["invoke", command, str(payload_path), *args])
-
-    # mock_account.assert_called_once_with(mock_client)
+    # fmt: off
+    with patch_project, \
+         patch_account, \
+         patch_session as mock_session, \
+            patch_creds as mock_creds:
+        mock_client = mock_session.return_value.client.return_value
+        mock_client.invoke.side_effect = lambda **_kwargs: {
+            "Payload": StringIO(json.dumps({"status": status}))
+        }
+        main(args_in=["invoke", command, str(payload_path), *args])
+    # fmt: on
     mock_creds.assert_called_once()
 
     return mock_project, mock_client.invoke
