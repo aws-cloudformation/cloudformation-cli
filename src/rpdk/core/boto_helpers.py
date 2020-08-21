@@ -46,14 +46,16 @@ def get_temporary_credentials(session, key_names=BOTO_CRED_KEYS, role_arn=None):
             response = sts_client.assume_role(
                 RoleArn=role_arn, RoleSessionName=session_name
             )
-        except ClientError as e:
+        except ClientError:
             # pylint: disable=W1201
             LOG.debug(
                 "Getting session token resulted in unknown ClientError. "
                 + "Could not assume specified role '%s'",
                 role_arn,
             )
-            raise DownstreamError("Could not assume specified role") from e
+            raise DownstreamError() from Exception(
+                "Could not assume specified role '{}'".format(role_arn)
+            )
         temp = response["Credentials"]
         creds = (temp["AccessKeyId"], temp["SecretAccessKey"], temp["SessionToken"])
     else:
