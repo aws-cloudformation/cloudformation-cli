@@ -104,14 +104,14 @@ def create_model_with_properties_in_path(src_model, paths):
     This assumes properties will always have an object (dict) as a parent.
     The function returns the created model.
     """
-    pruned_model = {}
+    model = {}
     try:
         for path in paths:
             pruned_path = path[-1]
-            pruned_model[pruned_path] = src_model[pruned_path]
+            model[pruned_path] = src_model[pruned_path]
     except LookupError:
         pass
-    return pruned_model
+    return model
 
 
 class ResourceClient:  # pylint: disable=too-many-instance-attributes
