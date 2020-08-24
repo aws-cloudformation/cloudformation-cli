@@ -200,20 +200,6 @@ def test_get_temporary_credentials_assume_role():
     assert tuple(creds.values()) == (access_key, secret_key, token)
 
 
-def test_get_account():
-    session = create_autospec(spec=Session, spec_set=True)
-    client = session.client.return_value
-    session.region_name = "us-east-1"
-    get_account(session)
-
-    session.client.assert_called_once_with(
-        "sts",
-        endpoint_url="https://sts.us-east-1.amazonaws.com",
-        region_name="us-east-1",
-    )
-    client.get_caller_identity.assert_called_once()
-
-
 def test_get_account_with_temporary_credentials():
     session = create_autospec(spec=Session, spec_set=True)
     client = session.client.return_value
