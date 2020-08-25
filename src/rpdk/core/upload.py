@@ -80,6 +80,7 @@ class Uploader:
                 output_key,
                 ", ".join(output["OutputKey"] for output in outputs),
             )
+            # pylint: disable=W0707
             raise InternalError("Required output not found on stack")
 
     def _create_or_update_stack(self, template, stack_name):
@@ -146,6 +147,7 @@ class Uploader:
                 "Please run `generate` or "
                 "provide an execution role via the --role-arn parameter."
             )
+            # pylint: disable=W0707
             raise InvalidProjectError()
         stack_id = self._create_or_update_stack(
             template, "{}-role-stack".format(resource_type)

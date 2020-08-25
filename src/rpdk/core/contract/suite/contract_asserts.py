@@ -1,3 +1,4 @@
+import logging
 from functools import wraps
 from inspect import Parameter, signature
 from unittest.test.testmock.support import is_instance
@@ -5,6 +6,8 @@ from unittest.test.testmock.support import is_instance
 import pytest
 
 from rpdk.core.contract.interface import HandlerErrorCode
+
+LOG = logging.getLogger(__name__)
 
 
 def _rebind(decorator, func, *args, **kwargs):
@@ -82,6 +85,8 @@ def response_does_not_contain_write_only_properties(resource_client, response):
 def response_contains_resource_model_equal_current_model(
     response, current_resource_model
 ):
+    LOG.debug("This is response[resourceModel] %s", response["resourceModel"])
+    LOG.debug("This is current_resource_model %s", current_resource_model)
     assert response["resourceModel"] == current_resource_model
 
 
