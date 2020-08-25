@@ -68,6 +68,7 @@ class ValidatePluginChoice:
         try:
             choice = int(value)
         except ValueError:
+            # pylint: disable=W0707
             raise WizardValidationError("Please enter an integer")
         choice -= 1
         if choice < 0 or choice >= self.max:
@@ -159,6 +160,7 @@ def ignore_abort(function):
             function(args)
         except (KeyboardInterrupt, WizardAbortError):
             print("\naborted")
+            # pylint: disable=W0707
             raise SystemExit(1)
 
     return wrapper
