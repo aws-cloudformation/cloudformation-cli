@@ -18,7 +18,7 @@ from ..boto_helpers import (
     get_temporary_credentials,
 )
 from ..jsonutils.pointer import fragment_decode, fragment_list
-from ..jsonutils.utils import traverse
+from ..jsonutils.utils import traverse_list_safe
 
 LOG = logging.getLogger(__name__)
 
@@ -32,12 +32,12 @@ def prune_properties(document, paths):
     """
     for path in paths:
         try:
-            _prop, resolved_path, parent = traverse(document, path)
+            _prop, resolved_path, parent = traverse_list_safe(document, path)
         except LookupError:
             pass  # not found means nothing to delete
         else:
-            key = resolved_path[-1]
-            del parent[key]
+            key = resolved_path[-1][-1]
+            del parent[-1][key]
     return document
 
 
@@ -53,9 +53,9 @@ def prune_properties_if_not_exist_in_path(output_model, input_model, paths):
     for path in paths:
         try:
             if not path_exists(input_document, path):
-                _prop, resolved_path, parent = traverse(output_document, path)
-                key = resolved_path[-1]
-                del parent[key]
+                _prop, resolved_path, parent = traverse_list_safe(output_document, path)
+                key = resolved_path[-1][-1]
+                del parent[-1][key]
         except LookupError:
             pass
     return output_document["properties"]
@@ -63,7 +63,7 @@ def prune_properties_if_not_exist_in_path(output_model, input_model, paths):
 
 def path_exists(document, path):
     try:
-        _prop, _resolved_path, _parent = traverse(document, path)
+        _prop, _resolved_path, _parent = traverse_list_safe(document, path)
     except LookupError:
         return False
     else:
@@ -86,15 +86,15 @@ def override_properties(document, overrides):
     """Override given properties from a document."""
     for path, obj in overrides.items():
         try:
-            _prop, resolved_path, parent = traverse(document, path)
+            _prop, resolved_path, parent = traverse_list_safe(document, path)
         except LookupError:
             LOG.debug(
                 "Override failed.\nPath %s\nObject %s\nDocument %s", path, obj, document
             )
             LOG.warning("Override with path %s not found, skipping", path)
         else:
-            key = resolved_path[-1]
-            parent[key] = obj
+            key = resolved_path[-1][-1]
+            parent[-1][key] = obj
     return document
 
 
@@ -194,7 +194,7 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
     def assert_write_only_property_does_not_exist(self, resource_model):
         if self.write_only_paths:
             assert not any(
-                self.key_error_safe_traverse(resource_model, write_only_property)
+                self.key_error_safe_traverse(resource_model, write_only_property)[-1]
                 for write_only_property in self.write_only_paths
             ), "The model MUST NOT return properties defined as \
                 writeOnlyProperties in the resource schema"
@@ -282,7 +282,7 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
     @staticmethod
     def key_error_safe_traverse(resource_model, write_only_property):
         try:
-            return traverse(
+            return traverse_list_safe(
                 resource_model, fragment_list(write_only_property, "properties")
             )[0]
         except KeyError:
@@ -370,9 +370,9 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
     def assert_primary_identifier(primary_identifier_paths, resource_model):
         try:
             assert all(
-                traverse(
+                traverse_list_safe(
                     resource_model, fragment_list(primary_identifier, "properties")
-                )[0]
+                )[0][-1]
                 for primary_identifier in primary_identifier_paths
             ), "Every returned model MUST include the primaryIdentifier"
         except KeyError as e:
@@ -386,12 +386,12 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
     ):
         try:
             return all(
-                traverse(
+                traverse_list_safe(
                     created_model, fragment_list(primary_identifier, "properties")
-                )[0]
-                == traverse(
+                )[0][-1]
+                == traverse_list_safe(
                     updated_model, fragment_list(primary_identifier, "properties")
-                )[0]
+                )[0][-1]
                 for primary_identifier in primary_identifier_path
             )
         except KeyError as e:

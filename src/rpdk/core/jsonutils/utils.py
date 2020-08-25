@@ -103,6 +103,97 @@ def traverse(document, path_parts):
     return document, tuple(path), parent
 
 
+# pylint: disable=R0913,C0301
+# flake8: noqa=C901,B950
+def traverse_list_safe(
+    document,
+    path_parts,
+    parent=None,
+    path=None,
+    paths=None,
+    documents=None,
+    parents=None,
+):
+    """Traverse the document according to the reference.
+    This method traverses all the elements of the lists
+    and returns their corresponding document, path, parent
+
+    Since the document is presumed to be the reference's base, the base is
+    discarded. There is no validation that the reference is valid.
+
+    :raises ValueError, LookupError: the reference is invalid for this document
+
+    >>> traverse_list_safe({"foo": {"bar": [42]}}, tuple())
+    ([{'foo': {'bar': [42]}}], [None], [None])
+    >>> traverse_list_safe({"foo": {"bar": [42]}}, ["foo"])
+    ([{'bar': [42]}], [['foo']], [{'foo': {'bar': [42]}}])
+    >>> traverse_list_safe({"foo": {"bar": [42]}}, ("foo", "bar"))
+    ([[42]], [['foo', 'bar']], [{'bar': [42]}])
+    >>> traverse_list_safe({"foo": {"bar": [42]}}, ("foo", "bar", "0"))
+    ([42], [['foo', 'bar', 0]], [[42]])
+    >>> traverse_list_safe({"foo": {"bar": [42, 21, 32]}}, ("foo", "bar", "*"))
+    ([42, 21, 32], [['foo', 'bar', 0], ['foo', 'bar', 1], ['foo', 'bar', 2]], [[42, 21, 32], [42, 21, 32], [42, 21, 32]])
+    >>> traverse_list_safe({}, ["foo"])
+    Traceback (most recent call last):
+    ...
+    KeyError: 'foo'
+    >>> traverse_list_safe([], ["foo"])
+    Traceback (most recent call last):
+    ...
+    ValueError: invalid literal for int() with base 10: 'foo'
+    >>> traverse_list_safe([], [0])
+    Traceback (most recent call last):
+    ...
+    IndexError: list index out of range
+    """
+    if not path_parts:
+        if not paths:
+            paths = []
+        paths.append(path)
+
+        if not documents:
+            documents = []
+        documents.append(document)
+
+        if not parents:
+            parents = []
+        parents.append(parent)
+
+        return documents, paths, parents
+
+    temp_path = path_parts[0]
+    if isinstance(document, Sequence):
+        if temp_path == "*":
+            index = 0
+            path_copy = path.copy()
+            while True:
+                temp_path = index
+                path = path_copy.copy()
+                try:
+                    path.append(temp_path)
+                    documents, paths, parents = traverse_list_safe(
+                        document[temp_path],
+                        path_parts[1:],
+                        document,
+                        path,
+                        paths,
+                        documents,
+                        parents,
+                    )
+                    index += 1
+                except LookupError:
+                    break
+            return documents, paths, parents
+        temp_path = int(temp_path)
+
+    if not path:
+        path = []
+    path.append(temp_path)
+    return traverse_list_safe(
+        document[temp_path], path_parts[1:], document, path, paths, documents, parents
+    )
+
+
 def schema_merge(target, src, path):  # noqa: C901
     """Merges the src schema into the target schema in place.
 

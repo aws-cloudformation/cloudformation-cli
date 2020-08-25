@@ -46,11 +46,12 @@ SCHEMA_WITH_MULTIPLE_WRITE_PROPERTIES = {
         "b": {"type": "number", "const": 2},
         "c": {"type": "number", "const": 3},
         "d": {"type": "number", "const": 4},
+        "e": {"type": "array", "const": [1, 3, 5]},
     },
     "readOnlyProperties": ["/properties/b"],
     "createOnlyProperties": ["/properties/c"],
     "primaryIdentifier": ["/properties/c"],
-    "writeOnlyProperties": ["/properties/d", "/properties/a"],
+    "writeOnlyProperties": ["/properties/d", "/properties/a", "/properties/e"],
 }
 
 
