@@ -1,6 +1,5 @@
 from functools import wraps
 from inspect import Parameter, signature
-from unittest.test.testmock.support import is_instance
 
 import pytest
 
@@ -82,7 +81,10 @@ def response_does_not_contain_write_only_properties(resource_client, response):
 def response_contains_resource_model_equal_current_model(
     response, current_resource_model
 ):
-    assert response["resourceModel"] == current_resource_model
+    assert (
+        response["resourceModel"] == current_resource_model
+    ), "handler MUST return a model representation that conforms\
+         to the shape of the resource schema"
 
 
 @decorate()
@@ -92,7 +94,9 @@ def response_contains_resource_model_equal_updated_model(
     assert response["resourceModel"] == {
         **current_resource_model,
         **update_resource_model,
-    }
+    }, "All properties specified in the update request MUST be present in the \
+        model returned, and they MUST match exactly, with the exception of \
+            properties defined as writeOnlyProperties in the resource schema"
 
 
 @decorate()
@@ -106,11 +110,12 @@ def response_contains_primary_identifier(resource_client, response):
 def response_contains_unchanged_primary_identifier(
     resource_client, response, current_resource_model
 ):
-    resource_client.is_primary_identifier_equal(
+    assert resource_client.is_primary_identifier_equal(
         resource_client.primary_identifier_paths,
         current_resource_model,
         response["resourceModel"],
-    )
+    ), "primaryIdentifier returned in every progress event must match \
+        the primaryIdentifier passed into the request"
 
 
 @decorate(after=False)
@@ -125,7 +130,7 @@ def failed_event(error_code, msg=""):
         def wrapper(*args, **kwargs):
             response_error = func(*args, **kwargs)
             if response_error is not None:
-                if is_instance(error_code, HandlerErrorCode):
+                if isinstance(error_code, HandlerErrorCode):
                     error_code_tuple = (error_code,)
                 assert response_error in error_code_tuple, msg
             return response_error

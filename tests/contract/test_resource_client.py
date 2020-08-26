@@ -779,7 +779,7 @@ def test_assert_primary_identifier_success(resource_client):
 
 
 def test_assert_primary_identifier_fail(resource_client):
-    with pytest.raises(KeyError):
+    with pytest.raises(AssertionError):
         resource_client._update_schema(SCHEMA)
         resource_client.assert_primary_identifier(
             resource_client.primary_identifier_paths, {"a": 1, "b": 2}
@@ -802,6 +802,16 @@ def test_is_primary_identifier_equal_fail(resource_client):
         {"a": 1, "b": 2, "c": 3},
         {"a": 1, "b": 2, "c": 4},
     )
+
+
+def test_is_primary_identifier_equal_fail_key(resource_client):
+    with pytest.raises(AssertionError):
+        resource_client._update_schema(SCHEMA)
+        resource_client.is_primary_identifier_equal(
+            resource_client.primary_identifier_paths,
+            {"a": 1, "b": 2},
+            {"a": 1, "b": 2},
+        )
 
 
 def test_assert_write_only_property_does_not_exist(resource_client):

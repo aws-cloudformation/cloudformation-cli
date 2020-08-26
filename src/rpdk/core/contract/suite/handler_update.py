@@ -45,7 +45,8 @@ def contract_update_read_success(updated_resource, resource_client):
     _create_request, _created_model, _update_request, updated_model = updated_resource
     assert resource_client.is_primary_identifier_equal(
         resource_client.primary_identifier_paths, _created_model, updated_model
-    )
+    ), "The primaryIdentifier returned in every progress event must match\
+         the primaryIdentifier passed into the request"
     test_read_success(resource_client, updated_model)
 
 
@@ -57,5 +58,8 @@ def contract_update_list_success(updated_resource, resource_client):
     _create_request, _created_model, _update_request, updated_model = updated_resource
     assert resource_client.is_primary_identifier_equal(
         resource_client.primary_identifier_paths, _created_model, updated_model
-    )
-    assert test_model_in_list(resource_client, updated_model)
+    ), "The primaryIdentifier returned in every progress event must match\
+         the primaryIdentifier passed into the request"
+    assert test_model_in_list(
+        resource_client, updated_model
+    ), "A list handler MUST always return a status of SUCCESS"

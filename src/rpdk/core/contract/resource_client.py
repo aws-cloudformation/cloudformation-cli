@@ -188,7 +188,8 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
             assert not any(
                 self.key_error_safe_traverse(resource_model, write_only_property)
                 for write_only_property in self.write_only_paths
-            )
+            ), "The model MUST NOT return properties defined as \
+                writeOnlyProperties in the resource schema"
 
     @property
     def strategy(self):
@@ -361,22 +362,32 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
 
     @staticmethod
     def assert_primary_identifier(primary_identifier_paths, resource_model):
-        assert all(
-            traverse(resource_model, fragment_list(primary_identifier, "properties"))[0]
-            for primary_identifier in primary_identifier_paths
-        )
+        try:
+            assert all(
+                traverse(
+                    resource_model, fragment_list(primary_identifier, "properties")
+                )[0]
+                for primary_identifier in primary_identifier_paths
+            ), "Every model MUST include the primaryIdentifier"
+        except KeyError:
+            raise AssertionError("Every model MUST include the primaryIdentifier")
 
     @staticmethod
     def is_primary_identifier_equal(
         primary_identifier_path, created_model, updated_model
     ):
-        return all(
-            traverse(created_model, fragment_list(primary_identifier, "properties"))[0]
-            == traverse(updated_model, fragment_list(primary_identifier, "properties"))[
-                0
-            ]
-            for primary_identifier in primary_identifier_path
-        )
+        try:
+            return all(
+                traverse(
+                    created_model, fragment_list(primary_identifier, "properties")
+                )[0]
+                == traverse(
+                    updated_model, fragment_list(primary_identifier, "properties")
+                )[0]
+                for primary_identifier in primary_identifier_path
+            )
+        except KeyError:
+            raise AssertionError("Every model MUST include the primaryIdentifier")
 
     def _make_payload(self, action, current_model, previous_model=None, **kwargs):
         return self.make_request(
