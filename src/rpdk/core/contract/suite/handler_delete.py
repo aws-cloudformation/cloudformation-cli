@@ -36,8 +36,7 @@ def deleted_resource(resource_client):
         model = response["resourceModel"]
         test_input_equals_output(resource_client, input_model, model)
         primay_identifier_only_model = create_model_with_properties_in_path(
-            model,
-            resource_client.primary_identifier_paths,
+            model, resource_client.primary_identifier_paths,
         )
         _status, response, _error = resource_client.call_and_assert(
             Action.DELETE, OperationStatus.SUCCESS, primay_identifier_only_model
