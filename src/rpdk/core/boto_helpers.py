@@ -50,7 +50,7 @@ def get_temporary_credentials(session, key_names=BOTO_CRED_KEYS, role_arn=None):
             # pylint: disable=W1201
             LOG.debug(
                 "Getting session token resulted in unknown ClientError. "
-                + "Could not assume specified role '%s'",
+                + "Could not assume specified role '%s'.",
                 role_arn,
             )
             raise DownstreamError() from Exception(
