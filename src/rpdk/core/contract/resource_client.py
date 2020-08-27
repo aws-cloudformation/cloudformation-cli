@@ -98,6 +98,22 @@ def override_properties(document, overrides):
     return document
 
 
+def create_model_with_properties_in_path(src_model, paths):
+    """Creates a model with values preset in the paths.
+
+    This assumes properties will always have an object (dict) as a parent.
+    The function returns the created model.
+    """
+    model = {}
+    try:
+        for path in paths:
+            pruned_path = path[-1]
+            model[pruned_path] = src_model[pruned_path]
+    except LookupError:
+        pass
+    return model
+
+
 class ResourceClient:  # pylint: disable=too-many-instance-attributes
     def __init__(
         self,
@@ -116,7 +132,7 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
             self._session, LOWER_CAMEL_CRED_KEYS, role_arn
         )
         self.region = region
-        self.account = get_account(self._session)
+        self.account = get_account(self._session, self._creds)
         self.partition = self._get_partition()
         self._function_name = function_name
         if endpoint.startswith("http://"):

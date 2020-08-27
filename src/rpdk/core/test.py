@@ -17,7 +17,7 @@ from jsonschema.exceptions import ValidationError
 
 from rpdk.core.jsonutils.pointer import fragment_decode
 
-from .boto_helpers import create_sdk_session
+from .boto_helpers import create_sdk_session, get_temporary_credentials
 from .contract.contract_plugin import ContractPlugin
 from .contract.interface import Action
 from .contract.resource_client import ResourceClient
@@ -57,9 +57,12 @@ def temporary_ini_file():
         yield str(path)
 
 
-def get_cloudformation_exports(region_name, endpoint_url):
+def get_cloudformation_exports(region_name, endpoint_url, role_arn):
     session = create_sdk_session(region_name)
-    cfn_client = session.client("cloudformation", endpoint_url=endpoint_url)
+    temp_credentials = get_temporary_credentials(session, role_arn=role_arn)
+    cfn_client = session.client(
+        "cloudformation", endpoint_url=endpoint_url, **temp_credentials
+    )
     paginator = cfn_client.get_paginator("list_exports")
     pages = paginator.paginate()
     exports = {}
@@ -68,12 +71,12 @@ def get_cloudformation_exports(region_name, endpoint_url):
     return exports
 
 
-def render_jinja(overrides_string, region_name, endpoint_url):
+def render_jinja(overrides_string, region_name, endpoint_url, role_arn):
     env = Environment(autoescape=True)
     parsed_content = env.parse(overrides_string)
     variables = meta.find_undeclared_variables(parsed_content)
     if variables:
-        exports = get_cloudformation_exports(region_name, endpoint_url)
+        exports = get_cloudformation_exports(region_name, endpoint_url, role_arn)
         invalid_exports = variables - exports.keys()
         if len(invalid_exports) > 0:
             invalid_exports_message = (
@@ -89,14 +92,14 @@ def render_jinja(overrides_string, region_name, endpoint_url):
     return to_return
 
 
-def get_overrides(root, region_name, endpoint_url):
+def get_overrides(root, region_name, endpoint_url, role_arn):
     if not root:
         return empty_override()
 
     path = root / "overrides.json"
     try:
         with path.open("r", encoding="utf-8") as f:
-            overrides_raw = render_jinja(f.read(), region_name, endpoint_url)
+            overrides_raw = render_jinja(f.read(), region_name, endpoint_url, role_arn)
     except FileNotFoundError:
         LOG.debug("Override file '%s' not found. No overrides will be applied", path)
         return empty_override()
@@ -123,7 +126,7 @@ def get_overrides(root, region_name, endpoint_url):
 
 
 # pylint: disable=R0914
-def get_inputs(root, region_name, endpoint_url, value):
+def get_inputs(root, region_name, endpoint_url, value, role_arn):
     inputs = {}
     if not root:
         return None
@@ -144,7 +147,9 @@ def get_inputs(root, region_name, endpoint_url, value):
 
                 file_path = path / file
                 with file_path.open("r", encoding="utf-8") as f:
-                    overrides_raw = render_jinja(f.read(), region_name, endpoint_url)
+                    overrides_raw = render_jinja(
+                        f.read(), region_name, endpoint_url, role_arn
+                    )
                 overrides = {}
                 for pointer, obj in overrides_raw.items():
                     overrides[pointer] = obj
@@ -175,13 +180,17 @@ def test(args):
     project.load()
 
     overrides = get_overrides(
-        project.root, args.region, args.cloudformation_endpoint_url
+        project.root, args.region, args.cloudformation_endpoint_url, args.role_arn
     )
 
     index = 1
     while True:
         inputs = get_inputs(
-            project.root, args.region, args.cloudformation_endpoint_url, index
+            project.root,
+            args.region,
+            args.cloudformation_endpoint_url,
+            index,
+            args.role_arn,
         )
         if not inputs:
             break

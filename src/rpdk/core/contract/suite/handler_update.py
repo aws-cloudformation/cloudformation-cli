@@ -6,6 +6,7 @@ import pytest
 # WARNING: contract tests should use fully qualified imports to avoid issues
 # when being loaded by pytest
 from rpdk.core.contract.interface import Action, OperationStatus
+from rpdk.core.contract.resource_client import create_model_with_properties_in_path
 from rpdk.core.contract.suite.handler_commons import (
     test_input_equals_output,
     test_model_in_list,
@@ -34,7 +35,12 @@ def updated_resource(resource_client):
 
         yield create_request, created_model, update_request, updated_model
     finally:
-        resource_client.call_and_assert(Action.DELETE, OperationStatus.SUCCESS, model)
+        primay_identifier_only_model = create_model_with_properties_in_path(
+            model, resource_client.primary_identifier_paths
+        )
+        resource_client.call_and_assert(
+            Action.DELETE, OperationStatus.SUCCESS, primay_identifier_only_model
+        )
 
 
 @pytest.mark.update

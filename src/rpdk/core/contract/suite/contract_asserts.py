@@ -1,9 +1,12 @@
+import logging
 from functools import wraps
 from inspect import Parameter, signature
 
 import pytest
 
 from rpdk.core.contract.interface import HandlerErrorCode
+
+LOG = logging.getLogger(__name__)
 
 
 def _rebind(decorator, func, *args, **kwargs):

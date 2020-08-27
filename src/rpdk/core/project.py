@@ -189,6 +189,26 @@ class Project:  # pylint: disable=too-many-instance-attributes
 
         self.safewrite(self.schema_path, _write)
 
+    def _write_example_inputs(self):
+
+        shutil.rmtree(self.inputs_path, ignore_errors=True)
+        self.inputs_path.mkdir(exist_ok=True)
+
+        template = self.env.get_template("inputs.json")
+        properties = list(self.schema["properties"].keys())
+
+        for inputs_file in (
+            "inputs_1_create.json",
+            "inputs_1_update.json",
+            "inputs_1_invalid.json",
+        ):
+            self.safewrite(
+                self.inputs_path / inputs_file,
+                template.render(
+                    properties=properties[:-1], last_property=properties[-1]
+                ),
+            )
+
     def write_settings(self):
         if self.runtime not in LAMBDA_RUNTIMES:
             LOG.critical(
@@ -220,6 +240,7 @@ class Project:  # pylint: disable=too-many-instance-attributes
         self.settings = settings or {}
 
         self._write_example_schema()
+        self._write_example_inputs()
         self._plugin.init(self)
         self.write_settings()
 

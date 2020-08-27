@@ -7,7 +7,10 @@ import pytest
 # WARNING: contract tests should use fully qualified imports to avoid issues
 # when being loaded by pytest
 from rpdk.core.contract.interface import Action, HandlerErrorCode, OperationStatus
-from rpdk.core.contract.resource_client import prune_properties_from_model
+from rpdk.core.contract.resource_client import (
+    create_model_with_properties_in_path,
+    prune_properties_from_model,
+)
 from rpdk.core.contract.suite.handler_commons import (
     test_create_success,
     test_delete_failure_not_found,
@@ -25,22 +28,26 @@ LOG = logging.getLogger(__name__)
 
 @pytest.fixture(scope="module")
 def deleted_resource(resource_client):
-    request = input_model = model = resource_client.generate_create_example()
+    request = input_model = pruned_model = resource_client.generate_create_example()
     try:
         _status, response, _error = resource_client.call_and_assert(
             Action.CREATE, OperationStatus.SUCCESS, request
         )
         model = response["resourceModel"]
         test_input_equals_output(resource_client, input_model, model)
+        primay_identifier_only_model = create_model_with_properties_in_path(
+            model,
+            resource_client.primary_identifier_paths,
+        )
         _status, response, _error = resource_client.call_and_assert(
-            Action.DELETE, OperationStatus.SUCCESS, model
+            Action.DELETE, OperationStatus.SUCCESS, primay_identifier_only_model
         )
         assert (
             "resourceModel" not in response
         ), "The deletion handler's response object MUST NOT contain a model"
         yield model, request
     finally:
-        status, response = resource_client.call(Action.DELETE, model)
+        status, response = resource_client.call(Action.DELETE, pruned_model)
 
         # a failed status is allowed if the error code is NotFound
         if status == OperationStatus.FAILED:
