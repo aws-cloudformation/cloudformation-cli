@@ -80,7 +80,7 @@ def resource_client():
 
     mock_sesh.client.assert_called_once_with("lambda", endpoint_url=endpoint)
     mock_creds.assert_called_once_with(mock_sesh, LOWER_CAMEL_CRED_KEYS, None)
-    mock_account.assert_called_once_with(mock_sesh)
+    mock_account.assert_called_once_with(mock_sesh, {})
     assert client._creds == {}
     assert client._function_name == DEFAULT_FUNCTION
     assert client._schema == {}
@@ -121,7 +121,7 @@ def resource_client_inputs():
 
     mock_sesh.client.assert_called_once_with("lambda", endpoint_url=endpoint)
     mock_creds.assert_called_once_with(mock_sesh, LOWER_CAMEL_CRED_KEYS, None)
-    mock_account.assert_called_once_with(mock_sesh)
+    mock_account.assert_called_once_with(mock_sesh, {})
 
     assert client._creds == {}
     assert client._function_name == DEFAULT_FUNCTION
@@ -213,7 +213,9 @@ def test_init_sam_cli_client():
         "rpdk.core.contract.resource_client.create_sdk_session", autospec=True
     )
     patch_creds = patch(
-        "rpdk.core.contract.resource_client.get_temporary_credentials", autospec=True
+        "rpdk.core.contract.resource_client.get_temporary_credentials",
+        autospec=True,
+        return_value={},
     )
     patch_account = patch(
         "rpdk.core.contract.resource_client.get_account",
@@ -232,7 +234,7 @@ def test_init_sam_cli_client():
         "lambda", endpoint_url=DEFAULT_ENDPOINT, use_ssl=False, verify=False, config=ANY
     )
     mock_creds.assert_called_once_with(mock_sesh, LOWER_CAMEL_CRED_KEYS, None)
-    mock_account.assert_called_once_with(mock_sesh)
+    mock_account.assert_called_once_with(mock_sesh, {})
     assert client.account == ACCOUNT
 
 

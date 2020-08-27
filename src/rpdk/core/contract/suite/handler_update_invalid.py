@@ -30,7 +30,8 @@ def contract_update_create_only_property(resource_client):
             assert response["message"]
         finally:
             primay_identifier_only_model = create_model_with_properties_in_path(
-                created_model, resource_client.primary_identifier_paths,
+                created_model,
+                resource_client.primary_identifier_paths,
             )
             resource_client.call_and_assert(
                 Action.DELETE, OperationStatus.SUCCESS, primay_identifier_only_model
