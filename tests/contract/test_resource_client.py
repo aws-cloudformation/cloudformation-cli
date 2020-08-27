@@ -269,6 +269,7 @@ def test_make_request():
         "awsPartition": "aws",
         "awsAccountId": ACCOUNT,
         "action": "CREATE",
+        "bearerToken": token,
         "callbackContext": None,
     }
 
@@ -542,6 +543,7 @@ def test_make_payload(resource_client):
         "awsPartition": "aws",
         "awsAccountId": ACCOUNT,
         "action": "CREATE",
+        "bearerToken": token,
         "callbackContext": None,
     }
 

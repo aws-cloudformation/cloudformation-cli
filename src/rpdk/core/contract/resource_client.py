@@ -358,6 +358,7 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
             "awsAccountId": account,
             "action": action,
             "callbackContext": callback_context,
+            "bearerToken": token,
             **kwargs,
         }
 
@@ -417,6 +418,7 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
                 "region",
                 "awsPartition",
                 "awsAccountId",
+                "bearerToken",
             ]
         }
         LOG.debug(
