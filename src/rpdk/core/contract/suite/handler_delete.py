@@ -37,7 +37,7 @@ def deleted_resource(resource_client):
         )
         assert (
             "resourceModel" not in response
-        ), "ProgressEvent object MUST NOT contain a model"
+        ), "The deletion handler's response object MUST NOT contain a model"
         yield model, request
     finally:
         status, response = resource_client.call(Action.DELETE, model)
@@ -70,8 +70,8 @@ def contract_delete_list(resource_client, deleted_resource):
     deleted_model, _request = deleted_resource
     assert not test_model_in_list(
         resource_client, deleted_model
-    ), "any subsequent list operation MUST NOT return the primaryIdentifier\
-         associated with the deleted resource instance"
+    ), "A list operation MUST NOT return the primaryIdentifier \
+        of any deleted resource instance"
 
 
 @pytest.mark.delete
@@ -102,7 +102,9 @@ def contract_delete_create(resource_client, deleted_resource):
 
         assert (
             deleted_model == response["resourceModel"]
-        ), "A create handler MUST be idempotent"
+        ), "Once a delete operation successfully completes, a subsequent\
+             create request with the same primaryIdentifier or additionalIdentifiers\
+                  MUST NOT return FAILED with an AlreadyExists error code"
         resource_client.call_and_assert(
             Action.DELETE, OperationStatus.SUCCESS, created_response["resourceModel"]
         )

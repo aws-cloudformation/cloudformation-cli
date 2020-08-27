@@ -368,9 +368,11 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
                     resource_model, fragment_list(primary_identifier, "properties")
                 )[0]
                 for primary_identifier in primary_identifier_paths
-            ), "Every model MUST include the primaryIdentifier"
+            ), "Every returned model MUST include the primaryIdentifier"
         except KeyError:
-            raise AssertionError("Every model MUST include the primaryIdentifier")
+            raise AssertionError(
+                "Every returned model MUST include the primaryIdentifier"
+            )
 
     @staticmethod
     def is_primary_identifier_equal(
@@ -387,7 +389,10 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
                 for primary_identifier in primary_identifier_path
             )
         except KeyError:
-            raise AssertionError("Every model MUST include the primaryIdentifier")
+            raise AssertionError(
+                "The primaryIdentifier returned in every progress event must\
+                     match the primaryIdentifier passed into the request"
+            )
 
     def _make_payload(self, action, current_model, previous_model=None, **kwargs):
         return self.make_request(

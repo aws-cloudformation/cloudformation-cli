@@ -34,7 +34,8 @@ def contract_update_create_only_property(resource_client):
             )
             assert response[
                 "message"
-            ], "The progress event MUST return an error message"
+            ], "The progress event MUST return an error message\
+                 when the status is failed"
         finally:
             resource_client.call_and_assert(
                 Action.DELETE, OperationStatus.SUCCESS, created_model
@@ -55,5 +56,8 @@ def contract_update_non_existent_resource(resource_client):
     _status, response, _error = resource_client.call_and_assert(
         Action.UPDATE, OperationStatus.FAILED, update_request, create_request
     )
-    assert response["message"], "The progress event MUST return an error message"
+    assert response[
+        "message"
+    ], "The progress event MUST return an error message\
+         when the status is failed"
     return _error

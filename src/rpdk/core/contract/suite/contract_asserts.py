@@ -83,8 +83,9 @@ def response_contains_resource_model_equal_current_model(
 ):
     assert (
         response["resourceModel"] == current_resource_model
-    ), "handler MUST return a model representation that conforms\
-         to the shape of the resource schema"
+    ), "All properties specified in the request MUST be present in the model \
+        returned, and they MUST match exactly, with the exception of properties\
+             defined as writeOnlyProperties in the resource schema"
 
 
 @decorate()
@@ -114,7 +115,7 @@ def response_contains_unchanged_primary_identifier(
         resource_client.primary_identifier_paths,
         current_resource_model,
         response["resourceModel"],
-    ), "primaryIdentifier returned in every progress event must match \
+    ), "PrimaryIdentifier returned in every progress event must match \
         the primaryIdentifier passed into the request"
 
 

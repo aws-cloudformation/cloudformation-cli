@@ -136,7 +136,7 @@ def test_delete_success(resource_client, current_resource_model):
 @failed_event(
     error_code=HandlerErrorCode.NotFound,
     msg="A delete hander MUST return FAILED with a NotFound error code\
-         if the if the resource did not exist prior to the delete request",
+         if the resource did not exist prior to the delete request",
 )
 def test_delete_failure_not_found(resource_client, current_resource_model):
     _status, _response, error_code = resource_client.call_and_assert(
