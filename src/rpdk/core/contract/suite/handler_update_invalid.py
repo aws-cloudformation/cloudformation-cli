@@ -45,7 +45,7 @@ def contract_update_create_only_property(resource_client):
     error_code=HandlerErrorCode.NotFound,
     msg="cannot update a resource which does not exist",
 )
-def contract_update_non_existent_resource(resource_client):
+def contract_update_without_create(resource_client):
     create_request = resource_client.generate_invalid_create_example()
     update_request = resource_client.generate_update_example(create_request)
     _status, response, _error = resource_client.call_and_assert(
