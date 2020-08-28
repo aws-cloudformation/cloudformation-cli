@@ -66,8 +66,13 @@ def test_read_success(resource_client, current_resource_model):
          if the resource does not exist",
 )
 def test_read_failure_not_found(
-    resource_client, current_resource_model,
+    resource_client,
+    current_resource_model,
 ):
+    primay_identifier_only_model = create_model_with_properties_in_path(
+        current_resource_model,
+        resource_client.primary_identifier_paths,
+    )
     _status, _response, error_code = resource_client.call_and_assert(
         Action.READ, OperationStatus.FAILED, primay_identifier_only_model
     )
