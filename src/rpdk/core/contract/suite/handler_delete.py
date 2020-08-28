@@ -42,7 +42,9 @@ def deleted_resource(resource_client):
         _status, response, _error = resource_client.call_and_assert(
             Action.DELETE, OperationStatus.SUCCESS, primay_identifier_only_model
         )
-        assert "resourceModel" not in response
+        assert (
+            "resourceModel" not in response
+        ), "The deletion handler's response object MUST NOT contain a model"
         yield model, request
     finally:
         status, response = resource_client.call(Action.DELETE, pruned_model)
@@ -50,7 +52,10 @@ def deleted_resource(resource_client):
         # a failed status is allowed if the error code is NotFound
         if status == OperationStatus.FAILED:
             error_code = resource_client.assert_failed(status, response)
-            assert error_code == HandlerErrorCode.NotFound
+            assert (
+                error_code == HandlerErrorCode.NotFound
+            ), "A delete hander MUST return FAILED with a NotFound error code\
+                 if the resource did not exist prior to the delete request"
         else:
             resource_client.assert_success(status, response)
 
@@ -70,7 +75,10 @@ def contract_delete_list(resource_client, deleted_resource):
     #       remove the model from the list, however.
 
     deleted_model, _request = deleted_resource
-    assert not test_model_in_list(resource_client, deleted_model)
+    assert not test_model_in_list(
+        resource_client, deleted_model
+    ), "A list operation MUST NOT return the primaryIdentifier \
+        of any deleted resource instance"
 
 
 @pytest.mark.delete
@@ -99,7 +107,11 @@ def contract_delete_create(resource_client, deleted_resource):
             response["resourceModel"], resource_client.read_only_paths
         )
 
-        assert deleted_model == response["resourceModel"]
+        assert (
+            deleted_model == response["resourceModel"]
+        ), "Once a delete operation successfully completes, a subsequent\
+             create request with the same primaryIdentifier or additionalIdentifiers\
+                  MUST NOT return FAILED with an AlreadyExists error code"
         resource_client.call_and_assert(
             Action.DELETE, OperationStatus.SUCCESS, created_response["resourceModel"]
         )
