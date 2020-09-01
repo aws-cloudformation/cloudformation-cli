@@ -1,3 +1,4 @@
+import collections
 import json
 import logging
 import os
@@ -91,9 +92,20 @@ def get_file_base_uri(file):
     return path.resolve().as_uri()
 
 
+def flatten(collection):
+    for element in collection:
+        if isinstance(element, collections.Iterable) and not isinstance(
+            element, (str, bytes)
+        ):
+            yield from flatten(element)
+        else:
+            yield element
+
+
 def _is_in(schema, key):
     def contains(values):
-        return set(values).issubset(set(schema.get(key, [])))
+        set_of_values = set(flatten(values))
+        return set_of_values.issubset(set(schema.get(key, [])))
 
     return contains
 
@@ -117,10 +129,20 @@ def load_resource_spec(resource_spec_file):  # noqa: C901
     in_createonly = _is_in(resource_spec, "createOnlyProperties")
 
     primary_id = resource_spec["primaryIdentifier"]
+    additional_identifiers = resource_spec.get("additionalIdentifiers", [])
+
     if not in_readonly(primary_id) and not in_createonly(primary_id):
         LOG.warning(
             "Property 'primaryIdentifier' must be specified \
 as either readOnly or createOnly"
+        )
+
+    if not in_readonly(additional_identifiers) and not in_createonly(
+        additional_identifiers
+    ):
+        LOG.warning(
+            "Property 'additionalIdentifiers' must be specified \
+as readOnly or createOnly"
         )
 
     # TODO: more general validation framework

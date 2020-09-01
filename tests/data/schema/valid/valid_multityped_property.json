@@ -58,7 +58,8 @@
         "/properties/enum1"
     ],
     "readOnlyProperties": [
-        "/properties/str3"
+        "/properties/str3",
+        "/properties/obj1/obj2/str1"
     ],
     "additionalIdentifiers": [
         [
