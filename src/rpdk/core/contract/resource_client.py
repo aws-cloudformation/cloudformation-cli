@@ -352,7 +352,6 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
                 "callerCredentials": creds,
                 "resourceProperties": desired_resource_state,
                 "previousResourceProperties": previous_resource_state,
-                "logicalResourceIdentifier": token,
             },
             "region": region,
             "awsPartition": partition,
