@@ -445,9 +445,17 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         result = self._client.invoke(
             FunctionName=self._function_name, Payload=payload.encode("utf-8")
         )
-        payload = json.load(result["Payload"])
-        LOG.debug("Received response\n%s", payload)
-        return payload
+
+        try:
+            payload = json.load(result["Payload"])
+        except json.decoder.JSONDecodeError as json_error:
+            LOG.debug("Received invalid response\n%s", result["Payload"])
+            raise ValueError(
+                "Handler Output is not a valid JSON document"
+            ) from json_error
+        else:
+            LOG.debug("Received response\n%s", payload)
+            return payload
 
     def call_and_assert(
         self, action, assert_status, current_model, previous_model=None, **kwargs
