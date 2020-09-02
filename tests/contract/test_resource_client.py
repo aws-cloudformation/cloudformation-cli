@@ -267,7 +267,7 @@ def test_make_request():
         "awsAccountId": ACCOUNT,
         "action": "CREATE",
         "bearerToken": token,
-        "requestContext": {"callbackContext": None},
+        "callbackContext": None,
     }
 
 
@@ -539,7 +539,7 @@ def test_make_payload(resource_client):
         "awsAccountId": ACCOUNT,
         "action": "CREATE",
         "bearerToken": token,
-        "requestContext": {"callbackContext": None},
+        "callbackContext": None,
     }
 
 

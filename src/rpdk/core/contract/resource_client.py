@@ -347,7 +347,7 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
             "region": region,
             "awsAccountId": account,
             "action": action,
-            "requestContext": {"callbackContext": callback_context},
+            "callbackContext": callback_context,
             "bearerToken": token,
             **kwargs,
         }
@@ -416,7 +416,7 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         payload_to_log = {
             key: payload[key]
             for key in [
-                "requestContext",
+                "callbackContext",
                 "action",
                 "requestData",
                 "region",
