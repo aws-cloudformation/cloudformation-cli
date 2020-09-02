@@ -133,7 +133,6 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         )
         self.region = region
         self.account = get_account(self._session, self._creds)
-        self.partition = self._get_partition()
         self._function_name = function_name
         if endpoint.startswith("http://"):
             self._client = self._session.client(
@@ -160,13 +159,6 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         self._update_schema(schema)
         self._inputs = inputs
         self._timeout_in_seconds = int(timeout_in_seconds)
-
-    def _get_partition(self):
-        if self.region.startswith("cn"):
-            return "aws-cn"
-        if self.region.startswith("us-gov"):
-            return "aws-gov"
-        return "aws"
 
     def _properties_to_paths(self, key):
         return {fragment_decode(prop, prefix="") for prop in self._schema.get(key, [])}
@@ -340,7 +332,6 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         previous_resource_state,
         region,
         account,
-        partition,
         action,
         creds,
         token,
@@ -354,10 +345,9 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
                 "previousResourceProperties": previous_resource_state,
             },
             "region": region,
-            "awsPartition": partition,
             "awsAccountId": account,
             "action": action,
-            "callbackContext": callback_context,
+            "requestContext": {"callbackContext": callback_context},
             "bearerToken": token,
             **kwargs,
         }
@@ -416,7 +406,6 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
             previous_model,
             self.region,
             self.account,
-            self.partition,
             action,
             self._creds.copy(),
             self.generate_token(),
@@ -427,11 +416,10 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         payload_to_log = {
             key: payload[key]
             for key in [
-                "callbackContext",
+                "requestContext",
                 "action",
                 "requestData",
                 "region",
-                "awsPartition",
                 "awsAccountId",
                 "bearerToken",
             ]
