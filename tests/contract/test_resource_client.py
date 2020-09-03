@@ -253,7 +253,6 @@ def test_make_request():
         previous_resource_state,
         "us-east-1",
         ACCOUNT,
-        "aws",
         "CREATE",
         {},
         token,
@@ -265,7 +264,6 @@ def test_make_request():
             "previousResourceProperties": previous_resource_state,
         },
         "region": DEFAULT_REGION,
-        "awsPartition": "aws",
         "awsAccountId": ACCOUNT,
         "action": "CREATE",
         "bearerToken": token,
@@ -538,7 +536,6 @@ def test_make_payload(resource_client):
             "previousResourceProperties": None,
         },
         "region": DEFAULT_REGION,
-        "awsPartition": "aws",
         "awsAccountId": ACCOUNT,
         "action": "CREATE",
         "bearerToken": token,
@@ -876,17 +873,3 @@ def test_generate_update_example_with_inputs(resource_client_inputs):
 
 def test_generate_invalid_update_example_with_inputs(resource_client_inputs):
     assert resource_client_inputs.generate_invalid_update_example({"a": 1}) == {"b": 2}
-
-
-def test_get_partition_aws(resource_client):
-    assert resource_client._get_partition() == "aws"
-
-
-def test_get_partition_aws_cn(resource_client):
-    resource_client.region = "cn-north-1"
-    assert resource_client._get_partition() == "aws-cn"
-
-
-def test_get_partition_aws_gov(resource_client):
-    resource_client.region = "us-gov-west-1"
-    assert resource_client._get_partition() == "aws-gov"
