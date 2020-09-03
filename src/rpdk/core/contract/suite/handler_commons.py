@@ -178,6 +178,7 @@ def test_input_equals_output(resource_client, input_model, output_model):
     assert pruned_input_model == pruned_output_model
 
 
+# TODO: add decorator for checking that resource model has additional identifiers
 def test_read_success_additional_identifier(resource_client, current_resource_model):
     additional_identifier_only_model = create_model_with_properties_in_path(
         current_resource_model.copy(),
