@@ -19,6 +19,7 @@ from rpdk.core.contract.suite.handler_commons import (
     test_input_equals_output,
     test_model_in_list,
     test_read_success,
+    test_read_success_additional_identifier,
 )
 
 LOG = logging.getLogger(__name__)
@@ -26,14 +27,20 @@ LOG = logging.getLogger(__name__)
 
 @pytest.fixture(scope="module")
 def created_resource(resource_client):
-    request = input_model = model = resource_client.generate_create_example()
+    request = (
+        input_model
+    ) = model = resource_client.generate_create_example()  # fetches input
     try:
-        _status, response, _error = resource_client.call_and_assert(
+        (
+            _status,
+            response,
+            _error,
+        ) = resource_client.call_and_assert(  # creates a resource
             Action.CREATE, OperationStatus.SUCCESS, request
         )
-        model = response["resourceModel"]
+        model = response["resourceModel"]  # stores just the resourceModel from response
         test_input_equals_output(resource_client, input_model, model)
-        yield model, request
+        yield model, request  #
     finally:
         primay_identifier_only_model = create_model_with_properties_in_path(
             model, resource_client.primary_identifier_paths
@@ -100,3 +107,10 @@ def contract_create_list_success(created_resource, resource_client):
     created_model, _request = created_resource
     assert test_model_in_list(resource_client, created_model)
     test_read_success(resource_client, created_model)
+
+
+@pytest.mark.create
+@pytest.mark.read
+def contract_create_read_additional_identifier(created_resource, resource_client):
+    created_model, _request = created_resource
+    test_read_success_additional_identifier(resource_client, created_model)

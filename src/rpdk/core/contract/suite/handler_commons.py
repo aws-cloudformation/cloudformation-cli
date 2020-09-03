@@ -176,3 +176,14 @@ def test_input_equals_output(resource_client, input_model, output_model):
     )
 
     assert pruned_input_model == pruned_output_model
+
+
+def test_read_success_additional_identifier(resource_client, current_resource_model):
+    additional_identifier_only_model = create_model_with_properties_in_path(
+        current_resource_model.copy(),
+        resource_client._additional_identifiers_paths,
+    )
+    _status, response, _error_code = resource_client.call_and_assert(
+        Action.READ, OperationStatus.SUCCESS, additional_identifier_only_model
+    )
+    return response
