@@ -614,6 +614,16 @@ def test_call_and_assert_success(resource_client):
     assert error_code is None
 
 
+def test_call_and_assert_failed_invalid_payload(resource_client):
+    mock_client = resource_client._client
+    mock_client.invoke.return_value = {"Payload": StringIO("invalid json document")}
+
+    with pytest.raises(ValueError):
+        status, response, error_code = resource_client.call_and_assert(
+            Action.CREATE, OperationStatus.SUCCESS, {}, None
+        )
+
+
 def test_call_and_assert_failed(resource_client):
     mock_client = resource_client._client
     mock_client.invoke.return_value = {
