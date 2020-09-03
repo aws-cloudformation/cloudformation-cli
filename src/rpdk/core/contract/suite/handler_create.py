@@ -29,16 +29,16 @@ LOG = logging.getLogger(__name__)
 def created_resource(resource_client):
     request = (
         input_model
-    ) = model = resource_client.generate_create_example()  # fetches input
+    ) = model = resource_client.generate_create_example()
     try:
         (
             _status,
             response,
             _error,
-        ) = resource_client.call_and_assert(  # creates a resource
+        ) = resource_client.call_and_assert(
             Action.CREATE, OperationStatus.SUCCESS, request
         )
-        model = response["resourceModel"]  # stores just the resourceModel from response
+        model = response["resourceModel"]
         test_input_equals_output(resource_client, input_model, model)
         yield model, request  #
     finally:
