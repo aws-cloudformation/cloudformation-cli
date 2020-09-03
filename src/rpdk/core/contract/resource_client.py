@@ -188,6 +188,7 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
             {fragment_decode(prop, prefix="") for prop in identifier}
             for identifier in additional_identifiers
         ]
+        self.additional_identifiers_paths = self._additional_identifiers_paths
 
     def has_writable_identifier(self):
         for path in self.primary_identifier_paths:
