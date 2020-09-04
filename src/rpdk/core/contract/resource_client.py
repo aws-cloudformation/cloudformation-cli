@@ -176,7 +176,7 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         self.create_only_paths = self._properties_to_paths("createOnlyProperties")
 
         additional_identifiers = self._schema.get("additionalIdentifiers", [])
-        self._additional_identifiers_paths = [
+        self.additional_identifiers_paths = [
             {fragment_decode(prop, prefix="") for prop in identifier}
             for identifier in additional_identifiers
         ]
@@ -185,7 +185,7 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         for path in self.primary_identifier_paths:
             if path not in self.read_only_paths:
                 return True
-        for identifier_paths in self._additional_identifiers_paths:
+        for identifier_paths in self.additional_identifiers_paths:
             for path in identifier_paths:
                 if path not in self.read_only_paths:
                     return True
@@ -198,6 +198,9 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
                 for write_only_property in self.write_only_paths
             ), "The model MUST NOT return properties defined as \
                 writeOnlyProperties in the resource schema"
+
+    def has_additional_identifier(self):
+        return self.additional_identifiers_paths
 
     @property
     def strategy(self):
