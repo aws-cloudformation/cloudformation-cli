@@ -199,9 +199,6 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
             ), "The model MUST NOT return properties defined as \
                 writeOnlyProperties in the resource schema"
 
-    def has_additional_identifier(self):
-        return self.additional_identifiers_paths
-
     @property
     def strategy(self):
         # an empty strategy (i.e. false-y) is valid

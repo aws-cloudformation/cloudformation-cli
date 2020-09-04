@@ -142,9 +142,3 @@ def failed_event(error_code, msg=""):
         return wrapper
 
     return decorator_wrapper
-
-
-@decorate(after=False)
-def skip_not_additional_identifier(resource_client):
-    if not resource_client.has_additional_identifier:
-        pytest.skip("No additional identifiers. Skipping test.")
