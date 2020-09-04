@@ -10,6 +10,7 @@ from rpdk.core.contract.interface import Action, HandlerErrorCode, OperationStat
 from rpdk.core.contract.resource_client import create_model_with_properties_in_path
 from rpdk.core.contract.suite.contract_asserts import (
     failed_event,
+    skip_not_additional_identifier,
     skip_not_writable_identifier,
 )
 from rpdk.core.contract.suite.handler_commons import (
@@ -19,6 +20,7 @@ from rpdk.core.contract.suite.handler_commons import (
     test_input_equals_output,
     test_model_in_list,
     test_read_success,
+    test_read_success_additional_identifier,
 )
 
 LOG = logging.getLogger(__name__)
@@ -100,3 +102,13 @@ def contract_create_list_success(created_resource, resource_client):
     created_model, _request = created_resource
     assert test_model_in_list(resource_client, created_model)
     test_read_success(resource_client, created_model)
+
+
+@pytest.mark.create
+@pytest.mark.read
+@skip_not_additional_identifier
+def contract_create_read_additional_identifier_success(
+    created_resource, resource_client
+):
+    created_model, _request = created_resource
+    test_read_success_additional_identifier(resource_client, created_model)
