@@ -2,13 +2,12 @@
 """
 import logging
 import re
-from argparse import SUPPRESS
 from functools import wraps
 
 from colorama import Fore, Style
 
 from .exceptions import WizardAbortError, WizardValidationError
-from .plugin_registry import PLUGIN_CHOICES
+from .plugin_registry import get_plugin_choices
 from .project import Project
 
 LOG = logging.getLogger(__name__)
@@ -42,7 +41,7 @@ def validate_type_name(value):
         return value
     LOG.debug("'%s' did not match '%s'", value, TYPE_NAME_REGEX)
     raise WizardValidationError(
-        "Please enter a value matching '{}'".format(TYPE_NAME_REGEX)
+        "Please enter a resource type name matching '{}'".format(TYPE_NAME_REGEX)
     )
 
 
@@ -77,7 +76,7 @@ class ValidatePluginChoice:
 
 
 validate_plugin_choice = ValidatePluginChoice(  # pylint: disable=invalid-name
-    PLUGIN_CHOICES
+    get_plugin_choices()
 )
 
 
@@ -139,10 +138,26 @@ def init(args):
 
     check_for_existing_project(project)
 
-    type_name = input_typename()
+    if args.type_name:
+        try:
+            type_name = validate_type_name(args.type_name)
+        except WizardValidationError as error:
+            print(Style.BRIGHT, Fore.RED, str(error), Style.RESET_ALL, sep="")
+            type_name = input_typename()
+    else:
+        type_name = input_typename()
+
     if args.language:
-        language = args.language
-        LOG.warning("Language plugin '%s' selected non-interactively", language)
+        language = args.language.lower()
+        if language not in get_plugin_choices():
+            print(
+                Style.BRIGHT,
+                Fore.RED,
+                "The plugin for {} is not installed.".format(language),
+                Style.RESET_ALL,
+                sep="",
+            )
+            language = input_language()
     else:
         language = input_language()
 
@@ -172,7 +187,18 @@ def setup_subparser(subparsers, parents):
     parser.set_defaults(command=ignore_abort(init))
 
     parser.add_argument(
-        "--force", action="store_true", help="Force files to be overwritten."
+        "--force",
+        action="store_true",
+        help="Force files to be overwritten.",
     )
-    # this is mainly for CI, so suppress it to keep it simple
-    parser.add_argument("--language", help=SUPPRESS)
+
+    parser.add_argument(
+        "--language",
+        help="""Select a language for code generation.
+            The language plugin needs to be installed.""",
+    )
+
+    parser.add_argument(
+        "--type-name",
+        help="Selects the name of the resource type.",
+    )

@@ -1,6 +1,7 @@
 from pathlib import Path
 from unittest.mock import ANY, Mock, PropertyMock, patch
 
+import pkg_resources
 import pytest
 
 from rpdk.core.exceptions import WizardAbortError, WizardValidationError
@@ -21,13 +22,25 @@ PROMPT = "MECVGD"
 ERROR = "TUJFEL"
 
 
-def test_init_method_interactive_language():
+def add_dummy_language_plugin():
+    distribution = pkg_resources.Distribution(__file__)
+    entry_point = pkg_resources.EntryPoint.parse(
+        "dummy = rpdk.dummy:DummyLanguagePlugin", dist=distribution
+    )
+    distribution._ep_map = {  # pylint: disable=protected-access
+        "rpdk.v1.languages": {"dummy": entry_point}
+    }
+    pkg_resources.working_set.add(distribution)
+
+
+def test_init_method_interactive():
     type_name = object()
     language = object()
 
-    args = Mock(spec_set=["force", "language"])
+    args = Mock(spec_set=["force", "language", "type_name"])
     args.force = False
     args.language = None
+    args.type_name = None
 
     mock_project = Mock(spec=Project)
     mock_project.load_settings.side_effect = FileNotFoundError
@@ -49,12 +62,42 @@ def test_init_method_interactive_language():
     mock_project.generate.assert_called_once_with()
 
 
-def test_init_method_noninteractive_language():
+def test_init_method_noninteractive():
+    add_dummy_language_plugin()
+
+    args = Mock(spec_set=["force", "language", "type_name"])
+    args.force = False
+    args.language = "dummy"
+    args.type_name = "Test::Test::Test"
+
+    mock_project = Mock(spec=Project)
+    mock_project.load_settings.side_effect = FileNotFoundError
+    mock_project.settings_path = ""
+    mock_project.root = Path(".")
+
+    patch_project = patch("rpdk.core.init.Project", return_value=mock_project)
+    patch_tn = patch("rpdk.core.init.input_typename")
+    patch_l = patch("rpdk.core.init.input_language")
+
+    with patch_project, patch_tn as mock_tn, patch_l as mock_l:
+        init(args)
+
+    mock_tn.assert_not_called()
+    mock_l.assert_not_called()
+
+    mock_project.load_settings.assert_called_once_with()
+    mock_project.init.assert_called_once_with(args.type_name, args.language)
+    mock_project.generate.assert_called_once_with()
+
+
+def test_init_method_noninteractive_invalid_type_name():
+    add_dummy_language_plugin()
     type_name = object()
 
-    args = Mock(spec_set=["force", "language"])
+    args = Mock(spec_set=["force", "language", "type_name"])
     args.force = False
-    args.language = "rust1.39"
+    args.language = "dummy"
+    args.type_name = "Test"
 
     mock_project = Mock(spec=Project)
     mock_project.load_settings.side_effect = FileNotFoundError
@@ -73,6 +116,34 @@ def test_init_method_noninteractive_language():
 
     mock_project.load_settings.assert_called_once_with()
     mock_project.init.assert_called_once_with(type_name, args.language)
+    mock_project.generate.assert_called_once_with()
+
+
+def test_init_method_noninteractive_invalid_language():
+    language = object()
+
+    args = Mock(spec_set=["force", "language", "type_name"])
+    args.force = False
+    args.language = "fortran"
+    args.type_name = "Test::Test::Test"
+
+    mock_project = Mock(spec=Project)
+    mock_project.load_settings.side_effect = FileNotFoundError
+    mock_project.settings_path = ""
+    mock_project.root = Path(".")
+
+    patch_project = patch("rpdk.core.init.Project", return_value=mock_project)
+    patch_tn = patch("rpdk.core.init.input_typename")
+    patch_l = patch("rpdk.core.init.input_language", return_value=language)
+
+    with patch_project, patch_tn as mock_tn, patch_l as mock_l:
+        init(args)
+
+    mock_tn.assert_not_called()
+    mock_l.assert_called_once_with()
+
+    mock_project.load_settings.assert_called_once_with()
+    mock_project.init.assert_called_once_with(args.type_name, language)
     mock_project.generate.assert_called_once_with()
 
 
