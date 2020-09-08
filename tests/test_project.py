@@ -478,7 +478,7 @@ def test_init(project):
         "inputs_1_update.json",
         "inputs_1_invalid.json",
     ):
-        path_file = project.inputs_path / file_inputs
+        path_file = project.example_inputs_path / file_inputs
         with path_file.open("r", encoding="utf-8") as f:
             assert json.load(f)
 
