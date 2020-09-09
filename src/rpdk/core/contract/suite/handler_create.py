@@ -94,21 +94,3 @@ def contract_create_list_success(created_resource, resource_client):
     created_model, _request = created_resource
     assert test_model_in_list(resource_client, created_model)
     test_read_success(resource_client, created_model)
-
-
-@pytest.mark.create
-@pytest.mark.read
-def contract_create_read_additional_identifier_success(
-    created_resource, resource_client
-):
-    if not resource_client.additional_identifiers_paths:
-        pytest.skip("No additional identifiers. Skipping test.")
-    created_model, _request = created_resource
-    additional_identifier_only_model = create_model_with_properties_in_path(
-        created_model,
-        resource_client.additional_identifiers_paths,
-    )
-    _status, response, _error_code = resource_client.call_and_assert(
-        Action.READ, OperationStatus.SUCCESS, additional_identifier_only_model
-    )
-    return response
