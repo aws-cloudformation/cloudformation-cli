@@ -6,7 +6,6 @@ import pytest
 # WARNING: contract tests should use fully qualified imports to avoid issues
 # when being loaded by pytest
 from rpdk.core.contract.interface import Action, HandlerErrorCode, OperationStatus
-from rpdk.core.contract.resource_client import create_model_with_properties_in_path
 from rpdk.core.contract.suite.contract_asserts import failed_event
 
 
@@ -38,12 +37,8 @@ def contract_update_create_only_property(resource_client):
             ], "The progress event MUST return an error message\
                  when the status is failed"
         finally:
-            primay_identifier_only_model = create_model_with_properties_in_path(
-                created_model,
-                resource_client.primary_identifier_paths,
-            )
             resource_client.call_and_assert(
-                Action.DELETE, OperationStatus.SUCCESS, primay_identifier_only_model
+                Action.DELETE, OperationStatus.SUCCESS, created_model
             )
     else:
         pytest.skip("No createOnly Properties. Skipping test.")

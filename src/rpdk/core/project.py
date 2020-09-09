@@ -33,6 +33,7 @@ SETTINGS_FILENAME = ".rpdk-config"
 SCHEMA_UPLOAD_FILENAME = "schema.json"
 OVERRIDES_FILENAME = "overrides.json"
 INPUTS_FOLDER = "inputs"
+EXAMPLE_INPUTS_FOLDER = "example_inputs"
 ROLE_TEMPLATE_FILENAME = "resource-role.yaml"
 TYPE_NAME_REGEX = "^[a-zA-Z0-9]{2,64}::[a-zA-Z0-9]{2,64}::[a-zA-Z0-9]{2,64}$"
 
@@ -147,6 +148,10 @@ class Project:  # pylint: disable=too-many-instance-attributes
     def inputs_path(self):
         return self.root / INPUTS_FOLDER
 
+    @property
+    def example_inputs_path(self):
+        return self.root / EXAMPLE_INPUTS_FOLDER
+
     @staticmethod
     def _raise_invalid_project(msg, e):
         LOG.debug(msg, exc_info=e)
@@ -191,8 +196,8 @@ class Project:  # pylint: disable=too-many-instance-attributes
 
     def _write_example_inputs(self):
 
-        shutil.rmtree(self.inputs_path, ignore_errors=True)
-        self.inputs_path.mkdir(exist_ok=True)
+        shutil.rmtree(self.example_inputs_path, ignore_errors=True)
+        self.example_inputs_path.mkdir(exist_ok=True)
 
         template = self.env.get_template("inputs.json")
         properties = list(self.schema["properties"].keys())
@@ -203,7 +208,7 @@ class Project:  # pylint: disable=too-many-instance-attributes
             "inputs_1_invalid.json",
         ):
             self.safewrite(
-                self.inputs_path / inputs_file,
+                self.example_inputs_path / inputs_file,
                 template.render(
                     properties=properties[:-1], last_property=properties[-1]
                 ),
