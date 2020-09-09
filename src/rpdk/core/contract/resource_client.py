@@ -160,7 +160,7 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         self.create_only_paths = self._properties_to_paths("createOnlyProperties")
 
         additional_identifiers = self._schema.get("additionalIdentifiers", [])
-        self.additional_identifiers_paths = [
+        self._additional_identifiers_paths = [
             {fragment_decode(prop, prefix="") for prop in identifier}
             for identifier in additional_identifiers
         ]
@@ -169,7 +169,7 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         for path in self.primary_identifier_paths:
             if path not in self.read_only_paths:
                 return True
-        for identifier_paths in self.additional_identifiers_paths:
+        for identifier_paths in self._additional_identifiers_paths:
             for path in identifier_paths:
                 if path not in self.read_only_paths:
                     return True
