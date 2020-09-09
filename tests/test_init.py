@@ -33,21 +33,38 @@ def add_dummy_language_plugin():
     pkg_resources.working_set.add(distribution)
 
 
-def test_init_method_interactive():
-    type_name = object()
-    language = object()
-
-    args = Mock(spec_set=["force", "language", "type_name"])
-    args.force = False
-    args.language = None
-    args.type_name = None
-
+def get_mock_project():
     mock_project = Mock(spec=Project)
     mock_project.load_settings.side_effect = FileNotFoundError
     mock_project.settings_path = ""
     mock_project.root = Path(".")
 
     patch_project = patch("rpdk.core.init.Project", return_value=mock_project)
+
+    return (mock_project, patch_project)
+
+
+def get_args(interactive=False, language=True, type_name=True):
+    args = Mock(spec_set=["force", "language", "type_name", "use_docker"])
+    args.force = False
+    args.language = (
+        None if interactive else ("dummy" if language else "invalid_language")
+    )
+    args.type_name = (
+        None if interactive else ("Test::Test::Test" if type_name else "Test")
+    )
+    args.use_docker = True
+
+    return args
+
+
+def test_init_method_interactive():
+    type_name = object()
+    language = object()
+
+    args = get_args(interactive=True)
+    mock_project, patch_project = get_mock_project()
+
     patch_tn = patch("rpdk.core.init.input_typename", return_value=type_name)
     patch_l = patch("rpdk.core.init.input_language", return_value=language)
 
@@ -58,24 +75,18 @@ def test_init_method_interactive():
     mock_l.assert_called_once_with()
 
     mock_project.load_settings.assert_called_once_with()
-    mock_project.init.assert_called_once_with(type_name, language)
+    mock_project.init.assert_called_once_with(
+        type_name, language, {"use_docker": args.use_docker}
+    )
     mock_project.generate.assert_called_once_with()
 
 
 def test_init_method_noninteractive():
     add_dummy_language_plugin()
 
-    args = Mock(spec_set=["force", "language", "type_name"])
-    args.force = False
-    args.language = "dummy"
-    args.type_name = "Test::Test::Test"
+    args = get_args()
+    mock_project, patch_project = get_mock_project()
 
-    mock_project = Mock(spec=Project)
-    mock_project.load_settings.side_effect = FileNotFoundError
-    mock_project.settings_path = ""
-    mock_project.root = Path(".")
-
-    patch_project = patch("rpdk.core.init.Project", return_value=mock_project)
     patch_tn = patch("rpdk.core.init.input_typename")
     patch_l = patch("rpdk.core.init.input_language")
 
@@ -86,7 +97,9 @@ def test_init_method_noninteractive():
     mock_l.assert_not_called()
 
     mock_project.load_settings.assert_called_once_with()
-    mock_project.init.assert_called_once_with(args.type_name, args.language)
+    mock_project.init.assert_called_once_with(
+        args.type_name, args.language, {"use_docker": args.use_docker}
+    )
     mock_project.generate.assert_called_once_with()
 
 
@@ -94,17 +107,9 @@ def test_init_method_noninteractive_invalid_type_name():
     add_dummy_language_plugin()
     type_name = object()
 
-    args = Mock(spec_set=["force", "language", "type_name"])
-    args.force = False
-    args.language = "dummy"
-    args.type_name = "Test"
+    args = get_args(type_name=False)
+    mock_project, patch_project = get_mock_project()
 
-    mock_project = Mock(spec=Project)
-    mock_project.load_settings.side_effect = FileNotFoundError
-    mock_project.settings_path = ""
-    mock_project.root = Path(".")
-
-    patch_project = patch("rpdk.core.init.Project", return_value=mock_project)
     patch_tn = patch("rpdk.core.init.input_typename", return_value=type_name)
     patch_l = patch("rpdk.core.init.input_language")
 
@@ -115,24 +120,18 @@ def test_init_method_noninteractive_invalid_type_name():
     mock_l.assert_not_called()
 
     mock_project.load_settings.assert_called_once_with()
-    mock_project.init.assert_called_once_with(type_name, args.language)
+    mock_project.init.assert_called_once_with(
+        type_name, args.language, {"use_docker": args.use_docker}
+    )
     mock_project.generate.assert_called_once_with()
 
 
 def test_init_method_noninteractive_invalid_language():
     language = object()
 
-    args = Mock(spec_set=["force", "language", "type_name"])
-    args.force = False
-    args.language = "fortran"
-    args.type_name = "Test::Test::Test"
+    args = get_args(language=False)
+    mock_project, patch_project = get_mock_project()
 
-    mock_project = Mock(spec=Project)
-    mock_project.load_settings.side_effect = FileNotFoundError
-    mock_project.settings_path = ""
-    mock_project.root = Path(".")
-
-    patch_project = patch("rpdk.core.init.Project", return_value=mock_project)
     patch_tn = patch("rpdk.core.init.input_typename")
     patch_l = patch("rpdk.core.init.input_language", return_value=language)
 
@@ -143,7 +142,9 @@ def test_init_method_noninteractive_invalid_language():
     mock_l.assert_called_once_with()
 
     mock_project.load_settings.assert_called_once_with()
-    mock_project.init.assert_called_once_with(args.type_name, language)
+    mock_project.init.assert_called_once_with(
+        args.type_name, language, {"use_docker": args.use_docker}
+    )
     mock_project.generate.assert_called_once_with()
 
 

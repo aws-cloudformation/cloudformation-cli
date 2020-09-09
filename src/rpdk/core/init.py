@@ -161,7 +161,11 @@ def init(args):
     else:
         language = input_language()
 
-    project.init(type_name, language)
+    project.init(
+        type_name,
+        language,
+        {"use_docker": args.use_docker},
+    )
     project.generate()
     project.generate_docs()
 
@@ -201,4 +205,12 @@ def setup_subparser(subparsers, parents):
     parser.add_argument(
         "--type-name",
         help="Selects the name of the resource type.",
+    )
+
+    parser.add_argument(
+        "--use-docker",
+        action="store_true",
+        help="""Use docker for python platform-independent packaging.
+            This is highly recommended unless you are experienced
+            with cross-platform Python packaging.""",
     )
