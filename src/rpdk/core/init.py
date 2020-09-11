@@ -168,6 +168,7 @@ def init(args):
             "use_docker": args.use_docker,
             "namespace": args.namespace,
             "codegen_template_path": args.codegen_model,
+            "importpath": args.import_path,
         },
     )
     project.generate()
@@ -231,4 +232,9 @@ def setup_subparser(subparsers, parents):
         "--codegen-model",
         choices=["default", "guided_aws"],
         help="Select a codegen model.",
+    )
+
+    parser.add_argument(
+        "--import-path",
+        help="Select the go language import path.",
     )

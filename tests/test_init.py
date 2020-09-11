@@ -53,6 +53,7 @@ def get_args(interactive=False, language=True, type_name=True):
             "use_docker",
             "namespace",
             "codegen_model",
+            "import_path",
         ]
     )
     args.force = False
@@ -62,9 +63,12 @@ def get_args(interactive=False, language=True, type_name=True):
     args.type_name = (
         None if interactive else ("Test::Test::Test" if type_name else "Test")
     )
+
+    # The arguments below will only be tested by the plugins.
     args.use_docker = None
     args.namespace = "tested.by.the.plugin"
     args.codegen_model = None
+    args.import_path = None
 
     return args
 
@@ -93,6 +97,7 @@ def test_init_method_interactive():
             "use_docker": args.use_docker,
             "namespace": args.namespace,
             "codegen_template_path": args.codegen_model,
+            "importpath": args.import_path,
         },
     )
     mock_project.generate.assert_called_once_with()
@@ -121,6 +126,7 @@ def test_init_method_noninteractive():
             "use_docker": args.use_docker,
             "namespace": args.namespace,
             "codegen_template_path": args.codegen_model,
+            "importpath": args.import_path,
         },
     )
     mock_project.generate.assert_called_once_with()
@@ -150,6 +156,7 @@ def test_init_method_noninteractive_invalid_type_name():
             "use_docker": args.use_docker,
             "namespace": args.namespace,
             "codegen_template_path": args.codegen_model,
+            "importpath": args.import_path,
         },
     )
     mock_project.generate.assert_called_once_with()
@@ -178,6 +185,7 @@ def test_init_method_noninteractive_invalid_language():
             "use_docker": args.use_docker,
             "namespace": args.namespace,
             "codegen_template_path": args.codegen_model,
+            "importpath": args.import_path,
         },
     )
     mock_project.generate.assert_called_once_with()
