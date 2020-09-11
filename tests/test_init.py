@@ -45,7 +45,7 @@ def get_mock_project():
 
 
 def get_args(interactive=False, language=True, type_name=True):
-    args = Mock(spec_set=["force", "language", "type_name", "use_docker"])
+    args = Mock(spec_set=["force", "language", "type_name", "use_docker", "namespace"])
     args.force = False
     args.language = (
         None if interactive else ("dummy" if language else "invalid_language")
@@ -54,6 +54,7 @@ def get_args(interactive=False, language=True, type_name=True):
         None if interactive else ("Test::Test::Test" if type_name else "Test")
     )
     args.use_docker = True
+    args.namespace = "tested.by.the.plugin"
 
     return args
 
@@ -76,7 +77,9 @@ def test_init_method_interactive():
 
     mock_project.load_settings.assert_called_once_with()
     mock_project.init.assert_called_once_with(
-        type_name, language, {"use_docker": args.use_docker}
+        type_name,
+        language,
+        {"use_docker": args.use_docker, "namespace": args.namespace},
     )
     mock_project.generate.assert_called_once_with()
 
@@ -98,7 +101,9 @@ def test_init_method_noninteractive():
 
     mock_project.load_settings.assert_called_once_with()
     mock_project.init.assert_called_once_with(
-        args.type_name, args.language, {"use_docker": args.use_docker}
+        args.type_name,
+        args.language,
+        {"use_docker": args.use_docker, "namespace": args.namespace},
     )
     mock_project.generate.assert_called_once_with()
 
@@ -121,7 +126,9 @@ def test_init_method_noninteractive_invalid_type_name():
 
     mock_project.load_settings.assert_called_once_with()
     mock_project.init.assert_called_once_with(
-        type_name, args.language, {"use_docker": args.use_docker}
+        type_name,
+        args.language,
+        {"use_docker": args.use_docker, "namespace": args.namespace},
     )
     mock_project.generate.assert_called_once_with()
 
@@ -143,7 +150,9 @@ def test_init_method_noninteractive_invalid_language():
 
     mock_project.load_settings.assert_called_once_with()
     mock_project.init.assert_called_once_with(
-        args.type_name, language, {"use_docker": args.use_docker}
+        args.type_name,
+        language,
+        {"use_docker": args.use_docker, "namespace": args.namespace},
     )
     mock_project.generate.assert_called_once_with()
 

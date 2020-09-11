@@ -164,7 +164,7 @@ def init(args):
     project.init(
         type_name,
         language,
-        {"use_docker": args.use_docker},
+        {"use_docker": args.use_docker, "namespace": args.namespace},
     )
     project.generate()
     project.generate_docs()
@@ -204,7 +204,7 @@ def setup_subparser(subparsers, parents):
 
     parser.add_argument(
         "--type-name",
-        help="Selects the name of the resource type.",
+        help="Select the name of the resource type.",
     )
 
     parser.add_argument(
@@ -213,4 +213,12 @@ def setup_subparser(subparsers, parents):
         help="""Use docker for python platform-independent packaging.
             This is highly recommended unless you are experienced
             with cross-platform Python packaging.""",
+    )
+
+    parser.add_argument(
+        "--namespace",
+        nargs="?",
+        const="default",
+        help="""Select the name of the Java namespace.
+            Passing the flag without argument select the default namespace.""",
     )
