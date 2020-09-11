@@ -45,7 +45,16 @@ def get_mock_project():
 
 
 def get_args(interactive=False, language=True, type_name=True):
-    args = Mock(spec_set=["force", "language", "type_name", "use_docker", "namespace"])
+    args = Mock(
+        spec_set=[
+            "force",
+            "language",
+            "type_name",
+            "use_docker",
+            "namespace",
+            "codegen_model",
+        ]
+    )
     args.force = False
     args.language = (
         None if interactive else ("dummy" if language else "invalid_language")
@@ -53,8 +62,9 @@ def get_args(interactive=False, language=True, type_name=True):
     args.type_name = (
         None if interactive else ("Test::Test::Test" if type_name else "Test")
     )
-    args.use_docker = True
+    args.use_docker = None
     args.namespace = "tested.by.the.plugin"
+    args.codegen_model = None
 
     return args
 
@@ -79,7 +89,11 @@ def test_init_method_interactive():
     mock_project.init.assert_called_once_with(
         type_name,
         language,
-        {"use_docker": args.use_docker, "namespace": args.namespace},
+        {
+            "use_docker": args.use_docker,
+            "namespace": args.namespace,
+            "codegen_template_path": args.codegen_model,
+        },
     )
     mock_project.generate.assert_called_once_with()
 
@@ -103,7 +117,11 @@ def test_init_method_noninteractive():
     mock_project.init.assert_called_once_with(
         args.type_name,
         args.language,
-        {"use_docker": args.use_docker, "namespace": args.namespace},
+        {
+            "use_docker": args.use_docker,
+            "namespace": args.namespace,
+            "codegen_template_path": args.codegen_model,
+        },
     )
     mock_project.generate.assert_called_once_with()
 
@@ -128,7 +146,11 @@ def test_init_method_noninteractive_invalid_type_name():
     mock_project.init.assert_called_once_with(
         type_name,
         args.language,
-        {"use_docker": args.use_docker, "namespace": args.namespace},
+        {
+            "use_docker": args.use_docker,
+            "namespace": args.namespace,
+            "codegen_template_path": args.codegen_model,
+        },
     )
     mock_project.generate.assert_called_once_with()
 
@@ -152,7 +174,11 @@ def test_init_method_noninteractive_invalid_language():
     mock_project.init.assert_called_once_with(
         args.type_name,
         language,
-        {"use_docker": args.use_docker, "namespace": args.namespace},
+        {
+            "use_docker": args.use_docker,
+            "namespace": args.namespace,
+            "codegen_template_path": args.codegen_model,
+        },
     )
     mock_project.generate.assert_called_once_with()
 

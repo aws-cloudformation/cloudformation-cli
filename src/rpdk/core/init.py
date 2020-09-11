@@ -164,7 +164,11 @@ def init(args):
     project.init(
         type_name,
         language,
-        {"use_docker": args.use_docker, "namespace": args.namespace},
+        {
+            "use_docker": args.use_docker,
+            "namespace": args.namespace,
+            "codegen_template_path": args.codegen_model,
+        },
     )
     project.generate()
     project.generate_docs()
@@ -221,4 +225,10 @@ def setup_subparser(subparsers, parents):
         const="default",
         help="""Select the name of the Java namespace.
             Passing the flag without argument select the default namespace.""",
+    )
+
+    parser.add_argument(
+        "--codegen-model",
+        choices=["default", "guided_aws"],
+        help="Select a codegen model.",
     )
