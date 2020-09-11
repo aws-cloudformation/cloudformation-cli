@@ -5,14 +5,13 @@ PLUGIN_REGISTRY = {
     for entry_point in pkg_resources.iter_entry_points("rpdk.v1.languages")
 }
 
-PLUGIN_CHOICES = sorted(PLUGIN_REGISTRY.keys())
-
 
 def get_plugin_choices():
-    return [
+    plugin_choices = [
         entry_point.name
         for entry_point in pkg_resources.iter_entry_points("rpdk.v1.languages")
     ]
+    return sorted(plugin_choices)
 
 
 def load_plugin(language):

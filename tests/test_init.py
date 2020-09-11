@@ -1,7 +1,5 @@
-from pathlib import Path
 from unittest.mock import ANY, Mock, PropertyMock, patch
 
-import pkg_resources
 import pytest
 
 from rpdk.core.exceptions import WizardAbortError, WizardValidationError
@@ -18,59 +16,10 @@ from rpdk.core.init import (
 )
 from rpdk.core.project import Project
 
+from .utils import add_dummy_language_plugin, get_args, get_mock_project
+
 PROMPT = "MECVGD"
 ERROR = "TUJFEL"
-
-
-def add_dummy_language_plugin():
-    distribution = pkg_resources.Distribution(__file__)
-    entry_point = pkg_resources.EntryPoint.parse(
-        "dummy = rpdk.dummy:DummyLanguagePlugin", dist=distribution
-    )
-    distribution._ep_map = {  # pylint: disable=protected-access
-        "rpdk.v1.languages": {"dummy": entry_point}
-    }
-    pkg_resources.working_set.add(distribution)
-
-
-def get_mock_project():
-    mock_project = Mock(spec=Project)
-    mock_project.load_settings.side_effect = FileNotFoundError
-    mock_project.settings_path = ""
-    mock_project.root = Path(".")
-
-    patch_project = patch("rpdk.core.init.Project", return_value=mock_project)
-
-    return (mock_project, patch_project)
-
-
-def get_args(interactive=False, language=True, type_name=True):
-    args = Mock(
-        spec_set=[
-            "force",
-            "language",
-            "type_name",
-            "use_docker",
-            "namespace",
-            "codegen_model",
-            "import_path",
-        ]
-    )
-    args.force = False
-    args.language = (
-        None if interactive else ("dummy" if language else "invalid_language")
-    )
-    args.type_name = (
-        None if interactive else ("Test::Test::Test" if type_name else "Test")
-    )
-
-    # The arguments below will only be tested by the plugins.
-    args.use_docker = None
-    args.namespace = "tested.by.the.plugin"
-    args.codegen_model = None
-    args.import_path = None
-
-    return args
 
 
 def test_init_method_interactive():

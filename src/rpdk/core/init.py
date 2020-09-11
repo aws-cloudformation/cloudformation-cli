@@ -196,23 +196,27 @@ def setup_subparser(subparsers, parents):
     parser.set_defaults(command=ignore_abort(init))
 
     parser.add_argument(
+        "-f",
         "--force",
         action="store_true",
         help="Force files to be overwritten.",
     )
 
     parser.add_argument(
+        "-l",
         "--language",
         help="""Select a language for code generation.
             The language plugin needs to be installed.""",
     )
 
     parser.add_argument(
+        "-t",
         "--type-name",
         help="Select the name of the resource type.",
     )
 
     parser.add_argument(
+        "-d",
         "--use-docker",
         action="store_true",
         help="""Use docker for python platform-independent packaging.
@@ -221,6 +225,7 @@ def setup_subparser(subparsers, parents):
     )
 
     parser.add_argument(
+        "-n",
         "--namespace",
         nargs="?",
         const="default",
@@ -229,12 +234,14 @@ def setup_subparser(subparsers, parents):
     )
 
     parser.add_argument(
+        "-c",
         "--codegen-model",
         choices=["default", "guided_aws"],
         help="Select a codegen model.",
     )
 
     parser.add_argument(
+        "-p",
         "--import-path",
         help="Select the go language import path.",
     )
