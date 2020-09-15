@@ -39,7 +39,7 @@ To register a resource provider, use the `submit` command. This will prepare nec
 
 ```bash
 cfn submit
-cfn submit --dry-run #prepares .zip artifact without submitting for registration
+cfn submit --dry-run #prepares schema handler package without submitting for registration
 ```
 
 ### Command: test
