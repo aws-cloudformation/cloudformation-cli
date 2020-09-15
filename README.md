@@ -35,7 +35,7 @@ cfn generate
 
 ### Command: submit
 
-To register a resource provider, use the `submit` command. This will prepare necessary artifacts to register a resource in your AWS account.
+To register a resource provider in your account, use the `submit` command. 
 
 ```bash
 cfn submit
