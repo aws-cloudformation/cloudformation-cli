@@ -35,7 +35,7 @@ cfn generate
 
 ### Command: submit
 
-To register a resource provider in your account, use the `submit` command. 
+To register a resource provider in your account, use the `submit` command.
 
 ```bash
 cfn submit
