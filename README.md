@@ -33,6 +33,15 @@ To refresh auto-generated code, use the `generate` command. Usually, plugins try
 cfn generate
 ```
 
+### Command: submit
+
+To submit resource providers package for registration, use the `submit` command. This will prepare necessary artifacts to register a resource AWS account.
+
+```bash
+cfn submit
+cfn submit --dry-run #prepares .zip artifact without submitting for registration
+```
+
 ### Command: test
 
 To run the contract tests, use the `test` command.
@@ -40,7 +49,7 @@ To run the contract tests, use the `test` command.
 ```bash
 cfn test
 cfn test -- -k contract_delete_update #to run a single test
-cfn test --tb=long # exhaustive, informative traceback formatting
+cfn test --tb=long #exhaustive, informative traceback formatting
 cfn test --enforce-timeout 60 #set the RL handler timeout to 60 seconds and CUD handler timeout to 120 seconds.
 cfn test --enforce-timeout 60 -- -k contract_delete_update # combine args
 ```
