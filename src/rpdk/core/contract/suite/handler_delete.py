@@ -42,12 +42,8 @@ def deleted_resource(resource_client):
     finally:
         status, response = resource_client.call(Action.DELETE, model)
 
-        # a failed status is allowed if the error code is NotFound for
-        # resource having read-only primary identifier
-        if (
-            not resource_client.has_writable_identifier()
-            and status == OperationStatus.FAILED
-        ):
+        # a failed status is allowed if the error code is NotFound
+        if status == OperationStatus.FAILED:
             error_code = resource_client.assert_failed(status, response)
             assert (
                 error_code == HandlerErrorCode.NotFound
