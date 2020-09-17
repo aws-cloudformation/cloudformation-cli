@@ -49,6 +49,7 @@ setup(
         "requests>=2.22",
         "hypothesis>=4.32",
         "colorama>=0.4.1",
+        "docker>=4.3.1",
     ],
     entry_points={
         "console_scripts": ["cfn-cli = rpdk.core.cli:main", "cfn = rpdk.core.cli:main"]

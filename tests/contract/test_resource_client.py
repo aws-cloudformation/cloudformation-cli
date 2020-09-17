@@ -532,6 +532,46 @@ def test_call_sync(resource_client, action):
     assert response == {"status": OperationStatus.SUCCESS.value}
 
 
+def test_call_docker():
+    patch_sesh = patch(
+        "rpdk.core.contract.resource_client.create_sdk_session", autospec=True
+    )
+    patch_creds = patch(
+        "rpdk.core.contract.resource_client.get_temporary_credentials",
+        autospec=True,
+        return_value={},
+    )
+    patch_account = patch(
+        "rpdk.core.contract.resource_client.get_account",
+        autospec=True,
+        return_value=ACCOUNT,
+    )
+    patch_docker = patch("rpdk.core.contract.resource_client.docker", autospec=True)
+    with patch_sesh as mock_create_sesh, patch_docker as mock_docker, patch_creds:
+        with patch_account:
+            mock_client = mock_docker.from_env.return_value
+            mock_sesh = mock_create_sesh.return_value
+            mock_sesh.region_name = DEFAULT_REGION
+            resource_client = ResourceClient(
+                DEFAULT_FUNCTION,
+                "url",
+                DEFAULT_REGION,
+                {},
+                EMPTY_OVERRIDE,
+                docker_image="docker_image",
+                executable_entrypoint="entrypoint",
+            )
+
+    mock_client.containers.run.return_value = str.encode(
+        'StartResponse-{"status": "SUCCESS"}-EndResponse'
+    )
+    status, response = resource_client.call("CREATE", {"resourceModel": SCHEMA})
+
+    mock_client.containers.run.assert_called_once()
+    assert status == OperationStatus.SUCCESS
+    assert response == {"status": OperationStatus.SUCCESS.value}
+
+
 @pytest.mark.parametrize("action", [Action.CREATE, Action.UPDATE, Action.DELETE])
 def test_call_async(resource_client, action):
     mock_client = resource_client._client
