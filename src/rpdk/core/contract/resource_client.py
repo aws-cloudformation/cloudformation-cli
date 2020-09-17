@@ -2,10 +2,12 @@
 # pylint: disable=R0904
 import json
 import logging
+import re
 import time
 from time import sleep
 from uuid import uuid4
 
+import docker
 from botocore import UNSIGNED
 from botocore.config import Config
 
@@ -125,6 +127,8 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         inputs=None,
         role_arn=None,
         timeout_in_seconds="30",
+        docker_image=None,
+        executable_entrypoint=None,
     ):  # pylint: disable=too-many-arguments
         self._schema = schema
         self._session = create_sdk_session(region)
@@ -160,6 +164,9 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         self._update_schema(schema)
         self._inputs = inputs
         self._timeout_in_seconds = int(timeout_in_seconds)
+        self._docker_image = docker_image
+        self._docker_client = docker.from_env() if self._docker_image else None
+        self._executable_entrypoint = executable_entrypoint
 
     def _get_partition(self):
         if self.region.startswith("cn"):
@@ -424,10 +431,25 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
             json.dumps(payload_to_log, ensure_ascii=False, indent=2),
         )
         payload = json.dumps(payload, ensure_ascii=False, indent=2)
-        result = self._client.invoke(
-            FunctionName=self._function_name, Payload=payload.encode("utf-8")
-        )
-        payload = json.load(result["Payload"])
+        if self._docker_image:
+            result = (
+                self._docker_client.containers.run(
+                    self._docker_image,
+                    self._executable_entrypoint + " '" + payload + "'",
+                )
+                .decode()
+                .strip()
+            )
+            LOG.debug("=== Handler execution logs ===")
+            LOG.debug(result)
+            # pylint: disable=W1401
+            regex = "StartResponse-([\s\S]*)-EndResponse"  # noqa: W605
+            payload = json.loads(re.search(regex, result).group(1))
+        else:
+            result = self._client.invoke(
+                FunctionName=self._function_name, Payload=payload.encode("utf-8")
+            )
+            payload = json.load(result["Payload"])
         LOG.debug("Received response\n%s", payload)
         return payload
 

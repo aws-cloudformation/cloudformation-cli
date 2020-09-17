@@ -1,0 +1,4 @@
+FROM openjdk:11-alpine
+ARG executable_name
+ADD target/${executable_name}.jar handler.jar
+ENTRYPOINT ["java", "-Xmx256M", "-cp", "handler.jar"]

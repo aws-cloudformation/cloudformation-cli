@@ -23,7 +23,13 @@ def invoke(args):
     project.load()
 
     client = ResourceClient(
-        args.function_name, args.endpoint, args.region, project.schema, {}
+        args.function_name,
+        args.endpoint,
+        args.region,
+        project.schema,
+        {},
+        executable_entrypoint=project.executable_entrypoint,
+        docker_image=args.docker_image,
     )
 
     action = Action[args.action]
@@ -79,5 +85,10 @@ def setup_subparser(subparsers, parents):
         help="Maximum number of IN_PROGRESS re-invocations allowed before "
         "exiting. If not specified, will continue to "
         "re-invoke until terminal status is reached.",
+    )
+    parser.add_argument(
+        "--docker-image",
+        help="Docker image name to run. If specified, invoke will use docker instead "
+        "of SAM",
     )
     _sam_arguments(parser)

@@ -87,6 +87,7 @@ def test_value_error_on_json_load(capsys, invalid_payload, command):
     mock_project = Mock(spec=Project)
     mock_project.schema = {}
     mock_project.root = None
+    mock_project.executable_entrypoint = None
 
     patch_project = patch(
         "rpdk.core.invoke.Project", autospec=True, return_value=mock_project
@@ -118,6 +119,7 @@ def test_keyboard_interrupt(capsys, payload_path, command):
     mock_project = Mock(spec=Project)
     mock_project.schema = {}
     mock_project.root = None
+    mock_project.executable_entrypoint = None
 
     patch_project = patch(
         "rpdk.core.invoke.Project", autospec=True, return_value=mock_project
@@ -167,6 +169,7 @@ def _invoke_and_expect(status, payload_path, command, *args):
     mock_project = Mock(spec=Project)
     mock_project.schema = {}
     mock_project.root = None
+    mock_project.executable_entrypoint = None
 
     patch_project = patch(
         "rpdk.core.invoke.Project", autospec=True, return_value=mock_project
