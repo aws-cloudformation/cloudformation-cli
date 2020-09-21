@@ -1,4 +1,4 @@
 FROM openjdk:8-alpine
 ARG executable_name
-ADD target/${executable_name}.jar handler.jar
+ADD ${executable_name} handler.jar
 ENTRYPOINT ["java", "-Xmx256M", "-cp", "handler.jar"]

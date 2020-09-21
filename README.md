@@ -54,6 +54,16 @@ cfn test --enforce-timeout 60 #set the RL handler timeout to 60 seconds and CUD 
 cfn test --enforce-timeout 60 -- -k contract_delete_update # combine args
 ```
 
+### Command: build-image
+
+To build an image
+
+```bash
+cfn test
+cfn test --image-name my-handler --executable target/myjar.jar
+```
+
+
 
 ## Development
 
