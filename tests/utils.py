@@ -101,10 +101,10 @@ def get_args(interactive=False, language=True, type_name=True):
             "force",
             "language",
             "type_name",
-            "use_docker",
-            "namespace",
-            "codegen_model",
-            "import_path",
+            # "use_docker",
+            # "namespace",
+            # "codegen_model",
+            # "import_path",
         ]
     )
     args.force = False
@@ -116,10 +116,10 @@ def get_args(interactive=False, language=True, type_name=True):
     )
 
     # The arguments below will only be tested by the plugins.
-    args.use_docker = None
-    args.namespace = "tested.by.the.plugin"
-    args.codegen_model = None
-    args.import_path = None
+    # args.use_docker = None
+    # args.namespace = "tested.by.the.plugin"
+    # args.codegen_model = None
+    # args.import_path = None
 
     return args
 

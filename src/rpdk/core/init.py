@@ -1,5 +1,6 @@
 """This sub command generates IDE and build files for a given language.
 """
+import argparse
 import logging
 import re
 from functools import wraps
@@ -7,7 +8,7 @@ from functools import wraps
 from colorama import Fore, Style
 
 from .exceptions import WizardAbortError, WizardValidationError
-from .plugin_registry import get_plugin_choices
+from .plugin_registry import PARSER_REGISTRY, get_plugin_choices
 from .project import Project
 
 LOG = logging.getLogger(__name__)
@@ -161,16 +162,16 @@ def init(args):
     else:
         language = input_language()
 
-    project.init(
-        type_name,
-        language,
-        {
-            "use_docker": args.use_docker,
-            "namespace": args.namespace,
-            "codegen_template_path": args.codegen_model,
-            "importpath": args.import_path,
-        },
-    )
+    settings = {
+        arg: getattr(args, arg)
+        for arg in vars(args)
+        if not callable(getattr(args, arg))
+    }
+
+    print("--------------------\n", settings, "\n-----------------------")
+
+    project.init(type_name, language, settings)
+
     project.generate()
     project.generate_docs()
 
@@ -195,6 +196,12 @@ def setup_subparser(subparsers, parents):
     parser = subparsers.add_parser("init", description=__doc__, parents=parents)
     parser.set_defaults(command=ignore_abort(init))
 
+    language_subparsers = parser.add_subparsers(dest="subparser_name")
+    base_subparser = argparse.ArgumentParser(add_help=False)
+    for language_setup_subparser in PARSER_REGISTRY.values():
+        language_parser = language_setup_subparser()(language_subparsers, [base_subparser])
+        print(vars(language_parser.parse_args([])))
+
     parser.add_argument(
         "-f",
         "--force",
@@ -203,45 +210,38 @@ def setup_subparser(subparsers, parents):
     )
 
     parser.add_argument(
-        "-l",
-        "--language",
-        help="""Select a language for code generation.
-            The language plugin needs to be installed.""",
-    )
-
-    parser.add_argument(
         "-t",
         "--type-name",
         help="Select the name of the resource type.",
     )
 
-    parser.add_argument(
-        "-d",
-        "--use-docker",
-        action="store_true",
-        help="""Use docker for python platform-independent packaging.
-            This is highly recommended unless you are experienced
-            with cross-platform Python packaging.""",
-    )
+    # parser.add_argument(
+    #     "-d",
+    #     "--use-docker",
+    #     action="store_true",
+    #     help="""Use docker for python platform-independent packaging.
+    #         This is highly recommended unless you are experienced
+    #         with cross-platform Python packaging.""",
+    # )
 
-    parser.add_argument(
-        "-n",
-        "--namespace",
-        nargs="?",
-        const="default",
-        help="""Select the name of the Java namespace.
-            Passing the flag without argument select the default namespace.""",
-    )
+    # parser.add_argument(
+    #     "-n",
+    #     "--namespace",
+    #     nargs="?",
+    #     const="default",
+    #     help="""Select the name of the Java namespace.
+    #         Passing the flag without argument select the default namespace.""",
+    # )
 
-    parser.add_argument(
-        "-c",
-        "--codegen-model",
-        choices=["default", "guided_aws"],
-        help="Select a codegen model.",
-    )
+    # parser.add_argument(
+    #     "-c",
+    #     "--codegen-model",
+    #     choices=["default", "guided_aws"],
+    #     help="Select a codegen model.",
+    # )
 
-    parser.add_argument(
-        "-p",
-        "--import-path",
-        help="Select the go language import path.",
-    )
+    # parser.add_argument(
+    #     "-p",
+    #     "--import-path",
+    #     help="Select the go language import path.",
+    # )

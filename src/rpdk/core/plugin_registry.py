@@ -5,6 +5,11 @@ PLUGIN_REGISTRY = {
     for entry_point in pkg_resources.iter_entry_points("rpdk.v1.languages")
 }
 
+PARSER_REGISTRY = {
+    entry_point.name: entry_point.load
+    for entry_point in pkg_resources.iter_entry_points("rpdk.v1.parsers")
+}
+
 
 def get_plugin_choices():
     plugin_choices = [
