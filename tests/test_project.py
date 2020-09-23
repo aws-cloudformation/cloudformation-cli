@@ -1,5 +1,6 @@
 # fixture and parameter have the same name
 # pylint: disable=redefined-outer-name,useless-super-delegation,protected-access
+# pylint: disable=too-many-lines
 import json
 import logging
 import os
@@ -993,3 +994,21 @@ def test__get_docs_gettable_atts_good_path():
         }
     )
     assert getatt == [{"name": "Id2", "description": "foo"}]
+
+
+def test_generate_image_build_config(project):
+    project.schema = {}
+    mock_plugin = MagicMock(spec=["generate_image_build_config"])
+    with patch.object(project, "_plugin", mock_plugin):
+        project.generate_image_build_config()
+    mock_plugin.generate_image_build_config.assert_called_once()
+
+
+def test_generate_image_build_config_plugin_not_supported(project):
+    project.schema = {}
+    mock_plugin = MagicMock(spec=[])
+    with patch.object(project, "_plugin", mock_plugin):
+        try:
+            project.generate_image_build_config()
+        except InvalidProjectError:
+            pass

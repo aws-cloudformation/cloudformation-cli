@@ -12,6 +12,7 @@ from botocore import UNSIGNED
 from botocore.config import Config
 
 from rpdk.core.contract.interface import Action, HandlerErrorCode, OperationStatus
+from rpdk.core.exceptions import InvalidProjectError
 
 from ..boto_helpers import (
     LOWER_CAMEL_CRED_KEYS,
@@ -421,6 +422,11 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         )
         payload = json.dumps(payload, ensure_ascii=False, indent=2)
         if self._docker_image:
+            if not self._executable_entrypoint:
+                raise InvalidProjectError(
+                    "executableEntrypoint not set in .rpdk-config. "
+                    "Have you run cfn generate?"
+                )
             result = (
                 self._docker_client.containers.run(
                     self._docker_image,

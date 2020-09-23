@@ -181,7 +181,7 @@ class Project:  # pylint: disable=too-many-instance-attributes
         self.runtime = raw_settings["runtime"]
         self.entrypoint = raw_settings["entrypoint"]
         self.test_entrypoint = raw_settings["testEntrypoint"]
-        self.executable_entrypoint = raw_settings.get("executableEntrypoint", None)
+        self.executable_entrypoint = raw_settings.get("executableEntrypoint")
         self._plugin = load_plugin(raw_settings["language"])
         self.settings = raw_settings.get("settings", {})
 
@@ -225,6 +225,11 @@ class Project:  # pylint: disable=too-many-instance-attributes
             raise InternalError("Internal error (Plugin returned invalid runtime)")
 
         def _write(f):
+            executable_entrypoint_dict = (
+                {"executableEntrypoint": self.executable_entrypoint}
+                if self.executable_entrypoint
+                else {}
+            )
             json.dump(
                 {
                     "typeName": self.type_name,
@@ -234,6 +239,7 @@ class Project:  # pylint: disable=too-many-instance-attributes
                     "testEntrypoint": self.test_entrypoint,
                     "executableEntrypoint": self.executable_entrypoint,
                     "settings": self.settings,
+                    **executable_entrypoint_dict,
                 },
                 f,
                 indent=4,
@@ -430,6 +436,15 @@ class Project:  # pylint: disable=too-many-instance-attributes
             type_name=self.type_name, schema=docs_schema, ref=ref, getatt=getatt
         )
         self.safewrite(readme_path, contents)
+
+    def generate_image_build_config(self):
+        if not hasattr(self._plugin, "generate_image_build_config"):
+            raise InvalidProjectError(
+                "Plugin for the {} runtime does not support building an image".format(
+                    self.runtime
+                )
+            )
+        return self._plugin.generate_image_build_config(self)
 
     @staticmethod
     def _get_docs_primary_identifier(docs_schema):

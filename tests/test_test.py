@@ -100,6 +100,7 @@ def test_test_command_happy_path(
     mock_project = Mock(spec=Project)
     mock_project.schema = SCHEMA
     mock_project.root = base
+    mock_project.executable_entrypoint = None
 
     patch_project = patch(
         "rpdk.core.test.Project", autospec=True, return_value=mock_project
@@ -130,6 +131,8 @@ def test_test_command_happy_path(
         {"CREATE": {"a": 1}, "UPDATE": {"a": 2}, "INVALID": {"b": 1}},
         None,
         enforce_timeout,
+        None,
+        None,
     )
     mock_plugin.assert_called_once_with(mock_client.return_value)
     mock_ini.assert_called_once_with()
@@ -146,6 +149,7 @@ def test_test_command_return_code_on_error():
 
     mock_project.root = None
     mock_project.schema = SCHEMA
+    mock_project.executable_entrypoint = None
     patch_project = patch(
         "rpdk.core.test.Project", autospec=True, return_value=mock_project
     )

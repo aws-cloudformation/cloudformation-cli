@@ -212,6 +212,8 @@ def invoke_test(args, project, overrides, inputs):
             inputs,
             args.role_arn,
             args.enforce_timeout,
+            executable_entrypoint=project.executable_entrypoint,
+            docker_image=args.docker_image,
         )
     )
 
@@ -250,6 +252,12 @@ def setup_subparser(subparsers, parents):
     )
 
     parser.add_argument("passed_to_pytest", nargs="*", help=SUPPRESS)
+
+    parser.add_argument(
+        "--docker-image",
+        help="Docker image name to run. If specified, invoke will use docker instead "
+        "of SAM",
+    )
 
 
 def _sam_arguments(parser):
