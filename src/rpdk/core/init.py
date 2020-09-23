@@ -8,7 +8,7 @@ from functools import wraps
 from colorama import Fore, Style
 
 from .exceptions import WizardAbortError, WizardValidationError
-from .plugin_registry import PARSER_REGISTRY, get_plugin_choices
+from .plugin_registry import get_parsers, get_plugin_choices
 from .project import Project
 
 LOG = logging.getLogger(__name__)
@@ -198,9 +198,8 @@ def setup_subparser(subparsers, parents):
 
     language_subparsers = parser.add_subparsers(dest="subparser_name")
     base_subparser = argparse.ArgumentParser(add_help=False)
-    for language_setup_subparser in PARSER_REGISTRY.values():
+    for language_setup_subparser in get_parsers().values():
         language_parser = language_setup_subparser()(language_subparsers, [base_subparser])
-        print(vars(language_parser.parse_args([])))
 
     parser.add_argument(
         "-f",

@@ -14,7 +14,11 @@ from rpdk.core.init import (
     validate_type_name,
     validate_yes,
 )
+import rpdk.core.init as init_mod
+from rpdk.core.cli import main
 from rpdk.core.project import Project
+
+from argparse import Namespace
 
 from .utils import add_dummy_language_plugin, get_args, get_mock_project
 
@@ -51,6 +55,23 @@ ERROR = "TUJFEL"
 #     )
 #     mock_project.generate.assert_called_once_with()
 
+def dummy_parser():
+    def dummy_subparser(subparsers, parents):
+        parser = subparsers.add_parser(
+            "dummy",
+            description="This sub command generates IDE and build files for the Dummy plugin",
+            parents=parents,
+        )
+        parser.set_defaults(language="dummy")
+
+        parser.add_argument(
+            "-d",
+            "--dummy",
+            action="store_true",
+            help="Dummy boolean to test if parser is loaded correctly"
+        )
+        return parser
+    return dummy_subparser
 
 def test_init_method_noninteractive():
     add_dummy_language_plugin()
@@ -62,28 +83,27 @@ def test_init_method_noninteractive():
 
     patch_tn = patch("rpdk.core.init.input_typename")
     patch_l = patch("rpdk.core.init.input_language")
+    patch_get_parser = patch("rpdk.core.init.get_parsers", return_value={"dummy": dummy_parser})
 
-    with patch_project, patch_tn as mock_tn, patch_l as mock_l:
-        init(args)
+    with patch_project, patch_tn as mock_tn, patch_l as mock_l, patch_get_parser as mock_parser:
+        main(args_in=["init", "--type-name", "Foo::Bar::Foo","dummy", "-d"])
 
     mock_tn.assert_not_called()
     mock_l.assert_not_called()
+    mock_parser.assert_called_once()
 
     mock_project.load_settings.assert_called_once_with()
     mock_project.init.assert_called_once_with(
-        args.type_name,
-        args.language,
+        "Foo::Bar::Foo",
+        "dummy",
         {
-            # "use_docker": args.use_docker,
-            # "namespace": args.namespace,
-            # "codegen_template_path": args.codegen_model,
-            # "importpath": args.import_path,
-            # "version": args.version,
-            # "subparser_name": args.subparser_name,
-            # "verbose": args.verbose,
-            # "force": args.force,
-            # "type_name": args.type_name,
-            # "language": args.language,
+            "version": False,
+            "subparser_name": "dummy",
+            "verbose": 0,
+            "dummy": True,
+            "force": False,
+            "type_name": "Foo::Bar::Foo",
+            "language": "dummy"
         },
     )
     mock_project.generate.assert_called_once_with()

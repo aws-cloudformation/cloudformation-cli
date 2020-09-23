@@ -18,6 +18,8 @@ def get_plugin_choices():
     ]
     return sorted(plugin_choices)
 
+def get_parsers():
+    return PARSER_REGISTRY
 
 def load_plugin(language):
     return PLUGIN_REGISTRY[language]()()
