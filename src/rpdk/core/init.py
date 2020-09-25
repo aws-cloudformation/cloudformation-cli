@@ -17,6 +17,10 @@ LOG = logging.getLogger(__name__)
 TYPE_NAME_REGEX = r"^[a-zA-Z0-9]{2,64}::[a-zA-Z0-9]{2,64}::[a-zA-Z0-9]{2,64}$"
 
 
+def print_error(error):
+    print(Style.BRIGHT, Fore.RED, str(error), Style.RESET_ALL, sep="")
+
+
 def input_with_validation(prompt, validate, description=""):
     while True:
         print(
@@ -32,8 +36,8 @@ def input_with_validation(prompt, validate, description=""):
         response = input()
         try:
             return validate(response)
-        except WizardValidationError as e:
-            print(Style.BRIGHT, Fore.RED, str(e), Style.RESET_ALL, sep="")
+        except WizardValidationError as error:
+            print_error(error)
 
 
 def validate_type_name(value):
@@ -143,7 +147,7 @@ def init(args):
         try:
             type_name = validate_type_name(args.type_name)
         except WizardValidationError as error:
-            print(Style.BRIGHT, Fore.RED, str(error), Style.RESET_ALL, sep="")
+            print_error(error)
             type_name = input_typename()
     else:
         type_name = input_typename()
