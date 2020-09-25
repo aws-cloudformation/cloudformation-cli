@@ -2,12 +2,12 @@ from unittest.mock import ANY, Mock, PropertyMock, patch
 
 import pytest
 
+from rpdk.core.cli import main
 from rpdk.core.exceptions import WizardAbortError, WizardValidationError
-from rpdk.core.init import (
+from rpdk.core.init import (  # init,
     ValidatePluginChoice,
     check_for_existing_project,
     ignore_abort,
-    init,
     input_language,
     input_typename,
     input_with_validation,
@@ -16,40 +16,35 @@ from rpdk.core.init import (
 )
 from rpdk.core.project import Project
 
-from .utils import add_dummy_language_plugin, get_args, get_mock_project
+from .utils import add_dummy_language_plugin, dummy_parser, get_args, get_mock_project
 
 PROMPT = "MECVGD"
 ERROR = "TUJFEL"
 
 
-# def test_init_method_interactive():
-#     type_name = object()
-#     language = object()
+def test_init_method_interactive():
+    type_name = object()
+    language = object()
 
-#     args = get_args(interactive=True)
-#     mock_project, patch_project = get_mock_project()
+    args = get_args(interactive=True)
+    mock_project, patch_project = get_mock_project()
 
-#     patch_tn = patch("rpdk.core.init.input_typename", return_value=type_name)
-#     patch_l = patch("rpdk.core.init.input_language", return_value=language)
+    patch_tn = patch("rpdk.core.init.input_typename", return_value=type_name)
+    patch_l = patch("rpdk.core.init.input_language", return_value=language)
 
-#     with patch_project, patch_tn as mock_tn, patch_l as mock_l:
-#         init(args)
+    with patch_project, patch_tn as mock_tn, patch_l as mock_l:
+        main(args_in=["init"])
 
-#     mock_tn.assert_called_once_with()
-#     mock_l.assert_called_once_with()
+    mock_tn.assert_called_once_with()
+    mock_l.assert_called_once_with()
 
-#     mock_project.load_settings.assert_called_once_with()
-#     mock_project.init.assert_called_once_with(
-#         type_name,
-#         language,
-#         {
-#             "use_docker": args.use_docker,
-#             "namespace": args.namespace,
-#             "codegen_template_path": args.codegen_model,
-#             "importpath": args.import_path,
-#         },
-#     )
-#     mock_project.generate.assert_called_once_with()
+    mock_project.load_settings.assert_called_once_with()
+    mock_project.init.assert_called_once_with(
+        type_name,
+        language,
+        args.settings,
+    )
+    mock_project.generate.assert_called_once_with()
 
 
 def test_init_method_noninteractive():
@@ -58,100 +53,57 @@ def test_init_method_noninteractive():
     args = get_args()
     mock_project, patch_project = get_mock_project()
 
-    print(args)
-
     patch_tn = patch("rpdk.core.init.input_typename")
     patch_l = patch("rpdk.core.init.input_language")
+    patch_get_parser = patch(
+        "rpdk.core.init.get_parsers", return_value={"dummy": dummy_parser}
+    )
 
-    with patch_project, patch_tn as mock_tn, patch_l as mock_l:
-        init(args)
+    # pylint: disable=C0301
+    with patch_project, patch_tn as mock_tn, patch_l as mock_l, patch_get_parser as mock_parser:  # noqa: B950
+        main(args_in=["init", "--type-name", args.type_name, args.language, "--dummy"])
 
     mock_tn.assert_not_called()
     mock_l.assert_not_called()
+    mock_parser.assert_called_once()
 
     mock_project.load_settings.assert_called_once_with()
     mock_project.init.assert_called_once_with(
         args.type_name,
         args.language,
-        {
-            # "use_docker": args.use_docker,
-            # "namespace": args.namespace,
-            # "codegen_template_path": args.codegen_model,
-            # "importpath": args.import_path,
-            # "version": args.version,
-            # "subparser_name": args.subparser_name,
-            # "verbose": args.verbose,
-            # "force": args.force,
-            # "type_name": args.type_name,
-            # "language": args.language,
-        },
+        args.settings,
     )
     mock_project.generate.assert_called_once_with()
 
 
-# def test_init_method_noninteractive_invalid_type_name():
-#     add_dummy_language_plugin()
-#     type_name = object()
+def test_init_method_noninteractive_invalid_type_name():
+    add_dummy_language_plugin()
+    type_name = object()
 
-#     args = get_args(type_name=False)
-#     mock_project, patch_project = get_mock_project()
+    args = get_args(type_name=False)
+    mock_project, patch_project = get_mock_project()
 
-#     patch_tn = patch("rpdk.core.init.input_typename", return_value=type_name)
-#     patch_l = patch("rpdk.core.init.input_language")
+    patch_tn = patch("rpdk.core.init.input_typename", return_value=type_name)
+    patch_l = patch("rpdk.core.init.input_language")
+    patch_get_parser = patch(
+        "rpdk.core.init.get_parsers", return_value={"dummy": dummy_parser}
+    )
 
-#     with patch_project, patch_tn as mock_tn, patch_l as mock_l:
-#         init(args)
+    # pylint: disable=C0301
+    with patch_project, patch_tn as mock_tn, patch_l as mock_l, patch_get_parser as mock_parser:  # noqa: B950
+        main(args_in=["init", "--type-name", args.type_name, args.language, "--dummy"])
 
-#     mock_tn.assert_called_once_with()
-#     mock_l.assert_not_called()
+    mock_tn.assert_called_once_with()
+    mock_l.assert_not_called()
+    mock_parser.assert_called_once()
 
-#     mock_project.load_settings.assert_called_once_with()
-#     mock_project.init.assert_called_once_with(
-#         type_name,
-#         args.language,
-#         {
-#             "use_docker": args.use_docker,
-#             "namespace": args.namespace,
-#             "codegen_template_path": args.codegen_model,
-#             "importpath": args.import_path,
-#         },
-#     )
-#     mock_project.generate.assert_called_once_with()
-
-
-# def test_init_method_noninteractive_invalid_language():
-#     language = object()
-
-#     args = get_args(language=False)
-#     mock_project, patch_project = get_mock_project()
-
-#     patch_tn = patch("rpdk.core.init.input_typename")
-#     patch_l = patch("rpdk.core.init.input_language", return_value=language)
-
-#     with patch_project, patch_tn as mock_tn, patch_l as mock_l:
-#         init(args)
-
-#     mock_tn.assert_not_called()
-#     mock_l.assert_called_once_with()
-
-#     mock_project.load_settings.assert_called_once_with()
-#     mock_project.init.assert_called_once_with(
-#         args.type_name,
-#         language,
-#         {
-#             "use_docker": args.use_docker,
-#             # "namespace": args.namespace,
-#             # "codegen_template_path": args.codegen_model,
-#             # "importpath": args.import_path,
-#             "version": False,
-#             "subparser_name": "python37",
-#             "verbose": 0,
-#             "force": False,
-#             "type_name": "TT::TT::TT",
-#             "language": "python37",
-#         },
-#     )
-#     mock_project.generate.assert_called_once_with()
+    mock_project.load_settings.assert_called_once_with()
+    mock_project.init.assert_called_once_with(
+        type_name,
+        args.language,
+        args.settings,
+    )
+    mock_project.generate.assert_called_once_with()
 
 
 def test_input_with_validation_valid_first_try(capsys):

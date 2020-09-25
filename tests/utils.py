@@ -98,30 +98,52 @@ def get_mock_project():
 def get_args(interactive=False, language=True, type_name=True):
     args = Mock(
         spec_set=[
-            "force",
             "language",
             "type_name",
-            # "use_docker",
-            # "namespace",
-            # "codegen_model",
-            # "import_path",
+            "settings",
         ]
     )
-    args.force = False
+
     args.language = (
         None if interactive else ("dummy" if language else "invalid_language")
     )
     args.type_name = (
         None if interactive else ("Test::Test::Test" if type_name else "Test")
     )
+    args.settings = {
+        "version": False,
+        "subparser_name": None if interactive else ("dummy" if language else None),
+        "verbose": 0,
+        "force": False,
+        "type_name": args.type_name,
+    }
 
-    # The arguments below will only be tested by the plugins.
-    # args.use_docker = None
-    # args.namespace = "tested.by.the.plugin"
-    # args.codegen_model = None
-    # args.import_path = None
+    if language and not interactive:
+        args.settings["dummy"] = True
+        args.settings["language"] = args.language
 
     return args
+
+
+def dummy_parser():
+    def dummy_subparser(subparsers, parents):
+        parser = subparsers.add_parser(
+            "dummy",
+            description="""This sub command generates IDE and build
+                files for the Dummy plugin""",
+            parents=parents,
+        )
+        parser.set_defaults(language="dummy")
+
+        parser.add_argument(
+            "-d",
+            "--dummy",
+            action="store_true",
+            help="Dummy boolean to test if parser is loaded correctly",
+        )
+        return parser
+
+    return dummy_subparser
 
 
 class UnclosingBytesIO(BytesIO):

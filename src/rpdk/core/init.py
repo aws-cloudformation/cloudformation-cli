@@ -8,7 +8,7 @@ from functools import wraps
 from colorama import Fore, Style
 
 from .exceptions import WizardAbortError, WizardValidationError
-from .plugin_registry import PARSER_REGISTRY, get_plugin_choices
+from .plugin_registry import get_parsers, get_plugin_choices
 from .project import Project
 
 LOG = logging.getLogger(__name__)
@@ -148,17 +148,8 @@ def init(args):
     else:
         type_name = input_typename()
 
-    if args.language:
+    if "language" in vars(args):
         language = args.language.lower()
-        if language not in get_plugin_choices():
-            print(
-                Style.BRIGHT,
-                Fore.RED,
-                "The plugin for {} is not installed.".format(language),
-                Style.RESET_ALL,
-                sep="",
-            )
-            language = input_language()
     else:
         language = input_language()
 
@@ -167,8 +158,6 @@ def init(args):
         for arg in vars(args)
         if not callable(getattr(args, arg))
     }
-
-    print("--------------------\n", settings, "\n-----------------------")
 
     project.init(type_name, language, settings)
 
@@ -198,9 +187,8 @@ def setup_subparser(subparsers, parents):
 
     language_subparsers = parser.add_subparsers(dest="subparser_name")
     base_subparser = argparse.ArgumentParser(add_help=False)
-    for language_setup_subparser in PARSER_REGISTRY.values():
-        language_parser = language_setup_subparser()(language_subparsers, [base_subparser])
-        print(vars(language_parser.parse_args([])))
+    for language_setup_subparser in get_parsers().values():
+        language_setup_subparser()(language_subparsers, [base_subparser])
 
     parser.add_argument(
         "-f",
@@ -214,34 +202,3 @@ def setup_subparser(subparsers, parents):
         "--type-name",
         help="Select the name of the resource type.",
     )
-
-    # parser.add_argument(
-    #     "-d",
-    #     "--use-docker",
-    #     action="store_true",
-    #     help="""Use docker for python platform-independent packaging.
-    #         This is highly recommended unless you are experienced
-    #         with cross-platform Python packaging.""",
-    # )
-
-    # parser.add_argument(
-    #     "-n",
-    #     "--namespace",
-    #     nargs="?",
-    #     const="default",
-    #     help="""Select the name of the Java namespace.
-    #         Passing the flag without argument select the default namespace.""",
-    # )
-
-    # parser.add_argument(
-    #     "-c",
-    #     "--codegen-model",
-    #     choices=["default", "guided_aws"],
-    #     help="Select a codegen model.",
-    # )
-
-    # parser.add_argument(
-    #     "-p",
-    #     "--import-path",
-    #     help="Select the go language import path.",
-    # )
