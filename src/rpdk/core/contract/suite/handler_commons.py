@@ -154,8 +154,15 @@ def test_input_equals_output(resource_client, input_model, output_model):
     pruned_output_model = prune_properties_if_not_exist_in_path(
         output_model.copy(), pruned_input_model, resource_client.read_only_paths
     )
+
     pruned_output_model = prune_properties_if_not_exist_in_path(
         pruned_output_model, pruned_input_model, resource_client.create_only_paths
     )
+    # only comparing properties in input model to those in output model and
+    # ignoring extraneous properties that maybe present in output model.
+    trunc_output_model = {}
+    for key in pruned_input_model:
+        if key in pruned_output_model:
+            trunc_output_model[key] = pruned_output_model[key]
 
-    assert pruned_input_model == pruned_output_model
+    assert pruned_input_model == trunc_output_model
