@@ -4,7 +4,7 @@ import pytest
 
 from rpdk.core.cli import main
 from rpdk.core.exceptions import WizardAbortError, WizardValidationError
-from rpdk.core.init import (  # init,
+from rpdk.core.init import (
     ValidatePluginChoice,
     check_for_existing_project,
     ignore_abort,
