@@ -100,7 +100,6 @@ def get_args(language=None, type_name=None):
         spec_set=[
             "language",
             "type_name",
-            "settings",
         ]
     )
 
