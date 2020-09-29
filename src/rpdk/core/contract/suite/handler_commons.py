@@ -160,9 +160,12 @@ def test_input_equals_output(resource_client, input_model, output_model):
     )
     # only comparing properties in input model to those in output model and
     # ignoring extraneous properties that maybe present in output model.
-    trunc_output_model = {}
-    for key in pruned_input_model:
-        if key in pruned_output_model:
-            trunc_output_model[key] = pruned_output_model[key]
-
-    assert pruned_input_model == trunc_output_model
+    assert all(
+        [
+            pruned_input_model[key] == pruned_output_model[key]
+            for key in pruned_input_model
+            if key in pruned_output_model
+        ]
+    ), "All properties specified in the update request MUST be present in the \
+                model returned, and they MUST match exactly, with the exception of \
+                    properties defined as writeOnlyProperties in the resource schema"
