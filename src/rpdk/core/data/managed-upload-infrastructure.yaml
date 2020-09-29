@@ -106,7 +106,6 @@ Resources:
         - Effect: Allow
           Principal:
             Service:
-              - cloudformation.amazonaws.com
               - resources.cloudformation.amazonaws.com
           Action: sts:AssumeRole
       Path: "/"
