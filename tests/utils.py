@@ -95,7 +95,7 @@ def get_mock_project():
     return (mock_project, patch_project)
 
 
-def get_args(interactive=False, language=True, type_name=True):
+def get_args(language=None, type_name=None):
     args = Mock(
         spec_set=[
             "language",
@@ -104,23 +104,8 @@ def get_args(interactive=False, language=True, type_name=True):
         ]
     )
 
-    args.language = (
-        None if interactive else ("dummy" if language else "invalid_language")
-    )
-    args.type_name = (
-        None if interactive else ("Test::Test::Test" if type_name else "Test")
-    )
-    args.settings = {
-        "version": False,
-        "subparser_name": None if interactive else ("dummy" if language else None),
-        "verbose": 0,
-        "force": False,
-        "type_name": args.type_name,
-    }
-
-    if language and not interactive:
-        args.settings["dummy"] = True
-        args.settings["language"] = args.language
+    args.language = language
+    args.type_name = type_name
 
     return args
 

@@ -26,9 +26,7 @@ def test_init_method_interactive():
     type_name = object()
     language = object()
 
-    args = get_args(interactive=True)
     mock_project, patch_project = get_mock_project()
-
     patch_tn = patch("rpdk.core.init.input_typename", return_value=type_name)
     patch_l = patch("rpdk.core.init.input_language", return_value=language)
 
@@ -42,7 +40,13 @@ def test_init_method_interactive():
     mock_project.init.assert_called_once_with(
         type_name,
         language,
-        args.settings,
+        {
+            "version": False,
+            "subparser_name": None,
+            "verbose": 0,
+            "force": False,
+            "type_name": None,
+        },
     )
     mock_project.generate.assert_called_once_with()
 
@@ -50,28 +54,31 @@ def test_init_method_interactive():
 def test_init_method_noninteractive():
     add_dummy_language_plugin()
 
-    args = get_args()
+    args = get_args("dummy", "Test::Test::Test")
     mock_project, patch_project = get_mock_project()
 
-    patch_tn = patch("rpdk.core.init.input_typename")
-    patch_l = patch("rpdk.core.init.input_language")
     patch_get_parser = patch(
         "rpdk.core.init.get_parsers", return_value={"dummy": dummy_parser}
     )
 
-    # pylint: disable=C0301
-    with patch_project, patch_tn as mock_tn, patch_l as mock_l, patch_get_parser as mock_parser:  # noqa: B950
+    with patch_project, patch_get_parser as mock_parser:
         main(args_in=["init", "--type-name", args.type_name, args.language, "--dummy"])
 
-    mock_tn.assert_not_called()
-    mock_l.assert_not_called()
     mock_parser.assert_called_once()
 
     mock_project.load_settings.assert_called_once_with()
     mock_project.init.assert_called_once_with(
         args.type_name,
         args.language,
-        args.settings,
+        {
+            "version": False,
+            "subparser_name": args.language,
+            "verbose": 0,
+            "force": False,
+            "type_name": args.type_name,
+            "language": args.language,
+            "dummy": True,
+        },
     )
     mock_project.generate.assert_called_once_with()
 
@@ -80,28 +87,33 @@ def test_init_method_noninteractive_invalid_type_name():
     add_dummy_language_plugin()
     type_name = object()
 
-    args = get_args(type_name=False)
+    args = get_args("dummy", "invalid_type_name")
     mock_project, patch_project = get_mock_project()
 
     patch_tn = patch("rpdk.core.init.input_typename", return_value=type_name)
-    patch_l = patch("rpdk.core.init.input_language")
     patch_get_parser = patch(
         "rpdk.core.init.get_parsers", return_value={"dummy": dummy_parser}
     )
 
-    # pylint: disable=C0301
-    with patch_project, patch_tn as mock_tn, patch_l as mock_l, patch_get_parser as mock_parser:  # noqa: B950
-        main(args_in=["init", "--type-name", args.type_name, args.language, "--dummy"])
+    with patch_project, patch_tn as mock_tn, patch_get_parser as mock_parser:
+        main(args_in=["init", "-t", args.type_name, args.language, "--dummy"])
 
     mock_tn.assert_called_once_with()
-    mock_l.assert_not_called()
     mock_parser.assert_called_once()
 
     mock_project.load_settings.assert_called_once_with()
     mock_project.init.assert_called_once_with(
         type_name,
         args.language,
-        args.settings,
+        {
+            "version": False,
+            "subparser_name": args.language,
+            "verbose": 0,
+            "force": False,
+            "type_name": args.type_name,
+            "language": args.language,
+            "dummy": True,
+        },
     )
     mock_project.generate.assert_called_once_with()
 
