@@ -154,8 +154,23 @@ def test_input_equals_output(resource_client, input_model, output_model):
     pruned_output_model = prune_properties_if_not_exist_in_path(
         output_model.copy(), pruned_input_model, resource_client.read_only_paths
     )
+
     pruned_output_model = prune_properties_if_not_exist_in_path(
         pruned_output_model, pruned_input_model, resource_client.create_only_paths
     )
 
-    assert pruned_input_model == pruned_output_model
+    assertion_error_message = (
+        "All properties specified in the request MUST "
+        "be present in the model returned, and they MUST"
+        " match exactly, with the exception of properties"
+        " defined as writeOnlyProperties in the resource schema"
+    )
+    # only comparing properties in input model to those in output model and
+    # ignoring extraneous properties that maybe present in output model.
+    try:
+        assert all(
+            pruned_input_model[key] == pruned_output_model[key]
+            for key in pruned_input_model
+        ), assertion_error_message
+    except KeyError as e:
+        raise AssertionError(assertion_error_message) from e
