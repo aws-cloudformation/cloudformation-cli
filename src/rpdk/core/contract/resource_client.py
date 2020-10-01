@@ -397,16 +397,26 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         )
 
     def _call(self, payload):
+        request_without_write_properties = prune_properties(
+            payload["requestData"]["resourceProperties"], self.write_only_paths
+        )
+
+        previous_request_without_write_properties = None
+        if payload["requestData"]["previousResourceProperties"]:
+            previous_request_without_write_properties = prune_properties(
+                payload["requestData"]["previousResourceProperties"],
+                self.write_only_paths,
+            )
         payload_to_log = {
-            key: payload[key]
-            for key in [
-                "callbackContext",
-                "action",
-                "requestData",
-                "region",
-                "awsAccountId",
-                "bearerToken",
-            ]
+            "callbackContext": payload["callbackContext"],
+            "action": payload["action"],
+            "requestData": {
+                "resourceProperties": request_without_write_properties,
+                "previousResourceProperties": previous_request_without_write_properties,
+            },
+            "region": payload["region"],
+            "awsAccountId": payload["awsAccountId"],
+            "bearerToken": payload["bearerToken"],
         }
         LOG.debug(
             "Sending request\n%s",
