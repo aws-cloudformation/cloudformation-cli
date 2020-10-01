@@ -402,7 +402,6 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
             for key in [
                 "callbackContext",
                 "action",
-                "requestData",
                 "region",
                 "awsAccountId",
                 "bearerToken",
