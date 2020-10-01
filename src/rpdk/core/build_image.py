@@ -13,19 +13,19 @@ from .project import Project
 LOG = logging.getLogger(__name__)
 
 
-def build_image(_args):
+def build_image(args):
     project = Project()
     project.load()
 
     config = project.generate_image_build_config()
 
-    if _args.executable:
-        executable_name = _args.executable
+    if args.executable:
+        executable_name = args.executable
     else:
         executable_name = config["executable_name"]
 
     image_name = (
-        _args.image_name if _args.image_name else "-".join(project.type_info).lower()
+        args.image_name if args.image_name else "-".join(project.type_info).lower()
     )
 
     docker_client = docker.from_env()

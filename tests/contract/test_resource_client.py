@@ -562,10 +562,11 @@ def test_call_docker():
                 docker_image="docker_image",
                 executable_entrypoint="entrypoint",
             )
-
-    mock_client.containers.run.return_value = str.encode(
-        'StartResponse-{"status": "SUCCESS"}-EndResponse'
+    response_str = (
+        "__CFN_RESOURCE_START_RESPONSE__"
+        '{"status": "SUCCESS"}__CFN_RESOURCE_END_RESPONSE__'
     )
+    mock_client.containers.run.return_value = str.encode(response_str)
     status, response = resource_client.call("CREATE", {"resourceModel": SCHEMA})
 
     mock_client.containers.run.assert_called_once()

@@ -13,12 +13,13 @@ from .contract.interface import Action, OperationStatus
 from .contract.resource_client import ResourceClient
 from .exceptions import SysExitRecommendedError
 from .project import Project
-from .test import _sam_arguments
+from .test import _sam_arguments, _validate_sam_args
 
 LOG = logging.getLogger(__name__)
 
 
 def invoke(args):
+    _validate_sam_args(args)
     project = Project()
     project.load()
 

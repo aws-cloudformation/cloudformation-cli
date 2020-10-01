@@ -438,7 +438,7 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
             LOG.debug("=== Handler execution logs ===")
             LOG.debug(result)
             # pylint: disable=W1401
-            regex = "StartResponse-([\s\S]*)-EndResponse"  # noqa: W605
+            regex = "__CFN_RESOURCE_START_RESPONSE__([\s\S]*)__CFN_RESOURCE_END_RESPONSE__"  # noqa: W605 # pylint: disable=C0301
             payload = json.loads(re.search(regex, result).group(1))
         else:
             result = self._client.invoke(

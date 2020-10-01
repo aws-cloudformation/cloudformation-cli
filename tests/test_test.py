@@ -10,11 +10,13 @@ import pytest
 
 from rpdk.core.cli import EXIT_UNHANDLED_EXCEPTION, main
 from rpdk.core.contract.interface import Action
+from rpdk.core.exceptions import SysExitRecommendedError
 from rpdk.core.project import Project
 from rpdk.core.test import (
     DEFAULT_ENDPOINT,
     DEFAULT_FUNCTION,
     DEFAULT_REGION,
+    _validate_sam_args,
     empty_override,
     get_inputs,
     get_marker_options,
@@ -380,3 +382,16 @@ def test_get_input_file_not_found(base):
     path = base / "inputs"
     os.mkdir(path, mode=0o777)
     assert not get_inputs(base, DEFAULT_REGION, "", 1, None)
+
+
+def test_use_both_sam_and_docker_arguments():
+    args = Mock(spec_set=["docker_image", "endpoint"])
+    args.docker_image = "image"
+    args.endpoint = "endpoint"
+    try:
+        _validate_sam_args(args)
+    except SysExitRecommendedError as e:
+        assert (
+            "Cannot specify both --docker-image and --endpoint or --function-name"
+            in str(e)
+        )

@@ -1012,3 +1012,28 @@ def test_generate_image_build_config_plugin_not_supported(project):
             project.generate_image_build_config()
         except InvalidProjectError:
             pass
+
+
+def test__write_settings_null_executable_entrypoint(project):
+    project.type_name = TYPE_NAME
+    project.runtime = RUNTIME
+    project.language = LANGUAGE
+    project.executable_entrypoint = None
+
+    project.write_settings()
+    with project.settings_path.open("r", encoding="utf-8") as f:
+        settings = json.load(f)
+        assert "executableEntrypoint" not in settings
+
+
+def test__write_settings_nonnull_executable_entrypoint(project):
+    project.type_name = TYPE_NAME
+    project.runtime = RUNTIME
+    project.language = LANGUAGE
+    project.executable_entrypoint = "executable_entrypoint"
+
+    project.write_settings()
+    with project.settings_path.open("r", encoding="utf-8") as f:
+        settings = json.load(f)
+        assert "executableEntrypoint" in settings
+        assert settings["executableEntrypoint"] == "executable_entrypoint"

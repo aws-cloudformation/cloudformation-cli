@@ -59,8 +59,8 @@ cfn test --enforce-timeout 60 -- -k contract_delete_update # combine args
 To build an image. This image provides a minimalistic execution environment for the handler that does not depend on AWS Lambda in anyway. This image can be used during cfn invoke and cfn test instead of using sam cli.
 
 ```bash
-cfn test
-cfn test --image-name my-handler --executable target/myjar.jar
+cfn build-image
+cfn build-image --image-name my-handler --executable target/myjar.jar
 ```
 
 The resulting image can be run in a container by executing the following command:

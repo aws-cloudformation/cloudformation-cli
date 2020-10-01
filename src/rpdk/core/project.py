@@ -237,7 +237,6 @@ class Project:  # pylint: disable=too-many-instance-attributes
                     "runtime": self.runtime,
                     "entrypoint": self.entrypoint,
                     "testEntrypoint": self.test_entrypoint,
-                    "executableEntrypoint": self.executable_entrypoint,
                     "settings": self.settings,
                     **executable_entrypoint_dict,
                 },
