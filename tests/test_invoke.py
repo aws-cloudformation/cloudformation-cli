@@ -20,8 +20,8 @@ def payload_path(tmp_path):
     with path.open("w", encoding="utf-8") as f:
         json.dump(
             {
-                "desiredResourceState": None,
-                "previousResourceState": None,
+                "desiredResourceState": {"foo": "bar"},
+                "previousResourceState": {"foo": "prev_bar"},
                 "logicalResourceIdentifier": None,
             },
             f,
