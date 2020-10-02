@@ -1,14 +1,13 @@
-from pathlib import Path
 from unittest.mock import ANY, Mock, PropertyMock, patch
 
 import pytest
 
+from rpdk.core.cli import main
 from rpdk.core.exceptions import WizardAbortError, WizardValidationError
 from rpdk.core.init import (
     ValidatePluginChoice,
     check_for_existing_project,
     ignore_abort,
-    init,
     input_language,
     input_typename,
     input_with_validation,
@@ -17,62 +16,105 @@ from rpdk.core.init import (
 )
 from rpdk.core.project import Project
 
+from .utils import add_dummy_language_plugin, dummy_parser, get_args, get_mock_project
+
 PROMPT = "MECVGD"
 ERROR = "TUJFEL"
 
 
-def test_init_method_interactive_language():
+def test_init_method_interactive():
     type_name = object()
     language = object()
 
-    args = Mock(spec_set=["force", "language"])
-    args.force = False
-    args.language = None
-
-    mock_project = Mock(spec=Project)
-    mock_project.load_settings.side_effect = FileNotFoundError
-    mock_project.settings_path = ""
-    mock_project.root = Path(".")
-
-    patch_project = patch("rpdk.core.init.Project", return_value=mock_project)
+    mock_project, patch_project = get_mock_project()
     patch_tn = patch("rpdk.core.init.input_typename", return_value=type_name)
     patch_l = patch("rpdk.core.init.input_language", return_value=language)
 
     with patch_project, patch_tn as mock_tn, patch_l as mock_l:
-        init(args)
+        main(args_in=["init"])
 
     mock_tn.assert_called_once_with()
     mock_l.assert_called_once_with()
 
     mock_project.load_settings.assert_called_once_with()
-    mock_project.init.assert_called_once_with(type_name, language)
+    mock_project.init.assert_called_once_with(
+        type_name,
+        language,
+        {
+            "version": False,
+            "subparser_name": None,
+            "verbose": 0,
+            "force": False,
+            "type_name": None,
+        },
+    )
     mock_project.generate.assert_called_once_with()
 
 
-def test_init_method_noninteractive_language():
-    type_name = object()
+def test_init_method_noninteractive():
+    add_dummy_language_plugin()
 
-    args = Mock(spec_set=["force", "language"])
-    args.force = False
-    args.language = "rust1.39"
+    args = get_args("dummy", "Test::Test::Test")
+    mock_project, patch_project = get_mock_project()
 
-    mock_project = Mock(spec=Project)
-    mock_project.load_settings.side_effect = FileNotFoundError
-    mock_project.settings_path = ""
-    mock_project.root = Path(".")
+    patch_get_parser = patch(
+        "rpdk.core.init.get_parsers", return_value={"dummy": dummy_parser}
+    )
 
-    patch_project = patch("rpdk.core.init.Project", return_value=mock_project)
-    patch_tn = patch("rpdk.core.init.input_typename", return_value=type_name)
-    patch_l = patch("rpdk.core.init.input_language")
+    with patch_project, patch_get_parser as mock_parser:
+        main(args_in=["init", "--type-name", args.type_name, args.language, "--dummy"])
 
-    with patch_project, patch_tn as mock_tn, patch_l as mock_l:
-        init(args)
-
-    mock_tn.assert_called_once_with()
-    mock_l.assert_not_called()
+    mock_parser.assert_called_once()
 
     mock_project.load_settings.assert_called_once_with()
-    mock_project.init.assert_called_once_with(type_name, args.language)
+    mock_project.init.assert_called_once_with(
+        args.type_name,
+        args.language,
+        {
+            "version": False,
+            "subparser_name": args.language,
+            "verbose": 0,
+            "force": False,
+            "type_name": args.type_name,
+            "language": args.language,
+            "dummy": True,
+        },
+    )
+    mock_project.generate.assert_called_once_with()
+
+
+def test_init_method_noninteractive_invalid_type_name():
+    add_dummy_language_plugin()
+    type_name = object()
+
+    args = get_args("dummy", "invalid_type_name")
+    mock_project, patch_project = get_mock_project()
+
+    patch_tn = patch("rpdk.core.init.input_typename", return_value=type_name)
+    patch_get_parser = patch(
+        "rpdk.core.init.get_parsers", return_value={"dummy": dummy_parser}
+    )
+
+    with patch_project, patch_tn as mock_tn, patch_get_parser as mock_parser:
+        main(args_in=["init", "-t", args.type_name, args.language, "--dummy"])
+
+    mock_tn.assert_called_once_with()
+    mock_parser.assert_called_once()
+
+    mock_project.load_settings.assert_called_once_with()
+    mock_project.init.assert_called_once_with(
+        type_name,
+        args.language,
+        {
+            "version": False,
+            "subparser_name": args.language,
+            "verbose": 0,
+            "force": False,
+            "type_name": args.type_name,
+            "language": args.language,
+            "dummy": True,
+        },
+    )
     mock_project.generate.assert_called_once_with()
 
 
