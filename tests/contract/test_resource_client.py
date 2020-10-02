@@ -16,6 +16,7 @@ from rpdk.core.contract.resource_client import (
     prune_properties_from_model,
     prune_properties_if_not_exist_in_path,
 )
+from rpdk.core.exceptions import InvalidProjectError
 from rpdk.core.test import (
     DEFAULT_ENDPOINT,
     DEFAULT_FUNCTION,
@@ -530,6 +531,81 @@ def test_call_sync(resource_client, action):
 
     assert status == OperationStatus.SUCCESS
     assert response == {"status": OperationStatus.SUCCESS.value}
+
+
+def test_call_docker():
+    patch_sesh = patch(
+        "rpdk.core.contract.resource_client.create_sdk_session", autospec=True
+    )
+    patch_creds = patch(
+        "rpdk.core.contract.resource_client.get_temporary_credentials",
+        autospec=True,
+        return_value={},
+    )
+    patch_account = patch(
+        "rpdk.core.contract.resource_client.get_account",
+        autospec=True,
+        return_value=ACCOUNT,
+    )
+    patch_docker = patch("rpdk.core.contract.resource_client.docker", autospec=True)
+    with patch_sesh as mock_create_sesh, patch_docker as mock_docker, patch_creds:
+        with patch_account:
+            mock_client = mock_docker.from_env.return_value
+            mock_sesh = mock_create_sesh.return_value
+            mock_sesh.region_name = DEFAULT_REGION
+            resource_client = ResourceClient(
+                DEFAULT_FUNCTION,
+                "url",
+                DEFAULT_REGION,
+                {},
+                EMPTY_OVERRIDE,
+                docker_image="docker_image",
+                executable_entrypoint="entrypoint",
+            )
+    response_str = (
+        "__CFN_RESOURCE_START_RESPONSE__"
+        '{"status": "SUCCESS"}__CFN_RESOURCE_END_RESPONSE__'
+    )
+    mock_client.containers.run.return_value = str.encode(response_str)
+    status, response = resource_client.call("CREATE", {"resourceModel": SCHEMA})
+
+    mock_client.containers.run.assert_called_once()
+    assert status == OperationStatus.SUCCESS
+    assert response == {"status": OperationStatus.SUCCESS.value}
+
+
+def test_call_docker_executable_entrypoint_null():
+    patch_sesh = patch(
+        "rpdk.core.contract.resource_client.create_sdk_session", autospec=True
+    )
+    patch_creds = patch(
+        "rpdk.core.contract.resource_client.get_temporary_credentials",
+        autospec=True,
+        return_value={},
+    )
+    patch_account = patch(
+        "rpdk.core.contract.resource_client.get_account",
+        autospec=True,
+        return_value=ACCOUNT,
+    )
+    patch_docker = patch("rpdk.core.contract.resource_client.docker", autospec=True)
+    with patch_sesh as mock_create_sesh, patch_docker, patch_creds:
+        with patch_account:
+            mock_sesh = mock_create_sesh.return_value
+            mock_sesh.region_name = DEFAULT_REGION
+            resource_client = ResourceClient(
+                DEFAULT_FUNCTION,
+                "url",
+                DEFAULT_REGION,
+                {},
+                EMPTY_OVERRIDE,
+                docker_image="docker_image",
+            )
+
+    try:
+        resource_client.call("CREATE", {"resourceModel": SCHEMA})
+    except InvalidProjectError:
+        pass
 
 
 @pytest.mark.parametrize("action", [Action.CREATE, Action.UPDATE, Action.DELETE])

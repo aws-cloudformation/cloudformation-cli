@@ -176,6 +176,7 @@ def get_marker_options(schema):
 
 
 def test(args):
+    _validate_sam_args(args)
     project = Project()
     project.load()
 
@@ -212,6 +213,8 @@ def invoke_test(args, project, overrides, inputs):
             inputs,
             args.role_arn,
             args.enforce_timeout,
+            executable_entrypoint=project.executable_entrypoint,
+            docker_image=args.docker_image,
         )
     )
 
@@ -251,6 +254,12 @@ def setup_subparser(subparsers, parents):
 
     parser.add_argument("passed_to_pytest", nargs="*", help=SUPPRESS)
 
+    parser.add_argument(
+        "--docker-image",
+        help="Docker image name to run. If specified, invoke will use docker instead "
+        "of SAM",
+    )
+
 
 def _sam_arguments(parser):
     parser.add_argument(
@@ -276,3 +285,12 @@ def _sam_arguments(parser):
             "The region used for temporary credentials " f"(Default: {DEFAULT_REGION})"
         ),
     )
+
+
+def _validate_sam_args(args):
+    if args.docker_image and (
+        args.endpoint != DEFAULT_ENDPOINT or args.function_name != DEFAULT_FUNCTION
+    ):
+        raise SysExitRecommendedError(
+            "Cannot specify both --docker-image and --endpoint or --function-name"
+        )

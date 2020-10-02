@@ -13,17 +13,24 @@ from .contract.interface import Action, OperationStatus
 from .contract.resource_client import ResourceClient
 from .exceptions import SysExitRecommendedError
 from .project import Project
-from .test import _sam_arguments
+from .test import _sam_arguments, _validate_sam_args
 
 LOG = logging.getLogger(__name__)
 
 
 def invoke(args):
+    _validate_sam_args(args)
     project = Project()
     project.load()
 
     client = ResourceClient(
-        args.function_name, args.endpoint, args.region, project.schema, {}
+        args.function_name,
+        args.endpoint,
+        args.region,
+        project.schema,
+        {},
+        executable_entrypoint=project.executable_entrypoint,
+        docker_image=args.docker_image,
     )
 
     action = Action[args.action]
@@ -79,5 +86,10 @@ def setup_subparser(subparsers, parents):
         help="Maximum number of IN_PROGRESS re-invocations allowed before "
         "exiting. If not specified, will continue to "
         "re-invoke until terminal status is reached.",
+    )
+    parser.add_argument(
+        "--docker-image",
+        help="Docker image name to run. If specified, invoke will use docker instead "
+        "of SAM",
     )
     _sam_arguments(parser)
