@@ -7,7 +7,7 @@ import pytest
 from rpdk.core.data_loaders import resource_json
 from rpdk.core.jsonutils.flattener import COMBINERS, JsonSchemaFlattener
 from rpdk.core.jsonutils.pointer import fragment_encode
-from rpdk.core.jsonutils.utils import CircularRefError, ConstraintError, FlatteningError
+from rpdk.core.jsonutils.utils import ConstraintError, FlatteningError
 
 from .area_definition_flattened import AREA_DEFINITION_FLATTENED
 
@@ -417,9 +417,8 @@ def test_flattener_full_example():
 @pytest.mark.parametrize("test_schema", CIRCULAR_SCHEMAS)
 def test_circular_reference(test_schema):
     flattener = JsonSchemaFlattener(test_schema)
-    with pytest.raises(CircularRefError) as excinfo:
-        flattener.flatten_schema()
-    assert "#/properties/a" in str(excinfo.value)
+    flattened_schema = flattener.flatten_schema()
+    assert flattened_schema
 
 
 def test__flatten_ref_type_invalid():

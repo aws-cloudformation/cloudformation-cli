@@ -2,13 +2,7 @@
 import logging
 
 from .pointer import fragment_decode
-from .utils import (
-    CircularRefError,
-    ConstraintError,
-    FlatteningError,
-    schema_merge,
-    traverse,
-)
+from .utils import ConstraintError, FlatteningError, schema_merge, traverse
 
 LOG = logging.getLogger(__name__)
 COMBINERS = ("oneOf", "anyOf", "allOf")
@@ -39,13 +33,9 @@ class JsonSchemaFlattener:
         return self._schema_map
 
     def _walk(self, sub_schema, property_path):
+
         # have we already seen this path?
-        try:
-            if self._schema_map[property_path] is None:
-                raise CircularRefError(property_path)
-        except KeyError:
-            pass
-        else:
+        if property_path in self._schema_map:
             return {"$ref": property_path}
 
         # placeholder so as to not reprocess
