@@ -16,8 +16,8 @@ from pytest_localserver.http import Request, Response, WSGIServer
 from rpdk.core.data_loaders import (
     STDIN_NAME,
     get_file_base_uri,
+    get_schema_store,
     load_resource_spec,
-    make_validator,
     resource_json,
     resource_stream,
     resource_yaml,
@@ -80,14 +80,6 @@ def test_load_resource_spec_empty_object_is_invalid():
 
 def json_files_params(path, glob="*.json"):
     return tuple(pytest.param(p, id=p.name) for p in path.glob(glob))
-
-
-@pytest.mark.parametrize(
-    "example", json_files_params(BASEDIR.parent / "examples" / "schema", "*-*-*.json")
-)
-def test_load_resource_spec_example_spec_is_valid(example):
-    with example.open("r", encoding="utf-8") as f:
-        assert load_resource_spec(f)
 
 
 @pytest.mark.parametrize(
@@ -302,16 +294,6 @@ def plugin():
     return mock_plugin
 
 
-def test_make_validator_handlers_use_local_meta_schema():
-    try:
-        validator = make_validator(
-            {"$ref": "https://somewhere/does/not/exist"}, base_uri="http://localhost/"
-        )
-        validator.validate(True)
-    except Exception:  # pylint: disable=broad-except
-        pytest.fail("Unexpect error, should success")
-
-
 def mock_pkg_resource_stream(bytes_in, func=resource_stream):
     resource_name = "data/test.utf-8"
     target = "rpdk.core.data_loaders.pkg_resources.resource_stream"
@@ -364,3 +346,30 @@ def test_resource_yaml():
     encoded = yaml.dump(obj).encode("utf-8")
     result = mock_pkg_resource_stream(encoded, func=resource_yaml)
     assert result == obj
+
+
+def test_get_schema_store_schemas_with_id():
+    schema_store = get_schema_store(
+        BASEDIR.parent / "src" / "rpdk" / "core" / "data" / "schema"
+    )
+    assert len(schema_store) == 4
+    assert "http://json-schema.org/draft-07/schema#" in schema_store
+    assert (
+        "https://schema.cloudformation.us-east-1.amazonaws.com/base.definition.schema.v1.json"
+        in schema_store
+    )
+    assert (
+        "https://schema.cloudformation.us-east-1.amazonaws.com/provider.configuration.definition.schema.v1.json"
+        in schema_store
+    )
+    assert (
+        "https://schema.cloudformation.us-east-1.amazonaws.com/provider.definition.schema.v1.json"
+        in schema_store
+    )
+
+
+def test_get_schema_store_schemas_with_out_id():
+    schema_store = get_schema_store(
+        BASEDIR.parent / "src" / "rpdk" / "core" / "data" / "examples" / "resource"
+    )
+    assert len(schema_store) == 0

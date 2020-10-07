@@ -55,20 +55,28 @@ def copy_resource(package_name, resource_name, out_path):
         shutil.copyfileobj(fsrc, fdst)
 
 
-def make_validator(schema, base_uri=None):
-    if not base_uri:
-        base_uri = Draft7Validator.ID_OF(schema)
+def get_schema_store(schema_search_path):
+    """Load all the schemas in schema_search_path and return a dict"""
+    schema_store = {}
+    schema_fnames = os.listdir(schema_search_path)
+    for schema_fname in schema_fnames:
+        schema_path = os.path.join(schema_search_path, schema_fname)
+        if schema_path.endswith(".json"):
+            with open(schema_path, "r") as schema_f:
+                schema = json.load(schema_f)
+                if "$id" in schema:
+                    schema_store[schema["$id"]] = schema
+    return schema_store
 
-    def get_from_local(uri):  # pylint: disable=unused-argument
-        meta_schema = Path(os.path.dirname(os.path.realpath(__file__))).joinpath(
-            "data/schema/meta-schema.json"
-        )
-        return json.load(meta_schema.open())
 
+def make_validator(schema):
+    schema_search_path = Path(os.path.dirname(os.path.realpath(__file__))).joinpath(
+        "data/schema/"
+    )
     resolver = RefResolver(
-        base_uri=base_uri,
+        base_uri=Draft7Validator.ID_OF(schema),
+        store=get_schema_store(schema_search_path),
         referrer=schema,
-        handlers={"http": get_from_local, "https": get_from_local},
     )
     return Draft7Validator(schema, resolver=resolver)
 
@@ -79,7 +87,7 @@ def make_resource_validator():
 
 
 def make_resource_validator_with_additional_properties_check():
-    schema = resource_json(__name__, "data/schema/provider.definition.schema.v1.json")
+    schema = resource_json(__name__, "data/schema/base.definition.schema.v1.json")
     dependencies = schema["definitions"]["validations"]["dependencies"]
     properties_check = {
         "properties": {

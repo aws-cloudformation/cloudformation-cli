@@ -1,0 +1,85 @@
+{
+    "typeName": "Company::Test::Type",
+    "description": "Test type",
+    "typeConfiguration": {
+        "properties": {
+            "Credentials": {
+                "$ref": "#/definitions/Credentials"
+            }
+        },
+        "additionalProperties": false,
+        "required": [
+            "Credentials"
+        ]
+    },
+    "definitions": {
+        "Credentials": {
+            "type": "object",
+            "properties": {
+                "ApiKey": {
+                    "description": "Datadog API key",
+                    "type": "string"
+                },
+                "ApplicationKey": {
+                    "description": "Datadog application key",
+                    "type": "string"
+                },
+                "CountryCode": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false
+        }
+    },
+    "properties": {
+        "Type": {
+            "type": "string",
+            "description": "The type of the monitor",
+            "enum": [
+                "composite",
+                "event alert",
+                "log alert",
+                "metric alert",
+                "process alert",
+                "query alert",
+                "service check",
+                "synthetics alert",
+                "trace-analytics alert"
+            ]
+        }
+    },
+    "required": [
+        "Type"
+    ],
+    "primaryIdentifier": [
+        "/properties/Id"
+    ],
+    "additionalProperties": false,
+    "handlers": {
+        "create": {
+            "permissions": [
+                ""
+            ]
+        },
+        "read": {
+            "permissions": [
+                ""
+            ]
+        },
+        "update": {
+            "permissions": [
+                ""
+            ]
+        },
+        "delete": {
+            "permissions": [
+                ""
+            ]
+        },
+        "list": {
+            "permissions": [
+                ""
+            ]
+        }
+    }
+}

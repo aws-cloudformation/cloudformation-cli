@@ -11,7 +11,7 @@ from contextlib import contextmanager
 from io import StringIO
 from pathlib import Path
 from shutil import copyfile
-from unittest.mock import ANY, MagicMock, patch
+from unittest.mock import ANY, MagicMock, call, patch
 
 import pytest
 import yaml
@@ -28,6 +28,7 @@ from rpdk.core.exceptions import (
 from rpdk.core.plugin_base import LanguagePlugin
 from rpdk.core.project import (
     CFN_METADATA_FILENAME,
+    CONFIGURATION_SCHEMA_UPLOAD_FILENAME,
     LAMBDA_RUNTIMES,
     OVERRIDES_FILENAME,
     SCHEMA_UPLOAD_FILENAME,
@@ -224,6 +225,60 @@ def test_load_schema_example(project):
     project.type_name = "AWS::Color::Blue"
     project._write_example_schema()
     project.load_schema()
+
+
+def test_load_configuration_schema_schema_not_loaded(project):
+    with pytest.raises(InternalError):
+        project.load_configuration_schema()
+
+
+def test_load_configuration_schema():
+    schema_path = str(Path.cwd() / "tests/data/schema/valid")
+    project = Project(root=schema_path)
+    project.type_info = ("test", "schema", "validtypeconfiguration")
+    project.load_schema()
+    project.load_configuration_schema()
+    assert project.configuration_schema is not None
+
+
+def test_load_schema_without_type_configuration():
+    schema_path = str(Path.cwd() / "tests/data/schema/valid")
+    project = Project(root=schema_path)
+    project.type_info = ("test", "schema", "without", "typeconfiguration")
+    project.load_schema()
+    project.load_configuration_schema()
+    assert project.configuration_schema is None
+
+
+def test_write_configuration_schema():
+    mock_path = MagicMock(spec=Path)
+    project = Project(root=mock_path)
+    project.type_info = ("test", "validTypeConfiguration")
+    project.write_configuration_schema(mock_path)
+
+    mock_path.open.assert_called_once_with("w", encoding="utf-8")
+    mock_f = mock_path.open.return_value.__enter__.return_value
+    mock_f.write.assert_has_calls([call("null"), call("\n")])
+
+
+def test_configuration_schema_filename(project):
+    project.type_name = "Vendor::Service::Type"
+    assert (
+        "vendor-service-type-configuration.json"
+        == project.configuration_schema_filename
+    )
+
+
+def test_load_schema_with_typeconfiguration(project):
+    patch_settings = patch.object(project, "load_settings")
+    patch_schema = patch.object(project, "load_schema")
+    patch_configuration_schema = patch.object(project, "load_configuration_schema")
+    with patch_settings as mock_settings, patch_schema as mock_schema, patch_configuration_schema as mock_configuration_schema:
+        project.load()
+
+    mock_settings.assert_called_once_with()
+    mock_schema.assert_called_once_with()
+    mock_configuration_schema.assert_called_once_with()
 
 
 def test_overwrite():
@@ -747,8 +802,9 @@ def create_input_file(base):
         f.write("{}")
 
 
+@pytest.mark.parametrize("is_type_configuration_available", (False, True))
 # pylint: disable=too-many-arguments, too-many-locals
-def test_submit_dry_run(project):
+def test_submit_dry_run(project, is_type_configuration_available):
     project.type_name = TYPE_NAME
     project.runtime = RUNTIME
     project.language = LANGUAGE
@@ -757,6 +813,9 @@ def test_submit_dry_run(project):
 
     with project.schema_path.open("w", encoding="utf-8") as f:
         f.write(CONTENTS_UTF8)
+
+    if is_type_configuration_available:
+        project.configuration_schema = {"properties": {}}
 
     with project.overrides_path.open("w", encoding="utf-8") as f:
         f.write(json.dumps(empty_override()))
@@ -791,18 +850,30 @@ def test_submit_dry_run(project):
     mock_plugin.package.assert_called_once_with(project, ANY)
     mock_upload.assert_not_called()
 
+    file_set = {
+        SCHEMA_UPLOAD_FILENAME,
+        SETTINGS_FILENAME,
+        OVERRIDES_FILENAME,
+        CREATE_INPUTS_FILE,
+        INVALID_INPUTS_FILE,
+        UPDATE_INPUTS_FILE,
+        CFN_METADATA_FILENAME,
+    }
     with zipfile.ZipFile(zip_path, mode="r") as zip_file:
-        assert set(zip_file.namelist()) == {
-            SCHEMA_UPLOAD_FILENAME,
-            SETTINGS_FILENAME,
-            OVERRIDES_FILENAME,
-            CREATE_INPUTS_FILE,
-            INVALID_INPUTS_FILE,
-            UPDATE_INPUTS_FILE,
-            CFN_METADATA_FILENAME,
-        }
+        if is_type_configuration_available:
+            file_set.add(CONFIGURATION_SCHEMA_UPLOAD_FILENAME)
+            assert set(zip_file.namelist()) == file_set
+        else:
+            assert set(zip_file.namelist()) == file_set
         schema_contents = zip_file.read(SCHEMA_UPLOAD_FILENAME).decode("utf-8")
         assert schema_contents == CONTENTS_UTF8
+        if is_type_configuration_available:
+            configuration_schema_contents = zip_file.read(
+                CONFIGURATION_SCHEMA_UPLOAD_FILENAME
+            ).decode("utf-8")
+            assert configuration_schema_contents == json.dumps(
+                project.configuration_schema, indent=4
+            )
         settings = json.loads(zip_file.read(SETTINGS_FILENAME).decode("utf-8"))
         assert settings["runtime"] == RUNTIME
         overrides = json.loads(zip_file.read(OVERRIDES_FILENAME).decode("utf-8"))
