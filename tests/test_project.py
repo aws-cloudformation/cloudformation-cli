@@ -569,6 +569,7 @@ def test_submit_dry_run(project):
 
     with project.schema_path.open("w", encoding="utf-8") as f:
         f.write(CONTENTS_UTF8)
+    os.utime(project.schema_path, (1602179630, 10000))
 
     with project.overrides_path.open("w", encoding="utf-8") as f:
         f.write(json.dumps(empty_override()))

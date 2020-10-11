@@ -375,7 +375,7 @@ class Project:  # pylint: disable=too-many-instance-attributes
             # pylint: disable=unexpected-keyword-arg
             # the default compression is ZIP_STORED, which helps with the
             # file-size check on upload
-            with ZipFile(f, mode="w", strict_timestamps=False) as zip_file:
+            with ZipFile(f, mode="w", strict_timestamps=True) as zip_file:
                 zip_file.write(self.schema_path, SCHEMA_UPLOAD_FILENAME)
                 zip_file.write(self.settings_path, SETTINGS_FILENAME)
                 try:
