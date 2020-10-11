@@ -6,7 +6,7 @@ import logging
 import os
 import random
 import string
-import zipfile
+import sys
 from contextlib import contextmanager
 from io import StringIO
 from pathlib import Path
@@ -36,6 +36,12 @@ from rpdk.core.test import empty_override
 from rpdk.core.upload import Uploader
 
 from .utils import CONTENTS_UTF8, UnclosingBytesIO
+
+if sys.version_info >= (3, 8):  # pragma: no cover
+    from zipfile import ZipFile
+else:  # pragma: no cover
+    from zipfile38 import ZipFile
+
 
 LANGUAGE = "BQHDBC"
 TYPE_NAME = "AWS::Color::Red"
@@ -595,7 +601,8 @@ def test_submit_dry_run(project):
     mock_plugin.package.assert_called_once_with(project, ANY)
     mock_upload.assert_not_called()
 
-    with zipfile.ZipFile(zip_path, mode="r") as zip_file:
+    # pylint: disable=unexpected-keyword-arg
+    with ZipFile(zip_path, mode="r", strict_timestamps=False) as zip_file:
         assert set(zip_file.namelist()) == {
             SCHEMA_UPLOAD_FILENAME,
             SETTINGS_FILENAME,

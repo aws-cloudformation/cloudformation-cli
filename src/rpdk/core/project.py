@@ -2,6 +2,7 @@ import json
 import logging
 import os
 import shutil
+import sys
 import zipfile
 from pathlib import Path
 from tempfile import TemporaryFile
@@ -26,6 +27,12 @@ from .jsonutils.pointer import fragment_decode, fragment_encode
 from .jsonutils.utils import traverse
 from .plugin_registry import load_plugin
 from .upload import Uploader
+
+if sys.version_info >= (3, 8):  # pragma: no cover
+    from zipfile import ZipFile
+else:  # pragma: no cover
+    from zipfile38 import ZipFile
+
 
 LOG = logging.getLogger(__name__)
 
@@ -365,9 +372,10 @@ class Project:  # pylint: disable=too-many-instance-attributes
             context_mgr = TemporaryFile("w+b")
 
         with context_mgr as f:
+            # pylint: disable=unexpected-keyword-arg
             # the default compression is ZIP_STORED, which helps with the
             # file-size check on upload
-            with zipfile.ZipFile(f, mode="w") as zip_file:
+            with ZipFile(f, mode="w", strict_timestamps=False) as zip_file:
                 zip_file.write(self.schema_path, SCHEMA_UPLOAD_FILENAME)
                 zip_file.write(self.settings_path, SETTINGS_FILENAME)
                 try:
