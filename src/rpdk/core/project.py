@@ -3,7 +3,6 @@ import logging
 import os
 import shutil
 import sys
-import zipfile
 from pathlib import Path
 from tempfile import TemporaryFile
 from uuid import uuid4
