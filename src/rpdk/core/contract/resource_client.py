@@ -173,7 +173,7 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
             for identifier in additional_identifiers
         ]
 
-    def is_primary_identifier_create_only(self):
+    def has_only_writable_identifiers(self):
         return all(
             path in self.create_only_paths for path in self.primary_identifier_paths
         )
