@@ -173,15 +173,10 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
             for identifier in additional_identifiers
         ]
 
-    def has_writable_identifier(self):
-        for path in self.primary_identifier_paths:
-            if path not in self.read_only_paths:
-                return True
-        for identifier_paths in self._additional_identifiers_paths:
-            for path in identifier_paths:
-                if path not in self.read_only_paths:
-                    return True
-        return False
+    def has_only_writable_identifiers(self):
+        return all(
+            path in self.create_only_paths for path in self.primary_identifier_paths
+        )
 
     def assert_write_only_property_does_not_exist(self, resource_model):
         if self.write_only_paths:

@@ -90,7 +90,7 @@ def contract_delete_delete(resource_client, deleted_resource):
 @pytest.mark.create
 @pytest.mark.delete
 def contract_delete_create(resource_client, deleted_resource):
-    if resource_client.has_writable_identifier():
+    if resource_client.has_only_writable_identifiers():
         deleted_model, request = deleted_resource
         response = test_create_success(resource_client, request)
         created_response = response.copy()
