@@ -449,7 +449,7 @@ def test_generate_update_example_create_override(resource_client):
     assert example == {"a": 5, "b": 2}
 
 
-def test_has_writable_identifier_primary_is_read_only(resource_client):
+def test_is_primary_identifier_create_only_primary_is_read_only(resource_client):
     resource_client._update_schema(
         {
             "primaryIdentifier": ["/properties/foo"],
@@ -457,16 +457,23 @@ def test_has_writable_identifier_primary_is_read_only(resource_client):
         }
     )
 
-    assert not resource_client.has_writable_identifier()
+    assert not resource_client.is_primary_identifier_create_only()
 
 
-def test_has_writable_identifier_primary_is_writeable(resource_client):
-    resource_client._update_schema({"primaryIdentifier": ["/properties/foo"]})
+def test_is_primary_identifier_create_only_primary_is_create_only(resource_client):
+    resource_client._update_schema(
+        {
+            "primaryIdentifier": ["/properties/foo"],
+            "createOnlyProperties": ["/properties/foo"],
+        }
+    )
 
-    assert resource_client.has_writable_identifier()
+    assert resource_client.is_primary_identifier_create_only()
 
 
-def test_has_writable_identifier_primary_and_additional_are_read_only(resource_client):
+def test_is_primary_identifier_create_only_primary_and_additional_are_read_only(
+    resource_client,
+):
     resource_client._update_schema(
         {
             "primaryIdentifier": ["/properties/foo"],
@@ -475,10 +482,10 @@ def test_has_writable_identifier_primary_and_additional_are_read_only(resource_c
         }
     )
 
-    assert not resource_client.has_writable_identifier()
+    assert not resource_client.is_primary_identifier_create_only()
 
 
-def test_has_writable_identifier_additional_is_writeable(resource_client):
+def test_is_primary_identifier_create_only_additional_is_writeable(resource_client):
     resource_client._update_schema(
         {
             "primaryIdentifier": ["/properties/foo"],
@@ -487,10 +494,10 @@ def test_has_writable_identifier_additional_is_writeable(resource_client):
         }
     )
 
-    assert resource_client.has_writable_identifier()
+    assert not resource_client.is_primary_identifier_create_only()
 
 
-def test_has_writable_identifier_compound_is_writeable(resource_client):
+def test_is_primary_identifier_create_only_compound_is_writeable(resource_client):
     resource_client._update_schema(
         {
             "primaryIdentifier": ["/properties/foo"],
@@ -499,7 +506,47 @@ def test_has_writable_identifier_compound_is_writeable(resource_client):
         }
     )
 
-    assert resource_client.has_writable_identifier()
+    assert not resource_client.is_primary_identifier_create_only()
+
+
+def test_is_primary_identifier_create_only_composite_primary_are_read_only(
+    resource_client,
+):
+    resource_client._update_schema(
+        {
+            "primaryIdentifier": ["/properties/foo", "/properties/bar"],
+            "readOnlyProperties": ["/properties/foo", "/properties/bar"],
+        }
+    )
+
+    assert not resource_client.is_primary_identifier_create_only()
+
+
+def test_is_primary_identifier_create_only_composite_primary_is_read_only(
+    resource_client,
+):
+    resource_client._update_schema(
+        {
+            "primaryIdentifier": ["/properties/foo", "/properties/bar"],
+            "readOnlyProperties": ["/properties/foo"],
+            "createOnlyProperties": ["/properties/bar"],
+        }
+    )
+
+    assert not resource_client.is_primary_identifier_create_only()
+
+
+def test_is_primary_identifier_create_only_composite_primary_are_create_only(
+    resource_client,
+):
+    resource_client._update_schema(
+        {
+            "primaryIdentifier": ["/properties/foo", "/properties/bar"],
+            "createOnlyProperties": ["/properties/foo", "/properties/bar"],
+        }
+    )
+
+    assert resource_client.is_primary_identifier_create_only()
 
 
 def test_make_payload(resource_client):
