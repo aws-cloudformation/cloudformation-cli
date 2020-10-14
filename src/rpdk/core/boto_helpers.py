@@ -46,11 +46,16 @@ def get_temporary_credentials(session, key_names=BOTO_CRED_KEYS, role_arn=None):
             response = sts_client.assume_role(
                 RoleArn=role_arn, RoleSessionName=session_name
             )
-        except ClientError as e:
+        except ClientError:
+            # pylint: disable=W1201
             LOG.debug(
-                "Getting session token resulted in unknown ClientError", exc_info=e
+                "Getting session token resulted in unknown ClientError. "
+                + "Could not assume specified role '%s'.",
+                role_arn,
             )
-            raise DownstreamError("Could not assume specified role") from e
+            raise DownstreamError() from Exception(
+                "Could not assume specified role '{}'".format(role_arn)
+            )
         temp = response["Credentials"]
         creds = (temp["AccessKeyId"], temp["SecretAccessKey"], temp["SessionToken"])
     else:
@@ -78,7 +83,14 @@ def get_service_endpoint(service, region):
     return "https://" + endpoint_data["hostname"]
 
 
-def get_account(session):
-    sts_client = session.client("sts")
+def get_account(session, temporary_credentials):
+    sts_client = session.client(
+        "sts",
+        endpoint_url=get_service_endpoint("sts", session.region_name),
+        region_name=session.region_name,
+        aws_access_key_id=temporary_credentials["accessKeyId"],
+        aws_secret_access_key=temporary_credentials["secretAccessKey"],
+        aws_session_token=temporary_credentials["sessionToken"],
+    )
     response = sts_client.get_caller_identity()
     return response.get("Account")

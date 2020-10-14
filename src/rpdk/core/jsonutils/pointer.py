@@ -99,21 +99,21 @@ def fragment_decode(pointer, prefix="#", output=tuple):
 
 def fragment_list(segments, prefix="properties", output=list):
     """Decode all segments of a JSON pointer from the URI fragment
-        identifier representation.
+    identifier representation.
 
-        >>> fragment_list(["properties"])
-        []
-        >>> fragment_list(["properties", "foo", "bar"])
-        ['foo', 'bar']
-        >>> fragment_list(["properties", "foo", "bar"], output=tuple)
-        ('foo', 'bar')
-        >>> fragment_list(["properties", "0", "%20", "~0"])
-        ['0', ' ', '~']
-        >>> fragment_list(["foo"])
-        Traceback (most recent call last):
-        ...
-        ValueError: Expected prefix 'properties', but was 'foo'
-        """
+    >>> fragment_list(["properties"])
+    []
+    >>> fragment_list(["properties", "foo", "bar"])
+    ['foo', 'bar']
+    >>> fragment_list(["properties", "foo", "bar"], output=tuple)
+    ('foo', 'bar')
+    >>> fragment_list(["properties", "0", "%20", "~0"])
+    ['0', ' ', '~']
+    >>> fragment_list(["foo"])
+    Traceback (most recent call last):
+    ...
+    ValueError: Expected prefix 'properties', but was 'foo'
+    """
     decoded = (part_decode(unquote(segment)) for segment in segments)
     actual = next(decoded)
     if prefix != actual:

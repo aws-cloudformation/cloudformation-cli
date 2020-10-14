@@ -2,14 +2,17 @@
 # pylint: disable=R0904
 import json
 import logging
+import re
 import time
 from time import sleep
 from uuid import uuid4
 
+import docker
 from botocore import UNSIGNED
 from botocore.config import Config
 
 from rpdk.core.contract.interface import Action, HandlerErrorCode, OperationStatus
+from rpdk.core.exceptions import InvalidProjectError
 
 from ..boto_helpers import (
     LOWER_CAMEL_CRED_KEYS,
@@ -39,6 +42,35 @@ def prune_properties(document, paths):
             key = resolved_path[-1]
             del parent[key]
     return document
+
+
+def prune_properties_if_not_exist_in_path(output_model, input_model, paths):
+    """Prune given properties from a model.
+
+    This assumes properties will always have an object (dict) as a parent.
+    The function returns the model after pruning the path which exists
+    in the paths tuple but not in the input_model
+    """
+    output_document = {"properties": output_model.copy()}
+    input_document = {"properties": input_model.copy()}
+    for path in paths:
+        try:
+            if not path_exists(input_document, path):
+                _prop, resolved_path, parent = traverse(output_document, path)
+                key = resolved_path[-1]
+                del parent[key]
+        except LookupError:
+            pass
+    return output_document["properties"]
+
+
+def path_exists(document, path):
+    try:
+        _prop, _resolved_path, _parent = traverse(document, path)
+    except LookupError:
+        return False
+    else:
+        return True
 
 
 def prune_properties_from_model(model, paths):
@@ -80,6 +112,8 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         inputs=None,
         role_arn=None,
         timeout_in_seconds="30",
+        docker_image=None,
+        executable_entrypoint=None,
     ):  # pylint: disable=too-many-arguments
         self._schema = schema
         self._session = create_sdk_session(region)
@@ -87,8 +121,7 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
             self._session, LOWER_CAMEL_CRED_KEYS, role_arn
         )
         self.region = region
-        self.account = get_account(self._session)
-        self.partition = self._get_partition()
+        self.account = get_account(self._session, self._creds)
         self._function_name = function_name
         if endpoint.startswith("http://"):
             self._client = self._session.client(
@@ -115,13 +148,9 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         self._update_schema(schema)
         self._inputs = inputs
         self._timeout_in_seconds = int(timeout_in_seconds)
-
-    def _get_partition(self):
-        if self.region.startswith("cn"):
-            return "aws-cn"
-        if self.region.startswith("us-gov"):
-            return "aws-gov"
-        return "aws"
+        self._docker_image = docker_image
+        self._docker_client = docker.from_env() if self._docker_image else None
+        self._executable_entrypoint = executable_entrypoint
 
     def _properties_to_paths(self, key):
         return {fragment_decode(prop, prefix="") for prop in self._schema.get(key, [])}
@@ -144,22 +173,18 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
             for identifier in additional_identifiers
         ]
 
-    def has_writable_identifier(self):
-        for path in self.primary_identifier_paths:
-            if path not in self.read_only_paths:
-                return True
-        for identifier_paths in self._additional_identifiers_paths:
-            for path in identifier_paths:
-                if path not in self.read_only_paths:
-                    return True
-        return False
+    def has_only_writable_identifiers(self):
+        return all(
+            path in self.create_only_paths for path in self.primary_identifier_paths
+        )
 
     def assert_write_only_property_does_not_exist(self, resource_model):
         if self.write_only_paths:
             assert not any(
                 self.key_error_safe_traverse(resource_model, write_only_property)
                 for write_only_property in self.write_only_paths
-            )
+            ), "The model MUST NOT return properties defined as \
+                writeOnlyProperties in the resource schema"
 
     @property
     def strategy(self):
@@ -288,22 +313,30 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         return error_code
 
     @staticmethod
+    # pylint: disable=R0913
     def make_request(
         desired_resource_state,
         previous_resource_state,
         region,
         account,
-        partition,
+        action,
+        creds,
+        token,
+        callback_context=None,
         **kwargs
     ):
         return {
-            "desiredResourceState": desired_resource_state,
-            "previousResourceState": previous_resource_state,
-            "logicalResourceIdentifier": None,
-            **kwargs,
+            "requestData": {
+                "callerCredentials": creds,
+                "resourceProperties": desired_resource_state,
+                "previousResourceProperties": previous_resource_state,
+            },
             "region": region,
-            "awsPartition": partition,
             "awsAccountId": account,
+            "action": action,
+            "callbackContext": callback_context,
+            "bearerToken": token,
+            **kwargs,
         }
 
     @staticmethod
@@ -322,44 +355,108 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
 
     @staticmethod
     def assert_primary_identifier(primary_identifier_paths, resource_model):
-        assert all(
-            traverse(resource_model, fragment_list(primary_identifier, "properties"))[0]
-            for primary_identifier in primary_identifier_paths
-        )
+        try:
+            assert all(
+                traverse(
+                    resource_model, fragment_list(primary_identifier, "properties")
+                )[0]
+                for primary_identifier in primary_identifier_paths
+            ), "Every returned model MUST include the primaryIdentifier"
+        except KeyError as e:
+            raise AssertionError(
+                "Every returned model MUST include the primaryIdentifier"
+            ) from e
 
     @staticmethod
     def is_primary_identifier_equal(
         primary_identifier_path, created_model, updated_model
     ):
-        return all(
-            traverse(created_model, fragment_list(primary_identifier, "properties"))[0]
-            == traverse(updated_model, fragment_list(primary_identifier, "properties"))[
-                0
-            ]
-            for primary_identifier in primary_identifier_path
+        try:
+            return all(
+                traverse(
+                    created_model, fragment_list(primary_identifier, "properties")
+                )[0]
+                == traverse(
+                    updated_model, fragment_list(primary_identifier, "properties")
+                )[0]
+                for primary_identifier in primary_identifier_path
+            )
+        except KeyError as e:
+            raise AssertionError(
+                "The primaryIdentifier returned in every progress event must\
+                     match the primaryIdentifier passed into the request"
+            ) from e
+
+    def _make_payload(self, action, current_model, previous_model=None, **kwargs):
+        return self.make_request(
+            current_model,
+            previous_model,
+            self.region,
+            self.account,
+            action,
+            self._creds.copy(),
+            self.generate_token(),
+            **kwargs
         )
 
-    def _make_payload(self, action, request, callback_context=None):
-        return {
-            "credentials": self._creds.copy(),
-            "action": action,
-            "request": {"clientRequestToken": self.generate_token(), **request},
-            "callbackContext": callback_context,
-        }
-
     def _call(self, payload):
+        request_without_write_properties = prune_properties(
+            payload["requestData"]["resourceProperties"], self.write_only_paths
+        )
+
+        previous_request_without_write_properties = None
+        if payload["requestData"]["previousResourceProperties"]:
+            previous_request_without_write_properties = prune_properties(
+                payload["requestData"]["previousResourceProperties"],
+                self.write_only_paths,
+            )
         payload_to_log = {
-            key: payload[key] for key in ["callbackContext", "action", "request"]
+            "callbackContext": payload["callbackContext"],
+            "action": payload["action"],
+            "requestData": {
+                "resourceProperties": request_without_write_properties,
+                "previousResourceProperties": previous_request_without_write_properties,
+            },
+            "region": payload["region"],
+            "awsAccountId": payload["awsAccountId"],
+            "bearerToken": payload["bearerToken"],
         }
         LOG.debug(
             "Sending request\n%s",
             json.dumps(payload_to_log, ensure_ascii=False, indent=2),
         )
         payload = json.dumps(payload, ensure_ascii=False, indent=2)
-        result = self._client.invoke(
-            FunctionName=self._function_name, Payload=payload.encode("utf-8")
-        )
-        payload = json.load(result["Payload"])
+        if self._docker_image:
+            if not self._executable_entrypoint:
+                raise InvalidProjectError(
+                    "executableEntrypoint not set in .rpdk-config. "
+                    "Have you run cfn generate?"
+                )
+            result = (
+                self._docker_client.containers.run(
+                    self._docker_image,
+                    self._executable_entrypoint + " '" + payload + "'",
+                )
+                .decode()
+                .strip()
+            )
+            LOG.debug("=== Handler execution logs ===")
+            LOG.debug(result)
+            # pylint: disable=W1401
+            regex = "__CFN_RESOURCE_START_RESPONSE__([\s\S]*)__CFN_RESOURCE_END_RESPONSE__"  # noqa: W605 # pylint: disable=C0301
+            payload = json.loads(re.search(regex, result).group(1))
+        else:
+            result = self._client.invoke(
+                FunctionName=self._function_name, Payload=payload.encode("utf-8")
+            )
+
+            try:
+                payload = json.load(result["Payload"])
+            except json.decoder.JSONDecodeError as json_error:
+                LOG.debug("Received invalid response\n%s", result["Payload"])
+                raise ValueError(
+                    "Handler Output is not a valid JSON document"
+                ) from json_error
         LOG.debug("Received response\n%s", payload)
         return payload
 
@@ -368,16 +465,8 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
     ):
         if assert_status not in [OperationStatus.SUCCESS, OperationStatus.FAILED]:
             raise ValueError("Assert status {} not supported.".format(assert_status))
-        request = self.make_request(
-            current_model,
-            previous_model,
-            self.region,
-            self.account,
-            self.partition,
-            **kwargs
-        )
 
-        status, response = self.call(action, request)
+        status, response = self.call(action, current_model, previous_model, **kwargs)
         if assert_status == OperationStatus.SUCCESS:
             self.assert_success(status, response)
             error_code = None
@@ -385,10 +474,10 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
             error_code = self.assert_failed(status, response)
         return status, response, error_code
 
-    def call(self, action, request):
-        payload = self._make_payload(action, request)
+    def call(self, action, current_model, previous_model=None, **kwargs):
+        request = self._make_payload(action, current_model, previous_model, **kwargs)
         start_time = time.time()
-        response = self._call(payload)
+        response = self._call(request)
         self.assert_time(start_time, time.time(), action)
 
         # this throws a KeyError if status isn't present, or if it isn't a valid status
@@ -405,11 +494,10 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
             )
             sleep(callback_delay_seconds)
 
-            request["desiredResourceState"] = response.get("resourceModel")
-            payload["callbackContext"] = response.get("callbackContext")
-            payload["request"] = request
+            request["requestData"]["resourceProperties"] = response.get("resourceModel")
+            request["callbackContext"] = response.get("callbackContext")
 
-            response = self._call(payload)
+            response = self._call(request)
             status = OperationStatus[response["status"]]
 
         # ensure writeOnlyProperties are not returned on final responses

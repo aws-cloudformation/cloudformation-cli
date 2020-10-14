@@ -10,7 +10,13 @@ from rpdk.core.contract.suite.contract_asserts import failed_event
 
 
 @pytest.mark.update
-@failed_event(error_code=(HandlerErrorCode.NotUpdatable, HandlerErrorCode.NotFound))
+@failed_event(
+    error_code=(HandlerErrorCode.NotUpdatable, HandlerErrorCode.NotFound),
+    msg="An update hander MUST return FAILED with a NotUpdatable error code \
+        if the difference between the previous state and the properties included \
+            in the request contains a property defined in the createOnlyProperties \
+                in the resource schema",
+)
 def contract_update_create_only_property(resource_client):
 
     if resource_client.create_only_paths:
@@ -26,7 +32,10 @@ def contract_update_create_only_property(resource_client):
             _status, response, _error_code = resource_client.call_and_assert(
                 Action.UPDATE, OperationStatus.FAILED, update_request, created_model
             )
-            assert response["message"]
+            assert response[
+                "message"
+            ], "The progress event MUST return an error message\
+                 when the status is failed"
         finally:
             resource_client.call_and_assert(
                 Action.DELETE, OperationStatus.SUCCESS, created_model
@@ -38,7 +47,8 @@ def contract_update_create_only_property(resource_client):
 @pytest.mark.update
 @failed_event(
     error_code=HandlerErrorCode.NotFound,
-    msg="cannot update a resource which does not exist",
+    msg="An update handler MUST return FAILED with a NotFound error code\
+         if the resource did not exist prior to the update request",
 )
 def contract_update_non_existent_resource(resource_client):
     create_request = resource_client.generate_invalid_create_example()
@@ -46,5 +56,8 @@ def contract_update_non_existent_resource(resource_client):
     _status, response, _error = resource_client.call_and_assert(
         Action.UPDATE, OperationStatus.FAILED, update_request, create_request
     )
-    assert response["message"]
+    assert response[
+        "message"
+    ], "The progress event MUST return an error message\
+         when the status is failed"
     return _error

@@ -1,5 +1,6 @@
 # fixture and parameter have the same name
 # pylint: disable=redefined-outer-name,useless-super-delegation,protected-access
+# pylint: disable=too-many-lines
 import json
 import logging
 import os
@@ -42,7 +43,7 @@ REGION = "us-east-1"
 ENDPOINT = "cloudformation.beta.com"
 RUNTIME = random.choice(list(LAMBDA_RUNTIMES))
 BLANK_CLIENT_ERROR = {"Error": {"Code": "", "Message": ""}}
-
+LOG = logging.getLogger(__name__)
 REGISTRATION_TOKEN = "foo"
 TYPE_ARN = "arn:aws:cloudformation:us-east-1:123456789012:type/resource/Foo-Bar-Foo"
 TYPE_VERSION_ARN = (
@@ -277,6 +278,9 @@ def test_generate_docs_with_multityped_property(project, tmp_path_factory):
     read_me_stripped = readme_contents.strip().replace(" ", "")
     read_me_target_stripped = readme_contents_target.read().strip().replace(" ", "")
 
+    LOG.debug("read_me_stripped %s", read_me_stripped)
+    LOG.debug("read_me_target_stripped %s", read_me_target_stripped)
+
     assert project.type_name in readme_contents
     assert read_me_stripped == read_me_target_stripped
 
@@ -469,6 +473,15 @@ def test_init(project):
 
     with project.schema_path.open("r", encoding="utf-8") as f:
         assert json.load(f)
+
+    for file_inputs in (
+        "inputs_1_create.json",
+        "inputs_1_update.json",
+        "inputs_1_invalid.json",
+    ):
+        path_file = project.example_inputs_path / file_inputs
+        with path_file.open("r", encoding="utf-8") as f:
+            assert json.load(f)
 
     # ends with newline
     with project.schema_path.open("rb") as f:
@@ -981,3 +994,46 @@ def test__get_docs_gettable_atts_good_path():
         }
     )
     assert getatt == [{"name": "Id2", "description": "foo"}]
+
+
+def test_generate_image_build_config(project):
+    project.schema = {}
+    mock_plugin = MagicMock(spec=["generate_image_build_config"])
+    with patch.object(project, "_plugin", mock_plugin):
+        project.generate_image_build_config()
+    mock_plugin.generate_image_build_config.assert_called_once()
+
+
+def test_generate_image_build_config_plugin_not_supported(project):
+    project.schema = {}
+    mock_plugin = MagicMock(spec=[])
+    with patch.object(project, "_plugin", mock_plugin):
+        try:
+            project.generate_image_build_config()
+        except InvalidProjectError:
+            pass
+
+
+def test__write_settings_null_executable_entrypoint(project):
+    project.type_name = TYPE_NAME
+    project.runtime = RUNTIME
+    project.language = LANGUAGE
+    project.executable_entrypoint = None
+
+    project.write_settings()
+    with project.settings_path.open("r", encoding="utf-8") as f:
+        settings = json.load(f)
+        assert "executableEntrypoint" not in settings
+
+
+def test__write_settings_nonnull_executable_entrypoint(project):
+    project.type_name = TYPE_NAME
+    project.runtime = RUNTIME
+    project.language = LANGUAGE
+    project.executable_entrypoint = "executable_entrypoint"
+
+    project.write_settings()
+    with project.settings_path.open("r", encoding="utf-8") as f:
+        settings = json.load(f)
+        assert "executableEntrypoint" in settings
+        assert settings["executableEntrypoint"] == "executable_entrypoint"

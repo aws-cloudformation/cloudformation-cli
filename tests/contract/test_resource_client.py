@@ -14,7 +14,9 @@ from rpdk.core.contract.resource_client import (
     override_properties,
     prune_properties,
     prune_properties_from_model,
+    prune_properties_if_not_exist_in_path,
 )
+from rpdk.core.exceptions import InvalidProjectError
 from rpdk.core.test import (
     DEFAULT_ENDPOINT,
     DEFAULT_FUNCTION,
@@ -79,7 +81,7 @@ def resource_client():
 
     mock_sesh.client.assert_called_once_with("lambda", endpoint_url=endpoint)
     mock_creds.assert_called_once_with(mock_sesh, LOWER_CAMEL_CRED_KEYS, None)
-    mock_account.assert_called_once_with(mock_sesh)
+    mock_account.assert_called_once_with(mock_sesh, {})
     assert client._creds == {}
     assert client._function_name == DEFAULT_FUNCTION
     assert client._schema == {}
@@ -120,7 +122,7 @@ def resource_client_inputs():
 
     mock_sesh.client.assert_called_once_with("lambda", endpoint_url=endpoint)
     mock_creds.assert_called_once_with(mock_sesh, LOWER_CAMEL_CRED_KEYS, None)
-    mock_account.assert_called_once_with(mock_sesh)
+    mock_account.assert_called_once_with(mock_sesh, {})
 
     assert client._creds == {}
     assert client._function_name == DEFAULT_FUNCTION
@@ -161,12 +163,39 @@ def test_prune_properties_from_model():
     assert document == {"one": "two", "array": ["first"]}
 
 
+def test_prune_properties_if_not_exist_in_path():
+    previous_model = {
+        "spam": "eggs",
+        "one": "two",
+        "array": ["first", "second"],
+    }
+    model = {
+        "foo": "bar",
+        "spam": "eggs",
+        "one": "two",
+        "array": ["first", "second"],
+    }
+    model = prune_properties_if_not_exist_in_path(
+        model,
+        previous_model,
+        [
+            ("properties", "foo"),
+            ("properties", "spam"),
+            ("properties", "array", "1"),
+            ("properties", "invalid"),
+        ],
+    )
+    assert model == previous_model
+
+
 def test_init_sam_cli_client():
     patch_sesh = patch(
         "rpdk.core.contract.resource_client.create_sdk_session", autospec=True
     )
     patch_creds = patch(
-        "rpdk.core.contract.resource_client.get_temporary_credentials", autospec=True
+        "rpdk.core.contract.resource_client.get_temporary_credentials",
+        autospec=True,
+        return_value={},
     )
     patch_account = patch(
         "rpdk.core.contract.resource_client.get_account",
@@ -185,7 +214,7 @@ def test_init_sam_cli_client():
         "lambda", endpoint_url=DEFAULT_ENDPOINT, use_ssl=False, verify=False, config=ANY
     )
     mock_creds.assert_called_once_with(mock_sesh, LOWER_CAMEL_CRED_KEYS, None)
-    mock_account.assert_called_once_with(mock_sesh)
+    mock_account.assert_called_once_with(mock_sesh, {})
     assert client.account == ACCOUNT
 
 
@@ -202,19 +231,23 @@ def test_make_request():
     request = ResourceClient.make_request(
         desired_resource_state,
         previous_resource_state,
-        "us-west-2",
-        "11111111",
-        "aws",
-        clientRequestToken=token,
+        "us-east-1",
+        ACCOUNT,
+        "CREATE",
+        {},
+        token,
     )
     assert request == {
-        "desiredResourceState": desired_resource_state,
-        "previousResourceState": previous_resource_state,
-        "logicalResourceIdentifier": None,
-        "clientRequestToken": token,
-        "region": "us-west-2",
-        "awsPartition": "aws",
-        "awsAccountId": "11111111",
+        "requestData": {
+            "callerCredentials": {},
+            "resourceProperties": desired_resource_state,
+            "previousResourceProperties": previous_resource_state,
+        },
+        "region": DEFAULT_REGION,
+        "awsAccountId": ACCOUNT,
+        "action": "CREATE",
+        "bearerToken": token,
+        "callbackContext": None,
     }
 
 
@@ -416,7 +449,7 @@ def test_generate_update_example_create_override(resource_client):
     assert example == {"a": 5, "b": 2}
 
 
-def test_has_writable_identifier_primary_is_read_only(resource_client):
+def test_has_only_writable_identifiers_primary_is_read_only(resource_client):
     resource_client._update_schema(
         {
             "primaryIdentifier": ["/properties/foo"],
@@ -424,16 +457,23 @@ def test_has_writable_identifier_primary_is_read_only(resource_client):
         }
     )
 
-    assert not resource_client.has_writable_identifier()
+    assert not resource_client.has_only_writable_identifiers()
 
 
-def test_has_writable_identifier_primary_is_writeable(resource_client):
-    resource_client._update_schema({"primaryIdentifier": ["/properties/foo"]})
+def test_has_only_writable_identifiers_primary_is_writable(resource_client):
+    resource_client._update_schema(
+        {
+            "primaryIdentifier": ["/properties/foo"],
+            "createOnlyProperties": ["/properties/foo"],
+        }
+    )
 
-    assert resource_client.has_writable_identifier()
+    assert resource_client.has_only_writable_identifiers()
 
 
-def test_has_writable_identifier_primary_and_additional_are_read_only(resource_client):
+def test_has_only_writable_identifiers_primary_and_additional_are_read_only(
+    resource_client,
+):
     resource_client._update_schema(
         {
             "primaryIdentifier": ["/properties/foo"],
@@ -442,10 +482,10 @@ def test_has_writable_identifier_primary_and_additional_are_read_only(resource_c
         }
     )
 
-    assert not resource_client.has_writable_identifier()
+    assert not resource_client.has_only_writable_identifiers()
 
 
-def test_has_writable_identifier_additional_is_writeable(resource_client):
+def test_has_only_writable_identifiers_additional_is_writable(resource_client):
     resource_client._update_schema(
         {
             "primaryIdentifier": ["/properties/foo"],
@@ -454,10 +494,10 @@ def test_has_writable_identifier_additional_is_writeable(resource_client):
         }
     )
 
-    assert resource_client.has_writable_identifier()
+    assert not resource_client.has_only_writable_identifiers()
 
 
-def test_has_writable_identifier_compound_is_writeable(resource_client):
+def test_has_only_writable_identifiers_compound_is_writable(resource_client):
     resource_client._update_schema(
         {
             "primaryIdentifier": ["/properties/foo"],
@@ -466,10 +506,50 @@ def test_has_writable_identifier_compound_is_writeable(resource_client):
         }
     )
 
-    assert resource_client.has_writable_identifier()
+    assert not resource_client.has_only_writable_identifiers()
 
 
-def test__make_payload(resource_client):
+def test_has_only_writable_identifiers_composite_primary_are_read_only(
+    resource_client,
+):
+    resource_client._update_schema(
+        {
+            "primaryIdentifier": ["/properties/foo", "/properties/bar"],
+            "readOnlyProperties": ["/properties/foo", "/properties/bar"],
+        }
+    )
+
+    assert not resource_client.has_only_writable_identifiers()
+
+
+def test_has_only_writable_identifiers_composite_primary_is_read_only(
+    resource_client,
+):
+    resource_client._update_schema(
+        {
+            "primaryIdentifier": ["/properties/foo", "/properties/bar"],
+            "readOnlyProperties": ["/properties/foo"],
+            "createOnlyProperties": ["/properties/bar"],
+        }
+    )
+
+    assert not resource_client.has_only_writable_identifiers()
+
+
+def test_has_only_writable_identifiers_composite_primary_are_writable(
+    resource_client,
+):
+    resource_client._update_schema(
+        {
+            "primaryIdentifier": ["/properties/foo", "/properties/bar"],
+            "createOnlyProperties": ["/properties/foo", "/properties/bar"],
+        }
+    )
+
+    assert resource_client.has_only_writable_identifiers()
+
+
+def test_make_payload(resource_client):
     resource_client._creds = {}
 
     token = "ecba020e-b2e6-4742-a7d0-8a06ae7c4b2f"
@@ -477,9 +557,15 @@ def test__make_payload(resource_client):
         payload = resource_client._make_payload("CREATE", {"foo": "bar"})
 
     assert payload == {
-        "credentials": {},
+        "requestData": {
+            "callerCredentials": {},
+            "resourceProperties": {"foo": "bar"},
+            "previousResourceProperties": None,
+        },
+        "region": DEFAULT_REGION,
+        "awsAccountId": ACCOUNT,
         "action": "CREATE",
-        "request": {"clientRequestToken": token, "foo": "bar"},
+        "bearerToken": token,
         "callbackContext": None,
     }
 
@@ -492,6 +578,81 @@ def test_call_sync(resource_client, action):
 
     assert status == OperationStatus.SUCCESS
     assert response == {"status": OperationStatus.SUCCESS.value}
+
+
+def test_call_docker():
+    patch_sesh = patch(
+        "rpdk.core.contract.resource_client.create_sdk_session", autospec=True
+    )
+    patch_creds = patch(
+        "rpdk.core.contract.resource_client.get_temporary_credentials",
+        autospec=True,
+        return_value={},
+    )
+    patch_account = patch(
+        "rpdk.core.contract.resource_client.get_account",
+        autospec=True,
+        return_value=ACCOUNT,
+    )
+    patch_docker = patch("rpdk.core.contract.resource_client.docker", autospec=True)
+    with patch_sesh as mock_create_sesh, patch_docker as mock_docker, patch_creds:
+        with patch_account:
+            mock_client = mock_docker.from_env.return_value
+            mock_sesh = mock_create_sesh.return_value
+            mock_sesh.region_name = DEFAULT_REGION
+            resource_client = ResourceClient(
+                DEFAULT_FUNCTION,
+                "url",
+                DEFAULT_REGION,
+                {},
+                EMPTY_OVERRIDE,
+                docker_image="docker_image",
+                executable_entrypoint="entrypoint",
+            )
+    response_str = (
+        "__CFN_RESOURCE_START_RESPONSE__"
+        '{"status": "SUCCESS"}__CFN_RESOURCE_END_RESPONSE__'
+    )
+    mock_client.containers.run.return_value = str.encode(response_str)
+    status, response = resource_client.call("CREATE", {"resourceModel": SCHEMA})
+
+    mock_client.containers.run.assert_called_once()
+    assert status == OperationStatus.SUCCESS
+    assert response == {"status": OperationStatus.SUCCESS.value}
+
+
+def test_call_docker_executable_entrypoint_null():
+    patch_sesh = patch(
+        "rpdk.core.contract.resource_client.create_sdk_session", autospec=True
+    )
+    patch_creds = patch(
+        "rpdk.core.contract.resource_client.get_temporary_credentials",
+        autospec=True,
+        return_value={},
+    )
+    patch_account = patch(
+        "rpdk.core.contract.resource_client.get_account",
+        autospec=True,
+        return_value=ACCOUNT,
+    )
+    patch_docker = patch("rpdk.core.contract.resource_client.docker", autospec=True)
+    with patch_sesh as mock_create_sesh, patch_docker, patch_creds:
+        with patch_account:
+            mock_sesh = mock_create_sesh.return_value
+            mock_sesh.region_name = DEFAULT_REGION
+            resource_client = ResourceClient(
+                DEFAULT_FUNCTION,
+                "url",
+                DEFAULT_REGION,
+                {},
+                EMPTY_OVERRIDE,
+                docker_image="docker_image",
+            )
+
+    try:
+        resource_client.call("CREATE", {"resourceModel": SCHEMA})
+    except InvalidProjectError:
+        pass
 
 
 @pytest.mark.parametrize("action", [Action.CREATE, Action.UPDATE, Action.DELETE])
@@ -553,6 +714,16 @@ def test_call_and_assert_success(resource_client):
     assert status == OperationStatus.SUCCESS
     assert response == {"status": OperationStatus.SUCCESS.value}
     assert error_code is None
+
+
+def test_call_and_assert_failed_invalid_payload(resource_client):
+    mock_client = resource_client._client
+    mock_client.invoke.return_value = {"Payload": StringIO("invalid json document")}
+
+    with pytest.raises(ValueError):
+        status, response, error_code = resource_client.call_and_assert(
+            Action.CREATE, OperationStatus.SUCCESS, {}, None
+        )
 
 
 def test_call_and_assert_failed(resource_client):
@@ -740,7 +911,7 @@ def test_assert_primary_identifier_success(resource_client):
 
 
 def test_assert_primary_identifier_fail(resource_client):
-    with pytest.raises(KeyError):
+    with pytest.raises(AssertionError):
         resource_client._update_schema(SCHEMA)
         resource_client.assert_primary_identifier(
             resource_client.primary_identifier_paths, {"a": 1, "b": 2}
@@ -763,6 +934,16 @@ def test_is_primary_identifier_equal_fail(resource_client):
         {"a": 1, "b": 2, "c": 3},
         {"a": 1, "b": 2, "c": 4},
     )
+
+
+def test_is_primary_identifier_equal_fail_key(resource_client):
+    with pytest.raises(AssertionError):
+        resource_client._update_schema(SCHEMA)
+        resource_client.is_primary_identifier_equal(
+            resource_client.primary_identifier_paths,
+            {"a": 1, "b": 2},
+            {"a": 1, "b": 2},
+        )
 
 
 def test_assert_write_only_property_does_not_exist(resource_client):
@@ -804,17 +985,3 @@ def test_generate_update_example_with_inputs(resource_client_inputs):
 
 def test_generate_invalid_update_example_with_inputs(resource_client_inputs):
     assert resource_client_inputs.generate_invalid_update_example({"a": 1}) == {"b": 2}
-
-
-def test_get_partition_aws(resource_client):
-    assert resource_client._get_partition() == "aws"
-
-
-def test_get_partition_aws_cn(resource_client):
-    resource_client.region = "cn-north-1"
-    assert resource_client._get_partition() == "aws-cn"
-
-
-def test_get_partition_aws_gov(resource_client):
-    resource_client.region = "us-gov-west-1"
-    assert resource_client._get_partition() == "aws-gov"

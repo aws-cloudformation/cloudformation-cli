@@ -1,20 +1,24 @@
 """This sub command generates IDE and build files for a given language.
 """
+import argparse
 import logging
 import re
-from argparse import SUPPRESS
 from functools import wraps
 
 from colorama import Fore, Style
 
 from .exceptions import WizardAbortError, WizardValidationError
-from .plugin_registry import PLUGIN_CHOICES
+from .plugin_registry import get_parsers, get_plugin_choices
 from .project import Project
 
 LOG = logging.getLogger(__name__)
 
 
 TYPE_NAME_REGEX = r"^[a-zA-Z0-9]{2,64}::[a-zA-Z0-9]{2,64}::[a-zA-Z0-9]{2,64}$"
+
+
+def print_error(error):
+    print(Style.BRIGHT, Fore.RED, str(error), Style.RESET_ALL, sep="")
 
 
 def input_with_validation(prompt, validate, description=""):
@@ -32,8 +36,8 @@ def input_with_validation(prompt, validate, description=""):
         response = input()
         try:
             return validate(response)
-        except WizardValidationError as e:
-            print(Style.BRIGHT, Fore.RED, str(e), Style.RESET_ALL, sep="")
+        except WizardValidationError as error:
+            print_error(error)
 
 
 def validate_type_name(value):
@@ -42,7 +46,7 @@ def validate_type_name(value):
         return value
     LOG.debug("'%s' did not match '%s'", value, TYPE_NAME_REGEX)
     raise WizardValidationError(
-        "Please enter a value matching '{}'".format(TYPE_NAME_REGEX)
+        "Please enter a resource type name matching '{}'".format(TYPE_NAME_REGEX)
     )
 
 
@@ -68,6 +72,7 @@ class ValidatePluginChoice:
         try:
             choice = int(value)
         except ValueError:
+            # pylint: disable=W0707
             raise WizardValidationError("Please enter an integer")
         choice -= 1
         if choice < 0 or choice >= self.max:
@@ -76,7 +81,7 @@ class ValidatePluginChoice:
 
 
 validate_plugin_choice = ValidatePluginChoice(  # pylint: disable=invalid-name
-    PLUGIN_CHOICES
+    get_plugin_choices()
 )
 
 
@@ -138,14 +143,28 @@ def init(args):
 
     check_for_existing_project(project)
 
-    type_name = input_typename()
-    if args.language:
-        language = args.language
-        LOG.warning("Language plugin '%s' selected non-interactively", language)
+    if args.type_name:
+        try:
+            type_name = validate_type_name(args.type_name)
+        except WizardValidationError as error:
+            print_error(error)
+            type_name = input_typename()
+    else:
+        type_name = input_typename()
+
+    if "language" in vars(args):
+        language = args.language.lower()
     else:
         language = input_language()
 
-    project.init(type_name, language)
+    settings = {
+        arg: getattr(args, arg)
+        for arg in vars(args)
+        if not callable(getattr(args, arg))
+    }
+
+    project.init(type_name, language, settings)
+
     project.generate()
     project.generate_docs()
 
@@ -159,6 +178,7 @@ def ignore_abort(function):
             function(args)
         except (KeyboardInterrupt, WizardAbortError):
             print("\naborted")
+            # pylint: disable=W0707
             raise SystemExit(1)
 
     return wrapper
@@ -169,8 +189,20 @@ def setup_subparser(subparsers, parents):
     parser = subparsers.add_parser("init", description=__doc__, parents=parents)
     parser.set_defaults(command=ignore_abort(init))
 
+    language_subparsers = parser.add_subparsers(dest="subparser_name")
+    base_subparser = argparse.ArgumentParser(add_help=False)
+    for language_setup_subparser in get_parsers().values():
+        language_setup_subparser()(language_subparsers, [base_subparser])
+
     parser.add_argument(
-        "--force", action="store_true", help="Force files to be overwritten."
+        "-f",
+        "--force",
+        action="store_true",
+        help="Force files to be overwritten.",
     )
-    # this is mainly for CI, so suppress it to keep it simple
-    parser.add_argument("--language", help=SUPPRESS)
+
+    parser.add_argument(
+        "-t",
+        "--type-name",
+        help="Select the name of the resource type.",
+    )

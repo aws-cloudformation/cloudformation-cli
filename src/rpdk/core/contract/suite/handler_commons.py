@@ -1,6 +1,10 @@
 import logging
 
 from rpdk.core.contract.interface import Action, HandlerErrorCode, OperationStatus
+from rpdk.core.contract.resource_client import (
+    prune_properties_from_model,
+    prune_properties_if_not_exist_in_path,
+)
 from rpdk.core.contract.suite.contract_asserts import (
     failed_event,
     response_contains_primary_identifier,
@@ -24,7 +28,8 @@ def test_create_success(resource_client, current_resource_model):
 
 @failed_event(
     error_code=HandlerErrorCode.AlreadyExists,
-    msg="creating the same resource should not be possible",
+    msg="A create handler MUST NOT create multiple resources given\
+         the same idempotency token",
 )
 def test_create_failure_if_repeat_writeable_id(resource_client, current_resource_model):
     LOG.debug(
@@ -50,8 +55,15 @@ def test_read_success(resource_client, current_resource_model):
     return response
 
 
-@failed_event(error_code=HandlerErrorCode.NotFound)
-def test_read_failure_not_found(resource_client, current_resource_model):
+@failed_event(
+    error_code=HandlerErrorCode.NotFound,
+    msg="A read handler MUST return FAILED with a NotFound error code\
+         if the resource does not exist",
+)
+def test_read_failure_not_found(
+    resource_client,
+    current_resource_model,
+):
     _status, _response, error_code = resource_client.call_and_assert(
         Action.READ, OperationStatus.FAILED, current_resource_model
     )
@@ -102,7 +114,11 @@ def test_update_success(resource_client, update_resource_model, current_resource
     return response
 
 
-@failed_event(error_code=HandlerErrorCode.NotFound)
+@failed_event(
+    error_code=HandlerErrorCode.NotFound,
+    msg="An update handler MUST return FAILED with a NotFound error code\
+         if the resource did not exist prior to the update request",
+)
 def test_update_failure_not_found(resource_client, current_resource_model):
     update_model = resource_client.generate_update_example(current_resource_model)
     _status, _response, error_code = resource_client.call_and_assert(
@@ -118,9 +134,43 @@ def test_delete_success(resource_client, current_resource_model):
     return response
 
 
-@failed_event(error_code=HandlerErrorCode.NotFound)
+@failed_event(
+    error_code=HandlerErrorCode.NotFound,
+    msg="A delete hander MUST return FAILED with a NotFound error code\
+         if the resource did not exist prior to the delete request",
+)
 def test_delete_failure_not_found(resource_client, current_resource_model):
     _status, _response, error_code = resource_client.call_and_assert(
         Action.DELETE, OperationStatus.FAILED, current_resource_model
     )
     return error_code
+
+
+def test_input_equals_output(resource_client, input_model, output_model):
+    pruned_input_model = prune_properties_from_model(
+        input_model.copy(), resource_client.write_only_paths
+    )
+
+    pruned_output_model = prune_properties_if_not_exist_in_path(
+        output_model.copy(), pruned_input_model, resource_client.read_only_paths
+    )
+
+    pruned_output_model = prune_properties_if_not_exist_in_path(
+        pruned_output_model, pruned_input_model, resource_client.create_only_paths
+    )
+
+    assertion_error_message = (
+        "All properties specified in the request MUST "
+        "be present in the model returned, and they MUST"
+        " match exactly, with the exception of properties"
+        " defined as writeOnlyProperties in the resource schema"
+    )
+    # only comparing properties in input model to those in output model and
+    # ignoring extraneous properties that maybe present in output model.
+    try:
+        assert all(
+            pruned_input_model[key] == pruned_output_model[key]
+            for key in pruned_input_model
+        ), assertion_error_message
+    except KeyError as e:
+        raise AssertionError(assertion_error_message) from e

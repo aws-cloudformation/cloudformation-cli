@@ -33,6 +33,15 @@ To refresh auto-generated code, use the `generate` command. Usually, plugins try
 cfn generate
 ```
 
+### Command: submit
+
+To register a resource provider in your account, use the `submit` command.
+
+```bash
+cfn submit
+cfn submit --dry-run #prepares schema handler package without submitting for registration
+```
+
 ### Command: test
 
 To run the contract tests, use the `test` command.
@@ -40,8 +49,25 @@ To run the contract tests, use the `test` command.
 ```bash
 cfn test
 cfn test -- -k contract_delete_update #to run a single test
+cfn test --tb=long #exhaustive, informative traceback formatting
 cfn test --enforce-timeout 60 #set the RL handler timeout to 60 seconds and CUD handler timeout to 120 seconds.
 cfn test --enforce-timeout 60 -- -k contract_delete_update # combine args
+```
+
+### Command: build-image
+
+To build an image. This image provides a minimalistic execution environment for the handler that does not depend on AWS Lambda in anyway. This image can be used during cfn invoke and cfn test instead of using sam cli.
+
+```bash
+cfn build-image
+cfn build-image --image-name my-handler --executable target/myjar.jar
+```
+
+The resulting image can be run in a container by executing the following command:
+
+```
+docker run IMAGE_NAME HANDLER_ENTRYPOINT PAYLOAD
+docker run my-test-resource com.my.test.resource.ExecutableHandlerWrapper PAYLOAD_JSON # Example for a java based-project
 ```
 
 

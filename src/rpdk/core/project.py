@@ -33,6 +33,7 @@ SETTINGS_FILENAME = ".rpdk-config"
 SCHEMA_UPLOAD_FILENAME = "schema.json"
 OVERRIDES_FILENAME = "overrides.json"
 INPUTS_FOLDER = "inputs"
+EXAMPLE_INPUTS_FOLDER = "example_inputs"
 ROLE_TEMPLATE_FILENAME = "resource-role.yaml"
 TYPE_NAME_REGEX = "^[a-zA-Z0-9]{2,64}::[a-zA-Z0-9]{2,64}::[a-zA-Z0-9]{2,64}$"
 
@@ -64,6 +65,7 @@ SETTINGS_VALIDATOR = Draft7Validator(
             "runtime": {"type": "string", "enum": list(LAMBDA_RUNTIMES)},
             "entrypoint": {"type": ["string", "null"]},
             "testEntrypoint": {"type": ["string", "null"]},
+            "executableEntrypoint": {"type": ["string", "null"]},
             "settings": {"type": "object"},
         },
         "required": ["language", "typeName", "runtime", "entrypoint"],
@@ -106,6 +108,7 @@ class Project:  # pylint: disable=too-many-instance-attributes
         self.runtime = "noexec"
         self.entrypoint = None
         self.test_entrypoint = None
+        self.executable_entrypoint = None
 
         self.env = Environment(
             trim_blocks=True,
@@ -147,6 +150,10 @@ class Project:  # pylint: disable=too-many-instance-attributes
     def inputs_path(self):
         return self.root / INPUTS_FOLDER
 
+    @property
+    def example_inputs_path(self):
+        return self.root / EXAMPLE_INPUTS_FOLDER
+
     @staticmethod
     def _raise_invalid_project(msg, e):
         LOG.debug(msg, exc_info=e)
@@ -174,6 +181,7 @@ class Project:  # pylint: disable=too-many-instance-attributes
         self.runtime = raw_settings["runtime"]
         self.entrypoint = raw_settings["entrypoint"]
         self.test_entrypoint = raw_settings["testEntrypoint"]
+        self.executable_entrypoint = raw_settings.get("executableEntrypoint")
         self._plugin = load_plugin(raw_settings["language"])
         self.settings = raw_settings.get("settings", {})
 
@@ -189,6 +197,26 @@ class Project:  # pylint: disable=too-many-instance-attributes
 
         self.safewrite(self.schema_path, _write)
 
+    def _write_example_inputs(self):
+
+        shutil.rmtree(self.example_inputs_path, ignore_errors=True)
+        self.example_inputs_path.mkdir(exist_ok=True)
+
+        template = self.env.get_template("inputs.json")
+        properties = list(self.schema["properties"].keys())
+
+        for inputs_file in (
+            "inputs_1_create.json",
+            "inputs_1_update.json",
+            "inputs_1_invalid.json",
+        ):
+            self.safewrite(
+                self.example_inputs_path / inputs_file,
+                template.render(
+                    properties=properties[:-1], last_property=properties[-1]
+                ),
+            )
+
     def write_settings(self):
         if self.runtime not in LAMBDA_RUNTIMES:
             LOG.critical(
@@ -197,6 +225,11 @@ class Project:  # pylint: disable=too-many-instance-attributes
             raise InternalError("Internal error (Plugin returned invalid runtime)")
 
         def _write(f):
+            executable_entrypoint_dict = (
+                {"executableEntrypoint": self.executable_entrypoint}
+                if self.executable_entrypoint
+                else {}
+            )
             json.dump(
                 {
                     "typeName": self.type_name,
@@ -205,6 +238,7 @@ class Project:  # pylint: disable=too-many-instance-attributes
                     "entrypoint": self.entrypoint,
                     "testEntrypoint": self.test_entrypoint,
                     "settings": self.settings,
+                    **executable_entrypoint_dict,
                 },
                 f,
                 indent=4,
@@ -220,6 +254,7 @@ class Project:  # pylint: disable=too-many-instance-attributes
         self.settings = settings or {}
 
         self._write_example_schema()
+        self._write_example_inputs()
         self._plugin.init(self)
         self.write_settings()
 
@@ -400,6 +435,15 @@ class Project:  # pylint: disable=too-many-instance-attributes
             type_name=self.type_name, schema=docs_schema, ref=ref, getatt=getatt
         )
         self.safewrite(readme_path, contents)
+
+    def generate_image_build_config(self):
+        if not hasattr(self._plugin, "generate_image_build_config"):
+            raise InvalidProjectError(
+                "Plugin for the {} runtime does not support building an image".format(
+                    self.runtime
+                )
+            )
+        return self._plugin.generate_image_build_config(self)
 
     @staticmethod
     def _get_docs_primary_identifier(docs_schema):

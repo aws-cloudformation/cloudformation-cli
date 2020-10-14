@@ -9,6 +9,7 @@ from logging.config import dictConfig
 from colorama import colorama_text
 
 from .__init__ import __version__
+from .build_image import setup_subparser as build_image_setup_subparser
 from .data_loaders import resource_yaml
 from .exceptions import DownstreamError, SysExitRecommendedError
 from .generate import setup_subparser as generate_setup_subparser
@@ -86,6 +87,7 @@ def main(args_in=None):  # pylint: disable=too-many-statements
         test_setup_subparser(subparsers, parents)
         invoke_setup_subparser(subparsers, parents)
         unittest_patch_setup_subparser(subparsers, parents)
+        build_image_setup_subparser(subparsers, parents)
         args = parser.parse_args(args=args_in)
 
         setup_logging(args.verbose)
@@ -104,6 +106,7 @@ def main(args_in=None):  # pylint: disable=too-many-statements
         # some cases where it makes sense for the commands to raise SystemExit.)
         log.debug("Caught exit recommendation", exc_info=e)
         log.critical(str(e))
+        # pylint: disable=W0707
         raise SystemExit(1)
     except DownstreamError as e:
         # For these operations, we don't want to swallow the exception
@@ -124,6 +127,7 @@ def main(args_in=None):  # pylint: disable=too-many-statements
             "https://github.com/aws-cloudformation/aws-cloudformation-rpdk/issues",
             file=sys.stderr,
         )
+        # pylint: disable=W0707
         raise SystemExit(2)
     except Exception:  # pylint: disable=broad-except
         print("=== Unhandled exception ===", file=sys.stderr)
@@ -142,4 +146,5 @@ def main(args_in=None):  # pylint: disable=too-many-statements
             import traceback  # pylint: disable=import-outside-toplevel
 
             traceback.print_exc()
+        # pylint: disable=W0707
         raise SystemExit(EXIT_UNHANDLED_EXCEPTION)

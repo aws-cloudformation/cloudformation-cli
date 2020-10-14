@@ -156,6 +156,7 @@ def schema_merge(target, src, path):  # noqa: C901
                             "Object at path '{path}' declared multiple values "
                             "for '{}': found '{}' and '{}'"
                         )
+                        # pylint: disable=W0707
                         raise ConstraintError(msg, path, key, target_schema, src_schema)
                     target[key] = src_schema
     return target
