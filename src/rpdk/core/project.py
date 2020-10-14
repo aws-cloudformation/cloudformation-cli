@@ -412,8 +412,10 @@ class Project:  # pylint: disable=too-many-instance-attributes
         LOG.debug("Writing generated docs")
 
         # take care not to modify the master schema
-        docs_schema = self.schema
-        self._flattened_schema = JsonSchemaFlattener(self.schema).flatten_schema()
+        docs_schema = json.loads(json.dumps(self.schema))
+        self._flattened_schema = JsonSchemaFlattener(
+            json.loads(json.dumps(self.schema))
+        ).flatten_schema()
 
         docs_schema["properties"] = {
             name: self._set_docs_properties(name, value, (name,))

@@ -24,37 +24,6 @@ PRIMITIVE_TYPES = (
     pytest.param({"type": "array", "items": {}}, id="array_items"),
 )
 REF_PATHS = ((), ("definitions",), ("definitions", "a"))
-CIRCULAR_SCHEMAS = (
-    pytest.param({"properties": {"a": {"$ref": "#/properties/a"}}}, id="self"),
-    pytest.param(
-        {
-            "properties": {
-                "a": {"$ref": "#/properties/z"},
-                "z": {"$ref": "#/properties/a"},
-            }
-        },
-        id="each_other",
-    ),
-    pytest.param(
-        {
-            "properties": {
-                "a": {"$ref": "#/properties/b"},
-                "b": {"$ref": "#/properties/c"},
-                "c": {"$ref": "#/properties/a"},
-            }
-        },
-        id="indirect",
-    ),
-    pytest.param(
-        {
-            "properties": {
-                "a": {"$ref": "#/properties/b"},
-                "b": {"properties": {"a": {"$ref": "#/properties/a"}}},
-            }
-        },
-        id="nested",
-    ),
-)
 
 
 @pytest.mark.parametrize("primitive_type", PRIMITIVE_TYPES)
@@ -414,11 +383,46 @@ def test_flattener_full_example():
     assert flattened == AREA_DEFINITION_FLATTENED
 
 
-@pytest.mark.parametrize("test_schema", CIRCULAR_SCHEMAS)
-def test_circular_reference(test_schema):
+def test_circular_reference_self():
+    test_schema = {"properties": {"a": {"$ref": "#/properties/a"}}}
     flattener = JsonSchemaFlattener(test_schema)
-    flattened_schema = flattener.flatten_schema()
-    assert flattened_schema
+    flattened = flattener._walk({"$ref": "#/properties/a"}, ())
+    assert flattened == {"$ref": ("properties", "a")}
+
+
+def test_circular_reference_nested():
+    test_schema = {
+        "properties": {
+            "a": {
+                "properties": {"b": {"type": "string"}, "c": {"$ref": "#/properties/a"}}
+            }
+        }
+    }
+    flattener = JsonSchemaFlattener(test_schema)
+    flattened = flattener._walk({"$ref": "#/properties/a"}, ())
+
+    assert flattened == {"$ref": ("properties", "a")}
+    assert flattener._schema_map[("properties", "a")] == {
+        "properties": {"b": {"type": "string"}, "c": {"$ref": ("properties", "a")}}
+    }
+
+
+def test_circular_reference_indirect():
+    test_schema = {
+        "properties": {
+            "a": {"$ref": "#/properties/b"},
+            "b": {"$ref": "#/properties/c"},
+            "c": {"$ref": "#/properties/a"},
+        }
+    }
+    flattener = JsonSchemaFlattener(test_schema)
+    flattened_a = flattener._walk({"$ref": "#/properties/a"}, ())
+    flattened_b = flattener._walk({"$ref": "#/properties/b"}, ())
+    flattened_c = flattener._walk({"$ref": "#/properties/c"}, ())
+
+    assert flattened_a == {"$ref": ("properties", "a")}
+    assert flattened_b == {"$ref": ("properties", "b")}
+    assert flattened_c == {"$ref": ("properties", "c")}
 
 
 def test__flatten_ref_type_invalid():
