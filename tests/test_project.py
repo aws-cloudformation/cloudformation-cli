@@ -243,7 +243,6 @@ def test_generate_with_docs(project, tmp_path_factory, schema_path, path):
     assert readme_file.is_file()
     with patch.object(project, "_plugin", mock_plugin):
         project.generate()
-        project.generate_docs()
     readme_contents = readme_file.read_text(encoding="utf-8")
     assert project.type_name in readme_contents
 
@@ -269,7 +268,6 @@ def test_generate_docs_with_multityped_property(project, tmp_path_factory):
     assert readme_file.is_file()
     with patch.object(project, "_plugin", mock_plugin):
         project.generate()
-        project.generate_docs()
     readme_contents = readme_file.read_text(encoding="utf-8")
     readme_contents_target = resource_stream(
         __name__, "data/schema/target_output/multityped.md"

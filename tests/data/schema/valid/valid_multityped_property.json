@@ -11,6 +11,14 @@
                     "minLength": 2
                 }
             }
+        },
+        "property2": {
+            "type": "object",
+            "properties": {
+                "property2": {
+                    "$ref": "#/definitions/property2"
+                }
+            }
         }
     },
     "properties": {
@@ -36,6 +44,9 @@
                 }
             ],
             "description": "some description"
+        },
+        "property2": {
+            "$ref": "#/definitions/property2"
         },
         "obj1": {
             "type": "object",
