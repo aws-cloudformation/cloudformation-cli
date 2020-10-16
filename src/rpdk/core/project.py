@@ -531,7 +531,7 @@ class Project:  # pylint: disable=too-many-instance-attributes
             prop["readonly"] = True
 
         # join multiple types
-        def __join(item1, item2):  # join for multi-types
+        def __join(item1, item2):
             if not item1 or item2 == item1:
                 return item2
             return "{}, {}".format(item1, item2)
