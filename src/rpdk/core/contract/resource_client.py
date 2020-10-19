@@ -327,6 +327,7 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
                 "callerCredentials": creds,
                 "resourceProperties": desired_resource_state,
                 "previousResourceProperties": previous_resource_state,
+                "logicalResourceId": token,
             },
             "region": region,
             "awsAccountId": account,
@@ -413,6 +414,7 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
             "requestData": {
                 "resourceProperties": request_without_write_properties,
                 "previousResourceProperties": previous_request_without_write_properties,
+                "logicalResourceId": payload["requestData"]["logicalResourceId"],
             },
             "region": payload["region"],
             "awsAccountId": payload["awsAccountId"],
