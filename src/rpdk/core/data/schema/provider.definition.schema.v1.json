@@ -74,9 +74,7 @@
         "replacementStrategy": {
             "type": "string",
             "description": "The valid replacement strategies are create_then_delete and delete_then_create. All other inputs are invalid.",
-            "default": [
-                "create_then_delete"
-            ],
+            "default": "create_then_delete",
             "enum": [
                 "create_then_delete",
                 "delete_then_create"
