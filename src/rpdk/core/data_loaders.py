@@ -92,8 +92,8 @@ def get_file_base_uri(file):
 
 
 def _is_in(schema, key):
-    def contains(values):
-        return set(values).issubset(set(schema.get(key, [])))
+    def contains(value):
+        return value in schema.get(key, [])
 
     return contains
 
@@ -116,12 +116,15 @@ def load_resource_spec(resource_spec_file):  # noqa: C901
     in_readonly = _is_in(resource_spec, "readOnlyProperties")
     in_createonly = _is_in(resource_spec, "createOnlyProperties")
 
-    primary_id = resource_spec["primaryIdentifier"]
-    if not in_readonly(primary_id) and not in_createonly(primary_id):
-        LOG.warning(
-            "Property 'primaryIdentifier' must be specified \
-as either readOnly or createOnly"
-        )
+    primary_ids = resource_spec["primaryIdentifier"]
+
+    for primary_id in primary_ids:
+        if not in_readonly(primary_id) and not in_createonly(primary_id):
+            LOG.warning(
+                "Property 'primaryIdentifier' - %s must be specified \
+as either readOnly or createOnly",
+                primary_id,
+            )
 
     # TODO: more general validation framework
     if "remote" in resource_spec:
