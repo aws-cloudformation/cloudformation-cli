@@ -421,7 +421,7 @@ class Project:  # pylint: disable=too-many-instance-attributes
             name: self._set_docs_properties(name, value, (name,))
             for name, value in self._flattened_schema[()]["properties"].items()
         }
-        docs_schema["required"] = self._flattened_schema[()].get("required")
+        docs_schema["required"] = self._flattened_schema[()].get("required", [])
 
         LOG.debug("Finished documenting nested properties")
 
