@@ -166,6 +166,7 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         self.read_only_paths = self._properties_to_paths("readOnlyProperties")
         self.write_only_paths = self._properties_to_paths("writeOnlyProperties")
         self.create_only_paths = self._properties_to_paths("createOnlyProperties")
+        self.insertion_order = self.get_metadata("insertionOrder")
 
         additional_identifiers = self._schema.get("additionalIdentifiers", [])
         self._additional_identifiers_paths = [
@@ -185,6 +186,21 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
                 for write_only_property in self.write_only_paths
             ), "The model MUST NOT return properties defined as \
                 writeOnlyProperties in the resource schema"
+
+    def get_metadata(self, metadata_key):
+        metadata = []
+        try:
+            properties = self._schema["properties"]
+        except KeyError:
+            return metadata
+
+        for prop in properties:
+            try:
+                if properties[prop][metadata_key] == "false":
+                    metadata.append(prop)
+            except KeyError:
+                continue
+        return metadata
 
     @property
     def strategy(self):
