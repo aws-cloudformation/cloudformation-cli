@@ -264,7 +264,7 @@ def test_get_metadata(resource_client):
         "createOnlyProperties": ["/properties/d"],
     }
     resource_client._update_schema(schema)
-    assert resource_client.get_metadata() == ["b"]
+    assert resource_client.get_metadata() == {"b"}
 
 
 def test_update_schema(resource_client):

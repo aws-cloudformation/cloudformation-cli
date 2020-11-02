@@ -188,21 +188,17 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
                 writeOnlyProperties in the resource schema"
 
     def get_metadata(self):
-        metadata = []
         try:
             properties = self._schema["properties"]
         except KeyError:
-            return metadata
-
-        metadata.append(
-            [
+            return set()
+        else:
+            return {
                 prop
                 for prop in properties.keys()
                 if "insertionOrder" in properties[prop]
                 and properties[prop]["insertionOrder"] == "false"
-            ]
-        )
-        return metadata[0]
+            }
 
     @property
     def strategy(self):
