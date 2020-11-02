@@ -252,6 +252,21 @@ def test_make_request():
     }
 
 
+def test_get_metadata(resource_client):
+    schema = {
+        "properties": {
+            "a": {"type": "array", "const": 1, "insertionOrder": "true"},
+            "b": {"type": "number", "const": 2, "insertionOrder": "false"},
+            "c": {"type": "number", "const": 3},
+            "d": {"type": "number", "const": 4},
+        },
+        "readOnlyProperties": ["/properties/c"],
+        "createOnlyProperties": ["/properties/d"],
+    }
+    resource_client._update_schema(schema)
+    assert resource_client.get_metadata() == {"b"}
+
+
 def test_update_schema(resource_client):
     resource_client._strategy = object()
 
