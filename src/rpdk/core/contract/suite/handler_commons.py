@@ -169,10 +169,7 @@ def test_input_equals_output(resource_client, input_model, output_model):
     # ignoring extraneous properties that maybe present in output model.
     try:
         for key in pruned_input_model:
-            if (
-                pruned_input_model[key]
-                in resource_client.properties_without_insertion_order
-            ):
+            if key in resource_client.properties_without_insertion_order:
                 assert test_unordered_list_match(
                     pruned_input_model[key], pruned_output_model[key]
                 )
