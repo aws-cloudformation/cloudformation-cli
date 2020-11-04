@@ -11,7 +11,7 @@ def get_plugin_choices():
         entry_point.name
         for entry_point in pkg_resources.iter_entry_points("rpdk.v1.languages")
     ]
-    return sorted(plugin_choices)
+    return sorted(set(plugin_choices))
 
 
 def get_parsers():
