@@ -2,7 +2,7 @@
 import logging
 
 from .pointer import fragment_decode
-from .utils import ConstraintError, FlatteningError, schema_merge, traverse
+from .utils import REF, TYPE, ConstraintError, FlatteningError, schema_merge, traverse
 
 LOG = logging.getLogger(__name__)
 COMBINERS = ("oneOf", "anyOf", "allOf")
@@ -50,7 +50,6 @@ class JsonSchemaFlattener:
         except KeyError:
             # schemas without type are assumed to be objects
             json_type = sub_schema.get("type", "object")
-
             if json_type == "array":
                 sub_schema = self._flatten_array_type(sub_schema, property_path)
 
@@ -158,18 +157,25 @@ class JsonSchemaFlattener:
                 schema_array = sub_schema.pop(arr_key)
             except KeyError:
                 continue
-            for i, nested_schema in enumerate(schema_array):
-                ref_path = path + (arr_key, i)
-                ref_path_is_used = ref_path in self._schema_map
-                walked_schema = self._walk(nested_schema, ref_path)
+            else:
+                for i, nested_schema in enumerate(schema_array):
 
-                # if no other schema is referencing the ref_path,
-                # we no longer need the refkey since the properties will be squashed
-                if ref_path_is_used:
-                    resolved_schema = self._schema_map.get(ref_path)
-                else:
-                    resolved_schema = self._schema_map.pop(ref_path, walked_schema)
-                schema_merge(sub_schema, resolved_schema, path)
+                    ref_path = path + (arr_key, i)
+                    ref_path_is_used = ref_path in self._schema_map
+                    walked_schema = self._walk(nested_schema, ref_path)
+
+                    # if no other schema is referencing the ref_path,
+                    # we no longer need the refkey since the properties will be squashed
+                    if ref_path_is_used:
+                        resolved_schema = self._schema_map.get(ref_path)
+                    else:
+                        resolved_schema = self._schema_map.pop(ref_path, walked_schema)
+                    schema_merge(sub_schema, resolved_schema, path)
+
+        if REF in sub_schema and isinstance(
+            sub_schema.get(TYPE), list
+        ):  # check if there are conflicting $ref and type at the same sub schema
+            sub_schema.pop(REF)
         return sub_schema
 
     def _find_subschema_by_ref(self, ref_path):

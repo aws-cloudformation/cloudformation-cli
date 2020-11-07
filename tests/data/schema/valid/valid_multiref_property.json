@@ -1,0 +1,93 @@
+{
+    "typeName": "AWS::Valid::TypeName",
+    "description": "a test schema",
+    "definitions": {
+        "Properties2": {
+            "type": "object",
+            "properties": {
+                "PropertyC": {
+                    "type": "string"
+                }
+            }
+        },
+        "Properties3": {
+            "type": "object",
+            "properties": {
+                "PropertyB": {
+                    "type": "string"
+                },
+                "PropertyZ": {
+                    "$ref": "#/definitions/Properties3"
+                }
+            }
+        },
+        "Properties4": {
+            "type": "object",
+            "properties": {
+                "PropertyB": {
+                    "type": "string"
+                }
+            }
+        }
+    },
+    "properties": {
+        "PropertyA": {
+            "oneOf": [
+                {
+                    "$ref": "#/definitions/Properties4"
+                },
+                {
+                    "$ref": "#/definitions/Properties3"
+                }
+            ]
+        },
+        "PropertyJ": {
+            "oneOf": [
+                {
+                    "type": "string",
+                    "minLength": 3
+                },
+                {
+                    "type": "string",
+                    "minLength": 13
+                }
+            ]
+        },
+        "MultiProperty": {
+            "oneOf": [
+                {
+                    "$ref": "#/definitions/Properties2"
+                },
+                {
+                    "$ref": "#/definitions/Properties4"
+                },
+                {
+                    "$ref": "#/definitions/Properties4"
+                },
+                {
+                    "$ref": "#/definitions/Properties3"
+                },
+                {
+                    "type": "object"
+                }
+            ]
+        },
+        "MultiProperty2": {
+            "oneOf": [
+                {
+                    "type": "integer"
+                },
+                {
+                    "type": "object"
+                }
+            ]
+        }
+    },
+    "additionalProperties": false,
+    "createOnlyProperties": [
+        "/properties/MultiProperty"
+    ],
+    "primaryIdentifier": [
+        "/properties/MultiProperty"
+    ]
+}

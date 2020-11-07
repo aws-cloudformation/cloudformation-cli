@@ -646,7 +646,6 @@ class Project:  # pylint: disable=too-many-instance-attributes
             prop[jsontype] = __join(prop.get(jsontype), type_json)
             prop[yamltype] = __join(prop.get(yamltype), type_yaml)
             prop[longformtype] = __join(prop.get(longformtype), type_longform)
-
             if "enum" in prop:
                 prop["allowedvalues"] = prop["enum"]
 
@@ -657,12 +656,19 @@ class Project:  # pylint: disable=too-many-instance-attributes
             prop_type = [prop_type]
             single_item = True
 
-        visited = set()
         for prop_item in prop_type:
-            if prop_item not in visited:
-                visited.add(prop_item)
+            if isinstance(prop_item, tuple):  # if tuple, then it's a ref
+                # using doc method to generate the mdo and reassign the ref
+                resolved = self._set_docs_properties(
+                    propname, {"$ref": prop_item}, proppath
+                )
+                prop[jsontype] = __join(prop.get(jsontype), resolved[jsontype])
+                prop[yamltype] = __join(prop.get(yamltype), resolved[yamltype])
+                prop[longformtype] = __join(
+                    prop.get(longformtype), resolved[longformtype]
+                )
+            else:
                 __set_property_type(prop_item, single_type=single_item)
-
         return prop
 
     def _upload(

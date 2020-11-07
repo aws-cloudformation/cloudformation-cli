@@ -2,7 +2,9 @@ from collections.abc import Mapping, Sequence
 
 from .pointer import fragment_encode
 
-NON_MERGABLE_KEYS = ("$ref", "uniqueItems", "insertionOrder")
+NON_MERGABLE_KEYS = ("uniqueItems", "insertionOrder")
+TYPE = "type"
+REF = "$ref"
 
 
 class FlatteningError(Exception):
@@ -98,7 +100,7 @@ def traverse(document, path_parts):
     return document, tuple(path), parent
 
 
-def schema_merge(target, src, path):  # noqa: C901
+def schema_merge(target, src, path):  # noqa: C901 # pylint: disable=R0912
     """Merges the src schema into the target schema in place.
 
     If there are duplicate keys, src will overwrite target.
@@ -138,11 +140,17 @@ def schema_merge(target, src, path):  # noqa: C901
             try:
                 target[key] = schema_merge(target_schema, src_schema, next_path)
             except TypeError:
-                if key == "type":
-                    if isinstance(target_schema, list):
-                        target_schema.append(src_schema)
-                        continue
-                    target[key] = [target_schema, src_schema]
+                if key in (TYPE, REF):  # combining multiple $ref and types
+                    if isinstance(
+                        target.get(TYPE), list
+                    ):  # check not to add duplicates
+
+                        if src_schema not in target[TYPE]:
+                            target[TYPE].append(src_schema)
+                    else:
+                        target[TYPE] = [target_schema]
+                        if src_schema != target_schema:
+                            target[TYPE].append(src_schema)
                 elif key == "required":
                     target[key] = sorted(set(target_schema) | set(src_schema))
                 else:

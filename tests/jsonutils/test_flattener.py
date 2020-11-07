@@ -327,10 +327,8 @@ def test_flatten_combiners_flattened_before_merge_failed_but_should_not(combiner
         },
     }
 
-    flattener = JsonSchemaFlattener(test_schema)
-    with pytest.raises(ConstraintError) as excinfo:
-        flattener.flatten_schema()
-    assert "declared multiple values for '$ref'" in str(excinfo.value)
+    flattened_schema = JsonSchemaFlattener(test_schema).flatten_schema()
+    assert isinstance(flattened_schema[()]["properties"]["p"]["type"], list)
 
 
 def test_contraint_array_additional_items_valid():
