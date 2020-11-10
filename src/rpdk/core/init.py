@@ -3,6 +3,7 @@
 import argparse
 import logging
 import re
+import readline  # noqa: F401 (This is implicitly used by the input() method) pylint: disable=unused-import
 from functools import wraps
 
 from colorama import Fore, Style
