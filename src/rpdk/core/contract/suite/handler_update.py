@@ -29,7 +29,7 @@ def updated_resource(resource_client):
         )
 
         updated_input_model = prune_properties_from_model(
-            updated_input_model, resource_client.read_only_paths
+            updated_input_model.copy(), resource_client.read_only_paths
         )
 
         _status, response, _error = resource_client.call_and_assert(
