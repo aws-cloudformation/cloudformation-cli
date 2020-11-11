@@ -7,7 +7,7 @@ from .utils import BASE, fragment_encode
 
 UNDEFINED = "undefined"
 MULTIPLE = "multiple"
-DEFAULT = "default"
+FORMAT_DEFAULT = "default"
 
 
 class ContainerType(Enum):
@@ -20,7 +20,7 @@ class ContainerType(Enum):
 
 
 class ResolvedType:
-    def __init__(self, container, item_type, type_format=DEFAULT):
+    def __init__(self, container, item_type, type_format=FORMAT_DEFAULT):
         self.container = container
         self.type = item_type
         self.type_format = type_format
@@ -135,7 +135,9 @@ class ModelResolver:
     @staticmethod
     def _get_primitive_lang_type(schema_type, property_schema):
         return ResolvedType(
-            ContainerType.PRIMITIVE, schema_type, property_schema.get("format", DEFAULT)
+            ContainerType.PRIMITIVE,
+            schema_type,
+            property_schema.get("format", FORMAT_DEFAULT),
         )
 
     def _get_array_lang_type(self, property_schema):
