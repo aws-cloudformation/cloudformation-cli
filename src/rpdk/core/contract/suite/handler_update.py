@@ -24,12 +24,10 @@ def updated_resource(resource_client):
         created_model = model = response["resourceModel"]
         test_input_equals_output(resource_client, input_model, created_model)
 
-        updated_input_model = update_request = resource_client.generate_update_example(
-            created_model
-        )
+        update_request = resource_client.generate_update_example(created_model)
 
         updated_input_model = prune_properties_from_model(
-            updated_input_model, resource_client.read_only_paths
+            update_request.copy(), resource_client.read_only_paths
         )
 
         _status, response, _error = resource_client.call_and_assert(
