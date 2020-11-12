@@ -159,31 +159,6 @@ def test_input_equals_output(resource_client, input_model, output_model):
         pruned_output_model, pruned_input_model, resource_client.create_only_paths
     )
 
-    assertion_error_message = (
-        "All properties specified in the request MUST "
-        "be present in the model returned, and they MUST"
-        " match exactly, with the exception of properties"
-        " defined as writeOnlyProperties in the resource schema"
+    response_contains_resource_model_equal_current_model(
+        resource_client, pruned_input_model, pruned_output_model
     )
-    # only comparing properties in input model to those in output model and
-    # ignoring extraneous properties that maybe present in output model.
-    try:
-        for key in pruned_input_model:
-            if key in resource_client.properties_without_insertion_order:
-                assert test_unordered_list_match(
-                    pruned_input_model[key], pruned_output_model[key]
-                )
-            else:
-                assert (
-                    pruned_input_model[key] == pruned_output_model[key]
-                ), assertion_error_message
-    except KeyError as e:
-        raise AssertionError(assertion_error_message) from e
-
-
-def test_unordered_list_match(inputs, outputs):
-    assert len(inputs) == len(outputs)
-    try:
-        assert all(input in outputs for input in inputs)
-    except KeyError as exception:
-        raise AssertionError("lists do not match") from exception

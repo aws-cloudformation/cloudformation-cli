@@ -78,17 +78,6 @@ def response_does_not_contain_write_only_properties(resource_client, response):
 
 
 @decorate()
-def response_contains_resource_model_equal_current_model(
-    response, current_resource_model
-):
-    assert (
-        response["resourceModel"] == current_resource_model
-    ), "All properties specified in the request MUST be present in the model \
-        returned, and they MUST match exactly, with the exception of properties\
-             defined as writeOnlyProperties in the resource schema"
-
-
-@decorate()
 def response_contains_resource_model_equal_updated_model(
     response, current_resource_model, update_resource_model
 ):
@@ -139,3 +128,34 @@ def failed_event(error_code, msg=""):
         return wrapper
 
     return decorator_wrapper
+
+
+@decorate
+def response_contains_resource_model_equal_current_model(
+    resource_client, input_model, output_model
+):
+    # only comparing properties in input model to those in output model and
+    # ignoring extraneous properties that maybe present in output model.
+    assertion_error_message = (
+        "All properties specified in the request MUST "
+        "be present in the model returned, and they MUST"
+        " match exactly, with the exception of properties"
+        " defined as writeOnlyProperties in the resource schema"
+    )
+    output_model = output_model["resourceModel"]
+    try:
+        for key in input_model:
+            if key in resource_client.properties_without_insertion_order:
+                assert test_unordered_list_match(input_model[key], output_model[key])
+            else:
+                assert input_model[key] == output_model[key], assertion_error_message
+    except KeyError as e:
+        raise AssertionError(assertion_error_message) from e
+
+
+def test_unordered_list_match(inputs, outputs):
+    assert len(inputs) == len(outputs)
+    try:
+        assert all(input in outputs for input in inputs)
+    except KeyError as exception:
+        raise AssertionError("lists do not match") from exception
