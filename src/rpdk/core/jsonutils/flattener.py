@@ -156,7 +156,7 @@ class JsonSchemaFlattener:
             try:
                 schema_array = sub_schema.pop(arr_key)
             except KeyError:
-                continue
+                pass
             else:
                 for i, nested_schema in enumerate(schema_array):
 
@@ -171,10 +171,13 @@ class JsonSchemaFlattener:
                     else:
                         resolved_schema = self._schema_map.pop(ref_path, walked_schema)
                     schema_merge(sub_schema, resolved_schema, path)
-
         if REF in sub_schema and isinstance(
             sub_schema.get(TYPE), list
         ):  # check if there are conflicting $ref and type at the same sub schema
+            # conflicting $ref could happen only on combiners because method merges
+            # two json objects without losing any previous info, hence have to pop
+            # e.g. "oneOf": [{"$ref": "..#1.."},{"$ref": "..#2.."}] ->
+            # { "ref": "..#1..", "type": [{},{}] }
             sub_schema.pop(REF)
         return sub_schema
 

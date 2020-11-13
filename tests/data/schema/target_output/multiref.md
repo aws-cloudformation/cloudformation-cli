@@ -12,10 +12,14 @@ To declare this entity in your AWS CloudFormation template, use the following sy
 {
     "Type" : "AWS::Color::Red",
     "Properties" : {
-        "<a href="#propertya" title="PropertyA">PropertyA</a>" : <i><a href="properties4.md">Properties4</a>, <a href="properties3.md">Properties3</a></i>,
-        "<a href="#propertyj" title="PropertyJ">PropertyJ</a>" : <i>String</i>,
-        "<a href="#multiproperty" title="MultiProperty">MultiProperty</a>" : <i><a href="properties2.md">Properties2</a>, <a href="properties4.md">Properties4</a>, <a href="properties3.md">Properties3</a>, Map</i>,
-        "<a href="#multiproperty2" title="MultiProperty2">MultiProperty2</a>" : <i>Integer, Map</i>
+        "<a href="#primaryid" title="primaryID">primaryID</a>" : <i>String</i>,
+        "<a href="#propertywithmultipleconstraints" title="PropertyWithMultipleConstraints">PropertyWithMultipleConstraints</a>" : <i>String</i>,
+        "<a href="#propertywithmultipleprimitives" title="PropertyWithMultiplePrimitives">PropertyWithMultiplePrimitives</a>" : <i>Integer, String, Map</i>,
+        "<a href="#propertywithtwocomplextypes" title="PropertyWithTwoComplexTypes">PropertyWithTwoComplexTypes</a>" : <i><a href="complextypewithoneprimitive.md">ComplexTypeWithOnePrimitive</a>, <a href="complextypewithmultipleprimitives.md">ComplexTypeWithMultiplePrimitives</a></i>,
+        "<a href="#propertywithmultiplecomplextypes" title="PropertyWithMultipleComplexTypes">PropertyWithMultipleComplexTypes</a>" : <i><a href="complextypewithoneprimitive.md">ComplexTypeWithOnePrimitive</a>, <a href="complextypewithmultipleprimitives.md">ComplexTypeWithMultiplePrimitives</a>, <a href="complextypewithcircularref.md">ComplexTypeWithCircularRef</a></i>,
+        "<a href="#propertywithmultiplecomplextypesandoneprimitive" title="PropertyWithMultipleComplexTypesAndOnePrimitive">PropertyWithMultipleComplexTypesAndOnePrimitive</a>" : <i><a href="complextypewithoneprimitive.md">ComplexTypeWithOnePrimitive</a>, <a href="complextypewithmultipleprimitives.md">ComplexTypeWithMultiplePrimitives</a>, <a href="complextypewithcircularref.md">ComplexTypeWithCircularRef</a>, Map</i>,
+        "<a href="#propertywithcomplextypeandprimitive" title="PropertyWithComplexTypeAndPrimitive">PropertyWithComplexTypeAndPrimitive</a>" : <i><a href="complextypewithoneprimitive.md">ComplexTypeWithOnePrimitive</a></i>,
+        "<a href="#multiproperty3" title="MultiProperty3">MultiProperty3</a>" : <i>Integer, Map</i>
     }
 }
 </pre>
@@ -25,23 +29,27 @@ To declare this entity in your AWS CloudFormation template, use the following sy
 <pre>
 Type: AWS::Color::Red
 Properties:
-    <a href="#propertya" title="PropertyA">PropertyA</a>: <i><a href="properties4.md">Properties4</a>, <a href="properties3.md">Properties3</a></i>
-    <a href="#propertyj" title="PropertyJ">PropertyJ</a>: <i>String</i>
-    <a href="#multiproperty" title="MultiProperty">MultiProperty</a>: <i><a href="properties2.md">Properties2</a>, <a href="properties4.md">Properties4</a>, <a href="properties3.md">Properties3</a>, Map</i>
-    <a href="#multiproperty2" title="MultiProperty2">MultiProperty2</a>: <i>Integer, Map</i>
+    <a href="#primaryid" title="primaryID">primaryID</a>: <i>String</i>
+    <a href="#propertywithmultipleconstraints" title="PropertyWithMultipleConstraints">PropertyWithMultipleConstraints</a>: <i>String</i>
+    <a href="#propertywithmultipleprimitives" title="PropertyWithMultiplePrimitives">PropertyWithMultiplePrimitives</a>: <i>Integer, String, Map</i>
+    <a href="#propertywithtwocomplextypes" title="PropertyWithTwoComplexTypes">PropertyWithTwoComplexTypes</a>: <i><a href="complextypewithoneprimitive.md">ComplexTypeWithOnePrimitive</a>, <a href="complextypewithmultipleprimitives.md">ComplexTypeWithMultiplePrimitives</a></i>
+    <a href="#propertywithmultiplecomplextypes" title="PropertyWithMultipleComplexTypes">PropertyWithMultipleComplexTypes</a>: <i><a href="complextypewithoneprimitive.md">ComplexTypeWithOnePrimitive</a>, <a href="complextypewithmultipleprimitives.md">ComplexTypeWithMultiplePrimitives</a>, <a href="complextypewithcircularref.md">ComplexTypeWithCircularRef</a></i>
+    <a href="#propertywithmultiplecomplextypesandoneprimitive" title="PropertyWithMultipleComplexTypesAndOnePrimitive">PropertyWithMultipleComplexTypesAndOnePrimitive</a>: <i><a href="complextypewithoneprimitive.md">ComplexTypeWithOnePrimitive</a>, <a href="complextypewithmultipleprimitives.md">ComplexTypeWithMultiplePrimitives</a>, <a href="complextypewithcircularref.md">ComplexTypeWithCircularRef</a>, Map</i>
+    <a href="#propertywithcomplextypeandprimitive" title="PropertyWithComplexTypeAndPrimitive">PropertyWithComplexTypeAndPrimitive</a>: <i><a href="complextypewithoneprimitive.md">ComplexTypeWithOnePrimitive</a></i>
+    <a href="#multiproperty3" title="MultiProperty3">MultiProperty3</a>: <i>Integer, Map</i>
 </pre>
 
 ## Properties
 
-#### PropertyA
+#### primaryID
 
 _Required_: No
 
-_Type_: <a href="properties4.md">Properties4</a>, <a href="properties3.md">Properties3</a>
+_Type_: String
 
-_Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
+_Update requires_: [Replacement](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-replacement)
 
-#### PropertyJ
+#### PropertyWithMultipleConstraints
 
 _Required_: No
 
@@ -51,15 +59,47 @@ _Minimum_: <code>13</code>
 
 _Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
 
-#### MultiProperty
+#### PropertyWithMultiplePrimitives
 
 _Required_: No
 
-_Type_: <a href="properties2.md">Properties2</a>, <a href="properties4.md">Properties4</a>, <a href="properties3.md">Properties3</a>, Map
+_Type_: Integer, String, Map
 
-_Update requires_: [Replacement](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-replacement)
+_Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
 
-#### MultiProperty2
+#### PropertyWithTwoComplexTypes
+
+_Required_: No
+
+_Type_: <a href="complextypewithoneprimitive.md">ComplexTypeWithOnePrimitive</a>, <a href="complextypewithmultipleprimitives.md">ComplexTypeWithMultiplePrimitives</a>
+
+_Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
+
+#### PropertyWithMultipleComplexTypes
+
+_Required_: No
+
+_Type_: <a href="complextypewithoneprimitive.md">ComplexTypeWithOnePrimitive</a>, <a href="complextypewithmultipleprimitives.md">ComplexTypeWithMultiplePrimitives</a>, <a href="complextypewithcircularref.md">ComplexTypeWithCircularRef</a>
+
+_Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
+
+#### PropertyWithMultipleComplexTypesAndOnePrimitive
+
+_Required_: No
+
+_Type_: <a href="complextypewithoneprimitive.md">ComplexTypeWithOnePrimitive</a>, <a href="complextypewithmultipleprimitives.md">ComplexTypeWithMultiplePrimitives</a>, <a href="complextypewithcircularref.md">ComplexTypeWithCircularRef</a>, Map
+
+_Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
+
+#### PropertyWithComplexTypeAndPrimitive
+
+_Required_: No
+
+_Type_: <a href="complextypewithoneprimitive.md">ComplexTypeWithOnePrimitive</a>
+
+_Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
+
+#### MultiProperty3
 
 _Required_: No
 
@@ -71,4 +111,4 @@ _Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormati
 
 ### Ref
 
-When you pass the logical ID of this resource to the intrinsic `Ref` function, Ref returns the MultiProperty.
+When you pass the logical ID of this resource to the intrinsic `Ref` function, Ref returns the primaryID.
