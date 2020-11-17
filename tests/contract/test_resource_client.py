@@ -54,6 +54,31 @@ SCHEMA_WITH_MULTIPLE_WRITE_PROPERTIES = {
     "writeOnlyProperties": ["/properties/d", "/properties/a"],
 }
 
+SCHEMA_ = {
+    "properties": {
+        "a": {"type": "number"},
+        "b": {"type": "number"},
+        "c": {"type": "number"},
+        "d": {"type": "number"},
+    },
+    "readOnlyProperties": ["/properties/b"],
+    "createOnlyProperties": ["/properties/c"],
+    "primaryIdentifier": ["/properties/c"],
+    "writeOnlyProperties": ["/properties/d"],
+}
+
+SCHEMA_WITH_COMPOSITE_KEY = {
+    "properties": {
+        "a": {"type": "number"},
+        "b": {"type": "number"},
+        "c": {"type": "number"},
+        "d": {"type": "number"},
+    },
+    "readOnlyProperties": ["/properties/d"],
+    "createOnlyProperties": ["/properties/c"],
+    "primaryIdentifier": ["/properties/c", "/properties/d"],
+}
+
 
 @pytest.fixture
 def resource_client():
@@ -125,6 +150,96 @@ def resource_client_inputs():
 
     assert client._function_name == DEFAULT_FUNCTION
     assert client._schema == {}
+    assert client._overrides == EMPTY_OVERRIDE
+    assert client.account == ACCOUNT
+
+    return client
+
+
+@pytest.fixture
+def resource_client_inputs_schema():
+    endpoint = "https://"
+    patch_sesh = patch(
+        "rpdk.core.contract.resource_client.create_sdk_session", autospec=True
+    )
+    patch_creds = patch(
+        "rpdk.core.contract.resource_client.get_temporary_credentials",
+        autospec=True,
+        return_value={},
+    )
+    patch_account = patch(
+        "rpdk.core.contract.resource_client.get_account",
+        autospec=True,
+        return_value=ACCOUNT,
+    )
+    with patch_sesh as mock_create_sesh, patch_creds as mock_creds:
+        with patch_account as mock_account:
+            mock_sesh = mock_create_sesh.return_value
+            mock_sesh.region_name = DEFAULT_REGION
+            client = ResourceClient(
+                DEFAULT_FUNCTION,
+                endpoint,
+                DEFAULT_REGION,
+                SCHEMA_,
+                EMPTY_OVERRIDE,
+                {
+                    "CREATE": {"a": 111, "c": 2, "d": 3},
+                    "UPDATE": {"a": 1, "c": 2},
+                    "INVALID": {"c": 3},
+                },
+            )
+
+    mock_sesh.client.assert_called_once_with("lambda", endpoint_url=endpoint)
+    mock_creds.assert_called_once_with(mock_sesh, LOWER_CAMEL_CRED_KEYS, None)
+    mock_account.assert_called_once_with(mock_sesh, {})
+
+    assert client._function_name == DEFAULT_FUNCTION
+    assert client._schema == SCHEMA_
+    assert client._overrides == EMPTY_OVERRIDE
+    assert client.account == ACCOUNT
+
+    return client
+
+
+@pytest.fixture
+def resource_client_inputs_composite_key():
+    endpoint = "https://"
+    patch_sesh = patch(
+        "rpdk.core.contract.resource_client.create_sdk_session", autospec=True
+    )
+    patch_creds = patch(
+        "rpdk.core.contract.resource_client.get_temporary_credentials",
+        autospec=True,
+        return_value={},
+    )
+    patch_account = patch(
+        "rpdk.core.contract.resource_client.get_account",
+        autospec=True,
+        return_value=ACCOUNT,
+    )
+    with patch_sesh as mock_create_sesh, patch_creds as mock_creds:
+        with patch_account as mock_account:
+            mock_sesh = mock_create_sesh.return_value
+            mock_sesh.region_name = DEFAULT_REGION
+            client = ResourceClient(
+                DEFAULT_FUNCTION,
+                endpoint,
+                DEFAULT_REGION,
+                SCHEMA_WITH_COMPOSITE_KEY,
+                EMPTY_OVERRIDE,
+                {
+                    "CREATE": {"a": 111, "c": 2},
+                    "UPDATE": {"a": 1, "c": 2},
+                    "INVALID": {"c": 3},
+                },
+            )
+
+    mock_sesh.client.assert_called_once_with("lambda", endpoint_url=endpoint)
+    mock_creds.assert_called_once_with(mock_sesh, LOWER_CAMEL_CRED_KEYS, None)
+    mock_account.assert_called_once_with(mock_sesh, {})
+
+    assert client._function_name == DEFAULT_FUNCTION
+    assert client._schema == SCHEMA_WITH_COMPOSITE_KEY
     assert client._overrides == EMPTY_OVERRIDE
     assert client.account == ACCOUNT
 
@@ -1058,3 +1173,22 @@ def test_generate_update_example_with_inputs(resource_client_inputs):
 
 def test_generate_invalid_update_example_with_inputs(resource_client_inputs):
     assert resource_client_inputs.generate_invalid_update_example({"a": 1}) == {"b": 2}
+
+
+def test_generate_update_example_with_primary_identifier(resource_client_inputs_schema):
+    created_resource = resource_client_inputs_schema.generate_create_example()
+    updated_resource = resource_client_inputs_schema.generate_update_example(
+        created_resource
+    )
+    assert updated_resource == {"a": 1, "c": 2}
+
+
+def test_generate_update_example_with_composite_key(
+    resource_client_inputs_composite_key,
+):
+    created_resource = resource_client_inputs_composite_key.generate_create_example()
+    created_resource.update({"d": 3})  # mocking value of d as it is a readOnly property
+    updated_resource = resource_client_inputs_composite_key.generate_update_example(
+        created_resource
+    )
+    assert updated_resource == {"a": 1, "c": 2, "d": 3}

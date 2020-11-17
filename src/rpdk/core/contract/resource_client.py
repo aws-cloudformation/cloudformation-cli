@@ -267,9 +267,39 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         example = self.invalid_strategy.example()
         return override_properties(example, self._overrides.get("CREATE", {}))
 
+    def get_unique_keys_for_model(self, create_model):
+        return {
+            k: v
+            for k, v in create_model.items()
+            if self.is_property_in_path(k, self.primary_identifier_paths)
+            or self.is_property_in_path(k, self._additional_identifiers_paths)
+        }
+
+    @staticmethod
+    def is_property_in_path(key, paths):
+        for path in paths:
+            prop = fragment_list(path, "properties")[0]
+            if prop == key:
+                return True
+        return False
+
+    def validate_update_example_keys(self, unique_identifiers, update_example):
+        for primary_identifier in self.primary_identifier_paths:
+            if primary_identifier in self.create_only_paths:
+                primary_key = fragment_list(primary_identifier, "properties")[0]
+                assert update_example[primary_key] == unique_identifiers[primary_key], (
+                    "Any createOnlyProperties specified in update handler input "
+                    "MUST NOT be different from their previous state"
+                )
+
     def generate_update_example(self, create_model):
         if self._inputs:
-            return {**create_model, **self._inputs["UPDATE"]}
+            unique_identifiers = self.get_unique_keys_for_model(create_model)
+            update_example = self._inputs["UPDATE"]
+            if self.create_only_paths:
+                self.validate_update_example_keys(unique_identifiers, update_example)
+            update_example.update(unique_identifiers)
+            return update_example
         overrides = self._overrides.get("UPDATE", self._overrides.get("CREATE", {}))
         example = override_properties(self.update_strategy.example(), overrides)
         return {**create_model, **example}
