@@ -199,6 +199,6 @@ def _invoke_and_expect(status, payload_path, command, *args):
         }
         main(args_in=["invoke", command, str(payload_path), *args])
     # fmt: on
-    mock_creds.assert_called_once()
+    mock_creds.assert_called()
 
     return mock_project, mock_client.invoke
