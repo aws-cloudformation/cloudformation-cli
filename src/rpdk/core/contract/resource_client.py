@@ -410,7 +410,9 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
             self.region,
             self.account,
             action,
-            get_temporary_credentials(self._session, LOWER_CAMEL_CRED_KEYS, self._role_arn),
+            get_temporary_credentials(
+                self._session, LOWER_CAMEL_CRED_KEYS, self._role_arn
+            ),
             self.generate_token(),
             **kwargs
         )
