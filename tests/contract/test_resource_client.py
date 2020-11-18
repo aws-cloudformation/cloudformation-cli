@@ -82,7 +82,6 @@ def resource_client():
     mock_sesh.client.assert_called_once_with("lambda", endpoint_url=endpoint)
     mock_creds.assert_called_once_with(mock_sesh, LOWER_CAMEL_CRED_KEYS, None)
     mock_account.assert_called_once_with(mock_sesh, {})
-    assert client._creds == {}
     assert client._function_name == DEFAULT_FUNCTION
     assert client._schema == {}
     assert client._overrides == EMPTY_OVERRIDE
@@ -124,7 +123,6 @@ def resource_client_inputs():
     mock_creds.assert_called_once_with(mock_sesh, LOWER_CAMEL_CRED_KEYS, None)
     mock_account.assert_called_once_with(mock_sesh, {})
 
-    assert client._creds == {}
     assert client._function_name == DEFAULT_FUNCTION
     assert client._schema == {}
     assert client._overrides == EMPTY_OVERRIDE
