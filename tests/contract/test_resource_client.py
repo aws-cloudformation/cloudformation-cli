@@ -82,7 +82,6 @@ def resource_client():
     mock_sesh.client.assert_called_once_with("lambda", endpoint_url=endpoint)
     mock_creds.assert_called_once_with(mock_sesh, LOWER_CAMEL_CRED_KEYS, None)
     mock_account.assert_called_once_with(mock_sesh, {})
-    assert client._creds == {}
     assert client._function_name == DEFAULT_FUNCTION
     assert client._schema == {}
     assert client._overrides == EMPTY_OVERRIDE
@@ -124,7 +123,6 @@ def resource_client_inputs():
     mock_creds.assert_called_once_with(mock_sesh, LOWER_CAMEL_CRED_KEYS, None)
     mock_account.assert_called_once_with(mock_sesh, {})
 
-    assert client._creds == {}
     assert client._function_name == DEFAULT_FUNCTION
     assert client._schema == {}
     assert client._overrides == EMPTY_OVERRIDE
@@ -566,10 +564,16 @@ def test_has_only_writable_identifiers_composite_primary_are_writable(
 
 
 def test_make_payload(resource_client):
-    resource_client._creds = {}
+    patch_creds = patch(
+        "rpdk.core.contract.resource_client.get_temporary_credentials",
+        autospec=True,
+        return_value={},
+    )
 
     token = "ecba020e-b2e6-4742-a7d0-8a06ae7c4b2f"
-    with patch.object(resource_client, "generate_token", return_value=token):
+    with patch.object(
+        resource_client, "generate_token", return_value=token
+    ), patch_creds:
         payload = resource_client._make_payload("CREATE", {"foo": "bar"})
 
     assert payload == {
@@ -589,9 +593,16 @@ def test_make_payload(resource_client):
 
 @pytest.mark.parametrize("action", [Action.READ, Action.LIST])
 def test_call_sync(resource_client, action):
+    patch_creds = patch(
+        "rpdk.core.contract.resource_client.get_temporary_credentials",
+        autospec=True,
+        return_value={},
+    )
+
     mock_client = resource_client._client
     mock_client.invoke.return_value = {"Payload": StringIO('{"status": "SUCCESS"}')}
-    status, response = resource_client.call(action, {"resourceModel": SCHEMA})
+    with patch_creds:
+        status, response = resource_client.call(action, {"resourceModel": SCHEMA})
 
     assert status == OperationStatus.SUCCESS
     assert response == {"status": OperationStatus.SUCCESS.value}
@@ -631,7 +642,8 @@ def test_call_docker():
         '{"status": "SUCCESS"}__CFN_RESOURCE_END_RESPONSE__'
     )
     mock_client.containers.run.return_value = str.encode(response_str)
-    status, response = resource_client.call("CREATE", {"resourceModel": SCHEMA})
+    with patch_creds:
+        status, response = resource_client.call("CREATE", {"resourceModel": SCHEMA})
 
     mock_client.containers.run.assert_called_once()
     assert status == OperationStatus.SUCCESS
@@ -667,7 +679,8 @@ def test_call_docker_executable_entrypoint_null():
             )
 
     try:
-        resource_client.call("CREATE", {"resourceModel": SCHEMA})
+        with patch_creds:
+            resource_client.call("CREATE", {"resourceModel": SCHEMA})
     except InvalidProjectError:
         pass
 
@@ -676,11 +689,19 @@ def test_call_docker_executable_entrypoint_null():
 def test_call_async(resource_client, action):
     mock_client = resource_client._client
 
+    patch_creds = patch(
+        "rpdk.core.contract.resource_client.get_temporary_credentials",
+        autospec=True,
+        return_value={},
+    )
+
     mock_client.invoke.side_effect = [
         {"Payload": StringIO('{"status": "IN_PROGRESS", "resourceModel": {"c": 3} }')},
         {"Payload": StringIO('{"status": "SUCCESS"}')},
     ]
-    status, response = resource_client.call(action, {})
+
+    with patch_creds:
+        status, response = resource_client.call(action, {})
 
     assert status == OperationStatus.SUCCESS
     assert response == {"status": OperationStatus.SUCCESS.value}
@@ -689,6 +710,12 @@ def test_call_async(resource_client, action):
 @pytest.mark.parametrize("action", [Action.CREATE, Action.UPDATE, Action.DELETE])
 def test_call_async_write_only_properties_are_removed(resource_client, action):
     mock_client = resource_client._client
+
+    patch_creds = patch(
+        "rpdk.core.contract.resource_client.get_temporary_credentials",
+        autospec=True,
+        return_value={},
+    )
 
     mock_client.invoke.side_effect = [
         {
@@ -699,7 +726,7 @@ def test_call_async_write_only_properties_are_removed(resource_client, action):
     ]
 
     resource_client._update_schema(SCHEMA)
-    with pytest.raises(AssertionError):
+    with pytest.raises(AssertionError), patch_creds:
         resource_client.call(action, {})
 
 
@@ -708,6 +735,12 @@ def test_call_async_write_only_properties_are_not_removed_for_in_progress(
     resource_client, action
 ):
     mock_client = resource_client._client
+
+    patch_creds = patch(
+        "rpdk.core.contract.resource_client.get_temporary_credentials",
+        autospec=True,
+        return_value={},
+    )
 
     mock_client.invoke.side_effect = [
         {
@@ -719,38 +752,56 @@ def test_call_async_write_only_properties_are_not_removed_for_in_progress(
     ]
 
     resource_client._update_schema(SCHEMA)
-    resource_client.call(action, {})
+    with patch_creds:
+        resource_client.call(action, {})
 
 
 def test_call_and_assert_success(resource_client):
+    patch_creds = patch(
+        "rpdk.core.contract.resource_client.get_temporary_credentials",
+        autospec=True,
+        return_value={},
+    )
     mock_client = resource_client._client
     mock_client.invoke.return_value = {"Payload": StringIO('{"status": "SUCCESS"}')}
-    status, response, error_code = resource_client.call_and_assert(
-        Action.CREATE, OperationStatus.SUCCESS, {}, None
-    )
+    with patch_creds:
+        status, response, error_code = resource_client.call_and_assert(
+            Action.CREATE, OperationStatus.SUCCESS, {}, None
+        )
     assert status == OperationStatus.SUCCESS
     assert response == {"status": OperationStatus.SUCCESS.value}
     assert error_code is None
 
 
 def test_call_and_assert_failed_invalid_payload(resource_client):
+    patch_creds = patch(
+        "rpdk.core.contract.resource_client.get_temporary_credentials",
+        autospec=True,
+        return_value={},
+    )
     mock_client = resource_client._client
     mock_client.invoke.return_value = {"Payload": StringIO("invalid json document")}
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError), patch_creds:
         status, response, error_code = resource_client.call_and_assert(
             Action.CREATE, OperationStatus.SUCCESS, {}, None
         )
 
 
 def test_call_and_assert_failed(resource_client):
+    patch_creds = patch(
+        "rpdk.core.contract.resource_client.get_temporary_credentials",
+        autospec=True,
+        return_value={},
+    )
     mock_client = resource_client._client
     mock_client.invoke.return_value = {
         "Payload": StringIO('{"status": "FAILED","errorCode": "NotFound"}')
     }
-    status, response, error_code = resource_client.call_and_assert(
-        Action.DELETE, OperationStatus.FAILED, {}, None
-    )
+    with patch_creds:
+        status, response, error_code = resource_client.call_and_assert(
+            Action.DELETE, OperationStatus.FAILED, {}, None
+        )
     assert status == OperationStatus.FAILED
     assert response == {"status": OperationStatus.FAILED.value, "errorCode": "NotFound"}
     assert error_code == HandlerErrorCode.NotFound
@@ -766,9 +817,14 @@ def test_call_and_assert_exception_unsupported_status(resource_client):
 
 
 def test_call_and_assert_exception_assertion_mismatch(resource_client):
+    patch_creds = patch(
+        "rpdk.core.contract.resource_client.get_temporary_credentials",
+        autospec=True,
+        return_value={},
+    )
     mock_client = resource_client._client
     mock_client.invoke.return_value = {"Payload": StringIO('{"status": "SUCCESS"}')}
-    with pytest.raises(AssertionError):
+    with pytest.raises(AssertionError), patch_creds:
         resource_client.call_and_assert(Action.CREATE, OperationStatus.FAILED, {}, None)
 
 

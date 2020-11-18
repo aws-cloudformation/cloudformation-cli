@@ -117,11 +117,12 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
     ):  # pylint: disable=too-many-arguments
         self._schema = schema
         self._session = create_sdk_session(region)
-        self._creds = get_temporary_credentials(
-            self._session, LOWER_CAMEL_CRED_KEYS, role_arn
-        )
+        self._role_arn = role_arn
         self.region = region
-        self.account = get_account(self._session, self._creds)
+        self.account = get_account(
+            self._session,
+            get_temporary_credentials(self._session, LOWER_CAMEL_CRED_KEYS, role_arn),
+        )
         self._function_name = function_name
         if endpoint.startswith("http://"):
             self._client = self._session.client(
@@ -409,7 +410,9 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
             self.region,
             self.account,
             action,
-            self._creds.copy(),
+            get_temporary_credentials(
+                self._session, LOWER_CAMEL_CRED_KEYS, self._role_arn
+            ),
             self.generate_token(),
             **kwargs
         )
