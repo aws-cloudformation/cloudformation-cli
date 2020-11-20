@@ -283,6 +283,42 @@ def test_generate_docs_with_multityped_property(project, tmp_path_factory):
     assert read_me_stripped == read_me_target_stripped
 
 
+def test_generate_docs_with_multiref_property(project, tmp_path_factory):
+    project.schema = resource_json(
+        __name__, "data/schema/valid/valid_multiref_property.json"
+    )
+
+    project.type_name = "AWS::Color::Red"
+    # tmpdir conflicts with other tests, make a unique one
+    project.root = tmp_path_factory.mktemp("generate_with_docs_type_complex")
+    mock_plugin = MagicMock(spec=["generate"])
+    with patch.object(project, "_plugin", mock_plugin):
+        project.generate()
+        project.generate_docs()
+    mock_plugin.generate.assert_called_once_with(project)
+
+    docs_dir = project.root / "docs"
+    readme_file = project.root / "docs" / "README.md"
+
+    assert docs_dir.is_dir()
+    assert readme_file.is_file()
+    with patch.object(project, "_plugin", mock_plugin):
+        project.generate()
+    readme_contents = readme_file.read_text(encoding="utf-8")
+    readme_contents_target = resource_stream(
+        __name__, "data/schema/target_output/multiref.md"
+    )
+
+    read_me_stripped = readme_contents.strip().replace(" ", "")
+    read_me_target_stripped = readme_contents_target.read().strip().replace(" ", "")
+
+    LOG.debug("read_me_stripped %s", read_me_stripped)
+    LOG.debug("read_me_target_stripped %s", read_me_target_stripped)
+
+    assert project.type_name in readme_contents
+    assert read_me_stripped == read_me_target_stripped
+
+
 def test_generate_with_docs_invalid_property_type(project, tmp_path_factory):
     project.schema = resource_json(
         __name__, "data/schema/invalid/invalid_property_type_invalid.json"

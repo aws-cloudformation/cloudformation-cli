@@ -306,7 +306,7 @@ def test_flatten_combiners_resolve_types_nested_should_fail(combiner):
 
 
 @pytest.mark.parametrize("combiner", COMBINERS)
-def test_flatten_combiners_flattened_before_merge_failed_but_should_not(combiner):
+def test_flatten_combiners_flattened_before_merge(combiner):
     # this should not fail, since the refs are actually compatible with each other
     # https://github.com/aws-cloudformation/aws-cloudformation-rpdk/issues/333
     ref = ("definitions", "obj")
@@ -327,10 +327,8 @@ def test_flatten_combiners_flattened_before_merge_failed_but_should_not(combiner
         },
     }
 
-    flattener = JsonSchemaFlattener(test_schema)
-    with pytest.raises(ConstraintError) as excinfo:
-        flattener.flatten_schema()
-    assert "declared multiple values for '$ref'" in str(excinfo.value)
+    flattened_schema = JsonSchemaFlattener(test_schema).flatten_schema()
+    assert isinstance(flattened_schema[()]["properties"]["p"]["type"], list)
 
 
 def test_contraint_array_additional_items_valid():

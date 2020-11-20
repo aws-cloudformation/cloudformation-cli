@@ -1,0 +1,153 @@
+{
+    "typeName": "AWS::Valid::TypeName",
+    "description": "a test schema",
+    "definitions": {
+        "ComplexTypeWithOnePrimitive": {
+            "type": "object",
+            "properties": {
+                "PrimitiveProperty": {
+                    "type": "string"
+                }
+            }
+        },
+        "ComplexTypeWithMultiplePrimitives": {
+            "type": "object",
+            "properties": {
+                "PrimitiveProperty1": {
+                    "type": "string"
+                },
+                "PrimitiveProperty2": {
+                    "type": "string"
+                }
+            }
+        },
+        "ComplexTypeWithCircularRef": {
+            "type": "object",
+            "properties": {
+                "PrimitiveProperty": {
+                    "type": "string"
+                },
+                "CircularProperty": {
+                    "$ref": "#/definitions/ComplexTypeWithCircularRef"
+                }
+            }
+        }
+    },
+    "properties": {
+        "primaryID": {
+            "type": "string"
+        },
+        "PropertyWithMultipleConstraints": {
+            "oneOf": [
+                {
+                    "type": "string",
+                    "minLength": 3
+                },
+                {
+                    "type": "string",
+                    "minLength": 13
+                }
+            ]
+        },
+        "PropertyWithMultipleMultiples": {
+            "oneOf": [
+                {
+                    "type": "string",
+                    "minLength": 3
+                },
+                {
+                    "type": "string",
+                    "minLength": 13
+                },
+                {
+                    "type": "object"
+                },
+                {
+                    "type": [
+                        "integer",
+                        "boolean"
+                    ]
+                }
+            ]
+        },
+        "PropertyWithMultiplePrimitives": {
+            "oneOf": [
+                {
+                    "type": "integer"
+                },
+                {
+                    "type": "string"
+                },
+                {
+                    "type": "object"
+                }
+            ]
+        },
+        "PropertyWithTwoComplexTypes": {
+            "oneOf": [
+                {
+                    "$ref": "#/definitions/ComplexTypeWithOnePrimitive"
+                },
+                {
+                    "$ref": "#/definitions/ComplexTypeWithMultiplePrimitives"
+                }
+            ]
+        },
+        "PropertyWithMultipleComplexTypes": {
+            "oneOf": [
+                {
+                    "$ref": "#/definitions/ComplexTypeWithOnePrimitive"
+                },
+                {
+                    "$ref": "#/definitions/ComplexTypeWithMultiplePrimitives"
+                },
+                {
+                    "$ref": "#/definitions/ComplexTypeWithCircularRef"
+                }
+            ]
+        },
+        "PropertyWithMultipleComplexTypesAndOnePrimitive": {
+            "oneOf": [
+                {
+                    "$ref": "#/definitions/ComplexTypeWithOnePrimitive"
+                },
+                {
+                    "$ref": "#/definitions/ComplexTypeWithMultiplePrimitives"
+                },
+                {
+                    "$ref": "#/definitions/ComplexTypeWithCircularRef"
+                },
+                {
+                    "type": "object"
+                }
+            ]
+        },
+        "PropertyWithComplexTypeAndPrimitive": {
+            "oneOf": [
+                {
+                    "$ref": "#/definitions/ComplexTypeWithOnePrimitive"
+                },
+                {
+                    "type": "object"
+                }
+            ]
+        },
+        "MultiProperty3": {
+            "oneOf": [
+                {
+                    "type": "integer"
+                },
+                {
+                    "type": "object"
+                }
+            ]
+        }
+    },
+    "additionalProperties": false,
+    "createOnlyProperties": [
+        "/properties/primaryID"
+    ],
+    "primaryIdentifier": [
+        "/properties/primaryID"
+    ]
+}
