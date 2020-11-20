@@ -49,6 +49,27 @@
                 }
             ]
         },
+        "PropertyWithMultipleMultiples": {
+            "oneOf": [
+                {
+                    "type": "string",
+                    "minLength": 3
+                },
+                {
+                    "type": "string",
+                    "minLength": 13
+                },
+                {
+                    "type": "object"
+                },
+                {
+                    "type": [
+                        "integer",
+                        "boolean"
+                    ]
+                }
+            ]
+        },
         "PropertyWithMultiplePrimitives": {
             "oneOf": [
                 {

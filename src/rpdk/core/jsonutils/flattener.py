@@ -1,8 +1,10 @@
 # pylint: disable=too-few-public-methods,raising-format-tuple
 import logging
 
+from ordered_set import OrderedSet
+
 from .pointer import fragment_decode
-from .utils import REF, TYPE, ConstraintError, FlatteningError, schema_merge, traverse
+from .utils import TYPE, ConstraintError, FlatteningError, schema_merge, traverse
 
 LOG = logging.getLogger(__name__)
 COMBINERS = ("oneOf", "anyOf", "allOf")
@@ -171,14 +173,9 @@ class JsonSchemaFlattener:
                     else:
                         resolved_schema = self._schema_map.pop(ref_path, walked_schema)
                     schema_merge(sub_schema, resolved_schema, path)
-        if REF in sub_schema and isinstance(
-            sub_schema.get(TYPE), list
-        ):  # check if there are conflicting $ref and type at the same sub schema
-            # conflicting $ref could happen only on combiners because method merges
-            # two json objects without losing any previous info, hence have to pop
-            # e.g. "oneOf": [{"$ref": "..#1.."},{"$ref": "..#2.."}] ->
-            # { "ref": "..#1..", "type": [{},{}] }
-            sub_schema.pop(REF)
+
+        if isinstance(sub_schema.get(TYPE), OrderedSet):
+            sub_schema[TYPE] = list(sub_schema[TYPE])
         return sub_schema
 
     def _find_subschema_by_ref(self, ref_path):
