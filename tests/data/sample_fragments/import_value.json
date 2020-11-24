@@ -1,0 +1,38 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "A secure S3 Bucket. The features are Versioning and DeletionPolicy.",
+    "Parameters": {
+        "BucketName": {
+            "Description": "Name for the bucket",
+            "Type": "String"
+        }
+    },
+    "Resources": {
+        "WebServerInstance": {
+            "Type": "AWS::EC2::Instance",
+            "Properties": {
+                "InstanceType": "t2.micro",
+                "ImageId": "ami-a1b23456",
+                "NetworkInterfaces": [
+                    {
+                        "GroupSet": [
+                            {
+                                "Fn::ImportValue": {
+                                    "Fn::Sub": "${NetworkStackNameParameter}-SecurityGroupID"
+                                }
+                            }
+                        ],
+                        "AssociatePublicIpAddress": "true",
+                        "DeviceIndex": "0",
+                        "DeleteOnTermination": "true",
+                        "SubnetId": {
+                            "Fn::ImportValue": {
+                                "Fn::Sub": "${NetworkStackNameParameter}-SubnetID"
+                            }
+                        }
+                    }
+                ]
+            }
+        }
+    }
+}

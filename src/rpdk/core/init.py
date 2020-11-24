@@ -1,4 +1,5 @@
-"""This sub command generates IDE and build files for a given language.
+"""This sub command generates IDE and build files for a resource,
+or schema files for a module.
 """
 import argparse
 import logging
@@ -8,8 +9,11 @@ from functools import wraps
 from colorama import Fore, Style
 
 from .exceptions import WizardAbortError, WizardValidationError
+from .module.init_module import init_module
 from .plugin_registry import get_parsers, get_plugin_choices
-from .project import Project
+from .project import ARTIFACT_TYPE_MODULE, Project
+from .resource.init_resource import init_resource
+from .utils.init_utils import init_artifact_type, validate_yes
 
 LOG = logging.getLogger(__name__)
 
@@ -36,8 +40,8 @@ def input_with_validation(prompt, validate, description=""):
         response = input()
         try:
             return validate(response)
-        except WizardValidationError as error:
-            print_error(error)
+        except WizardValidationError as e:
+            print_error(e)
 
 
 def validate_type_name(value):
@@ -48,10 +52,6 @@ def validate_type_name(value):
     raise WizardValidationError(
         "Please enter a resource type name matching '{}'".format(TYPE_NAME_REGEX)
     )
-
-
-def validate_yes(value):
-    return value.lower() in ("y", "yes")
 
 
 class ValidatePluginChoice:
@@ -109,16 +109,6 @@ def check_for_existing_project(project):
             raise WizardAbortError()
 
 
-def input_typename():
-    type_name = input_with_validation(
-        "What's the name of your resource type?",
-        validate_type_name,
-        "\n(Organization::Service::Resource)",
-    )
-    LOG.debug("Resource type identifier: %s", type_name)
-    return type_name
-
-
 def input_language():
     # language/plugin
     if validate_plugin_choice.max < 1:
@@ -143,30 +133,13 @@ def init(args):
 
     check_for_existing_project(project)
 
-    if args.type_name:
-        try:
-            type_name = validate_type_name(args.type_name)
-        except WizardValidationError as error:
-            print_error(error)
-            type_name = input_typename()
+    artifact_type = init_artifact_type(args)
+
+    if artifact_type == ARTIFACT_TYPE_MODULE:
+        init_module(args, project)
+    # artifact type can only be module or resource at this point
     else:
-        type_name = input_typename()
-
-    if "language" in vars(args):
-        language = args.language.lower()
-    else:
-        language = input_language()
-
-    settings = {
-        arg: getattr(args, arg)
-        for arg in vars(args)
-        if not callable(getattr(args, arg))
-    }
-
-    project.init(type_name, language, settings)
-
-    project.generate()
-    project.generate_docs()
+        init_resource(args, project)
 
     LOG.warning("Initialized a new project in %s", project.root.resolve())
 
@@ -204,5 +177,11 @@ def setup_subparser(subparsers, parents):
     parser.add_argument(
         "-t",
         "--type-name",
-        help="Select the name of the resource type.",
+        help="Select the name of the type.",
+    )
+
+    parser.add_argument(
+        "-a",
+        "--artifact-type",
+        help="Select the type of artifact (RESOURCE or MODULE)",
     )

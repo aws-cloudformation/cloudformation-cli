@@ -1,0 +1,6 @@
+Parameters:
+  anInput:
+    Type: String
+Resources:
+  WaitHandle:
+    Type: AWS::CloudFormation::WaitConditionHandle

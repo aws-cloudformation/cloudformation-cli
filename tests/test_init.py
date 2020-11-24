@@ -9,12 +9,13 @@ from rpdk.core.init import (
     check_for_existing_project,
     ignore_abort,
     input_language,
-    input_typename,
     input_with_validation,
     validate_type_name,
     validate_yes,
 )
+from rpdk.core.module.init_module import input_typename as input_typename_module
 from rpdk.core.project import Project
+from rpdk.core.resource.init_resource import input_typename as input_typename_resource
 
 from .utils import add_dummy_language_plugin, dummy_parser, get_args, get_mock_project
 
@@ -22,19 +23,25 @@ PROMPT = "MECVGD"
 ERROR = "TUJFEL"
 
 
-def test_init_method_interactive():
+def test_init_resource_method_interactive():
     type_name = object()
     language = object()
 
     mock_project, patch_project = get_mock_project()
-    patch_tn = patch("rpdk.core.init.input_typename", return_value=type_name)
-    patch_l = patch("rpdk.core.init.input_language", return_value=language)
+    patch_tn = patch(
+        "rpdk.core.resource.init_resource.input_typename", return_value=type_name
+    )
+    patch_l = patch(
+        "rpdk.core.resource.init_resource.input_language", return_value=language
+    )
+    patch_at = patch("rpdk.core.init.init_artifact_type", return_value="RESOURCE")
 
-    with patch_project, patch_tn as mock_tn, patch_l as mock_l:
+    with patch_project, patch_at as mock_t, patch_tn as mock_tn, patch_l as mock_l:
         main(args_in=["init"])
 
     mock_tn.assert_called_once_with()
     mock_l.assert_called_once_with()
+    mock_t.assert_called_once()
 
     mock_project.load_settings.assert_called_once_with()
     mock_project.init.assert_called_once_with(
@@ -46,23 +53,62 @@ def test_init_method_interactive():
             "verbose": 0,
             "force": False,
             "type_name": None,
+            "artifact_type": None,
         },
     )
     mock_project.generate.assert_called_once_with()
 
 
-def test_init_method_noninteractive():
-    add_dummy_language_plugin()
+def test_init_module_method_interactive():
+    type_name = object()
+    language = object()
 
-    args = get_args("dummy", "Test::Test::Test")
+    mock_project, patch_project = get_mock_project()
+
+    patch_tn = patch(
+        "rpdk.core.module.init_module.input_typename", return_value=type_name
+    )
+    patch_l = patch(
+        "rpdk.core.resource.init_resource.input_language", return_value=language
+    )
+    patch_at = patch("rpdk.core.init.init_artifact_type", return_value="MODULE")
+
+    with patch_project, patch_tn as mock_tn, patch_l as mock_l, patch_at as mock_t:
+        main(args_in=["init"])
+
+    mock_tn.assert_called_once_with()
+    mock_l.assert_not_called()
+    mock_t.assert_called_once()
+
+    mock_project.load_settings.assert_called_once_with()
+    mock_project.init_module.assert_called_once_with(type_name)
+    mock_project.generate.assert_not_called()
+
+
+def test_init_resource_method_noninteractive():
+    add_dummy_language_plugin()
+    artifact_type = "RESOURCE"
+    args = get_args("dummy", "Test::Test::Test", artifact_type)
     mock_project, patch_project = get_mock_project()
 
     patch_get_parser = patch(
         "rpdk.core.init.get_parsers", return_value={"dummy": dummy_parser}
     )
 
+    # flake8: noqa: B950
+    # pylint: disable=line-too-long
     with patch_project, patch_get_parser as mock_parser:
-        main(args_in=["init", "--type-name", args.type_name, args.language, "--dummy"])
+        main(
+            args_in=[
+                "init",
+                "--type-name",
+                args.type_name,
+                "--artifact-type",
+                args.artifact_type,
+                args.language,
+                "--dummy",
+            ]
+        )
 
     mock_parser.assert_called_once()
 
@@ -78,25 +124,42 @@ def test_init_method_noninteractive():
             "type_name": args.type_name,
             "language": args.language,
             "dummy": True,
+            "artifact_type": artifact_type,
         },
     )
     mock_project.generate.assert_called_once_with()
 
 
-def test_init_method_noninteractive_invalid_type_name():
+def test_init_resource_method_noninteractive_invalid_type_name():
     add_dummy_language_plugin()
     type_name = object()
+    artifact_type = "RESOURCE"
 
-    args = get_args("dummy", "invalid_type_name")
+    args = get_args("dummy", "invalid_type_name", "RESOURCE")
     mock_project, patch_project = get_mock_project()
 
-    patch_tn = patch("rpdk.core.init.input_typename", return_value=type_name)
+    patch_tn = patch(
+        "rpdk.core.resource.init_resource.input_typename", return_value=type_name
+    )
+    patch_t = patch("rpdk.core.init.init_artifact_type", return_value=artifact_type)
     patch_get_parser = patch(
         "rpdk.core.init.get_parsers", return_value={"dummy": dummy_parser}
     )
 
-    with patch_project, patch_tn as mock_tn, patch_get_parser as mock_parser:
-        main(args_in=["init", "-t", args.type_name, args.language, "--dummy"])
+    # flake8: noqa: B950
+    # pylint: disable=line-too-long
+    with patch_project, patch_t, patch_tn as mock_tn, patch_get_parser as mock_parser:
+        main(
+            args_in=[
+                "init",
+                "-t",
+                args.type_name,
+                "-a",
+                args.artifact_type,
+                args.language,
+                "--dummy",
+            ]
+        )
 
     mock_tn.assert_called_once_with()
     mock_parser.assert_called_once()
@@ -111,8 +174,9 @@ def test_init_method_noninteractive_invalid_type_name():
             "verbose": 0,
             "force": False,
             "type_name": args.type_name,
-            "language": args.language,
+            "artifact_type": artifact_type,
             "dummy": True,
+            "language": args.language,
         },
     )
     mock_project.generate.assert_called_once_with()
@@ -201,6 +265,38 @@ def test_validate_plugin_choice_valid():
     assert validator("2") == PROMPT
 
 
+def test_init_module_method_noninteractive():
+    add_dummy_language_plugin()
+    artifact_type = "MODULE"
+    args = get_args("dummy", "Test::Test::Test::MODULE", artifact_type)
+    mock_project, patch_project = get_mock_project()
+
+    patch_get_parser = patch(
+        "rpdk.core.init.get_parsers", return_value={"dummy": dummy_parser}
+    )
+
+    # flake8: noqa: B950
+    # pylint: disable=line-too-long
+    with patch_project, patch_get_parser as mock_parser:
+        main(
+            args_in=[
+                "init",
+                "--type-name",
+                args.type_name,
+                "--artifact-type",
+                args.artifact_type,
+                args.language,
+                "--dummy",
+            ]
+        )
+
+    mock_parser.assert_called_once()
+
+    mock_project.load_settings.assert_called_once_with()
+    mock_project.init_module.assert_called_once_with(args.type_name)
+    mock_project.generate.assert_not_called()
+
+
 def test_check_for_existing_project_good_path():
     project = Mock(spec=Project)
     project.load_settings.side_effect = FileNotFoundError
@@ -231,7 +327,7 @@ def test_check_for_existing_project_bad_path_ask_yes():
     project.type_name = ""
 
     patch_input = patch(
-        "rpdk.core.init.input_with_validation", autospec=True, return_value=True
+        "rpdk.core.init.input_with_validation", autospec=True, return_value="m"
     )
     with patch_input as mock_input:
         check_for_existing_project(project)
@@ -286,11 +382,19 @@ def test_ignore_abort_abort():
     function.assert_called_once_with(sentinel)
 
 
-def test_input_typename():
+def test_input_typename_resource():
     type_name = "AWS::Color::Red"
-    patch_input = patch("rpdk.core.init.input", return_value=type_name)
+    patch_input = patch("rpdk.core.utils.init_utils.input", return_value=type_name)
     with patch_input as mock_input:
-        assert input_typename() == type_name
+        assert input_typename_resource() == type_name
+    mock_input.assert_called_once()
+
+
+def test_input_typename_module():
+    type_name = "AWS::Color::Red::MODULE"
+    patch_input = patch("rpdk.core.utils.init_utils.input", return_value=type_name)
+    with patch_input as mock_input:
+        assert input_typename_module() == type_name
     mock_input.assert_called_once()
 
 
