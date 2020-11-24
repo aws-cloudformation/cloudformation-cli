@@ -95,16 +95,18 @@ def get_mock_project():
     return (mock_project, patch_project)
 
 
-def get_args(language=None, type_name=None):
+def get_args(language=None, type_name=None, artifact_type=None):
     args = Mock(
         spec_set=[
             "language",
             "type_name",
+            "artifact_type",
         ]
     )
 
     args.language = language
     args.type_name = type_name
+    args.artifact_type = artifact_type
 
     return args
 

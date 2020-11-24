@@ -1,0 +1,58 @@
+{
+    "typeName": "AWS::ORG::MYTYPE::MODULE",
+    "description": "Some random IAM role",
+    "properties": {
+        "Parameters": {
+            "type": "object",
+            "properties": {
+                "BucketName": {
+                    "description": "Name for the bucket",
+                    "type": "object",
+                    "properties": {
+                        "Description": {
+                            "type": "string"
+                        },
+                        "Type": {
+                            "type": "string"
+                        }
+                    },
+                    "required": [
+                        "Type",
+                        "Description"
+                    ]
+                }
+            }
+        },
+        "Resources": {
+            "properties": {
+                "S3Bucket": {
+                    "type": "object",
+                    "properties": {
+                        "Type": {
+                            "type": "string",
+                            "const": "AWS::S3::Bucket"
+                        },
+                        "Properties": {
+                            "$ref": "https://schema.cloudformation.us-east-1.amazonaws.com/aws_s3_bucket.json"
+                        }
+                    }
+                },
+                "InstanceRole": {
+                    "type": "object",
+                    "properties": {
+                        "Type": {
+                            "type": "string",
+                            "const": "AWS::IAM::Role"
+                        },
+                        "Properties": {
+                            "$ref": "https://schema.cloudformation.us-east-1.amazonaws.com/aws_iam_role.json"
+                        }
+                    }
+                }
+            },
+            "type": "object",
+            "additionalProperties": false
+        }
+    },
+    "additionalProperties": true
+}

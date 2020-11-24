@@ -12,12 +12,14 @@ from jinja2 import Environment, PackageLoader, select_autoescape
 from jsonschema import Draft7Validator
 from jsonschema.exceptions import ValidationError
 
+from rpdk.core.fragment.generator import TemplateFragment
 from rpdk.core.jsonutils.flattener import JsonSchemaFlattener
 
 from .boto_helpers import create_sdk_session
 from .data_loaders import load_resource_spec, resource_json
 from .exceptions import (
     DownstreamError,
+    FragmentValidationError,
     InternalError,
     InvalidProjectError,
     SpecValidationError,
@@ -35,7 +37,12 @@ OVERRIDES_FILENAME = "overrides.json"
 INPUTS_FOLDER = "inputs"
 EXAMPLE_INPUTS_FOLDER = "example_inputs"
 ROLE_TEMPLATE_FILENAME = "resource-role.yaml"
-TYPE_NAME_REGEX = "^[a-zA-Z0-9]{2,64}::[a-zA-Z0-9]{2,64}::[a-zA-Z0-9]{2,64}$"
+TYPE_NAME_RESOURCE_REGEX = "^[a-zA-Z0-9]{2,64}::[a-zA-Z0-9]{2,64}::[a-zA-Z0-9]{2,64}$"
+TYPE_NAME_MODULE_REGEX = (
+    "^[a-zA-Z0-9]{2,64}::[a-zA-Z0-9]{2,64}::[a-zA-Z0-9]{2,64}::MODULE$"
+)
+ARTIFACT_TYPE_RESOURCE = "RESOURCE"
+ARTIFACT_TYPE_MODULE = "MODULE"
 
 DEFAULT_ROLE_TIMEOUT_MINUTES = 120  # 2 hours
 # min and max are according to CreateRole API restrictions
@@ -60,8 +67,9 @@ LAMBDA_RUNTIMES = {
 SETTINGS_VALIDATOR = Draft7Validator(
     {
         "properties": {
+            "artifact_type": {"type": "string"},
             "language": {"type": "string"},
-            "typeName": {"type": "string", "pattern": TYPE_NAME_REGEX},
+            "typeName": {"type": "string", "pattern": TYPE_NAME_RESOURCE_REGEX},
             "runtime": {"type": "string", "enum": list(LAMBDA_RUNTIMES)},
             "entrypoint": {"type": ["string", "null"]},
             "testEntrypoint": {"type": ["string", "null"]},
@@ -69,6 +77,18 @@ SETTINGS_VALIDATOR = Draft7Validator(
             "settings": {"type": "object"},
         },
         "required": ["language", "typeName", "runtime", "entrypoint"],
+        "additionalProperties": False,
+    }
+)
+
+MODULE_SETTINGS_VALIDATOR = Draft7Validator(
+    {
+        "properties": {
+            "artifact_type": {"type": "string"},
+            "typeName": {"type": "string", "pattern": TYPE_NAME_MODULE_REGEX},
+            "settings": {"type": "object"},
+        },
+        "required": ["artifact_type", "typeName"],
         "additionalProperties": False,
     }
 )
@@ -94,12 +114,13 @@ def escape_markdown(string):
     return string
 
 
-class Project:  # pylint: disable=too-many-instance-attributes
+class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-methods
     def __init__(self, overwrite_enabled=False, root=None):
         self.overwrite_enabled = overwrite_enabled
         self.root = Path(root) if root else Path.cwd()
         self.settings_path = self.root / SETTINGS_FILENAME
         self.type_info = None
+        self.artifact_type = None
         self.language = None
         self._plugin = None
         self.settings = None
@@ -110,6 +131,7 @@ class Project:  # pylint: disable=too-many-instance-attributes
         self.entrypoint = None
         self.test_entrypoint = None
         self.executable_entrypoint = None
+        self.fragment_dir = None
 
         self.env = Environment(
             trim_blocks=True,
@@ -170,14 +192,35 @@ class Project:  # pylint: disable=too-many-instance-attributes
                 "Project file '{}' is invalid".format(self.settings_path), e
             )
 
+        # backward compatible
+        if "artifact_type" not in raw_settings:
+            raw_settings["artifact_type"] = ARTIFACT_TYPE_RESOURCE
+
+        if raw_settings["artifact_type"] == ARTIFACT_TYPE_RESOURCE:
+            self.validate_and_load_resource_settings(raw_settings)
+        else:
+            self.validate_and_load_module_settings(raw_settings)
+
+    def validate_and_load_module_settings(self, raw_settings):
+        try:
+            MODULE_SETTINGS_VALIDATOR.validate(raw_settings)
+        except ValidationError as e:
+            self._raise_invalid_project(
+                "Project file '{}' is invalid".format(self.settings_path), e
+            )
+        self.type_name = raw_settings["typeName"]
+        self.artifact_type = raw_settings["artifact_type"]
+        self.settings = raw_settings.get("settings", {})
+
+    def validate_and_load_resource_settings(self, raw_settings):
         try:
             SETTINGS_VALIDATOR.validate(raw_settings)
         except ValidationError as e:
             self._raise_invalid_project(
                 "Project file '{}' is invalid".format(self.settings_path), e
             )
-
         self.type_name = raw_settings["typeName"]
+        self.artifact_type = raw_settings["artifact_type"]
         self.language = raw_settings["language"]
         self.runtime = raw_settings["runtime"]
         self.entrypoint = raw_settings["entrypoint"]
@@ -225,7 +268,7 @@ class Project:  # pylint: disable=too-many-instance-attributes
             )
             raise InternalError("Internal error (Plugin returned invalid runtime)")
 
-        def _write(f):
+        def _write_resource_settings(f):
             executable_entrypoint_dict = (
                 {"executableEntrypoint": self.executable_entrypoint}
                 if self.executable_entrypoint
@@ -233,6 +276,7 @@ class Project:  # pylint: disable=too-many-instance-attributes
             )
             json.dump(
                 {
+                    "artifact_type": self.artifact_type,
                     "typeName": self.type_name,
                     "language": self.language,
                     "runtime": self.runtime,
@@ -246,17 +290,38 @@ class Project:  # pylint: disable=too-many-instance-attributes
             )
             f.write("\n")
 
-        self.overwrite(self.settings_path, _write)
+        def _write_module_settings(f):
+            json.dump(
+                {
+                    "artifact_type": self.artifact_type,
+                    "typeName": self.type_name,
+                    "settings": self.settings,
+                },
+                f,
+                indent=4,
+            )
+            f.write("\n")
+
+        if self.artifact_type == ARTIFACT_TYPE_RESOURCE:
+            self.overwrite(self.settings_path, _write_resource_settings)
+        else:
+            self.overwrite(self.settings_path, _write_module_settings)
 
     def init(self, type_name, language, settings=None):
+        self.artifact_type = ARTIFACT_TYPE_RESOURCE
         self.type_name = type_name
         self.language = language
         self._plugin = load_plugin(language)
         self.settings = settings or {}
-
         self._write_example_schema()
         self._write_example_inputs()
         self._plugin.init(self)
+        self.write_settings()
+
+    def init_module(self, type_name):
+        self.artifact_type = ARTIFACT_TYPE_MODULE
+        self.type_name = type_name
+        self.settings = {}
         self.write_settings()
 
     def load_schema(self):
@@ -291,6 +356,9 @@ class Project:  # pylint: disable=too-many-instance-attributes
                 LOG.info("File already exists, not overwriting '%s'", path)
 
     def generate(self):
+        if self.artifact_type == ARTIFACT_TYPE_MODULE:
+            return  # for Modules, the schema is already generated in cfn validate
+
         # generate template for IAM role assumed by cloudformation
         # to provision resources if schema has handlers defined
         if "handlers" in self.schema:
@@ -336,7 +404,7 @@ class Project:  # pylint: disable=too-many-instance-attributes
             )
             self.overwrite(path, contents)
 
-        return self._plugin.generate(self)
+        self._plugin.generate(self)
 
     def load(self):
         try:
@@ -346,15 +414,34 @@ class Project:  # pylint: disable=too-many-instance-attributes
                 "Project file not found. Have you run 'init'?", e
             )
 
-        LOG.info("Validating your resource schema...")
-        try:
-            self.load_schema()
-        except FileNotFoundError as e:
-            self._raise_invalid_project("Resource schema not found.", e)
-        except SpecValidationError as e:
-            msg = "Resource schema is invalid: " + str(e)
-            self._raise_invalid_project(msg, e)
+        if self.artifact_type == ARTIFACT_TYPE_MODULE:
+            LOG.info("Validating your module fragments...")
+            template_fragment = TemplateFragment(self.type_name)
+            try:
+                self._validate_fragments(template_fragment)
+            except FragmentValidationError as e:
+                msg = "Invalid template fragment: " + str(e)
+                self._raise_invalid_project(msg, e)
+            self.schema = template_fragment.generate_schema()
+            self.fragment_dir = template_fragment.fragment_dir
+        else:
+            LOG.info("Validating your resource specification...")
+            try:
+                self.load_schema()
+            except FileNotFoundError as e:
+                self._raise_invalid_project("Resource specification not found.", e)
+            except SpecValidationError as e:
+                msg = "Resource specification is invalid: " + str(e)
+                self._raise_invalid_project(msg, e)
 
+    @staticmethod
+    def _validate_fragments(template_fragment):
+        template_fragment.validate_fragments()
+
+    # flake8: noqa: C901
+    # pylint: disable=too-many-locals
+    # pylint: disable=too-many-branches
+    # pylint: disable=too-many-public-methods
     def submit(
         self, dry_run, endpoint_url, region_name, role_arn, use_role, set_default
     ):  # pylint: disable=too-many-arguments
@@ -369,8 +456,26 @@ class Project:  # pylint: disable=too-many-instance-attributes
             # the default compression is ZIP_STORED, which helps with the
             # file-size check on upload
             with zipfile.ZipFile(f, mode="w") as zip_file:
-                zip_file.write(self.schema_path, SCHEMA_UPLOAD_FILENAME)
                 zip_file.write(self.settings_path, SETTINGS_FILENAME)
+                # Include all fragments in zip file
+                if self.artifact_type == ARTIFACT_TYPE_MODULE:
+                    if not os.path.exists(self.root / SCHEMA_UPLOAD_FILENAME):
+                        msg = "Module schema could not be found."
+                        raise InternalError(msg)
+                    zip_file.write(
+                        self.root / SCHEMA_UPLOAD_FILENAME, SCHEMA_UPLOAD_FILENAME
+                    )
+                    for root, _dirs, files in os.walk(self.fragment_dir):
+                        for file in files:
+                            zip_file.write(
+                                os.path.join(root, file),
+                                arcname=os.path.join(
+                                    root.replace(str(self.fragment_dir), "fragments/"),
+                                    file,
+                                ),
+                            )
+                else:
+                    zip_file.write(self.schema_path, SCHEMA_UPLOAD_FILENAME)
                 try:
                     zip_file.write(self.overrides_path, OVERRIDES_FILENAME)
                     LOG.debug("%s found. Writing to package.", OVERRIDES_FILENAME)
@@ -378,14 +483,20 @@ class Project:  # pylint: disable=too-many-instance-attributes
                     LOG.debug(
                         "%s not found. Not writing to package.", OVERRIDES_FILENAME
                     )
-                if os.path.isdir(self.inputs_path):
-                    for filename in os.listdir(self.inputs_path):
-                        absolute_path = self.inputs_path / filename
-                        zip_file.write(absolute_path, INPUTS_FOLDER + "/" + filename)
-                        LOG.debug("%s found. Writing to package.", filename)
-                else:
-                    LOG.debug("%s not found. Not writing to package.", INPUTS_FOLDER)
-                self._plugin.package(self, zip_file)
+
+                if self.artifact_type != ARTIFACT_TYPE_MODULE:
+                    if os.path.isdir(self.inputs_path):
+                        for filename in os.listdir(self.inputs_path):
+                            absolute_path = self.inputs_path / filename
+                            zip_file.write(
+                                absolute_path, INPUTS_FOLDER + "/" + filename
+                            )
+                            LOG.debug("%s found. Writing to package.", filename)
+                    else:
+                        LOG.debug(
+                            "%s not found. Not writing to package.", INPUTS_FOLDER
+                        )
+                    self._plugin.package(self, zip_file)
 
             if dry_run:
                 LOG.error("Dry run complete: %s", path.resolve())
@@ -396,6 +507,9 @@ class Project:  # pylint: disable=too-many-instance-attributes
                 )
 
     def generate_docs(self):
+        if self.artifact_type == ARTIFACT_TYPE_MODULE:
+            return
+
         # generate the docs folder that contains documentation based on the schema
         docs_path = self.root / "docs"
 
@@ -691,7 +805,7 @@ class Project:  # pylint: disable=too-many-instance-attributes
         log_delivery_role = uploader.get_log_delivery_role_arn()
         LOG.debug("Got Log Role: %s", log_delivery_role)
         kwargs = {
-            "Type": "RESOURCE",
+            "Type": self.artifact_type,
             "TypeName": self.type_name,
             "SchemaHandlerPackage": s3_url,
             "ClientRequestToken": str(uuid4()),
