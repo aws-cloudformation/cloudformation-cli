@@ -11,8 +11,6 @@ pytest-random-order>=1.0.4
 hypothesis>=4.32.3
 pytest-localserver>=0.5.0
 
-ordered-set>=4.0.2
-
 # commit hooks
 pre-commit>=1.18.1
 
