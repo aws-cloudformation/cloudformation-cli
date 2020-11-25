@@ -14,23 +14,15 @@ TIMEOUT_IN_SECONDS = 10
 
 directory = os.path.dirname(__file__)
 
-test_root = "build"
-
 
 @pytest.fixture
-def template_fragment():
-    return TemplateFragment(type_name, test_root)
+def template_fragment(tmpdir):
+    return TemplateFragment(type_name, tmpdir)
 
 
-def test_schema_generator(template_fragment):
-    fragment1 = os.path.join(directory, "../data/sample_fragments/sample.json")
-    merged_fragment = template_fragment._load_fragment(fragment1)
-    with patch.object(
-        template_fragment, "_read_raw_fragments", return_value=merged_fragment
-    ):
-        schema = template_fragment.generate_schema()
-
-    assert os.path.exists(test_root + "/schema.json")
+def test_schema_generator(template_fragment, tmpdir):
+    schema = __generate_schema("sample.json", template_fragment)
+    assert os.path.exists(tmpdir.join("schema.json"))
 
     assert len(schema) == 4
     assert len(schema["properties"]) == 2
@@ -48,7 +40,6 @@ def test_schema_generator(template_fragment):
         == "object"
     )
     __validate_against_meta_schema(schema)
-    os.remove(test_root + "/schema.json")
 
 
 def test_schema_generation_param_without_description(template_fragment):
@@ -62,7 +53,6 @@ def test_schema_generation_param_without_description(template_fragment):
         not in schema["properties"]["Parameters"]["properties"]["anInput"]["required"]
     )
     __validate_against_meta_schema(schema)
-    os.remove(test_root + "/schema.json")
 
 
 def test_schema_generation_param_type_aws_specific(template_fragment):
@@ -77,7 +67,6 @@ def test_schema_generation_param_type_aws_specific(template_fragment):
         == "string"
     )
     __validate_against_meta_schema(schema)
-    os.remove(test_root + "/schema.json")
 
 
 def test_template_fragments_without_parameter_section(template_fragment):
@@ -89,7 +78,6 @@ def test_template_fragments_without_parameter_section(template_fragment):
     assert schema["properties"] is not None
     assert schema["properties"]["Resources"] is not None
     __validate_against_meta_schema(schema)
-    os.remove(test_root + "/schema.json")
 
 
 def test_template_fragments_without_parameter_section_is_valid(template_fragment):
@@ -107,7 +95,6 @@ def test_template_fragments_without_description(template_fragment):
     assert schema["properties"].get("Resources") is not None
     assert schema["properties"].get("Parameters") is not None
     __validate_against_meta_schema(schema)
-    os.remove(test_root + "/schema.json")
 
 
 def test_template_fragment_with_empty_description(template_fragment):
@@ -121,12 +108,9 @@ def test_template_fragment_with_empty_description(template_fragment):
     assert schema["properties"].get("Resources") is not None
     assert schema["properties"].get("Parameters") is not None
     __validate_against_meta_schema(schema)
-    os.remove(test_root + "/schema.json")
 
 
 def __generate_schema(fragment_file_name, template_fragment):
-    if not os.path.exists(test_root):
-        os.mkdir(test_root)
     fragment = os.path.join(directory, "../data/sample_fragments/" + fragment_file_name)
     merged_fragment = template_fragment._load_fragment(fragment)
     with patch.object(
@@ -136,35 +120,20 @@ def __generate_schema(fragment_file_name, template_fragment):
     return schema
 
 
-def test_resolved_generated_schema_is_valid_against_metaschema(template_fragment):
-    if not os.path.exists(test_root):
-        os.mkdir(test_root)
-    fragment1 = os.path.join(
-        directory, "../data/sample_fragments/secureS3_resolved.json"
-    )
-    merged_fragment = template_fragment._load_fragment(fragment1)
-    with patch.object(
-        template_fragment, "_read_raw_fragments", return_value=merged_fragment
-    ):
-        schema = template_fragment.generate_schema()
-
+def test_resolved_generated_schema_is_valid_against_metaschema(
+    template_fragment, tmpdir
+):
+    schema = __generate_schema("secureS3_resolved.json", template_fragment)
     __validate_against_meta_schema(schema)
-    assert os.path.exists(test_root + "/schema.json")
-    os.remove(test_root + "/schema.json")
+    assert os.path.exists(tmpdir.join("schema.json"))
 
 
 def __validate_against_meta_schema(schema):
     __make_resource_validator().validate(schema)
 
 
-def test_generate_sample_fragment(template_fragment):
-    if not os.path.exists(test_root):
-        os.mkdir(test_root)
-    sample_fragment_folder_path = test_root + "/fragments"
-    sample_fragment_path = sample_fragment_folder_path + "/sample.json"
-    if os.path.exists(sample_fragment_path):
-        os.remove(sample_fragment_path)
-        os.rmdir(sample_fragment_folder_path)
+def test_generate_sample_fragment(template_fragment, tmpdir):
+    sample_fragment_path = tmpdir.join("fragments").join("sample.json")
     assert not os.path.exists(sample_fragment_path)
     template_fragment.generate_sample_fragment()
     assert os.path.exists(sample_fragment_path)
