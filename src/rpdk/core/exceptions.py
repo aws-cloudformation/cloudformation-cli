@@ -14,6 +14,10 @@ class SpecValidationError(RPDKBaseException):
     pass
 
 
+class FragmentValidationError(RPDKBaseException):
+    pass
+
+
 class WizardError(RPDKBaseException):
     pass
 
@@ -51,4 +55,8 @@ class InvalidRequestError(ContractTestError):
 
 
 class ModelResolverError(RPDKBaseException):
+    pass
+
+
+class InvalidFragmentFileError(RPDKBaseException):
     pass

@@ -23,7 +23,7 @@ from .contract.interface import Action
 from .contract.resource_client import ResourceClient
 from .data_loaders import copy_resource
 from .exceptions import SysExitRecommendedError
-from .project import Project
+from .project import ARTIFACT_TYPE_MODULE, Project
 
 LOG = logging.getLogger(__name__)
 
@@ -179,6 +179,9 @@ def test(args):
     _validate_sam_args(args)
     project = Project()
     project.load()
+    if project.artifact_type == ARTIFACT_TYPE_MODULE:
+        LOG.warning("The test command is not supported in a module project")
+        return
 
     overrides = get_overrides(
         project.root, args.region, args.cloudformation_endpoint_url, args.role_arn

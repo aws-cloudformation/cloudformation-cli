@@ -11,7 +11,7 @@ import pytest
 from rpdk.core.cli import EXIT_UNHANDLED_EXCEPTION, main
 from rpdk.core.contract.interface import Action
 from rpdk.core.exceptions import SysExitRecommendedError
-from rpdk.core.project import Project
+from rpdk.core.project import ARTIFACT_TYPE_MODULE, ARTIFACT_TYPE_RESOURCE, Project
 from rpdk.core.test import (
     DEFAULT_ENDPOINT,
     DEFAULT_FUNCTION,
@@ -103,6 +103,7 @@ def test_test_command_happy_path(
     mock_project.schema = SCHEMA
     mock_project.root = base
     mock_project.executable_entrypoint = None
+    mock_project.artifact_type = ARTIFACT_TYPE_RESOURCE
 
     patch_project = patch(
         "rpdk.core.test.Project", autospec=True, return_value=mock_project
@@ -152,6 +153,7 @@ def test_test_command_return_code_on_error():
     mock_project.root = None
     mock_project.schema = SCHEMA
     mock_project.executable_entrypoint = None
+    mock_project.artifact_type = ARTIFACT_TYPE_RESOURCE
     patch_project = patch(
         "rpdk.core.test.Project", autospec=True, return_value=mock_project
     )
@@ -163,6 +165,17 @@ def test_test_command_return_code_on_error():
             main(args_in=["test"])
 
     assert excinfo.value.code != EXIT_UNHANDLED_EXCEPTION
+
+
+def test_test_command_module_project_succeeds():
+    mock_project = Mock(spec=Project)
+
+    mock_project.artifact_type = ARTIFACT_TYPE_MODULE
+    patch_project = patch(
+        "rpdk.core.test.Project", autospec=True, return_value=mock_project
+    )
+    with patch_project:
+        main(args_in=["test"])
 
 
 def test_temporary_ini_file():

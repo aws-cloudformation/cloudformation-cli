@@ -50,7 +50,8 @@ setup(
         "hypothesis>=4.32",
         "colorama>=0.4.1",
         "docker>=4.3.1",
-        "zipfile38>=0.0.2,<0.2",
+        "zipfile38>=0.0.3,<0.2",
+        "ordered-set>=4.0.2",
     ],
     entry_points={
         "console_scripts": ["cfn-cli = rpdk.core.cli:main", "cfn = rpdk.core.cli:main"]

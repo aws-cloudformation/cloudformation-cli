@@ -117,11 +117,12 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
     ):  # pylint: disable=too-many-arguments
         self._schema = schema
         self._session = create_sdk_session(region)
-        self._creds = get_temporary_credentials(
-            self._session, LOWER_CAMEL_CRED_KEYS, role_arn
-        )
+        self._role_arn = role_arn
         self.region = region
-        self.account = get_account(self._session, self._creds)
+        self.account = get_account(
+            self._session,
+            get_temporary_credentials(self._session, LOWER_CAMEL_CRED_KEYS, role_arn),
+        )
         self._function_name = function_name
         if endpoint.startswith("http://"):
             self._client = self._session.client(
@@ -166,6 +167,7 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         self.read_only_paths = self._properties_to_paths("readOnlyProperties")
         self.write_only_paths = self._properties_to_paths("writeOnlyProperties")
         self.create_only_paths = self._properties_to_paths("createOnlyProperties")
+        self.properties_without_insertion_order = self.get_metadata()
 
         additional_identifiers = self._schema.get("additionalIdentifiers", [])
         self._additional_identifiers_paths = [
@@ -173,15 +175,10 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
             for identifier in additional_identifiers
         ]
 
-    def has_writable_identifier(self):
-        for path in self.primary_identifier_paths:
-            if path not in self.read_only_paths:
-                return True
-        for identifier_paths in self._additional_identifiers_paths:
-            for path in identifier_paths:
-                if path not in self.read_only_paths:
-                    return True
-        return False
+    def has_only_writable_identifiers(self):
+        return all(
+            path in self.create_only_paths for path in self.primary_identifier_paths
+        )
 
     def assert_write_only_property_does_not_exist(self, resource_model):
         if self.write_only_paths:
@@ -190,6 +187,19 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
                 for write_only_property in self.write_only_paths
             ), "The model MUST NOT return properties defined as \
                 writeOnlyProperties in the resource schema"
+
+    def get_metadata(self):
+        try:
+            properties = self._schema["properties"]
+        except KeyError:
+            return set()
+        else:
+            return {
+                prop
+                for prop in properties.keys()
+                if "insertionOrder" in properties[prop]
+                and properties[prop]["insertionOrder"] == "false"
+            }
 
     @property
     def strategy(self):
@@ -335,6 +345,7 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
                 "callerCredentials": creds,
                 "resourceProperties": desired_resource_state,
                 "previousResourceProperties": previous_resource_state,
+                "logicalResourceId": token,
             },
             "region": region,
             "awsAccountId": account,
@@ -399,7 +410,9 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
             self.region,
             self.account,
             action,
-            self._creds.copy(),
+            get_temporary_credentials(
+                self._session, LOWER_CAMEL_CRED_KEYS, self._role_arn
+            ),
             self.generate_token(),
             **kwargs
         )
@@ -421,6 +434,7 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
             "requestData": {
                 "resourceProperties": request_without_write_properties,
                 "previousResourceProperties": previous_request_without_write_properties,
+                "logicalResourceId": payload["requestData"]["logicalResourceId"],
             },
             "region": payload["region"],
             "awsAccountId": payload["awsAccountId"],
@@ -448,7 +462,7 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
             LOG.debug("=== Handler execution logs ===")
             LOG.debug(result)
             # pylint: disable=W1401
-            regex = "__CFN_RESOURCE_START_RESPONSE__([\s\S]*)__CFN_RESOURCE_END_RESPONSE__"  # noqa: W605 # pylint: disable=C0301
+            regex = "__CFN_RESOURCE_START_RESPONSE__([\s\S]*)__CFN_RESOURCE_END_RESPONSE__"  # noqa: W605,B950 # pylint: disable=C0301
             payload = json.loads(re.search(regex, result).group(1))
         else:
             result = self._client.invoke(

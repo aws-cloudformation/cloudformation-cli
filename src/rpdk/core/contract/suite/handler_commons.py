@@ -168,9 +168,22 @@ def test_input_equals_output(resource_client, input_model, output_model):
     # only comparing properties in input model to those in output model and
     # ignoring extraneous properties that maybe present in output model.
     try:
-        assert all(
-            pruned_input_model[key] == pruned_output_model[key]
-            for key in pruned_input_model
-        ), assertion_error_message
+        for key in pruned_input_model:
+            if key in resource_client.properties_without_insertion_order:
+                assert test_unordered_list_match(
+                    pruned_input_model[key], pruned_output_model[key]
+                )
+            else:
+                assert (
+                    pruned_input_model[key] == pruned_output_model[key]
+                ), assertion_error_message
     except KeyError as e:
         raise AssertionError(assertion_error_message) from e
+
+
+def test_unordered_list_match(inputs, outputs):
+    assert len(inputs) == len(outputs)
+    try:
+        assert all(input in outputs for input in inputs)
+    except KeyError as exception:
+        raise AssertionError("lists do not match") from exception

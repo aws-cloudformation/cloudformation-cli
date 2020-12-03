@@ -1,0 +1,22 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "Some random IAM role",
+    "Transform": [
+        "MyMacro",
+        "AWS::Serverless"
+    ],
+    "Resources": {
+        "S3Bucket": {
+            "Type": "AWS::S3::Bucket",
+            "Properties": {
+                "BucketName": {
+                    "Ref": "BucketName"
+                },
+                "DeletionPolicy": "Retain",
+                "VersioningConfiguration": {
+                    "Status": "Enabled"
+                }
+            }
+        }
+    }
+}

@@ -1,0 +1,32 @@
+{
+    "Transform": [
+        "AWS::Serverless"
+    ],
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "A secure S3 Bucket. The features are Versioning and DeletionPolicy.",
+    "Parameters": {
+        "BucketName": {
+            "Description": "Name for the bucket",
+            "Type": "String"
+        }
+    },
+    "Resources": {
+        "MyServerlessFunctionLogicalID": {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {
+                "Handler": "index.handler",
+                "Code": {
+                    "S3Bucket": "testBucket",
+                    "S3Key": "mySourceCode.zip"
+                },
+                "Role": {
+                    "Fn::GetAtt": [
+                        "FunctionNameRole",
+                        "Arn"
+                    ]
+                },
+                "Runtime": "nodejs8.10"
+            }
+        }
+    }
+}

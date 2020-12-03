@@ -1,0 +1,9 @@
+Resources:
+  CompanyDefaultsMacro:
+    Type: AWS::CloudFormation::Macro
+    Properties:
+      Name: CompanyDefaults
+      FunctionName:
+        Fn::GetAtt:
+          - CompanyDefaultsLambdaFunction
+          - Arn

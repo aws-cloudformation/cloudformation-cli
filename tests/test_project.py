@@ -19,6 +19,7 @@ from botocore.exceptions import ClientError, WaiterError
 from rpdk.core.data_loaders import resource_json, resource_stream
 from rpdk.core.exceptions import (
     DownstreamError,
+    FragmentValidationError,
     InternalError,
     InvalidProjectError,
     SpecValidationError,
@@ -43,8 +44,11 @@ else:  # pragma: no cover
     from zipfile38 import ZipFile
 
 
+ARTIFACT_TYPE_RESOURCE = "RESOURCE"
+ARTIFACT_TYPE_MODULE = "MODULE"
 LANGUAGE = "BQHDBC"
 TYPE_NAME = "AWS::Color::Red"
+MODULE_TYPE_NAME = "AWS::Color::Red::MODULE"
 REGION = "us-east-1"
 ENDPOINT = "cloudformation.beta.com"
 RUNTIME = random.choice(list(LAMBDA_RUNTIMES))
@@ -112,7 +116,43 @@ def test_load_settings_invalid_settings(project):
     mock_open.assert_called_once_with("r", encoding="utf-8")
 
 
-def test_load_settings_valid_json(project):
+def test_load_settings_invalid_modules_settings(project):
+    with patch_settings(project, '{"artifact_type": "MODULE"}') as mock_open:
+        with pytest.raises(InvalidProjectError):
+            project.load_settings()
+    mock_open.assert_called_once_with("r", encoding="utf-8")
+
+
+def test_load_settings_valid_json_for_resource(project):
+    plugin = object()
+    data = json.dumps(
+        {
+            "artifact_type": "RESOURCE",
+            "typeName": TYPE_NAME,
+            "language": LANGUAGE,
+            "runtime": RUNTIME,
+            "entrypoint": None,
+            "testEntrypoint": None,
+        }
+    )
+    patch_load = patch(
+        "rpdk.core.project.load_plugin", autospec=True, return_value=plugin
+    )
+
+    with patch_settings(project, data) as mock_open, patch_load as mock_load:
+        project.load_settings()
+
+    mock_open.assert_called_once_with("r", encoding="utf-8")
+    mock_load.assert_called_once_with(LANGUAGE)
+    assert project.type_info == ("AWS", "Color", "Red")
+    assert project.type_name == TYPE_NAME
+    assert project.language == LANGUAGE
+    assert project.artifact_type == ARTIFACT_TYPE_RESOURCE
+    assert project._plugin is plugin
+    assert project.settings == {}
+
+
+def test_load_settings_valid_json_for_resource_backward_compatible(project):
     plugin = object()
     data = json.dumps(
         {
@@ -135,8 +175,41 @@ def test_load_settings_valid_json(project):
     assert project.type_info == ("AWS", "Color", "Red")
     assert project.type_name == TYPE_NAME
     assert project.language == LANGUAGE
+    assert project.artifact_type == ARTIFACT_TYPE_RESOURCE
     assert project._plugin is plugin
     assert project.settings == {}
+
+
+def test_load_settings_valid_json_for_module(project):
+    plugin = object()
+    data = json.dumps(
+        {
+            "artifact_type": "MODULE",
+            "typeName": MODULE_TYPE_NAME,
+        }
+    )
+    patch_load = patch(
+        "rpdk.core.project.load_plugin", autospec=True, return_value=plugin
+    )
+
+    with patch_settings(project, data) as mock_open, patch_load as mock_load:
+        project.load_settings()
+
+    mock_open.assert_called_once_with("r", encoding="utf-8")
+    mock_load.assert_not_called()
+    assert project.type_info == ("AWS", "Color", "Red", "MODULE")
+    assert project.type_name == MODULE_TYPE_NAME
+    assert project.language is None
+    assert project.artifact_type == ARTIFACT_TYPE_MODULE
+    assert project._plugin is None
+    assert project.settings == {}
+
+
+def test_generate_for_modules_succeeds(project):
+    project.type_info = ("AWS", "Color", "Red", "MODULE")
+    project.artifact_type = ARTIFACT_TYPE_MODULE
+    project.generate()
+    project.generate_docs()
 
 
 def test_load_schema_settings_not_loaded(project):
@@ -249,7 +322,6 @@ def test_generate_with_docs(project, tmp_path_factory, schema_path, path):
     assert readme_file.is_file()
     with patch.object(project, "_plugin", mock_plugin):
         project.generate()
-        project.generate_docs()
     readme_contents = readme_file.read_text(encoding="utf-8")
     assert project.type_name in readme_contents
 
@@ -275,10 +347,45 @@ def test_generate_docs_with_multityped_property(project, tmp_path_factory):
     assert readme_file.is_file()
     with patch.object(project, "_plugin", mock_plugin):
         project.generate()
-        project.generate_docs()
     readme_contents = readme_file.read_text(encoding="utf-8")
     readme_contents_target = resource_stream(
         __name__, "data/schema/target_output/multityped.md"
+    )
+
+    read_me_stripped = readme_contents.strip().replace(" ", "")
+    read_me_target_stripped = readme_contents_target.read().strip().replace(" ", "")
+
+    LOG.debug("read_me_stripped %s", read_me_stripped)
+    LOG.debug("read_me_target_stripped %s", read_me_target_stripped)
+
+    assert project.type_name in readme_contents
+    assert read_me_stripped == read_me_target_stripped
+
+
+def test_generate_docs_with_multiref_property(project, tmp_path_factory):
+    project.schema = resource_json(
+        __name__, "data/schema/valid/valid_multiref_property.json"
+    )
+
+    project.type_name = "AWS::Color::Red"
+    # tmpdir conflicts with other tests, make a unique one
+    project.root = tmp_path_factory.mktemp("generate_with_docs_type_complex")
+    mock_plugin = MagicMock(spec=["generate"])
+    with patch.object(project, "_plugin", mock_plugin):
+        project.generate()
+        project.generate_docs()
+    mock_plugin.generate.assert_called_once_with(project)
+
+    docs_dir = project.root / "docs"
+    readme_file = project.root / "docs" / "README.md"
+
+    assert docs_dir.is_dir()
+    assert readme_file.is_file()
+    with patch.object(project, "_plugin", mock_plugin):
+        project.generate()
+    readme_contents = readme_file.read_text(encoding="utf-8")
+    readme_contents_target = resource_stream(
+        __name__, "data/schema/target_output/multiref.md"
     )
 
     read_me_stripped = readme_contents.strip().replace(" ", "")
@@ -449,7 +556,7 @@ def test_generate_handlers_role_session_timeout(project, tmpdir, schema, result)
     mock_plugin.generate.assert_called_once_with(project)
 
 
-def test_init(project):
+def test_init_resource(project):
     type_name = "AWS::Color::Red"
 
     mock_plugin = MagicMock(spec=["init"])
@@ -466,6 +573,7 @@ def test_init(project):
     assert project.type_info == ("AWS", "Color", "Red")
     assert project.type_name == type_name
     assert project.language == LANGUAGE
+    assert project.artifact_type == ARTIFACT_TYPE_RESOURCE
     assert project._plugin is mock_plugin
     assert project.settings == {}
 
@@ -495,6 +603,36 @@ def test_init(project):
         assert f.read() == b"\n"
 
 
+def test_init_module(project):
+    type_name = "AWS::Color::Red"
+
+    mock_plugin = MagicMock(spec=["init"])
+    patch_load_plugin = patch(
+        "rpdk.core.project.load_plugin", autospec=True, return_value=mock_plugin
+    )
+
+    with patch_load_plugin as mock_load_plugin:
+        project.init_module(type_name)
+
+    mock_load_plugin.assert_not_called()
+    mock_plugin.init.assert_not_called()
+
+    assert project.type_info == ("AWS", "Color", "Red")
+    assert project.type_name == type_name
+    assert project.language is None
+    assert project.artifact_type == ARTIFACT_TYPE_MODULE
+    assert project._plugin is None
+    assert project.settings == {}
+
+    with project.settings_path.open("r", encoding="utf-8") as f:
+        assert json.load(f)
+
+    # ends with newline
+    with project.settings_path.open("rb") as f:
+        f.seek(-1, os.SEEK_END)
+        assert f.read() == b"\n"
+
+
 def test_load_invalid_schema(project):
     patch_settings = patch.object(project, "load_settings")
     patch_schema = patch.object(
@@ -509,6 +647,29 @@ def test_load_invalid_schema(project):
     mock_schema.assert_called_once_with()
 
     assert "invalid" in str(excinfo.value)
+
+
+def test_load_module_project_succeeds(project):
+    project.artifact_type = "MODULE"
+    project.type_name = "Unit::Test::Malik::MODULE"
+    patch_load_settings = patch.object(
+        project, "load_settings", return_value={"artifact_type": "MODULE"}
+    )
+    with patch_load_settings:
+        project.load()
+
+
+def test_load_module_project_with_invalid_fragments(project):
+    project.artifact_type = "MODULE"
+    project.type_name = "Unit::Test::Malik::MODULE"
+    patch_load_settings = patch.object(
+        project, "load_settings", return_value={"artifact_type": "MODULE"}
+    )
+    patch_validate = patch.object(
+        project, "_validate_fragments", side_effect=FragmentValidationError
+    )
+    with patch_load_settings, patch_validate, pytest.raises(InvalidProjectError):
+        project.load()
 
 
 def test_schema_not_found(project):
@@ -565,6 +726,7 @@ def test_submit_dry_run(project):
     project.type_name = TYPE_NAME
     project.runtime = RUNTIME
     project.language = LANGUAGE
+    project.artifact_type = ARTIFACT_TYPE_RESOURCE
     zip_path = project.root / "test.zip"
 
     with project.schema_path.open("w", encoding="utf-8") as f:
@@ -628,10 +790,79 @@ def test_submit_dry_run(project):
         assert zip_file.testzip() is None
 
 
+def test_submit_dry_run_modules(project):
+    project.type_name = MODULE_TYPE_NAME
+    project.runtime = RUNTIME
+    project.language = LANGUAGE
+    project.artifact_type = ARTIFACT_TYPE_MODULE
+    project.fragment_dir = project.root / "fragments"
+    zip_path = project.root / "test.zip"
+    schema_path = project.root / "schema.json"
+    fragment_path = project.root / "fragments" / "fragment.json"
+
+    with project.schema_path.open("w", encoding="utf-8") as f:
+        f.write(CONTENTS_UTF8)
+
+    with schema_path.open("w", encoding="utf-8") as f:
+        f.write(CONTENTS_UTF8)
+
+    if not os.path.exists(project.root / "fragments"):
+        os.mkdir(project.root / "fragments")
+
+    with fragment_path.open("w", encoding="utf-8") as f:
+        f.write(CONTENTS_UTF8)
+
+    with project.overrides_path.open("w", encoding="utf-8") as f:
+        f.write(json.dumps(empty_override()))
+
+    project.write_settings()
+
+    patch_plugin = patch.object(project, "_plugin", spec=LanguagePlugin)
+    patch_upload = patch.object(project, "_upload", autospec=True)
+    patch_path = patch("rpdk.core.project.Path", return_value=zip_path)
+    patch_temp = patch("rpdk.core.project.TemporaryFile", autospec=True)
+
+    # fmt: off
+    # these context managers can't be wrapped by black, but it removes the \
+    with patch_plugin as mock_plugin, patch_path as mock_path, \
+            patch_temp as mock_temp, patch_upload as mock_upload:
+        project.submit(
+            True,
+            endpoint_url=ENDPOINT,
+            region_name=REGION,
+            role_arn=None,
+            use_role=True,
+            set_default=False
+        )
+    # fmt: on
+
+    mock_temp.assert_not_called()
+    mock_path.assert_called_once_with("{}.zip".format(project.hypenated_name))
+    mock_plugin.package.assert_not_called()
+    mock_upload.assert_not_called()
+
+    fragment_file_name = "fragments/fragment.json"
+
+    with ZipFile(zip_path, mode="r") as zip_file:
+        assert set(zip_file.namelist()) == {
+            fragment_file_name,
+            SCHEMA_UPLOAD_FILENAME,
+            SETTINGS_FILENAME,
+            OVERRIDES_FILENAME,
+        }
+        schema_contents = zip_file.read(SCHEMA_UPLOAD_FILENAME).decode("utf-8")
+        assert schema_contents == CONTENTS_UTF8
+        overrides = json.loads(zip_file.read(OVERRIDES_FILENAME).decode("utf-8"))
+        assert "CREATE" in overrides
+        # https://docs.python.org/3/library/zipfile.html#zipfile.ZipFile.testzip
+        assert zip_file.testzip() is None
+
+
 def test_submit_live_run(project):
     project.type_name = TYPE_NAME
     project.runtime = RUNTIME
     project.language = LANGUAGE
+    project.artifact_type = ARTIFACT_TYPE_RESOURCE
 
     with project.schema_path.open("w", encoding="utf-8") as f:
         f.write(CONTENTS_UTF8)
@@ -679,8 +910,47 @@ def test_submit_live_run(project):
     temp_file._close()
 
 
+def test_submit_live_run_for_module(project):
+    project.type_name = MODULE_TYPE_NAME
+    project.runtime = RUNTIME
+    project.language = LANGUAGE
+    project.artifact_type = ARTIFACT_TYPE_MODULE
+
+    with project.schema_path.open("w", encoding="utf-8") as f:
+        f.write(CONTENTS_UTF8)
+
+    project.write_settings()
+
+    temp_file = UnclosingBytesIO()
+
+    patch_plugin = patch.object(project, "_plugin", spec=LanguagePlugin)
+    patch_path = patch("rpdk.core.project.Path", autospec=True)
+    patch_temp = patch("rpdk.core.project.TemporaryFile", return_value=temp_file)
+
+    # fmt: off
+    # these context managers can't be wrapped by black, but it removes the \
+    with patch_plugin as mock_plugin, patch_path as mock_path, \
+            patch_temp as mock_temp, \
+            pytest.raises(InternalError):
+        project.submit(
+            False,
+            endpoint_url=ENDPOINT,
+            region_name=REGION,
+            role_arn=None,
+            use_role=True,
+            set_default=True
+        )
+    # fmt: on
+
+    mock_path.assert_not_called()
+    mock_temp.assert_called_once_with("w+b")
+    mock_plugin.package.assert_not_called()
+    temp_file._close()
+
+
 def test__upload_good_path_create_role_and_set_default(project):
     project.type_name = TYPE_NAME
+    project.artifact_type = ARTIFACT_TYPE_RESOURCE
     project.schema = {"handlers": {}}
 
     mock_cfn_client = MagicMock(spec=["register_type"])
@@ -739,6 +1009,7 @@ def test__upload_good_path_skip_role_creation(
     project, use_role, expected_additional_args
 ):
     project.type_name = TYPE_NAME
+    project.artifact_type = ARTIFACT_TYPE_RESOURCE
     project.schema = {"handlers": {}}
 
     mock_cfn_client = MagicMock(spec=["register_type"])
@@ -786,6 +1057,7 @@ def test__upload_good_path_skip_role_creation(
 
 def test__upload_clienterror(project):
     project.type_name = TYPE_NAME
+    project.artifact_type = ARTIFACT_TYPE_RESOURCE
     project.schema = {}
 
     mock_cfn_client = MagicMock(spec=["register_type"])
@@ -826,6 +1098,53 @@ def test__upload_clienterror(project):
         LoggingConfig={
             "LogRoleArn": "some-log-role-arn",
             "LogGroupName": "aws-color-red-logs",
+        },
+    )
+
+
+def test__upload_clienterror_module(project):
+    project.type_name = MODULE_TYPE_NAME
+    project.artifact_type = ARTIFACT_TYPE_MODULE
+    project.schema = {}
+
+    mock_cfn_client = MagicMock(spec=["register_type"])
+    mock_cfn_client.register_type.side_effect = ClientError(
+        BLANK_CLIENT_ERROR, "RegisterType"
+    )
+    fileobj = object()
+
+    patch_sdk = patch("rpdk.core.project.create_sdk_session", autospec=True)
+    patch_uploader = patch.object(Uploader, "upload", return_value="url")
+    patch_role_arn = patch.object(
+        Uploader, "get_log_delivery_role_arn", return_value="some-log-role-arn"
+    )
+    patch_uuid = patch("rpdk.core.project.uuid4", autospec=True, return_value="foo")
+
+    with patch_sdk as mock_sdk, patch_uploader as mock_upload_method, patch_role_arn as mock_role_arn_method:  # noqa: B950 as it conflicts with formatting rules # pylint: disable=C0301
+        mock_session = mock_sdk.return_value
+        mock_session.client.side_effect = [mock_cfn_client, MagicMock()]
+        with patch_uuid as mock_uuid, pytest.raises(DownstreamError):
+            project._upload(
+                fileobj,
+                endpoint_url=None,
+                region_name=None,
+                role_arn=None,
+                use_role=False,
+                set_default=True,
+            )
+
+    mock_sdk.assert_called_once_with(None)
+    mock_upload_method.assert_called_once_with(project.hypenated_name, fileobj)
+    mock_role_arn_method.assert_called_once_with()
+    mock_uuid.assert_called_once_with()
+    mock_cfn_client.register_type.assert_called_once_with(
+        Type="MODULE",
+        TypeName=project.type_name,
+        SchemaHandlerPackage="url",
+        ClientRequestToken=mock_uuid.return_value,
+        LoggingConfig={
+            "LogRoleArn": "some-log-role-arn",
+            "LogGroupName": "aws-color-red-module-logs",
         },
     )
 
@@ -1024,6 +1343,7 @@ def test_generate_image_build_config_plugin_not_supported(project):
 
 def test__write_settings_null_executable_entrypoint(project):
     project.type_name = TYPE_NAME
+    project.artifact_type = ARTIFACT_TYPE_RESOURCE
     project.runtime = RUNTIME
     project.language = LANGUAGE
     project.executable_entrypoint = None
@@ -1036,6 +1356,7 @@ def test__write_settings_null_executable_entrypoint(project):
 
 def test__write_settings_nonnull_executable_entrypoint(project):
     project.type_name = TYPE_NAME
+    project.artifact_type = ARTIFACT_TYPE_RESOURCE
     project.runtime = RUNTIME
     project.language = LANGUAGE
     project.executable_entrypoint = "executable_entrypoint"

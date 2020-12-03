@@ -7,7 +7,7 @@ import pytest
 from rpdk.core.data_loaders import resource_json
 from rpdk.core.jsonutils.flattener import COMBINERS, JsonSchemaFlattener
 from rpdk.core.jsonutils.pointer import fragment_encode
-from rpdk.core.jsonutils.utils import CircularRefError, ConstraintError, FlatteningError
+from rpdk.core.jsonutils.utils import ConstraintError, FlatteningError
 
 from .area_definition_flattened import AREA_DEFINITION_FLATTENED
 
@@ -24,37 +24,6 @@ PRIMITIVE_TYPES = (
     pytest.param({"type": "array", "items": {}}, id="array_items"),
 )
 REF_PATHS = ((), ("definitions",), ("definitions", "a"))
-CIRCULAR_SCHEMAS = (
-    pytest.param({"properties": {"a": {"$ref": "#/properties/a"}}}, id="self"),
-    pytest.param(
-        {
-            "properties": {
-                "a": {"$ref": "#/properties/z"},
-                "z": {"$ref": "#/properties/a"},
-            }
-        },
-        id="each_other",
-    ),
-    pytest.param(
-        {
-            "properties": {
-                "a": {"$ref": "#/properties/b"},
-                "b": {"$ref": "#/properties/c"},
-                "c": {"$ref": "#/properties/a"},
-            }
-        },
-        id="indirect",
-    ),
-    pytest.param(
-        {
-            "properties": {
-                "a": {"$ref": "#/properties/b"},
-                "b": {"properties": {"a": {"$ref": "#/properties/a"}}},
-            }
-        },
-        id="nested",
-    ),
-)
 
 
 @pytest.mark.parametrize("primitive_type", PRIMITIVE_TYPES)
@@ -337,7 +306,7 @@ def test_flatten_combiners_resolve_types_nested_should_fail(combiner):
 
 
 @pytest.mark.parametrize("combiner", COMBINERS)
-def test_flatten_combiners_flattened_before_merge_failed_but_should_not(combiner):
+def test_flatten_combiners_flattened_before_merge(combiner):
     # this should not fail, since the refs are actually compatible with each other
     # https://github.com/aws-cloudformation/aws-cloudformation-rpdk/issues/333
     ref = ("definitions", "obj")
@@ -358,10 +327,8 @@ def test_flatten_combiners_flattened_before_merge_failed_but_should_not(combiner
         },
     }
 
-    flattener = JsonSchemaFlattener(test_schema)
-    with pytest.raises(ConstraintError) as excinfo:
-        flattener.flatten_schema()
-    assert "declared multiple values for '$ref'" in str(excinfo.value)
+    flattened_schema = JsonSchemaFlattener(test_schema).flatten_schema()
+    assert isinstance(flattened_schema[()]["properties"]["p"]["type"], list)
 
 
 def test_contraint_array_additional_items_valid():
@@ -414,12 +381,46 @@ def test_flattener_full_example():
     assert flattened == AREA_DEFINITION_FLATTENED
 
 
-@pytest.mark.parametrize("test_schema", CIRCULAR_SCHEMAS)
-def test_circular_reference(test_schema):
+def test_circular_reference_self():
+    test_schema = {"properties": {"a": {"$ref": "#/properties/a"}}}
     flattener = JsonSchemaFlattener(test_schema)
-    with pytest.raises(CircularRefError) as excinfo:
-        flattener.flatten_schema()
-    assert "#/properties/a" in str(excinfo.value)
+    flattened = flattener._walk({"$ref": "#/properties/a"}, ())
+    assert flattened == {"$ref": ("properties", "a")}
+
+
+def test_circular_reference_nested():
+    test_schema = {
+        "properties": {
+            "a": {
+                "properties": {"b": {"type": "string"}, "c": {"$ref": "#/properties/a"}}
+            }
+        }
+    }
+    flattener = JsonSchemaFlattener(test_schema)
+    flattened = flattener._walk({"$ref": "#/properties/a"}, ())
+
+    assert flattened == {"$ref": ("properties", "a")}
+    assert flattener._schema_map[("properties", "a")] == {
+        "properties": {"b": {"type": "string"}, "c": {"$ref": ("properties", "a")}}
+    }
+
+
+def test_circular_reference_indirect():
+    test_schema = {
+        "properties": {
+            "a": {"$ref": "#/properties/b"},
+            "b": {"$ref": "#/properties/c"},
+            "c": {"$ref": "#/properties/a"},
+        }
+    }
+    flattener = JsonSchemaFlattener(test_schema)
+    flattened_a = flattener._walk({"$ref": "#/properties/a"}, ())
+    flattened_b = flattener._walk({"$ref": "#/properties/b"}, ())
+    flattened_c = flattener._walk({"$ref": "#/properties/c"}, ())
+
+    assert flattened_a == {"$ref": ("properties", "a")}
+    assert flattened_b == {"$ref": ("properties", "b")}
+    assert flattened_c == {"$ref": ("properties", "c")}
 
 
 def test__flatten_ref_type_invalid():

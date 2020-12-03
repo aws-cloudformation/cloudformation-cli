@@ -121,7 +121,7 @@ def response_contains_unchanged_primary_identifier(
 
 @decorate(after=False)
 def skip_not_writable_identifier(resource_client):
-    if not resource_client.has_writable_identifier():
+    if not resource_client.has_only_writable_identifiers():
         pytest.skip("No writable identifiers. Skipping test.")
 
 

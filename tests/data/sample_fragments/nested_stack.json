@@ -1,0 +1,17 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "Some random IAM role",
+    "Resources": {
+        "NestedStack": {
+            "Type": "AWS::CloudFormation::Stack",
+            "DeletionPolicy": "Retain",
+            "Properties": {
+                "TemplateURL": "https://s3.amazonaws.com/cloudformation-templates-us-east-2/EC2ChooseAMI.template",
+                "Parameters": {
+                    "InstanceType": "t1.micro",
+                    "KeyName": "mykey"
+                }
+            }
+        }
+    }
+}

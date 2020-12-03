@@ -1,16 +1,16 @@
 # AWS CloudFormation CLI
 
-The CloudFormation CLI (cfn) allows you to author your own resource providers that can be used by CloudFormation.
+The CloudFormation CLI (cfn) allows you to author your own resource providers and modules that can be used by CloudFormation.
 
 ## Usage
 
 ### Documentation
 
-Primary documentation for the CloudFormation CLI can be found at the [AWS Documentation](https://docs.aws.amazon.com/cloudformation-cli/latest/userguide/resource-types.html) site.
+Primary documentation for the CloudFormation CLI can be found at the [AWS Documentation](https://docs.aws.amazon.com/cloudformation-cli/latest/userguide/what-is-cloudformation-cli.html) site.
 
 ### Installation
 
-This tool can be installed using [pip](https://pypi.org/project/pip/) from the Python Package Index (PyPI). It requires Python 3. The tool requires at least one language plugin. The language plugins are also available on PyPI and as such can be installed all at once:
+This tool can be installed using [pip](https://pypi.org/project/pip/) from the Python Package Index (PyPI). It requires Python 3. For resource types, the tool requires at least one language plugin. Language plugins are not needed to create a module type. The language plugins are also available on PyPI and as such can be installed all at once:
 
 ```bash
 pip install cloudformation-cli cloudformation-cli-java-plugin cloudformation-cli-go-plugin cloudformation-cli-python-plugin
@@ -28,6 +28,7 @@ cfn init
 ### Command: generate
 
 To refresh auto-generated code, use the `generate` command. Usually, plugins try to integrate this command in the native build flow, so please consult a plugin's README to see if this is necessary.
+In a module project, this will regenerate the module schema.
 
 ```bash
 cfn generate
@@ -44,7 +45,7 @@ cfn submit --dry-run #prepares schema handler package without submitting for reg
 
 ### Command: test
 
-To run the contract tests, use the `test` command.
+To run the contract tests for a resource type, use the `test` command.
 
 ```bash
 cfn test
@@ -56,7 +57,7 @@ cfn test --enforce-timeout 60 -- -k contract_delete_update # combine args
 
 ### Command: build-image
 
-To build an image. This image provides a minimalistic execution environment for the handler that does not depend on AWS Lambda in anyway. This image can be used during cfn invoke and cfn test instead of using sam cli.
+To build an image for a resource type. This image provides a minimalistic execution environment for the resource handler that does not depend on AWS Lambda in anyway. This image can be used during cfn invoke and cfn test instead of using sam cli.
 
 ```bash
 cfn build-image
@@ -82,7 +83,7 @@ pip install -e . -r requirements.txt
 pre-commit install
 ```
 
-You will also need to install a language plugin, such as [the Java language plugin](https://github.com/aws-cloudformation/cloudformation-cli-java-plugin), also via `pip install`. For example, assuming the plugin is checked out in the same parent directory as this repository:
+If you're creating a resource type, you will also need to install a language plugin, such as [the Java language plugin](https://github.com/aws-cloudformation/cloudformation-cli-java-plugin), also via `pip install`. For example, assuming the plugin is checked out in the same parent directory as this repository:
 
 ```bash
 pip install -e ../cloudformation-cli-java-plugin
