@@ -74,6 +74,33 @@ def make_resource_validator():
     return make_validator(schema)
 
 
+def make_resource_validator_with_additional_properties_check():
+    schema = resource_json(__name__, "data/schema/provider.definition.schema.v1.json")
+    dependencies = schema["definitions"]["validations"]["dependencies"]
+    properties_check = {
+        "properties": {
+            "$comment": "An object cannot have both defined and undefined \
+             properties; therefore, patternProperties is not allowed \
+             when properties is specified.",
+            "not": {"required": ["patternProperties"]},
+            "required": ["additionalProperties"],
+        }
+    }
+    pattern_properties_check = {
+        "patternProperties": {
+            "$comment": "An object cannot have both defined and undefined \
+             properties; therefore, properties is not allowed when \
+             patternProperties is specified.",
+            "not": {"required": ["properties"]},
+            "required": ["additionalProperties"],
+        }
+    }
+    dependencies.update(properties_check)
+    dependencies.update(pattern_properties_check)
+    schema["definitions"]["validations"]["dependencies"] = dependencies
+    return make_validator(schema)
+
+
 def get_file_base_uri(file):
     try:
         name = file.name
@@ -107,12 +134,25 @@ def load_resource_spec(resource_spec_file):  # noqa: C901
         raise SpecValidationError(str(e)) from e
 
     validator = make_resource_validator()
+    additional_properties_validator = (
+        make_resource_validator_with_additional_properties_check()
+    )
     try:
         validator.validate(resource_spec)
     except ValidationError as e:
         LOG.debug("Resource spec validation failed", exc_info=True)
         raise SpecValidationError(str(e)) from e
 
+    try:
+        additional_properties_validator.validate(resource_spec)
+    except ValidationError as e:
+        LOG.warning(
+            "[Warning] Resource spec validation would fail from next \
+             major version. Provider should mark additionalProperties \
+             as false if the property is defined as a structured property. \
+             Please fix the warnings: %s",
+            str(e),
+        )
     in_readonly = _is_in(resource_spec, "readOnlyProperties")
     in_createonly = _is_in(resource_spec, "createOnlyProperties")
 
@@ -122,7 +162,7 @@ def load_resource_spec(resource_spec_file):  # noqa: C901
         if not in_readonly(primary_id) and not in_createonly(primary_id):
             LOG.warning(
                 "Property 'primaryIdentifier' - %s must be specified \
-as either readOnly or createOnly",
+                as either readOnly or createOnly",
                 primary_id,
             )
 

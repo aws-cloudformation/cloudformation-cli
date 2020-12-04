@@ -98,6 +98,31 @@ def test_load_resource_spec_valid_snippets(example):
         assert load_resource_spec(f)
 
 
+def test_load_resource_spec_object_property_missing_additional_properties(caplog):
+    schema = BASEDIR / "data" / "schema" / "valid" / "valid_nested_property_object.json"
+    with schema.open("r", encoding="utf-8") as f:
+        assert load_resource_spec(f)
+    assert "Resource spec validation would fail from next major version" in caplog.text
+
+
+def test_load_resource_spec_pattern_property_missing_additional_properties(caplog):
+    schema = BASEDIR / "data" / "schema" / "valid" / "valid_pattern_properties.json"
+    with schema.open("r", encoding="utf-8") as f:
+        assert load_resource_spec(f)
+    assert "Resource spec validation would fail from next major version" in caplog.text
+
+
+def test_load_resource_spec_unmodeled_object_property_missing_additional_properties(
+    caplog,
+):
+    schema = BASEDIR / "data" / "schema" / "valid" / "valid_no_properties.json"
+    with schema.open("r", encoding="utf-8") as f:
+        assert load_resource_spec(f)
+    assert (
+        "Resource spec validation would fail from next major version" not in caplog.text
+    )
+
+
 @pytest.mark.parametrize(
     "example", json_files_params(BASEDIR / "data" / "schema" / "invalid")
 )
