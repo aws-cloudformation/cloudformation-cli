@@ -93,9 +93,11 @@ properties; therefore, properties is not allowed when patternProperties is speci
             "required": ["additionalProperties"],
         }
     }
-    dependencies.update(properties_check)
-    dependencies.update(pattern_properties_check)
-    schema["definitions"]["validations"]["dependencies"] = dependencies
+    schema["definitions"]["validations"]["dependencies"] = {
+        **dependencies,
+        **properties_check,
+        **pattern_properties_check,
+    }
     return make_validator(schema)
 
 
@@ -147,7 +149,8 @@ def load_resource_spec(resource_spec_file):  # noqa: C901
         LOG.warning(
             "[Warning] Resource spec validation would fail from next \
 major version. Provider should mark additionalProperties as false if the \
-property is defined as a structured property. Please fix the warnings: %s",
+property is of object type and has properties or patternProperties defined \
+in it. Please fix the warnings: %s",
             str(e),
         )
     in_readonly = _is_in(resource_spec, "readOnlyProperties")
