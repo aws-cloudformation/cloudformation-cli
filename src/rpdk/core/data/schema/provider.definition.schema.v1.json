@@ -71,6 +71,15 @@
                 }
             }
         },
+        "replacementStrategy": {
+            "type": "string",
+            "description": "The valid replacement strategies are create_then_delete and delete_then_create. All other inputs are invalid.",
+            "default": "create_then_delete",
+            "enum": [
+                "create_then_delete",
+                "delete_then_create"
+            ]
+        },
         "properties": {
             "allOf": [
                 {
@@ -291,6 +300,10 @@
                 "https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/CHAP_Using.html"
             ],
             "$ref": "#/definitions/httpsUrl"
+        },
+        "replacementStrategy": {
+            "$comment": "The order of replacement for an immutable resource update.",
+            "$ref": "#/definitions/replacementStrategy"
         },
         "additionalProperties": {
             "$comment": "All properties of a resource must be expressed in the schema - arbitrary inputs are not allowed",
