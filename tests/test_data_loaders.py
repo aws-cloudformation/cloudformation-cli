@@ -99,14 +99,26 @@ def test_load_resource_spec_valid_snippets(example):
 
 
 def test_load_resource_spec_object_property_missing_additional_properties(caplog):
-    schema = BASEDIR / "data" / "schema" / "valid" / "valid_nested_property_object.json"
+    schema = (
+        BASEDIR
+        / "data"
+        / "schema"
+        / "valid"
+        / "valid_nested_property_object_no_additionalProperties_warning.json"
+    )
     with schema.open("r", encoding="utf-8") as f:
         assert load_resource_spec(f)
     assert "Resource spec validation would fail from next major version" in caplog.text
 
 
 def test_load_resource_spec_pattern_property_missing_additional_properties(caplog):
-    schema = BASEDIR / "data" / "schema" / "valid" / "valid_pattern_properties.json"
+    schema = (
+        BASEDIR
+        / "data"
+        / "schema"
+        / "valid"
+        / "valid_pattern_properties_no_additionalProperties_warning.json"
+    )
     with schema.open("r", encoding="utf-8") as f:
         assert load_resource_spec(f)
     assert "Resource spec validation would fail from next major version" in caplog.text
