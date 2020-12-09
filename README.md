@@ -55,6 +55,16 @@ cfn test --enforce-timeout 60 #set the RL handler timeout to 60 seconds and CUD 
 cfn test --enforce-timeout 60 -- -k contract_delete_update # combine args
 ```
 
+### Command: validate
+
+To validate the auto-generated code, use the `validate` command.
+
+This command is automatically run whenever one attempts to submit a resource or module. Any module fragments will be automatically validated via `cfn-lint`, however any warnings or errors detected by `cfn-lint` will not cause this step to fail.
+
+```bash
+cfn validate
+```
+
 ### Command: build-image
 
 To build an image for a resource type. This image provides a minimalistic execution environment for the resource handler that does not depend on AWS Lambda in anyway. This image can be used during cfn invoke and cfn test instead of using sam cli.

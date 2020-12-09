@@ -653,6 +653,17 @@ def test_load_module_project_succeeds(project):
         project.load()
 
 
+def test_load_resource_succeeds(project):
+    project.artifact_type = "Resource"
+    project.type_name = "Unit::Test::Resource"
+    patch_load_settings = patch.object(
+        project, "load_settings", return_value={"artifact_type": "RESOURCE"}
+    )
+    project._write_example_schema()
+    with patch_load_settings:
+        project.load()
+
+
 def test_load_module_project_with_invalid_fragments(project):
     project.artifact_type = "MODULE"
     project.type_name = "Unit::Test::Malik::MODULE"

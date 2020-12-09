@@ -11,6 +11,8 @@ import logging
 import os
 from pathlib import Path
 
+import cfnlint.config
+import cfnlint.core
 import yaml
 
 from rpdk.core.data_loaders import resource_json
@@ -75,10 +77,42 @@ class TemplateFragment:  # pylint: disable=too-many-instance-attributes
         self.__validate_no_transforms_present(raw_fragments)
         self.__validate_outputs(raw_fragments)
         self.__validate_mappings(raw_fragments)
+        lint_warnings = self.__validate_fragment_through_cfn_lint(raw_fragments)
+        if not lint_warnings:
+            LOG.warning("Module fragment is valid.")
+        else:
+            LOG.warning(
+                "Module fragment is valid, but there are warnings from cfn-lint "
+                "(https://github.com/aws-cloudformation/cfn-python-lint):"
+            )
+        for lint_warning in lint_warnings:
+            print(
+                "\t{} (from rule {})".format(lint_warning.message, lint_warning.rule),
+            )
 
     def __validate_outputs(self, raw_fragments):
         self.__validate_no_exports_present(raw_fragments)
         self.__validate_output_limit(raw_fragments)
+
+    @staticmethod
+    def __validate_fragment_through_cfn_lint(raw_fragment):
+        filename = "temporary_fragment.json"
+
+        with open(filename, "w") as outfile:
+            json.dump(raw_fragment, outfile, indent=4)
+
+        template = cfnlint.decode.cfn_json.load(filename)
+
+        # Initialize the ruleset to be applied (no overrules, no excludes)
+        rules = cfnlint.core.get_rules([], [], [], [], False, [])
+
+        regions = ["us-east-1"]
+
+        matches = cfnlint.core.run_checks(filename, template, rules, regions)
+
+        os.remove(filename)
+
+        return matches
 
     @staticmethod
     def __validate_no_exports_present(raw_fragments):
