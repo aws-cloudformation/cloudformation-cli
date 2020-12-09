@@ -86,6 +86,10 @@ class TemplateFragment:  # pylint: disable=too-many-instance-attributes
                 "warnings/errors from cfn-lint "
                 "(https://github.com/aws-cloudformation/cfn-python-lint):"
             )
+            self.__print_cfn_lint_warnings(lint_warnings)
+
+    @staticmethod
+    def __print_cfn_lint_warnings(lint_warnings):
         for lint_warning in lint_warnings:
             print(
                 "\t{} (from rule {})".format(lint_warning.message, lint_warning.rule),
