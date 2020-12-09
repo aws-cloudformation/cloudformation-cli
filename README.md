@@ -57,9 +57,9 @@ cfn test --enforce-timeout 60 -- -k contract_delete_update # combine args
 
 ### Command: validate
 
-To validate the auto-generated code, use the `validate` command.
+To validate the schema, use the `validate` command.
 
-This command is automatically run whenever one attempts to submit a resource or module. Any module fragments will be automatically validated via `cfn-lint`, however any warnings or errors detected by `cfn-lint` will not cause this step to fail.
+This command is automatically run whenever one attempts to submit a resource or module. Any module fragments will be automatically validated via [`cfn-lint`](https://github.com/aws-cloudformation/cfn-python-lint/), however any warnings or errors detected by [`cfn-lint`](https://github.com/aws-cloudformation/cfn-python-lint/) will not cause this step to fail.
 
 ```bash
 cfn validate

@@ -82,7 +82,8 @@ class TemplateFragment:  # pylint: disable=too-many-instance-attributes
             LOG.warning("Module fragment is valid.")
         else:
             LOG.warning(
-                "Module fragment is valid, but there are warnings from cfn-lint "
+                "Module fragment is probably valid, but there are "
+                "warnings/errors from cfn-lint "
                 "(https://github.com/aws-cloudformation/cfn-python-lint):"
             )
         for lint_warning in lint_warnings:
@@ -104,6 +105,7 @@ class TemplateFragment:  # pylint: disable=too-many-instance-attributes
         template = cfnlint.decode.cfn_json.load(filename)
 
         # Initialize the ruleset to be applied (no overrules, no excludes)
+        # Runs Warning and Error rules
         rules = cfnlint.core.get_rules([], [], [], [], False, [])
 
         regions = ["us-east-1"]
