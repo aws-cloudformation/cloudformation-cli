@@ -9,7 +9,7 @@
                     "type": "integer"
                 }
             },
-            "additionalProperties": false
+            "additionalProperties": true
         }
     },
     "primaryIdentifier": [
