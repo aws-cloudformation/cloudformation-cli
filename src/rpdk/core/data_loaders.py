@@ -80,7 +80,10 @@ def make_resource_validator_with_additional_properties_check():
     properties_check = {
         "properties": {
             "$comment": "An object cannot have both defined and undefined \
-properties; therefore, patternProperties is not allowed when properties is specified.",
+properties; therefore, patternProperties is not allowed when properties is specified.\
+ Provider should mark additionalProperties as false if the \
+property is of object type and has properties defined \
+in it.",
             "not": {"required": ["patternProperties"]},
             "required": ["additionalProperties"],
         }
@@ -88,7 +91,9 @@ properties; therefore, patternProperties is not allowed when properties is speci
     pattern_properties_check = {
         "patternProperties": {
             "$comment": "An object cannot have both defined and undefined \
-properties; therefore, properties is not allowed when patternProperties is specified.",
+properties; therefore, properties is not allowed when patternProperties is specified. \
+Provider should mark additionalProperties as false if the property is of object type \
+and has patternProperties defined in it.",
             "not": {"required": ["properties"]},
             "required": ["additionalProperties"],
         }

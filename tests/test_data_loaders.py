@@ -98,27 +98,17 @@ def test_load_resource_spec_valid_snippets(example):
         assert load_resource_spec(f)
 
 
-def test_load_resource_spec_object_property_missing_additional_properties(caplog):
-    schema = (
-        BASEDIR
-        / "data"
-        / "schema"
-        / "valid"
-        / "valid_nested_property_object_no_additionalProperties_warning.json"
-    )
-    with schema.open("r", encoding="utf-8") as f:
-        assert load_resource_spec(f)
-    assert "Resource spec validation would fail from next major version" in caplog.text
-
-
-def test_load_resource_spec_pattern_property_missing_additional_properties(caplog):
-    schema = (
-        BASEDIR
-        / "data"
-        / "schema"
-        / "valid"
-        / "valid_pattern_properties_no_additionalProperties_warning.json"
-    )
+@pytest.mark.parametrize(
+    "schema",
+    [
+        "valid_nested_property_object_no_additionalProperties_warning.json",
+        "valid_pattern_properties_no_additionalProperties_warning.json",
+    ],
+)
+def test_load_resource_spec_object_property_missing_additional_properties(
+    schema, caplog
+):
+    schema = BASEDIR / "data" / "schema" / "valid" / schema
     with schema.open("r", encoding="utf-8") as f:
         assert load_resource_spec(f)
     assert "Resource spec validation would fail from next major version" in caplog.text
@@ -133,6 +123,21 @@ def test_load_resource_spec_unmodeled_object_property_missing_additional_propert
     assert (
         "Resource spec validation would fail from next major version" not in caplog.text
     )
+
+
+@pytest.mark.parametrize(
+    "schema",
+    [
+        "invalid_nested_property_object_additionalProperties_true_warning.json",
+        "invalid_pattern_properties_additionalProperties_true_warning.json",
+    ],
+)
+def test_load_resource_spec_object_property_additional_properties_true(schema):
+    schema = BASEDIR / "data" / "schema" / "invalid" / schema
+    with schema.open("r", encoding="utf-8") as f:
+        with pytest.raises(SpecValidationError) as excinfo:
+            load_resource_spec(f)
+    assert "False was expected" in str(excinfo.value)
 
 
 @pytest.mark.parametrize(
