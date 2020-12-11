@@ -71,6 +71,11 @@
                 }
             }
         },
+        "taggable": {
+            "$comment": "A boolean flag indicating whether this resource type supports updatable tagging.",
+            "type": "boolean",
+            "default": "true"
+        },
         "replacementStrategy": {
             "type": "string",
             "description": "The valid replacement strategies are create_then_delete and delete_then_create. All other inputs are invalid.",
