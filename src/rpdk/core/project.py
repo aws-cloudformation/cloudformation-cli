@@ -428,6 +428,7 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
             LOG.info("Validating your resource specification...")
             try:
                 self.load_schema()
+                LOG.warning("Resource schema is valid.")
             except FileNotFoundError as e:
                 self._raise_invalid_project("Resource specification not found.", e)
             except SpecValidationError as e:
