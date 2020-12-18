@@ -20,7 +20,7 @@ jobs:
     - name: Package project
       run: |
         python setup.py sdist bdist_wheel
-    - name: Publish distribution 📦 to Test PyPI (If triggered from release)
+    - name: Publish distribution 📦 to PyPI (If triggered from release)
       uses: pypa/gh-action-pypi-publish@master
       with:
         password: ${{ secrets.PYPI_API_KEY_CLOUDFORMATION_CLI }}
