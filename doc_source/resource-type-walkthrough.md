@@ -1,33 +1,33 @@
-# Walkthrough: Develop a Resource Provider<a name="resource-type-walkthrough"></a>
+# Walkthrough: Develop a resource type<a name="resource-type-walkthrough"></a>
 
-In this walkthrough, we'll use the CloudFormation CLI to create a sample resource provider, `Custom::Testing::WordPress`\. This includes modeling the schema, developing the handlers to testing those handlers, all the way to performing a dry run to get the resource provider ready to submit to the CloudFormation registry\. We'll be coding our new resource provider in Java, and using the `us-west-2` region\.
+In this walkthrough, we'll use the CloudFormation CLI to create a sample resource type, `Example::Testing::WordPress`\. This includes modeling the schema, developing the handlers to testing those handlers, all the way to performing a dry run to get the resource type ready to submit to the CloudFormation registry\. We'll be coding our new resource type in Java, and using the `us-west-2` region\.
 
 ## Prerequisites<a name="resource-type-walkthrough-prereqs"></a>
 
 For purposes of this walkthrough, it is assumed you have already set up the CloudFormation CLI and associated tooling for your Java development environment:
 
-[Setting Up Your Environment for Developing Resource Providers](resource-type-setup.md)
+[Setting up your environment for developing extensions](what-is-cloudformation-cli.md#resource-type-setup)
 
-## Create the Resource Provider Development Project<a name="resource-type-walkthrough-model"></a>
+## Create the resource type development project<a name="resource-type-walkthrough-model"></a>
 
-Before we can actually design and implement our resource provider, we'll need to generate a new resource type project, and then import it into our IDE\.
+Before we can actually design and implement our resource type, we'll need to generate a new resource type project, and then import it into our IDE\.
 
-**Note**
+**Note**  
 This walkthrough uses the Community Edition of the [IntelliJ IDEA](https://www.jetbrains.com/idea/)\.
 
 ### Initiate the project<a name="resource-type-walkthrough-model-initiate"></a>
 
-1. Use the `init` command to create your resource provider project and generate the files it requires\.
+1. Use the `init` command to create your resource type project and generate the files it requires\. 
 
    ```
    $ cfn init
    Initializing new project
    ```
 
-1. The `init` command launches a wizard that walks you through setting up the project, including specifying the resource name\. For this walkthrough, specify `Custom::Testing::WordPress`\.
+1. The `init` command launches a wizard that walks you through setting up the project, including specifying the resource name\. For this walkthrough, specify `Example::Testing::WordPress`\.
 
    ```
-   Enter resource type identifier (Organization::Service::Resource): Custom::Testing::WordPress
+   Enter resource type identifier (Organization::Service::Resource): Example::Testing::WordPress
    ```
 
    The wizard then enables you to select the appropriate language plugin\. Currently, the only language plugin available is for Java:
@@ -36,20 +36,19 @@ This walkthrough uses the Community Edition of the [IntelliJ IDEA](https://www.j
    One language plugin found, defaulting to java
    ```
 
-1. Finally, specify the package name\. For this walkthrough, use `com.custom.testing.wordpress`
+1. Finally, specify the package name\. For this walkthrough, use `com.example.testing.wordpress`
 
    ```
-   Enter a package name (empty for default 'com.custom.testing.wordpress'): com.custom.testing.wordpress
-   Initialized a new project in /workplace/tobflem/custom-testing-wordpress
+   Enter a package name (empty for default 'com.example.testing.wordpress'): com.example.testing.wordpress
+   Initialized a new project in /workplace/tobflem/example-testing-wordpress
    ```
 
-Intiating the project includes generating the files needed to develop the resource provider\. For example:
+Intiating the project includes generating the files needed to develop the resource type\. For example:
 
 ```
 $ ls -1
 README.md
-custom-testing-wordpress.json
-cfn
+example-testing-wordpress.json
 lombok.config
 pom.xml
 rpdk.log
@@ -72,23 +71,23 @@ For example, if you are using IntelliJ IDEA, you would need to do the following:
 
 1. Choose **Next** and accept any defaults to complete importing the project\.
 
-## Model the Resource Provider<a name="resource-type-walkthrough-model"></a>
+## Model the resource type<a name="resource-type-walkthrough-model"></a>
 
-When you initiate the resource provider project, an example resource provider schema file is included to help start you modeling your resource provider\. This is a JSON file named for your resource, and contains an example of a typical resource provider schema\. In the case of our example resource, the schema file is named `custom-testing-wordpress.json`\.
+When you initiate the resource type project, an example resource type schema file is included to help start you modeling your resource type\. This is a JSON file named for your resource, and contains an example of a typical resource type schema\. In the case of our example resource, the schema file is named `example-testing-wordpress.json`\.
 
-1. In your IDE, open `custom-testing-wordpress.json`\.
+1. In your IDE, open `example-testing-wordpress.json`\.
 
 1. Paste the following schema in place of the default example schema currently in the file\.
 
-   This schema defines a resource, `Custom::Testing::WordPress`, that provisions a WordPress site\. The resource itself contains four properties, only two of which can be set by users: `Name`, and `SubnetId`\. The other two properties, `InstanceId` and `PublicIp`, are read\-only, meaning they cannot be set by users, but will be assigned during resource creation\. Both of these properties also serve as identifiers for the resource when it is provisioned\.
+   This schema defines a resource, `Example::Testing::WordPress`, that provisions a WordPress site\. The resource itself contains four properties, only two of which can be set by users: `Name`, and `SubnetId`\. The other two properties, `InstanceId` and `PublicIp`, are read\-only, meaning they cannot be set by users, but will be assigned during resource creation\. Both of these properties also serve as identifiers for the resource when it is provisioned\.
 
    As we'll see later in the walkthrough, creating a WordPress site actually requires more information than represented in our resource model\. However, we'll be handling that information on behalf of the user in the code for the resource `create` handler\.
 
    ```
    {
-     "typeName": "Custom::Testing::WordPress",
+     "typeName": "Example::Testing::WordPress",
      "description": "An example resource that creates a website based on WordPress 5.2.2.",
-     "sourceUrl": "The URL of the source code for this resource, if public.",
+     "sourceUrl": "https://docs.aws.amazon.com/cloudformation-cli/latest/userguide/resource-type-walkthrough.html",
      "properties": {
        "Name": {
          "description": "A name associated with the website.",
@@ -115,7 +114,7 @@ When you initiate the resource provider project, an example resource provider sc
        "Name",
        "SubnetId"
      ],
-     "handlers": {
+   "handlers": {
        "create": {
          "permissions": [
            "ec2:AuthorizeSecurityGroupIngress",
@@ -123,7 +122,13 @@ When you initiate the resource provider project, an example resource provider sc
            "ec2:DeleteSecurityGroup",
            "ec2:DescribeInstances",
            "ec2:DescribeSubnets",
+           "ec2:CreateTags",
            "ec2:RunInstances"
+         ]
+       },
+       "read": {
+         "permissions": [
+           "ec2:DescribeInstances"
          ]
        },
        "delete": {
@@ -134,6 +139,7 @@ When you initiate the resource provider project, an example resource provider sc
          ]
        }
      },
+     "additionalProperties": false,
      "primaryIdentifier": [
        "/properties/PublicIp",
        "/properties/InstanceId"
@@ -145,22 +151,22 @@ When you initiate the resource provider project, an example resource provider sc
    }
    ```
 
-1. Update the auto\-generated files in the resource provider package so that they reflect the changes we've made to the resource provider schema\.
+1. Update the auto\-generated files in the resource type package so that they reflect the changes we've made to the resource type schema\.
 
-   When we first initiated the resource provider project, the CloudFormation CLI generated supporting files and code for our resource provider\. Since we've made changes to the resource provider schema, we'll need to regenerate that code to ensure that it reflects the updated schema\. To do this, we use the generate command:
+   When we first initiated the resource type project, the CloudFormation CLI generated supporting files and code for our resource type\. Since we've made changes to the resource type schema, we'll need to regenerate that code to ensure that it reflects the updated schema\. To do this, we use the generate command:
 
    ```
    $ cfn generate
-   Generated files for Custom::Testing::WordPress
+   Generated files for Example::Testing::WordPress
    ```
-**Note**
-When using Maven, as part of the build process the `generate` command is automatically run before the code is compiled\. So your changes will never get out of sync with the generated code\.
-Be aware the CloudFormation CLI must be in a location Maven/the system can find\. For more information, see [Setting Up Your Environment for Developing Resource Providers](resource-type-setup.md)\.
+**Note**  
+When using Maven, as part of the build process the `generate` command is automatically run before the code is compiled\. So your changes will never get out of sync with the generated code\.  
+Be aware the CloudFormation CLI must be in a location Maven/the system can find\. For more information, see [Setting up your environment for developing extensions](what-is-cloudformation-cli.md#resource-type-setup)\.
 
 ## Implement the Resource Handlers<a name="resource-type-walkthrough-implement"></a>
 
-Now that we have our resource provider schema specified, we can start implementing the behavior we want the resource provider to exhibit during each resource operation\. To do this, we'll have to implement the various event handlers, including:
-+ Adding any necessary dependencies
+Now that we have our resource type schema specified, we can start implementing the behavior we want the resource type to exhibit during each resource operation\. To do this, we'll have to implement the various event handlers, including:
++ Adding any necessary dependencies 
 + Writing code to implement the various resource operation handlers\.
 
 ### Add Dependencies<a name="resource-type-walkthrough-implement-dependencies"></a>
@@ -183,8 +189,8 @@ To actually make WordPress handlers that call the associated EC2 APIs, we need t
 
 For more information on how to add dependencies, see the [Maven documentation](https://maven.apache.org/guides/introduction/introduction-to-dependency-mechanism.html)\.
 
-**Note**
-Depending on your IDE, you may have to take additional steps for your IDE to include the new dependency\.
+**Note**  
+Depending on your IDE, you may have to take additional steps for your IDE to include the new dependency\.   
 In IntelliJ IDEA, a dialog should appear to enable you to import these changes\. we recommend allowing automatic importing\.
 
 ### Implement the Create Handler<a name="resource-type-walkthrough-implement-create-handler"></a>
@@ -204,22 +210,22 @@ Because our create handler is more complex than simply calling a single API, it 
 
 The CallbackContext is modeled as a POJO so you can define what information you want to pass between state transitions explicitly\.
 
-1. In your IDE, open the `CallbackContext.java` file, located in the `src/main/java/com/custom/testing/wordpress` folder\.
+1. In your IDE, open the `CallbackContext.java` file, located in the `src/main/java/com/example/testing/wordpress` folder\.
 
 1. Replace the entire contents of the `CallbackContext.java` file with the following code\.
 
    ```
-   package com.custom.testing.wordpress;
-
+   package com.example.testing.wordpress;
+   
    import com.amazonaws.services.ec2.model.Instance;
-
+   
    import java.util.List;
-
+   
    import lombok.AllArgsConstructor;
    import lombok.Builder;
    import lombok.Data;
    import lombok.NoArgsConstructor;
-
+   
    @Builder(toBuilder = true)
    @Data
    @NoArgsConstructor
@@ -233,13 +239,13 @@ The CallbackContext is modeled as a POJO so you can define what information you 
 
 #### Code the Create Handler<a name="resource-type-walkthrough-implement-create-handler-code"></a>
 
-1. In your IDE, open the `CreateHandler.java` file, located in the `src/main/java/com/custom/testing/wordpress/CreateHandler.java` folder\.
+1. In your IDE, open the `CreateHandler.java` file, located in the `src/main/java/com/example/testing/wordpress/CreateHandler.java` folder\.
 
 1. Replace the entire contents of the `CreateHandler.java` file with the following code\.
 
    ```
-   package com.custom.testing.wordpress;
-
+   package com.example.testing.wordpress;
+   
    import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
    import software.amazon.cloudformation.proxy.Logger;
    import software.amazon.cloudformation.proxy.OperationStatus;
@@ -263,10 +269,10 @@ The CallbackContext is modeled as a POJO so you can define what information you 
    import com.amazonaws.services.ec2.model.Subnet;
    import com.amazonaws.services.ec2.model.Tag;
    import com.amazonaws.services.ec2.model.TagSpecification;
-
+   
    import java.util.List;
    import java.util.UUID;
-
+   
    public class CreateHandler extends BaseHandler<CallbackContext> {
        private static final String SUPPORTED_REGION = "us-west-2";
        private static final String WORDPRESS_AMI_ID = "ami-04fb0368671b6f138";
@@ -276,37 +282,37 @@ The CallbackContext is modeled as a POJO so you can define what information you 
        private static final int NUMBER_OF_STATE_POLL_RETRIES = 60;
        private static final int POLL_RETRY_DELAY_IN_MS = 5000;
        private static final String TIMED_OUT_MESSAGE = "Timed out waiting for instance to become available.";
-
+   
        private AmazonWebServicesClientProxy clientProxy;
        private AmazonEC2 ec2Client;
-
+   
        @Override
        public ProgressEvent<ResourceModel, CallbackContext> handleRequest(
            final AmazonWebServicesClientProxy proxy,
            final ResourceHandlerRequest<ResourceModel> request,
            final CallbackContext callbackContext,
            final Logger logger) {
-
+   
            final ResourceModel model = request.getDesiredResourceState();
-
+   
            clientProxy = proxy;
            ec2Client = AmazonEC2ClientBuilder.standard().withRegion(SUPPORTED_REGION).build();
            final CallbackContext currentContext = callbackContext == null ?
                                                   CallbackContext.builder().stabilizationRetriesRemaining(NUMBER_OF_STATE_POLL_RETRIES).build() :
                                                   callbackContext;
-
+   
            // This Lambda will continually be re-invoked with the current state of the instance, finally succeeding when state stabilizes.
            return createInstanceAndUpdateProgress(model, currentContext);
        }
-
+   
        private ProgressEvent<ResourceModel, CallbackContext> createInstanceAndUpdateProgress(ResourceModel model, CallbackContext callbackContext) {
            // This Lambda will continually be re-invoked with the current state of the instance, finally succeeding when state stabilizes.
            final Instance instanceStateSoFar = callbackContext.getInstance();
-
+   
            if (callbackContext.getStabilizationRetriesRemaining() == 0) {
                throw new RuntimeException(TIMED_OUT_MESSAGE);
            }
-
+   
            if (instanceStateSoFar == null) {
                return ProgressEvent.<ResourceModel, CallbackContext>builder()
                    .resourceModel(model)
@@ -323,7 +329,7 @@ The CallbackContext is modeled as a POJO so you can define what information you 
                    .resourceModel(model)
                    .status(OperationStatus.SUCCESS)
                    .build();
-
+   
            } else {
                try {
                    Thread.sleep(POLL_RETRY_DELAY_IN_MS);
@@ -340,7 +346,7 @@ The CallbackContext is modeled as a POJO so you can define what information you 
                    .build();
            }
        }
-
+   
        private Instance createEC2Instance(ResourceModel model) {
            final String securityGroupId = createSecurityGroupForInstance(model);
            final RunInstancesRequest runInstancesRequest = new RunInstancesRequest()
@@ -354,7 +360,7 @@ The CallbackContext is modeled as a POJO so you can define what information you 
                .withMaxCount(1)
                .withMinCount(1)
                .withTagSpecifications(buildTagFromSiteName(model.getName()));
-
+   
            try {
                return clientProxy.injectCredentialsAndInvoke(runInstancesRequest, ec2Client::runInstances)
                                  .getReservation()
@@ -367,7 +373,7 @@ The CallbackContext is modeled as a POJO so you can define what information you 
                throw new RuntimeException(e);
            }
        }
-
+   
        private String createSecurityGroupForInstance(ResourceModel model) {
            String vpcId;
            try {
@@ -375,34 +381,34 @@ The CallbackContext is modeled as a POJO so you can define what information you 
            } catch (Throwable e) {
                throw new RuntimeException(e);
            }
-
+   
            final String securityGroupName = model.getName() + "-" + UUID.randomUUID().toString();
-
+   
            final CreateSecurityGroupRequest createSecurityGroupRequest = new CreateSecurityGroupRequest()
                .withGroupName(securityGroupName)
                .withDescription("Created for the test WordPress blog: " + model.getName())
                .withVpcId(vpcId);
-
+   
            final String securityGroupId =
                clientProxy.injectCredentialsAndInvoke(createSecurityGroupRequest, ec2Client::createSecurityGroup)
                           .getGroupId();
-
+   
            final AuthorizeSecurityGroupIngressRequest authorizeSecurityGroupIngressRequest = new AuthorizeSecurityGroupIngressRequest()
                .withGroupId(securityGroupId)
                .withIpPermissions(openHTTP(), openHTTPS());
-
+   
            clientProxy.injectCredentialsAndInvoke(authorizeSecurityGroupIngressRequest, ec2Client::authorizeSecurityGroupIngress);
-
+   
            return securityGroupId;
        }
-
+   
        private String getVpcIdFromSubnetId(String subnetId) throws Throwable {
            final DescribeSubnetsRequest describeSubnetsRequest = new DescribeSubnetsRequest()
                .withSubnetIds(subnetId);
-
+   
            final DescribeSubnetsResult describeSubnetsResult =
                clientProxy.injectCredentialsAndInvoke(describeSubnetsRequest, ec2Client::describeSubnets);
-
+   
            return describeSubnetsResult.getSubnets()
                                        .stream()
                                        .map(Subnet::getVpcId)
@@ -411,31 +417,31 @@ The CallbackContext is modeled as a POJO so you can define what information you 
                                            throw new RuntimeException("Subnet " + subnetId + " not found");
                                        });
        }
-
+   
        private IpPermission openHTTP() {
            return new IpPermission().withIpProtocol("tcp")
                                     .withFromPort(80)
                                     .withToPort(80)
                                     .withIpv4Ranges(new IpRange().withCidrIp("0.0.0.0/0"));
        }
-
+   
        private IpPermission openHTTPS() {
            return new IpPermission().withIpProtocol("tcp")
                                     .withFromPort(443)
                                     .withToPort(443)
                                     .withIpv4Ranges(new IpRange().withCidrIp("0.0.0.0/0"));
        }
-
+   
        private TagSpecification buildTagFromSiteName(String siteName) {
            return new TagSpecification()
                .withResourceType("instance")
                .withTags(new Tag().withKey(SITE_NAME_TAG_KEY).withValue(siteName));
        }
-
+   
        private Instance updatedInstanceProgress(String instanceId) {
            DescribeInstancesRequest describeInstancesRequest;
            DescribeInstancesResult describeInstancesResult;
-
+   
            describeInstancesRequest = new DescribeInstancesRequest().withInstanceIds(instanceId);
            describeInstancesResult = clientProxy.injectCredentialsAndInvoke(describeInstancesRequest, ec2Client::describeInstances);
            return describeInstancesResult.getReservations()
@@ -445,7 +451,7 @@ The CallbackContext is modeled as a POJO so you can define what information you 
                                          .findFirst()
                                          .orElse(new Instance());
        }
-
+   
        private void attemptToCleanUpSecurityGroup(String securityGroupId) {
            final DeleteSecurityGroupRequest deleteSecurityGroupRequest = new DeleteSecurityGroupRequest().withGroupId(securityGroupId);
            clientProxy.injectCredentialsAndInvoke(deleteSecurityGroupRequest, ec2Client::deleteSecurityGroup);
@@ -455,15 +461,15 @@ The CallbackContext is modeled as a POJO so you can define what information you 
 
 #### Update the Create Handler Unit Test<a name="resource-type-walkthrough-implement-create-handler-unit"></a>
 
-Since our resource type is a high\-level abstraction, a lot of implementation behavior isn't apparent by the name alone\. As such, we'll need to make some additions to our unit tests so that we're not calling the live APIs that are necessary to create the WordPress site\.
+Since our resource type is a high\-level abstraction, a lot of implementation behavior isn't apparent by the name alone\. As such, we'll need to make some additions to our unit tests so that we're not calling the live APIs that are necessary to create the WordPress site\. 
 
-1. In your IDE, open the `CreateHandler.java` file, located in the `src/test/java/com/custom/testing/wordpress` folder\.
+1. In your IDE, open the `CreateHandlerTest.java` file, located in the `src/test/java/com/example/testing/wordpress` folder\.
 
-1. Replace the entire contents of the `CreateHandler.java` file with the following code\.
+1. Replace the entire contents of the `CreateHandlerTest.java` file with the following code\.
 
    ```
-   package com.custom.testing.wordpress;
-
+   package com.example.testing.wordpress;
+   
    import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
    import software.amazon.cloudformation.proxy.Logger;
    import software.amazon.cloudformation.proxy.OperationStatus;
@@ -484,67 +490,67 @@ Since our resource type is a high\-level abstraction, a lot of implementation be
    import com.amazonaws.services.ec2.model.RunInstancesRequest;
    import com.amazonaws.services.ec2.model.RunInstancesResult;
    import com.amazonaws.services.ec2.model.Subnet;
-
+   
    import org.junit.jupiter.api.BeforeEach;
    import org.junit.jupiter.api.Test;
    import org.junit.jupiter.api.extension.ExtendWith;
    import org.mockito.Mock;
    import org.mockito.junit.jupiter.MockitoExtension;
-
-
+   
+   
    import static org.assertj.core.api.Assertions.assertThat;
    import static org.mockito.ArgumentMatchers.any;
    import static org.mockito.Mockito.doReturn;
    import static org.mockito.Mockito.mock;
-
+   
    @ExtendWith(MockitoExtension.class)
    public class CreateHandlerTest {
        private static String EXPECTED_TIMEOUT_MESSAGE = "Timed out waiting for instance to become available.";
-
+   
        @Mock
        private AmazonWebServicesClientProxy proxy;
-
+   
        @Mock
        private Logger logger;
-
+   
        @BeforeEach
        public void setup() {
            proxy = mock(AmazonWebServicesClientProxy.class);
            logger = mock(Logger.class);
        }
-
+   
        @Test
        public void testSuccessState() {
            final InstanceState inProgressState = new InstanceState().withName("running");
            final GroupIdentifier group = new GroupIdentifier().withGroupId("sg-1234");
            final Instance instance = new Instance().withInstanceId("i-1234").withState(inProgressState).withPublicIpAddress("54.0.0.0").withSecurityGroups(group);
-
+   
            final CreateHandler handler = new CreateHandler();
-
+   
            final ResourceModel model = ResourceModel.builder()
                                                     .name("MyWordPressSite")
                                                     .subnetId("subnet-1234")
                                                     .build();
-
+   
            final ResourceModel desiredOutputModel = ResourceModel.builder()
                                                                  .instanceId("i-1234")
                                                                  .publicIp("54.0.0.0")
                                                                  .name("MyWordPressSite")
                                                                  .subnetId("subnet-1234")
                                                                  .build();
-
+   
            final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
                .desiredResourceState(model)
                .build();
-
+   
            final CallbackContext context = CallbackContext.builder()
                                                           .stabilizationRetriesRemaining(1)
                                                           .instance(instance)
                                                           .build();
-
+   
            final ProgressEvent<ResourceModel, CallbackContext> response
                = handler.handleRequest(proxy, request, context, logger);
-
+   
            assertThat(response).isNotNull();
            assertThat(response.getStatus()).isEqualTo(OperationStatus.SUCCESS);
            assertThat(response.getCallbackContext()).isNull();
@@ -554,7 +560,7 @@ Since our resource type is a high\-level abstraction, a lot of implementation be
            assertThat(response.getMessage()).isNull();
            assertThat(response.getErrorCode()).isNull();
        }
-
+   
        @Test
        public void testInProgressStateInstanceCreationNotInvoked() {
            final InstanceState inProgressState = new InstanceState().withName("in-progress");
@@ -564,18 +570,18 @@ Since our resource type is a high\-level abstraction, a lot of implementation be
            doReturn(new RunInstancesResult().withReservation(new Reservation().withInstances(instance))).when(proxy).injectCredentialsAndInvoke(any(RunInstancesRequest.class), any());
            doReturn(new CreateSecurityGroupResult().withGroupId("sg-1234")).when(proxy).injectCredentialsAndInvoke(any(CreateSecurityGroupRequest.class), any());
            doReturn(new AuthorizeSecurityGroupIngressResult()).when(proxy).injectCredentialsAndInvoke(any(AuthorizeSecurityGroupIngressRequest.class), any());
-
+   
            final CreateHandler handler = new CreateHandler();
-
+   
            final ResourceModel model = ResourceModel.builder().name("MyWordPressSite").subnetId("subnet-1234").build();
-
+   
            final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
                .desiredResourceState(model)
                .build();
-
+   
            final ProgressEvent<ResourceModel, CallbackContext> response
                = handler.handleRequest(proxy, request, null, logger);
-
+   
            final CallbackContext desiredOutputContext = CallbackContext.builder()
                                                                        .stabilizationRetriesRemaining(60)
                                                                        .instance(instance)
@@ -589,7 +595,7 @@ Since our resource type is a high\-level abstraction, a lot of implementation be
            assertThat(response.getMessage()).isNull();
            assertThat(response.getErrorCode()).isNull();
        }
-
+   
        @Test
        public void testInProgressStateInstanceCreationInvoked() {
            final InstanceState inProgressState = new InstanceState().withName("in-progress");
@@ -597,30 +603,30 @@ Since our resource type is a high\-level abstraction, a lot of implementation be
            final Instance instance = new Instance().withState(inProgressState).withPublicIpAddress("54.0.0.0").withSecurityGroups(group);
            final DescribeInstancesResult describeInstancesResult =
                new DescribeInstancesResult().withReservations(new Reservation().withInstances(instance));
-
+   
            doReturn(describeInstancesResult).when(proxy).injectCredentialsAndInvoke(any(DescribeInstancesRequest.class), any());
-
+   
            final CreateHandler handler = new CreateHandler();
-
+   
            final ResourceModel model = ResourceModel.builder().name("MyWordPressSite").subnetId("subnet-1234").build();
-
+   
            final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
                .desiredResourceState(model)
                .build();
-
+   
            final CallbackContext context = CallbackContext.builder()
                                                           .stabilizationRetriesRemaining(60)
                                                           .instance(instance)
                                                           .build();
-
+   
            final ProgressEvent<ResourceModel, CallbackContext> response
                = handler.handleRequest(proxy, request, context, logger);
-
+   
            final CallbackContext desiredOutputContext = CallbackContext.builder()
                                                                        .stabilizationRetriesRemaining(59)
                                                                        .instance(instance)
                                                                        .build();
-
+   
            assertThat(response).isNotNull();
            assertThat(response.getStatus()).isEqualTo(OperationStatus.IN_PROGRESS);
            assertThat(response.getCallbackContext()).isEqualToComparingFieldByField(desiredOutputContext);
@@ -630,22 +636,22 @@ Since our resource type is a high\-level abstraction, a lot of implementation be
            assertThat(response.getMessage()).isNull();
            assertThat(response.getErrorCode()).isNull();
        }
-
+   
        @Test
        public void testStabilizationTimeout() {
            final CreateHandler handler = new CreateHandler();
-
+   
            final ResourceModel model = ResourceModel.builder().name("MyWordPressSite").subnetId("subnet-1234").build();
-
+   
            final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
                .desiredResourceState(model)
                .build();
-
+   
            final CallbackContext context = CallbackContext.builder()
                                                           .stabilizationRetriesRemaining(0)
                                                           .instance(new Instance().withState(new InstanceState().withName("in-progress")))
                                                           .build();
-
+   
            try {
                handler.handleRequest(proxy, request, context, logger);
            } catch (RuntimeException e) {
@@ -669,13 +675,13 @@ Again, we'll implement the delete handler as a state machine\.
 
 #### Code the Delete Handler<a name="resource-type-walkthrough-implement-delete-handler-code"></a>
 
-1. In your IDE, open the `DeleteHandler.java` file, located in the `src/main/java/com/custom/testing/wordpress` folder\.
+1. In your IDE, open the `DeleteHandler.java` file, located in the `src/main/java/com/example/testing/wordpress` folder\.
 
 1. Replace the entire contents of the `DeleteHandler.java` file with the following code\.
 
    ```
-   package com.custom.testing.wordpress;
-
+   package com.example.testing.wordpress;
+   
    import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
    import software.amazon.cloudformation.proxy.HandlerErrorCode;
    import software.amazon.cloudformation.proxy.Logger;
@@ -691,61 +697,61 @@ Again, we'll implement the delete handler as a state machine\.
    import com.amazonaws.services.ec2.model.Instance;
    import com.amazonaws.services.ec2.model.Reservation;
    import com.amazonaws.services.ec2.model.TerminateInstancesRequest;
-
+   
    import java.util.List;
    import java.util.stream.Collectors;
-
+   
    public class DeleteHandler extends BaseHandler<CallbackContext> {
        private static final String SUPPORTED_REGION = "us-west-2";
        private static final String DELETED_INSTANCE_STATE = "terminated";
        private static final int NUMBER_OF_STATE_POLL_RETRIES = 60;
        private static final int POLL_RETRY_DELAY_IN_MS = 5000;
        private static final String TIMED_OUT_MESSAGE = "Timed out waiting for instance to terminate.";
-
+   
        private AmazonWebServicesClientProxy clientProxy;
        private AmazonEC2 ec2Client;
-
+   
        @Override
        public ProgressEvent<ResourceModel, CallbackContext> handleRequest (
            final AmazonWebServicesClientProxy proxy,
            final ResourceHandlerRequest<ResourceModel> request,
            final CallbackContext callbackContext,
            final Logger logger) {
-
+   
            final ResourceModel model = request.getDesiredResourceState();
-
+   
            clientProxy = proxy;
            ec2Client = AmazonEC2ClientBuilder.standard().withRegion(SUPPORTED_REGION).build();
            final CallbackContext currentContext = callbackContext == null ?
                                                   CallbackContext.builder().stabilizationRetriesRemaining(NUMBER_OF_STATE_POLL_RETRIES).build() :
                                                   callbackContext;
-
+   
            // This Lambda will continually be re-invoked with the current state of the instance, finally succeeding when state stabilizes.
            return deleteInstanceAndUpdateProgress(model, currentContext);
        }
-
+   
        private ProgressEvent<ResourceModel, CallbackContext> deleteInstanceAndUpdateProgress(ResourceModel model, CallbackContext callbackContext) {
-
+   
            if (callbackContext.getStabilizationRetriesRemaining() == 0) {
                throw new RuntimeException(TIMED_OUT_MESSAGE);
            }
-
+   
            if (callbackContext.getInstanceSecurityGroups() == null) {
                final Instance currentInstanceState = currentInstanceState(model.getInstanceId());
-
+   
                if (DELETED_INSTANCE_STATE.equals(currentInstanceState.getState().getName())) {
                    return ProgressEvent.<ResourceModel, CallbackContext>builder()
                        .status(OperationStatus.FAILED)
                        .errorCode(HandlerErrorCode.NotFound)
                        .build();
                }
-
+   
                final List<String> instanceSecurityGroups = currentInstanceState
                    .getSecurityGroups()
                    .stream()
                    .map(GroupIdentifier::getGroupId)
                    .collect(Collectors.toList());
-
+   
                return ProgressEvent.<ResourceModel, CallbackContext>builder()
                    .resourceModel(model)
                    .status(OperationStatus.IN_PROGRESS)
@@ -755,7 +761,7 @@ Again, we'll implement the delete handler as a state machine\.
                                                    .build())
                    .build();
            }
-
+   
            if (callbackContext.getInstance() == null) {
                return ProgressEvent.<ResourceModel, CallbackContext>builder()
                    .resourceModel(model)
@@ -788,9 +794,9 @@ Again, we'll implement the delete handler as a state machine\.
                                                    .build())
                    .build();
            }
-
+   
        }
-
+   
        private Instance deleteInstance(String instanceId) {
            final TerminateInstancesRequest terminateInstancesRequest = new TerminateInstancesRequest().withInstanceIds(instanceId);
            return clientProxy.injectCredentialsAndInvoke(terminateInstancesRequest, ec2Client::terminateInstances)
@@ -800,11 +806,11 @@ Again, we'll implement the delete handler as a state machine\.
                              .findFirst()
                              .orElse(new Instance());
        }
-
+   
        private Instance currentInstanceState(String instanceId) {
            DescribeInstancesRequest describeInstancesRequest;
            DescribeInstancesResult describeInstancesResult;
-
+   
            describeInstancesRequest = new DescribeInstancesRequest().withInstanceIds(instanceId);
            describeInstancesResult = clientProxy.injectCredentialsAndInvoke(describeInstancesRequest, ec2Client::describeInstances);
            return describeInstancesResult.getReservations()
@@ -814,7 +820,7 @@ Again, we'll implement the delete handler as a state machine\.
                                          .findFirst()
                                          .orElse(new Instance());
        }
-
+   
        private void deleteSecurityGroup(String securityGroupId) {
            final DeleteSecurityGroupRequest deleteSecurityGroupRequest = new DeleteSecurityGroupRequest().withGroupId(securityGroupId);
            clientProxy.injectCredentialsAndInvoke(deleteSecurityGroupRequest, ec2Client::deleteSecurityGroup);
@@ -826,13 +832,13 @@ Again, we'll implement the delete handler as a state machine\.
 
 We'll also need to update the unit test for the delete handler\.
 
-1. In your IDE, open the `DeleteHandler.java` file, located in the `src/test/java/com/custom/testing/wordpress` folder\.
+1. In your IDE, open the `DeleteHandlerTest.java` file, located in the `src/test/java/com/example/testing/wordpress` folder\.
 
-1. Replace the entire contents of the `DeleteHandler.java` file with the following code\.
+1. Replace the entire contents of the `DeleteHandlerTest.java` file with the following code\.
 
    ```
-   package com.custom.testing.wordpress;
-
+   package com.example.testing.wordpress;
+   
    import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
    import software.amazon.cloudformation.proxy.HandlerErrorCode;
    import software.amazon.cloudformation.proxy.Logger;
@@ -850,59 +856,59 @@ We'll also need to update the unit test for the delete handler\.
    import com.amazonaws.services.ec2.model.Reservation;
    import com.amazonaws.services.ec2.model.TerminateInstancesRequest;
    import com.amazonaws.services.ec2.model.TerminateInstancesResult;
-
+   
    import org.junit.jupiter.api.BeforeEach;
    import org.junit.jupiter.api.Test;
    import org.junit.jupiter.api.extension.ExtendWith;
    import org.mockito.Mock;
    import org.mockito.junit.jupiter.MockitoExtension;
-
+   
    import java.util.Arrays;
-
-
+   
+   
    import static org.assertj.core.api.Assertions.assertThat;
    import static org.mockito.ArgumentMatchers.any;
    import static org.mockito.Mockito.doReturn;
    import static org.mockito.Mockito.mock;
-
+   
    @ExtendWith(MockitoExtension.class)
    public class DeleteHandlerTest {
        private static String EXPECTED_TIMEOUT_MESSAGE = "Timed out waiting for instance to terminate.";
-
+   
        @Mock
        private AmazonWebServicesClientProxy proxy;
-
+   
        @Mock
        private Logger logger;
-
+   
        @BeforeEach
        public void setup() {
            proxy = mock(AmazonWebServicesClientProxy.class);
            logger = mock(Logger.class);
        }
-
+   
        @Test
        public void testSuccessState() {
            final DeleteSecurityGroupResult deleteSecurityGroupResult = new DeleteSecurityGroupResult();
            doReturn(deleteSecurityGroupResult).when(proxy).injectCredentialsAndInvoke(any(DeleteSecurityGroupRequest.class), any());
-
+   
            final DeleteHandler handler = new DeleteHandler();
-
+   
            final ResourceModel model = ResourceModel.builder().instanceId("i-1234").build();
-
+   
            final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
                .desiredResourceState(model)
                .build();
-
+   
            final CallbackContext context = CallbackContext.builder()
                                                           .stabilizationRetriesRemaining(1)
                                                           .instanceSecurityGroups(Arrays.asList("sg-1234"))
                                                           .instance(new Instance().withState(new InstanceState().withName("terminated")))
                                                           .build();
-
+   
            final ProgressEvent<ResourceModel, CallbackContext> response
                = handler.handleRequest(proxy, request, context, logger);
-
+   
            assertThat(response).isNotNull();
            assertThat(response.getStatus()).isEqualTo(OperationStatus.SUCCESS);
            assertThat(response.getCallbackContext()).isNull();
@@ -912,25 +918,25 @@ We'll also need to update the unit test for the delete handler\.
            assertThat(response.getMessage()).isNull();
            assertThat(response.getErrorCode()).isNull();
        }
-
+   
        @Test
        public void testHandlerInvokedWhenInstanceIsAlreadyTerminated() {
            final DescribeInstancesResult describeInstancesResult =
                new DescribeInstancesResult().withReservations(new Reservation().withInstances(new Instance().withState(new InstanceState().withName("terminated"))
                                                                                                             .withSecurityGroups(new GroupIdentifier().withGroupId("sg-1234"))));
            doReturn(describeInstancesResult).when(proxy).injectCredentialsAndInvoke(any(DescribeInstancesRequest.class), any());
-
+   
            final DeleteHandler handler = new DeleteHandler();
-
+   
            final ResourceModel model = ResourceModel.builder().instanceId("i-1234").build();
-
+   
            final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
                .desiredResourceState(model)
                .build();
-
+   
            final ProgressEvent<ResourceModel, CallbackContext> response
                = handler.handleRequest(proxy, request, null, logger);
-
+   
            assertThat(response).isNotNull();
            assertThat(response.getStatus()).isEqualTo(OperationStatus.FAILED);
            assertThat(response.getCallbackContext()).isNull();
@@ -940,25 +946,25 @@ We'll also need to update the unit test for the delete handler\.
            assertThat(response.getMessage()).isNull();
            assertThat(response.getErrorCode()).isEqualTo(HandlerErrorCode.NotFound);
        }
-
+   
        @Test
        public void testInProgressStateSecurityGroupsNotGathered() {
            final DescribeInstancesResult describeInstancesResult =
                new DescribeInstancesResult().withReservations(new Reservation().withInstances(new Instance().withState(new InstanceState().withName("running"))
                                                                                                             .withSecurityGroups(new GroupIdentifier().withGroupId("sg-1234"))));
            doReturn(describeInstancesResult).when(proxy).injectCredentialsAndInvoke(any(DescribeInstancesRequest.class), any());
-
+   
            final DeleteHandler handler = new DeleteHandler();
-
+   
            final ResourceModel model = ResourceModel.builder().instanceId("i-1234").build();
-
+   
            final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
                .desiredResourceState(model)
                .build();
-
+   
            final ProgressEvent<ResourceModel, CallbackContext> response
                = handler.handleRequest(proxy, request, null, logger);
-
+   
            final CallbackContext desiredOutputContext = CallbackContext.builder()
                                                                        .stabilizationRetriesRemaining(60)
                                                                        .instanceSecurityGroups(Arrays.asList("sg-1234"))
@@ -972,36 +978,36 @@ We'll also need to update the unit test for the delete handler\.
            assertThat(response.getMessage()).isNull();
            assertThat(response.getErrorCode()).isNull();
        }
-
+   
        @Test
        public void testInProgressStateSecurityGroupsGathered() {
            final InstanceState inProgressState = new InstanceState().withName("in-progress");
            final TerminateInstancesResult terminateInstancesResult =
                new TerminateInstancesResult().withTerminatingInstances(new InstanceStateChange().withCurrentState(inProgressState));
            doReturn(terminateInstancesResult).when(proxy).injectCredentialsAndInvoke(any(TerminateInstancesRequest.class), any());
-
+   
            final DeleteHandler handler = new DeleteHandler();
-
+   
            final ResourceModel model = ResourceModel.builder().instanceId("i-1234").build();
-
+   
            final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
                .desiredResourceState(model)
                .build();
-
+   
            final CallbackContext context = CallbackContext.builder()
                                                           .stabilizationRetriesRemaining(60)
                                                           .instanceSecurityGroups(Arrays.asList("sg-1234"))
                                                           .build();
-
+   
            final ProgressEvent<ResourceModel, CallbackContext> response
                = handler.handleRequest(proxy, request, context, logger);
-
+   
            final CallbackContext desiredOutputContext = CallbackContext.builder()
                                                                        .stabilizationRetriesRemaining(60)
                                                                        .instanceSecurityGroups(context.getInstanceSecurityGroups())
                                                                        .instance(new Instance().withState(inProgressState))
                                                                        .build();
-
+   
            assertThat(response).isNotNull();
            assertThat(response.getStatus()).isEqualTo(OperationStatus.IN_PROGRESS);
            assertThat(response.getCallbackContext()).isEqualToComparingFieldByField(desiredOutputContext);
@@ -1011,7 +1017,7 @@ We'll also need to update the unit test for the delete handler\.
            assertThat(response.getMessage()).isNull();
            assertThat(response.getErrorCode()).isNull();
        }
-
+   
        @Test
        public void testInProgressStateInstanceTerminationInvoked() {
            final InstanceState inProgressState = new InstanceState().withName("in-progress");
@@ -1020,30 +1026,30 @@ We'll also need to update the unit test for the delete handler\.
            final DescribeInstancesResult describeInstancesResult =
                new DescribeInstancesResult().withReservations(new Reservation().withInstances(instance));
            doReturn(describeInstancesResult).when(proxy).injectCredentialsAndInvoke(any(DescribeInstancesRequest.class), any());
-
+   
            final DeleteHandler handler = new DeleteHandler();
-
+   
            final ResourceModel model = ResourceModel.builder().instanceId("i-1234").build();
-
+   
            final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
                .desiredResourceState(model)
                .build();
-
+   
            final CallbackContext context = CallbackContext.builder()
                                                           .stabilizationRetriesRemaining(60)
                                                           .instance(new Instance().withState(inProgressState).withSecurityGroups(group))
                                                           .instanceSecurityGroups(Arrays.asList("sg-1234"))
                                                           .build();
-
+   
            final ProgressEvent<ResourceModel, CallbackContext> response
                = handler.handleRequest(proxy, request, context, logger);
-
+   
            final CallbackContext desiredOutputContext = CallbackContext.builder()
                                                                        .stabilizationRetriesRemaining(59)
                                                                        .instanceSecurityGroups(context.getInstanceSecurityGroups())
                                                                        .instance(new Instance().withState(inProgressState).withSecurityGroups(group))
                                                                        .build();
-
+   
            assertThat(response).isNotNull();
            assertThat(response.getStatus()).isEqualTo(OperationStatus.IN_PROGRESS);
            assertThat(response.getCallbackContext()).isEqualToComparingFieldByField(desiredOutputContext);
@@ -1053,23 +1059,23 @@ We'll also need to update the unit test for the delete handler\.
            assertThat(response.getMessage()).isNull();
            assertThat(response.getErrorCode()).isNull();
        }
-
+   
        @Test
        public void testStabilizationTimeout() {
            final DeleteHandler handler = new DeleteHandler();
-
+   
            final ResourceModel model = ResourceModel.builder().instanceId("i-1234").build();
-
+   
            final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
                .desiredResourceState(model)
                .build();
-
+   
            final CallbackContext context = CallbackContext.builder()
                                                           .stabilizationRetriesRemaining(0)
                                                           .instanceSecurityGroups(Arrays.asList("sg-1234"))
                                                           .instance(new Instance().withState(new InstanceState().withName("terminated")))
                                                           .build();
-
+   
            try {
                handler.handleRequest(proxy, request, context, logger);
            } catch (RuntimeException e) {
@@ -1079,23 +1085,23 @@ We'll also need to update the unit test for the delete handler\.
    }
    ```
 
-## Test the Resource Provider<a name="resource-type-walkthrough-test"></a>
+## Test the resource type<a name="resource-type-walkthrough-test"></a>
 
 Next, we'll use the AWS SAM CLI to test locally that our resource will work as expected once we submit it to the CloudFormation registry\. To do this, we'll need to define tests for the SAM to run against our create and delete handlers\.
 
-### Create the SAM Test Files<a name="resource-type-walkthrough-test-files"></a>
+### Create the SAM test files<a name="resource-type-walkthrough-test-files"></a>
 
 1. Create two files:
    + `package-root/sam-tests/create.json`
    + `package-root/sam-tests/delete.json`
 
    Where *package\-root* is the root of the resource project\. For our walkthrough example, the files would be:
-   + `custom-testing-wordpress/sam-tests/create.json`
-   + `custom-testing-wordpress/sam-tests/delete.json`
+   + `example-testing-wordpress/sam-tests/create.json`
+   + `example-testing-wordpress/sam-tests/delete.json`
 
-1. In `custom-testing-wordpress/sam-tests/create.json`, paste the following test\.
-**Note**
-Add the necessary information, such as credentials and log group name, and remove any comments in the file before testing\.
+1. In `example-testing-wordpress/sam-tests/create.json`, paste the following test\. 
+**Note**  
+Add the necessary information, such as credentials and log group name, and remove any comments in the file before testing\.  
 To generate temporary credentials, you can use `aws sts get-session-token`\.
 
    ```
@@ -1119,9 +1125,9 @@ To generate temporary credentials, you can use `aws sts get-session-token`\.
    }
    ```
 
-1. In `custom-testing-wordpress/sam-tests/delete.json`, paste the following test\.
-**Note**
-Add the necessary information, such as credentials and log group name, and remove any comments in the file before testing\.
+1. In `example-testing-wordpress/sam-tests/delete.json`, paste the following test\. 
+**Note**  
+Add the necessary information, such as credentials and log group name, and remove any comments in the file before testing\.  
 To generate temporary credentials, you can use `aws sts get-session-token`\.
 
    ```
@@ -1148,7 +1154,7 @@ To generate temporary credentials, you can use `aws sts get-session-token`\.
 
 ### Test the Create Handler<a name="resource-type-walkthrough-test-create"></a>
 
-Once you've created the `custom-testing-wordpress/sam-tests/create.json` test file, you can use it to test your create handler\.
+Once you've created the `example-testing-wordpress/sam-tests/create.json` test file, you can use it to test your create handler\.
 
 Ensure Docker is running on your computer\.
 
@@ -1157,7 +1163,7 @@ Ensure Docker is running on your computer\.
    ```
    sam local invoke TestEntrypoint --event sam-tests/create.json
    ```
-**Note**
+**Note**  
 Occasionally these tests will fail with a retry\-able error\. In such a case, run the tests again to determine whether the issue was transient\.
 
    Because the create handler was written as a state machine, invoking the tests will return an output that represents a state\. For example:
@@ -1271,7 +1277,7 @@ Occasionally these tests will fail with a retry\-able error\. In such a case, ru
    }
    ```
 
-1. From the test response, copy the contents of the `callbackContext`, and paste it into the `callbackContext` section of the `custom-testing-wordpress/sam-tests/create.json` file\.
+1. From the test response, copy the contents of the `callbackContext`, and paste it into the `callbackContext` section of the `example-testing-wordpress/sam-tests/create.json` file\. 
 
 1. Invoke the `TestEntrypoint` function again\.
 
@@ -1279,7 +1285,7 @@ Occasionally these tests will fail with a retry\-able error\. In such a case, ru
    sam local invoke TestEntrypoint --event sam-tests/create.json
    ```
 
-   If the resource has yet to complete provisioning, the test returns a response with a `status` of `IN_PROGRESS`\. Once the resource has completed provisioning, the test returns a response with a `status` of `SUCCESS`\. For example:
+   If the resource has yet to complete provisioning, the test returns a response with a `status` of `IN_PROGRESS`\. Once the resource has completed provisioning, the test returns a response with a `status` of `SUCCESS`\. For example: 
 
    ```
    {
@@ -1297,12 +1303,12 @@ Occasionally these tests will fail with a retry\-able error\. In such a case, ru
 1. Repeat the previous two steps until the resource has completed\.
 
 When the resource completes provisioning, the test response contains both its `PublicIp` and `InstanceId`:
-+ You can use the `PublicIp` value to navigate to the WordPress site\.
++ You can use the `PublicIp` value to navigate to the WordPress site\. 
 + You can use the `InstanceId` value to test the delete handler, as described below\.
 
 ### Test the Delete Handler<a name="resource-type-walkthrough-test-delete"></a>
 
-Once you've created the `custom-testing-wordpress/sam-tests/delete.json` test file, you can use it to test your delete handler\.
+Once you've created the `example-testing-wordpress/sam-tests/delete.json` test file, you can use it to test your delete handler\.
 
 Ensure Docker is running on your computer\.
 
@@ -1311,12 +1317,12 @@ Ensure Docker is running on your computer\.
    ```
    sam local invoke TestEntrypoint --event sam-tests/delete.json
    ```
-**Note**
+**Note**  
 Occasionally these tests will fail with a retry\-able error\. In such a case, run the tests again to determine whether the issue was transient\.
 
    As with the create handler, the delete handler was written as a state machine, so invoking the test will return an output that represents a state\.
 
-1. From the test response, copy the contents of the `callbackContext`, and paste it into the `callbackContext` section of the `custom-testing-wordpress/sam-tests/delete.json` file\.
+1. From the test response, copy the contents of the `callbackContext`, and paste it into the `callbackContext` section of the `example-testing-wordpress/sam-tests/delete.json` file\. 
 
 1. Invoke the `TestEntrypoint` function again\.
 
@@ -1328,13 +1334,13 @@ Occasionally these tests will fail with a retry\-able error\. In such a case, ru
 
 1. Repeat the previous two steps until the resource has completed\.
 
-### Performing Resource Contract Tests<a name="resource-type-walkthrough-test-contract"></a>
+### Performing resource contract tests<a name="resource-type-walkthrough-test-contract"></a>
 
-Resource contract tests verify that the resource type provider schema you've defined properly catches property values that will fail when passed to the underlying APIs called from within your resource handlers\. This provides a way of validating user input before passing it to the resource handlers\. For example, in the `Custom::Testing::WordPress` resource type provide schema \(in the `custom-testing-wordpress.json` file\), we specified regex patterns for the `Name` and `SubnetId` properties, and set the maximum length of `Name` as 219 characters\. Contract tests are intended to stress and validate those input definitions\.
+Resource contract tests verify that the resource type type schema you've defined properly catches property values that will fail when passed to the underlying APIs called from within your resource handlers\. This provides a way of validating user input before passing it to the resource handlers\. For example, in the `Example::Testing::WordPress` resource type provide schema \(in the `example-testing-wordpress.json` file\), we specified regex patterns for the `Name` and `SubnetId` properties, and set the maximum length of `Name` as 219 characters\. Contract tests are intended to stress and validate those input definitions\.
 
 #### Specify Resource Contract Test Override Values<a name="resource-type-walkthrough-test-contract-override"></a>
 
-The CloudFormation CLI performs resource contract tests using input that is generated from the patterns you define in your resource's property definitions\. However, some inputs can't be randomly generated\. For example, the `Custom::Testing::WordPress` resource requires an actual subnet ID for testing, not just a string that matches the appearance of a subnet ID\. So in order to test this property, we need to include a file with actual values for the resource contract tests to use\. an overrides\.json at the root of our project that looks like this:
+The CloudFormation CLI performs resource contract tests using input that is generated from the patterns you define in your resource's property definitions\. However, some inputs can't be randomly generated\. For example, the `Example::Testing::WordPress` resource requires an actual subnet ID for testing, not just a string that matches the appearance of a subnet ID\. So in order to test this property, we need to include a file with actual values for the resource contract tests to use\. an overrides\.json at the root of our project that looks like this:
 
 1. Navigate to the root of your project\.
 
@@ -1354,52 +1360,60 @@ The CloudFormation CLI performs resource contract tests using input that is gene
 
 To run resource contract tests, you'll need two shell sessions\.
 
-1. In a new session, run `sam local start-lambda`\.
+1. In a new session, run the following command:
 
-1. From the resource package root directory, in a session that is aware of the CloudFormation CLI, run `cfn test`\.
+   ```
+   $ sam local start-lambda
+   ```
+
+1. From the resource package root directory, in a session that is aware of the CloudFormation CLI, run the `test` command:
+
+   ```
+   $ cfn test
+   ```
 
    The session that is running `sam local start-lambda` will display information about the status of your tests\.
 
-## Submit the Resource Provider<a name="resource-type-walkthrough-submit"></a>
+## Submit the resource type<a name="resource-type-walkthrough-submit"></a>
 
 Once you have completed implementing and testing your resource provided, the final step is to submit it to the CloudFormation registry\. This makes it available for use in stack operations in the account and region in which it was submitted\.
-+ In a terminal, run the `submit` command to register the resource provider in the us\-west\-2 region\.
++ In a terminal, run the `submit` command to register the resource type in the us\-west\-2 region\.
 
   ```
   $ cfn submit -v --region us-west-2
   ```
 
-  The CloudFormation CLI validates the included resource provider schema, packages your resource provide project and uploads it to the CloudFormation registry, and then returns a registration token\.
+  The CloudFormation CLI validates the included resource type schema, packages your resource provide project and uploads it to the CloudFormation registry, and then returns a registration token\.
 
   ```
-  Validating your resource schema...
+  Validating your resource specification...
   Packaging Java project
   Creating managed upload infrastructure stack
   Managed upload infrastructure stack was successfully created
   Registration in progress with token: 3c27b9e6-dca4-4892-ba4e-3c0example
   ```
 
-Resource provider registration is an asynchronous operation\. You can use the supplied registration token to track the progress of your provider registration request using the [DescribeTypeRegistration](https://docs.aws.amazon.com/AWSCloudFormation/latest/APIReference/API_DescribeTypeRegistration.html) action of the CloudFormation API\.
+Resource type registration is an asynchronous operation\. You can use the supplied registration token to track the progress of your type registration request using the [DescribeTypeRegistration](https://docs.aws.amazon.com/AWSCloudFormation/latest/APIReference/API_DescribeTypeRegistration.html) action of the CloudFormation API\.
 
-**Note**
-If you update your resource provider, you can submit a new version of that resource provider\. Every time you submit your resource provider, CloudFormation generates a new version of that resource provider\.
-To set the default version of a resource provider, use [SetTypeDefaultVersion](https://docs.aws.amazon.com/AWSCloudFormation/latest/APIReference/API_SetTypeDefaultVersion.html)\. For example:
-
-```
-aws cloudformation set-type-default-version --type "RESOURCE" --type-name "Custom::Testing::WordPress" --version-id "00000002"
-```
-To retrieve information about the versions of a resource provider, use [ListTypeVersions](https://docs.aws.amazon.com/AWSCloudFormation/latest/APIReference/API_ListTypeVersions.html)\. For example:
+**Note**  
+If you update your resource type, you can submit a new version of that resource type\. Every time you submit your resource type, CloudFormation generates a new version of that resource type\.  
+To set the default version of a resource type, use [SetTypeDefaultVersion](https://docs.aws.amazon.com/AWSCloudFormation/latest/APIReference/API_SetTypeDefaultVersion.html)\. For example:   
 
 ```
-aws cloudformation list-type-versions --type "RESOURCE" --type-name "Custom::Testing::WordPress"
+aws cloudformation set-type-default-version --type "RESOURCE" --type-name "Example::Testing::WordPress" --version-id "00000002"
+```
+To retrieve information about the versions of a resource type, use [ListTypeVersions](https://docs.aws.amazon.com/AWSCloudFormation/latest/APIReference/API_ListTypeVersions.html)\. For example:   
+
+```
+aws cloudformation list-type-versions --type "RESOURCE" --type-name "Example::Testing::WordPress"
 ```
 
-## Provision the Resource in a CloudFormation Stack<a name="resource-type-walkthrough-provision"></a>
+## Provision the resource in a CloudFormation stack<a name="resource-type-walkthrough-provision"></a>
 
-Once the registration request for your resource provider has completed successfully, you can create a stack including resources of that type\.
+Once the registration request for your resource type has completed successfully, you can create a stack including resources of that type\.
 
-**Note**
-Use [DescribeTypeRegistration](https://docs.aws.amazon.com/AWSCloudFormation/latest/APIReference/API_DescribeTypeRegistration.html) to determine when your resource provider is successfully registration registered with a status of `COMPLETE`\. You should also see your new resource provider listed in the [CloudFormation console](https://docs.aws.amazon.com/resource-types.html#resource-types-view)\.
+**Note**  
+Use [DescribeTypeRegistration](https://docs.aws.amazon.com/AWSCloudFormation/latest/APIReference/API_DescribeTypeRegistration.html) to determine when your resource type is successfully registration registered with a status of `COMPLETE`\. You should also see your new resource type listed in the [CloudFormation console](https://docs.aws.amazon.com/resource-types.html#resource-types-view)\.
 
 1. Save the following JSON as a stack template, with the name `stack.json`\.
 
@@ -1409,7 +1423,7 @@ Use [DescribeTypeRegistration](https://docs.aws.amazon.com/AWSCloudFormation/lat
        "Description": "WordPress stack",
        "Resources": {
            "MyWordPressSite": {
-               "Type": "Custom::Testing::WordPress",
+               "Type": "Example::Testing::WordPress",
                "Properties": {
                    "SubnetId": "subnet-0bc6136e", ## Note that this should be replaced with a subnet that exists in your account.
                    "Name": "MyWebsite"
@@ -1420,8 +1434,10 @@ Use [DescribeTypeRegistration](https://docs.aws.amazon.com/AWSCloudFormation/lat
    ```
 
 1. Use the template to create a stack\.
+**Note**  
+This resourse uses an official WordPress image on AWS Marketplace\. In order to create the stack, you'll first need to visit the [AWS Marketplace](https://aws.amazon.com/marketplace/pp?sku=7eyp7o9i35afqvpvvh5gujt8w) and accept the terms and subscribe\.
 
-   Navigate to the folder in which you saved the `stack.json` file, and create a stack named `wordpress`\.
+   Navigate to the folder in which you saved the `stack.json` file, and create a stack named `wordpress`\. 
 
    ```
    aws cloudformation create-stack --region us-west-2 \
@@ -1429,9 +1445,9 @@ Use [DescribeTypeRegistration](https://docs.aws.amazon.com/AWSCloudFormation/lat
    --stack-name "wordpress"
    ```
 
-   As CloudFormation creates the stack, it should invoke your resource provider create handler to provision a resource of type `Custom::Testing::WordPress` as part of the `wordpress` stack\.
+   As CloudFormation creates the stack, it should invoke your resource type create handler to provision a resource of type `Example::Testing::WordPress` as part of the `wordpress` stack\.
 
-As a final test of the resource provider delete handler, you can delete the `wordpress` stack\.
+As a final test of the resource type delete handler, you can delete the `wordpress` stack\.
 
 ```
 aws cloudformation delete-stack --region us-west-2 \
