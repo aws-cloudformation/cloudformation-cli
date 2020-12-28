@@ -41,6 +41,7 @@ To register a resource provider in your account, use the `submit` command.
 ```bash
 cfn submit
 cfn submit --dry-run #prepares schema handler package without submitting for registration
+cfn submit --set-default # if successfully registered, set submitted version to be the new default version
 ```
 
 ### Command: test
