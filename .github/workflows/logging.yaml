@@ -16,7 +16,7 @@ jobs:
           python-version: 3
       - run: |
           pip install -e .
-          pip install cloudformation-cli-java-plugin aws-sam-cli
+          pip install --quiet cloudformation-cli-java-plugin aws-sam-cli
           cd provider/*loggroup
           mvn package --no-transfer-progress
           sam local start-lambda &
