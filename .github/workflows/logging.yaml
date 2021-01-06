@@ -16,6 +16,7 @@ jobs:
           python-version: 3
       - run: |
           pip install -e .
+          pip install cloudformation-cli-java-plugin
           cd ses/*configurationset
           mvn package --no-transfer-progress
         env:
