@@ -16,7 +16,7 @@ jobs:
           python-version: 3
       - run: |
           pip install -e .
-          pip install cloudformation-cli-java-plugin
+          pip install cloudformation-cli-java-plugin aws-sam-cli
           cd ses/*configurationset
           mvn package --no-transfer-progress
         env:
