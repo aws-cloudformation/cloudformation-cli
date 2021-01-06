@@ -16,7 +16,7 @@ jobs:
           python-version: 3
       - run: |
           pip install -e .
-          cd ses
+          cd ses/*configurationset
           mvn package
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
