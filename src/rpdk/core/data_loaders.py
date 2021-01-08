@@ -123,13 +123,6 @@ def get_file_base_uri(file):
     return path.resolve().as_uri()
 
 
-def _is_in(schema, key):
-    def contains(value):
-        return value in schema.get(key, [])
-
-    return contains
-
-
 def load_resource_spec(resource_spec_file):  # noqa: C901
     """Load a resource provider definition from a file, and validate it."""
     try:
@@ -148,6 +141,29 @@ def load_resource_spec(resource_spec_file):  # noqa: C901
         LOG.debug("Resource spec validation failed", exc_info=True)
         raise SpecValidationError(str(e)) from e
 
+    if {
+        "maxresults",
+        "maxrecords",
+        "maxitems",
+        "nexttoken",
+        "nextmarker",
+        "nextpagetoken",
+        "pagetoken",
+        "paginationtoken",
+    } & set(map(str.lower, resource_spec.get("properties", []))):
+        LOG.warning(
+            "LIST API inputs like MaxResults, MaxRecords, MaxItems, NextToken, NextMarker, NextPageToken, PageToken, and Filters are not resource properties"
+        )
+
+    if set(resource_spec.get("readOnlyProperties", [])) & set(
+        resource_spec.get("createOnlyProperties", [])
+    ) or set(resource_spec.get("readOnlyProperties", [])) & set(
+        resource_spec.get("writeOnlyProperties", [])
+    ):
+        LOG.warning(
+            "readOnlyProperties cannot be specified by customers and should not overlap with writeOnlyProperties or createOnlyProperties"
+        )
+
     try:
         additional_properties_validator.validate(resource_spec)
     except ValidationError as e:
@@ -158,13 +174,11 @@ property is of object type and has properties or patternProperties defined \
 in it. Please fix the warnings: %s",
             str(e),
         )
-    in_readonly = _is_in(resource_spec, "readOnlyProperties")
-    in_createonly = _is_in(resource_spec, "createOnlyProperties")
 
-    primary_ids = resource_spec["primaryIdentifier"]
-
-    for primary_id in primary_ids:
-        if not in_readonly(primary_id) and not in_createonly(primary_id):
+    for primary_id in resource_spec["primaryIdentifier"]:
+        if primary_id not in resource_spec.get(
+            "readOnlyProperties", []
+        ) and primary_id not in resource_spec.get("createOnlyProperties", []):
             LOG.warning(
                 "Property 'primaryIdentifier' - %s must be specified \
 as either readOnly or createOnly",
