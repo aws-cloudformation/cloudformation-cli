@@ -1,7 +1,7 @@
 on:
   schedule:
     - cron: '*/5 * * * *'
-  workflow_dispatch: # Enables on-demand/manual triggering
+  workflow_dispatch: # Enables on-demand/manual triggering: https://docs.github.com/en/free-pro-team@latest/actions/managing-workflow-runs/manually-running-a-workflow
 jobs:
   job:
     runs-on: ubuntu-latest
