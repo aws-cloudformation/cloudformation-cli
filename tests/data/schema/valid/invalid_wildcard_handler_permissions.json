@@ -1,0 +1,21 @@
+{
+  "typeName" : "AWS::Service::Type",
+  "description" : "",
+  "additionalProperties" : false,
+  "properties" : {
+    "Property" : {
+      "type" : "string"
+    }
+  },
+  "readOnlyProperties": [
+    "/properties/Property"
+  ],
+  "primaryIdentifier" : [ "/properties/Property" ],
+  "handlers": {
+    "create": {
+      "permissions": [
+        "service:create*"
+      ]
+    }
+  }
+}

@@ -123,7 +123,7 @@ def get_file_base_uri(file):
     return path.resolve().as_uri()
 
 
-def load_resource_spec(resource_spec_file):  # noqa: C901
+def load_resource_spec(resource_spec_file):  # pylint: disable=R0912 # noqa: C901
     """Load a resource provider definition from a file, and validate it."""
     try:
         resource_spec = json.load(resource_spec_file)
@@ -163,6 +163,14 @@ def load_resource_spec(resource_spec_file):  # noqa: C901
         LOG.warning(
             "readOnlyProperties cannot be specified by customers and should not overlap with writeOnlyProperties or createOnlyProperties"
         )
+
+    for handler in resource_spec.get("handlers", []):
+        for permission in resource_spec.get("handlers", [])[handler]["permissions"]:
+            if "*" in permission:
+                LOG.warning(
+                    "Use specific handler permissions instead of using wildcards: %s",
+                    permission,
+                )
 
     try:
         additional_properties_validator.validate(resource_spec)
