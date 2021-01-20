@@ -163,7 +163,7 @@ def load_resource_spec(resource_spec_file):  # pylint: disable=R0912 # noqa: C90
     ) & (
         set(resource_spec.get("createOnlyProperties", []))
         | set(resource_spec.get("writeOnlyProperties", []))
-        | set(["/properties/" + s for s in resource_spec.get("required", [])])
+        | {"/properties/" + s for s in resource_spec.get("required", [])}
     )
     if readOnlyProperties_intersection:
         LOG.warning(
