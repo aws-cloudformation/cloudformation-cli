@@ -158,13 +158,17 @@ def load_resource_spec(resource_spec_file):  # pylint: disable=R0912 # noqa: C90
             list_options,
         )
 
-    if set(resource_spec.get("readOnlyProperties", [])) & set(
-        resource_spec.get("createOnlyProperties", [])
-    ) or set(resource_spec.get("readOnlyProperties", [])) & set(
-        resource_spec.get("writeOnlyProperties", [])
-    ):
+    readOnlyProperties_intersection = set(
+        resource_spec.get("readOnlyProperties", [])
+    ) & (
+        set(resource_spec.get("createOnlyProperties", []))
+        | set(resource_spec.get("writeOnlyProperties", []))
+        | set(["/properties/" + s for s in resource_spec.get("required", [])])
+    )
+    if readOnlyProperties_intersection:
         LOG.warning(
-            "readOnlyProperties cannot be specified by customers and should not overlap with writeOnlyProperties or createOnlyProperties"
+            "readOnlyProperties cannot be specified by customers and should not overlap with writeOnlyProperties, createOnlyProperties, or required: %s",
+            readOnlyProperties_intersection,
         )
 
     for handler in resource_spec.get("handlers", []):
