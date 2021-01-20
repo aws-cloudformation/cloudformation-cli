@@ -141,7 +141,7 @@ def load_resource_spec(resource_spec_file):  # pylint: disable=R0912 # noqa: C90
         LOG.debug("Resource spec validation failed", exc_info=True)
         raise SpecValidationError(str(e)) from e
 
-    if {
+    list_options = {
         "maxresults",
         "maxrecords",
         "maxitems",
@@ -150,9 +150,12 @@ def load_resource_spec(resource_spec_file):  # pylint: disable=R0912 # noqa: C90
         "nextpagetoken",
         "pagetoken",
         "paginationtoken",
-    } & set(map(str.lower, resource_spec.get("properties", []))):
+    } & set(map(str.lower, resource_spec.get("properties", [])))
+    if list_options:
         LOG.warning(
-            "LIST API inputs like MaxResults, MaxRecords, MaxItems, NextToken, NextMarker, NextPageToken, PageToken, and Filters are not resource properties"
+            "LIST API inputs like MaxResults, MaxRecords, MaxItems, NextToken, NextMarker, NextPageToken, PageToken, and Filters are not resource properties. \
+%s should not be present in resource schema",
+            list_options,
         )
 
     if set(resource_spec.get("readOnlyProperties", [])) & set(
