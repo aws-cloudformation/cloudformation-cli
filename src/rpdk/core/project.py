@@ -6,7 +6,7 @@ import zipfile
 from pathlib import Path
 from tempfile import TemporaryFile
 from uuid import uuid4
-
+from . import __version__
 from botocore.exceptions import ClientError, WaiterError
 from jinja2 import Environment, PackageLoader, select_autoescape
 from jsonschema import Draft7Validator
@@ -50,6 +50,7 @@ DEFAULT_ROLE_TIMEOUT_MINUTES = 120  # 2 hours
 MIN_ROLE_TIMEOUT_SECONDS = 3600  # 1 hour
 MAX_ROLE_TIMEOUT_SECONDS = 43200  # 12 hours
 
+CFN_METADATA_FILE_NAME = "_cfn_metadata.json"
 
 LAMBDA_RUNTIMES = {
     "noexec",  # cannot be executed, schema only
@@ -454,6 +455,7 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
             context_mgr = TemporaryFile("w+b")
 
         with context_mgr as f:
+
             # the default compression is ZIP_STORED, which helps with the
             # file-size check on upload
             with zipfile.ZipFile(f, mode="w") as zip_file:
@@ -498,6 +500,22 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
                             "%s not found. Not writing to package.", INPUTS_FOLDER
                         )
                     self._plugin.package(self, zip_file)
+
+                    # Plugin package method adds the plugin language and version info
+                    # to the metadata file. Update the file with cli version info and copy
+                    # to the zip artifact
+                    try:
+                        version_metadata = {}
+                        with open(CFN_METADATA_FILE_NAME, "r") as metadata_file:
+                            version_metadata = json.load(metadata_file)
+
+                        with open(CFN_METADATA_FILE_NAME, "w") as metadata_file:
+                            version_metadata['cli-version'] = __version__
+                            json.dump(version_metadata, metadata_file)
+
+                        zip_file.write(CFN_METADATA_FILE_NAME)
+                    finally:
+                        os.remove(CFN_METADATA_FILE_NAME)
 
             if dry_run:
                 LOG.error("Dry run complete: %s", path.resolve())
