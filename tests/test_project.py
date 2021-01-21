@@ -793,6 +793,8 @@ def test_submit_dry_run(project):
         input_update = json.loads(zip_file.read(INVALID_INPUTS_FILE).decode("utf-8"))
         assert input_update == {}
         assert zip_file.testzip() is None
+        version_info = json.loads(zip_file.read(CFN_METADATA_FILENAME).decode("utf-8"))
+        assert "cli-version" in version_info
 
 
 def test_submit_dry_run_modules(project):
