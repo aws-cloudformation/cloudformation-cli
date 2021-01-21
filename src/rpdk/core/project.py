@@ -499,6 +499,8 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
                         LOG.debug(
                             "%s not found. Not writing to package.", INPUTS_FOLDER
                         )
+
+                    metadata_file = open(CFN_METADATA_FILE_NAME, "w+")
                     self._plugin.package(self, zip_file)
 
                     # Plugin package method adds the plugin language and version info
@@ -506,12 +508,16 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
                     # to the zip artifact
                     try:
                         version_metadata = {}
-                        with open(CFN_METADATA_FILE_NAME, "r") as metadata_file:
-                            version_metadata = json.load(metadata_file)
+                        file_content = metadata_file.read().replace("\n", "")
 
-                        with open(CFN_METADATA_FILE_NAME, "w") as metadata_file:
-                            version_metadata["cli-version"] = __version__
-                            json.dump(version_metadata, metadata_file)
+                        if file_content:
+                            version_metadata = json.loads(file_content)
+
+                        version_metadata["cli-version"] = __version__
+
+                        metadata_file.seek(0)
+                        json.dump(version_metadata, metadata_file)
+                        metadata_file.close()
 
                         zip_file.write(CFN_METADATA_FILE_NAME)
                     finally:
