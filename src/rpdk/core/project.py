@@ -6,7 +6,7 @@ import zipfile
 from pathlib import Path
 from tempfile import TemporaryFile
 from uuid import uuid4
-from . import __version__
+
 from botocore.exceptions import ClientError, WaiterError
 from jinja2 import Environment, PackageLoader, select_autoescape
 from jsonschema import Draft7Validator
@@ -15,6 +15,7 @@ from jsonschema.exceptions import ValidationError
 from rpdk.core.fragment.generator import TemplateFragment
 from rpdk.core.jsonutils.flattener import JsonSchemaFlattener
 
+from . import __version__
 from .boto_helpers import create_sdk_session
 from .data_loaders import load_resource_spec, resource_json
 from .exceptions import (
@@ -455,7 +456,6 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
             context_mgr = TemporaryFile("w+b")
 
         with context_mgr as f:
-
             # the default compression is ZIP_STORED, which helps with the
             # file-size check on upload
             with zipfile.ZipFile(f, mode="w") as zip_file:
@@ -510,7 +510,7 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
                             version_metadata = json.load(metadata_file)
 
                         with open(CFN_METADATA_FILE_NAME, "w") as metadata_file:
-                            version_metadata['cli-version'] = __version__
+                            version_metadata["cli-version"] = __version__
                             json.dump(version_metadata, metadata_file)
 
                         zip_file.write(CFN_METADATA_FILE_NAME)
