@@ -512,6 +512,10 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
 
                         if file_content:
                             version_metadata = json.loads(file_content)
+                        else:
+                            LOG.debug(
+                                "Plugin version information not added to metadata file"
+                            )
 
                         version_metadata["cli-version"] = __version__
 
