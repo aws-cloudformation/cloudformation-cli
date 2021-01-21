@@ -26,11 +26,11 @@ from rpdk.core.exceptions import (
 )
 from rpdk.core.plugin_base import LanguagePlugin
 from rpdk.core.project import (
+    CFN_METADATA_FILENAME,
     LAMBDA_RUNTIMES,
     OVERRIDES_FILENAME,
     SCHEMA_UPLOAD_FILENAME,
     SETTINGS_FILENAME,
-    CFN_METADATA_FILENAME,
     Project,
     escape_markdown,
 )
