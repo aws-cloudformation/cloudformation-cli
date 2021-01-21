@@ -30,6 +30,7 @@ from rpdk.core.project import (
     OVERRIDES_FILENAME,
     SCHEMA_UPLOAD_FILENAME,
     SETTINGS_FILENAME,
+    CFN_METADATA_FILENAME,
     Project,
     escape_markdown,
 )
@@ -776,6 +777,7 @@ def test_submit_dry_run(project):
             CREATE_INPUTS_FILE,
             INVALID_INPUTS_FILE,
             UPDATE_INPUTS_FILE,
+            CFN_METADATA_FILENAME,
         }
         schema_contents = zip_file.read(SCHEMA_UPLOAD_FILENAME).decode("utf-8")
         assert schema_contents == CONTENTS_UTF8

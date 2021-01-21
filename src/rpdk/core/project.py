@@ -51,7 +51,7 @@ DEFAULT_ROLE_TIMEOUT_MINUTES = 120  # 2 hours
 MIN_ROLE_TIMEOUT_SECONDS = 3600  # 1 hour
 MAX_ROLE_TIMEOUT_SECONDS = 43200  # 12 hours
 
-CFN_METADATA_FILE_NAME = "_cfn_metadata.json"
+CFN_METADATA_FILENAME = ".cfn_metadata.json"
 
 LAMBDA_RUNTIMES = {
     "noexec",  # cannot be executed, schema only
@@ -500,7 +500,7 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
                             "%s not found. Not writing to package.", INPUTS_FOLDER
                         )
 
-                    metadata_file = open(CFN_METADATA_FILE_NAME, "w+")
+                    metadata_file = open(CFN_METADATA_FILENAME, "w+")
                     self._plugin.package(self, zip_file)
 
                     # Plugin package method adds the plugin language and version info
@@ -519,9 +519,9 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
                         json.dump(version_metadata, metadata_file)
                         metadata_file.close()
 
-                        zip_file.write(CFN_METADATA_FILE_NAME)
+                        zip_file.write(CFN_METADATA_FILENAME)
                     finally:
-                        os.remove(CFN_METADATA_FILE_NAME)
+                        os.remove(CFN_METADATA_FILENAME)
 
             if dry_run:
                 LOG.error("Dry run complete: %s", path.resolve())
