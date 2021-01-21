@@ -77,7 +77,6 @@ SETTINGS_VALIDATOR = Draft7Validator(
             "settings": {"type": "object"},
         },
         "required": ["language", "typeName", "runtime", "entrypoint"],
-        "additionalProperties": False,
     }
 )
 
@@ -89,7 +88,6 @@ MODULE_SETTINGS_VALIDATOR = Draft7Validator(
             "settings": {"type": "object"},
         },
         "required": ["artifact_type", "typeName"],
-        "additionalProperties": False,
     }
 )
 
