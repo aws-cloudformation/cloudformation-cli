@@ -127,6 +127,7 @@ def test_load_settings_valid_json_for_resource(project):
             "runtime": RUNTIME,
             "entrypoint": None,
             "testEntrypoint": None,
+            "futureProperty": "value",
         }
     )
     patch_load = patch(
