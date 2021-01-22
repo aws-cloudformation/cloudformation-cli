@@ -445,6 +445,7 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
     # pylint: disable=too-many-locals
     # pylint: disable=too-many-branches
     # pylint: disable=too-many-public-methods
+    # pylint: disable=too-many-statements
     def submit(
         self, dry_run, endpoint_url, region_name, role_arn, use_role, set_default
     ):  # pylint: disable=too-many-arguments
