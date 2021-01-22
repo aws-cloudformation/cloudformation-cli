@@ -68,7 +68,7 @@ CREATE_INPUTS_FILE = "inputs/inputs_1_create.json"
 UPDATE_INPUTS_FILE = "inputs/inputs_1_update.json"
 INVALID_INPUTS_FILE = "inputs/inputs_1_invalid.json"
 
-METADATA_FILE_CONTENTS = {"plugin-version": "2.1.3", "plugin-name": "java"}
+PLUGIN_INFORMATION = {"plugin-version": "2.1.3", "plugin-name": "java"}
 
 
 @pytest.mark.parametrize("string", ["^[a-z]$", "([a-z])", ".*", "*."])
@@ -743,11 +743,6 @@ def test_submit_dry_run(project):
     with project.overrides_path.open("w", encoding="utf-8") as f:
         f.write(json.dumps(empty_override()))
 
-    metadata_file_path = project.root / CFN_METADATA_FILENAME
-
-    with metadata_file_path.open("w") as f:
-        json.dump(METADATA_FILE_CONTENTS, f)
-
     create_input_file(project.root)
 
     project.write_settings()
@@ -761,6 +756,8 @@ def test_submit_dry_run(project):
     # these context managers can't be wrapped by black, but it removes the \
     with patch_plugin as mock_plugin, patch_path as mock_path, \
             patch_temp as mock_temp, patch_upload as mock_upload:
+        mock_plugin.get_plugin_information = MagicMock(return_value=PLUGIN_INFORMATION)
+
         project.submit(
             True,
             endpoint_url=ENDPOINT,

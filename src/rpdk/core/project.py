@@ -445,7 +445,6 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
     # pylint: disable=too-many-locals
     # pylint: disable=too-many-branches
     # pylint: disable=too-many-public-methods
-    # pylint: disable=too-many-statements
     def submit(
         self, dry_run, endpoint_url, region_name, role_arn, use_role, set_default
     ):  # pylint: disable=too-many-arguments
@@ -500,36 +499,19 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
                         LOG.debug(
                             "%s not found. Not writing to package.", INPUTS_FOLDER
                         )
-
-                    metadata_file_path = self.root / CFN_METADATA_FILENAME
-                    metadata_file_path.touch(exist_ok=True)
-                    metadata_file = open(metadata_file_path, "r+")
-
                     self._plugin.package(self, zip_file)
 
-                    # Plugin package method adds the plugin language and version info
-                    # to the metadata file. Update the file with cli version info and copy
-                    # to the zip artifact
+                    cli_metadata = {}
+
                     try:
-                        version_metadata = {}
-                        file_content = metadata_file.read().replace("\n", "")
+                        cli_metadata = self._plugin.get_plugin_information()
+                    except AttributeError:
+                        LOG.debug(
+                            "Version info is not available for plugins, not writing to metadata file"
+                        )
 
-                        if file_content:
-                            version_metadata = json.loads(file_content)
-                        else:
-                            LOG.debug(
-                                "Plugin version information not added to metadata file"
-                            )
-
-                        version_metadata["cli-version"] = __version__
-
-                        metadata_file.seek(0)
-                        json.dump(version_metadata, metadata_file)
-                        metadata_file.close()
-
-                        zip_file.write(metadata_file_path, CFN_METADATA_FILENAME)
-                    finally:
-                        os.remove(metadata_file_path)
+                    cli_metadata["cli-version"] = __version__
+                    zip_file.writestr(CFN_METADATA_FILENAME, json.dumps(cli_metadata))
 
             if dry_run:
                 LOG.error("Dry run complete: %s", path.resolve())
