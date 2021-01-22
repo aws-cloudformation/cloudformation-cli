@@ -68,6 +68,8 @@ CREATE_INPUTS_FILE = "inputs/inputs_1_create.json"
 UPDATE_INPUTS_FILE = "inputs/inputs_1_update.json"
 INVALID_INPUTS_FILE = "inputs/inputs_1_invalid.json"
 
+METADATA_FILE_CONTENTS = {"plugin-version": "2.1.3", "plugin-name": "java"}
+
 
 @pytest.mark.parametrize("string", ["^[a-z]$", "([a-z])", ".*", "*."])
 def test_escape_markdown_with_regex_names(string):
@@ -741,6 +743,11 @@ def test_submit_dry_run(project):
     with project.overrides_path.open("w", encoding="utf-8") as f:
         f.write(json.dumps(empty_override()))
 
+    metadata_file_path = project.root / CFN_METADATA_FILENAME
+
+    with metadata_file_path.open("w") as f:
+        json.dump(METADATA_FILE_CONTENTS, f)
+
     create_input_file(project.root)
 
     project.write_settings()
@@ -793,8 +800,9 @@ def test_submit_dry_run(project):
         input_update = json.loads(zip_file.read(INVALID_INPUTS_FILE).decode("utf-8"))
         assert input_update == {}
         assert zip_file.testzip() is None
-        version_info = json.loads(zip_file.read(CFN_METADATA_FILENAME).decode("utf-8"))
-        assert "cli-version" in version_info
+        metadata_info = json.loads(zip_file.read(CFN_METADATA_FILENAME).decode("utf-8"))
+        assert "cli-version" in metadata_info
+        assert "plugin-version" in metadata_info
 
 
 def test_submit_dry_run_modules(project):

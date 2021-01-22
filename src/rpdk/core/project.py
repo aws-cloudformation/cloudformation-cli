@@ -500,7 +500,10 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
                             "%s not found. Not writing to package.", INPUTS_FOLDER
                         )
 
-                    metadata_file = open(CFN_METADATA_FILENAME, "w+")
+                    metadata_file_path = self.root / CFN_METADATA_FILENAME
+                    metadata_file_path.touch(exist_ok=True)
+                    metadata_file = open(metadata_file_path, "r+")
+
                     self._plugin.package(self, zip_file)
 
                     # Plugin package method adds the plugin language and version info
@@ -523,9 +526,9 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
                         json.dump(version_metadata, metadata_file)
                         metadata_file.close()
 
-                        zip_file.write(CFN_METADATA_FILENAME)
+                        zip_file.write(metadata_file_path, CFN_METADATA_FILENAME)
                     finally:
-                        os.remove(CFN_METADATA_FILENAME)
+                        os.remove(metadata_file_path)
 
             if dry_run:
                 LOG.error("Dry run complete: %s", path.resolve())
