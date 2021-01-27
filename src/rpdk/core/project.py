@@ -15,6 +15,7 @@ from jsonschema.exceptions import ValidationError
 from rpdk.core.fragment.generator import TemplateFragment
 from rpdk.core.jsonutils.flattener import JsonSchemaFlattener
 
+from . import __version__
 from .boto_helpers import create_sdk_session
 from .data_loaders import load_resource_spec, resource_json
 from .exceptions import (
@@ -50,6 +51,7 @@ DEFAULT_ROLE_TIMEOUT_MINUTES = 120  # 2 hours
 MIN_ROLE_TIMEOUT_SECONDS = 3600  # 1 hour
 MAX_ROLE_TIMEOUT_SECONDS = 43200  # 12 hours
 
+CFN_METADATA_FILENAME = ".cfn_metadata.json"
 
 LAMBDA_RUNTIMES = {
     "noexec",  # cannot be executed, schema only
@@ -496,6 +498,18 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
                             "%s not found. Not writing to package.", INPUTS_FOLDER
                         )
                     self._plugin.package(self, zip_file)
+
+                    cli_metadata = {}
+
+                    try:
+                        cli_metadata = self._plugin.get_plugin_information()
+                    except AttributeError:
+                        LOG.debug(
+                            "Version info is not available for plugins, not writing to metadata file"
+                        )
+
+                    cli_metadata["cli-version"] = __version__
+                    zip_file.writestr(CFN_METADATA_FILENAME, json.dumps(cli_metadata))
 
             if dry_run:
                 LOG.error("Dry run complete: %s", path.resolve())

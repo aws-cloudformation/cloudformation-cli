@@ -26,6 +26,7 @@ from rpdk.core.exceptions import (
 )
 from rpdk.core.plugin_base import LanguagePlugin
 from rpdk.core.project import (
+    CFN_METADATA_FILENAME,
     LAMBDA_RUNTIMES,
     OVERRIDES_FILENAME,
     SCHEMA_UPLOAD_FILENAME,
@@ -66,6 +67,8 @@ DESCRIBE_TYPE_FAILED_RETURN = {
 CREATE_INPUTS_FILE = "inputs/inputs_1_create.json"
 UPDATE_INPUTS_FILE = "inputs/inputs_1_update.json"
 INVALID_INPUTS_FILE = "inputs/inputs_1_invalid.json"
+
+PLUGIN_INFORMATION = {"plugin-version": "2.1.3", "plugin-name": "java"}
 
 
 @pytest.mark.parametrize("string", ["^[a-z]$", "([a-z])", ".*", "*."])
@@ -754,6 +757,8 @@ def test_submit_dry_run(project):
     # these context managers can't be wrapped by black, but it removes the \
     with patch_plugin as mock_plugin, patch_path as mock_path, \
             patch_temp as mock_temp, patch_upload as mock_upload:
+        mock_plugin.get_plugin_information = MagicMock(return_value=PLUGIN_INFORMATION)
+
         project.submit(
             True,
             endpoint_url=ENDPOINT,
@@ -777,6 +782,7 @@ def test_submit_dry_run(project):
             CREATE_INPUTS_FILE,
             INVALID_INPUTS_FILE,
             UPDATE_INPUTS_FILE,
+            CFN_METADATA_FILENAME,
         }
         schema_contents = zip_file.read(SCHEMA_UPLOAD_FILENAME).decode("utf-8")
         assert schema_contents == CONTENTS_UTF8
@@ -792,6 +798,9 @@ def test_submit_dry_run(project):
         input_update = json.loads(zip_file.read(INVALID_INPUTS_FILE).decode("utf-8"))
         assert input_update == {}
         assert zip_file.testzip() is None
+        metadata_info = json.loads(zip_file.read(CFN_METADATA_FILENAME).decode("utf-8"))
+        assert "cli-version" in metadata_info
+        assert "plugin-version" in metadata_info
 
 
 def test_submit_dry_run_modules(project):
