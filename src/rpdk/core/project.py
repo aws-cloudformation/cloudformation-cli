@@ -502,7 +502,7 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
                     cli_metadata = {}
 
                     try:
-                        cli_metadata = self._plugin.get_plugin_information()
+                        cli_metadata = self._plugin.get_plugin_information(self)
                     except AttributeError:
                         LOG.debug(
                             "Version info is not available for plugins, not writing to metadata file"
