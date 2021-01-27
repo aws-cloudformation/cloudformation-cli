@@ -68,7 +68,11 @@ CREATE_INPUTS_FILE = "inputs/inputs_1_create.json"
 UPDATE_INPUTS_FILE = "inputs/inputs_1_update.json"
 INVALID_INPUTS_FILE = "inputs/inputs_1_invalid.json"
 
-PLUGIN_INFORMATION = {"plugin-version": "2.1.3", "plugin-name": "java"}
+PLUGIN_INFORMATION = {
+    "plugin-version": "2.1.3",
+    "plugin-tool-version": "2.0.8",
+    "plugin-name": "java",
+}
 
 
 @pytest.mark.parametrize("string", ["^[a-z]$", "([a-z])", ".*", "*."])
@@ -801,6 +805,7 @@ def test_submit_dry_run(project):
         metadata_info = json.loads(zip_file.read(CFN_METADATA_FILENAME).decode("utf-8"))
         assert "cli-version" in metadata_info
         assert "plugin-version" in metadata_info
+        assert "plugin-tool-version" in metadata_info
 
 
 def test_submit_dry_run_modules(project):
