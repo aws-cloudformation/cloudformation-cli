@@ -10,6 +10,7 @@ import pkg_resources
 import yaml
 from jsonschema import Draft7Validator, RefResolver
 from jsonschema.exceptions import RefResolutionError, ValidationError
+from nested_lookup import nested_lookup
 
 from .exceptions import InternalError, SpecValidationError
 from .jsonutils.inliner import RefInliner
@@ -141,6 +142,25 @@ def load_resource_spec(resource_spec_file):  # pylint: disable=R0912 # noqa: C90
     except ValidationError as e:
         LOG.debug("Resource spec validation failed", exc_info=True)
         raise SpecValidationError(str(e)) from e
+
+    for pattern in nested_lookup("pattern", resource_spec):
+        if "arn:aws:" in pattern:
+            LOG.warning(
+                "Don't hardcode the aws partition in ARN patterns: %s",
+                pattern,
+            )
+        try:
+            re.compile(pattern)
+        except re.error:
+            LOG.warning("Could not validate regular expression: %s", pattern)
+
+    for enum in nested_lookup("enum", resource_spec):
+        if len(enum) > 15:
+            LOG.warning(
+                "Consider not manually maintaining large constantly evolving enums like ",
+                "instance types, lambda runtimes, partitions, regions, availability zones, etc. that get outdated quickly: %s",
+                enum,
+            )
 
     non_ascii_chars = re.findall(
         r"[^ -~]", json.dumps(resource_spec, ensure_ascii=False)
