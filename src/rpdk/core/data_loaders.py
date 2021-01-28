@@ -143,6 +143,71 @@ def load_resource_spec(resource_spec_file):  # pylint: disable=R0912 # noqa: C90
         LOG.debug("Resource spec validation failed", exc_info=True)
         raise SpecValidationError(str(e)) from e
 
+    min_max_keywords = {
+        "minimum",
+        "maximum",
+        "minLength",
+        "maxLength",
+        "minProperties",
+        "maxProperties",
+        "minItems",
+        "maxItems",
+        "exclusiveMinimum",
+        "exclusiveMaximum",
+    }
+    for property in resource_spec.get("properties", []):
+        if property[0].islower():
+            LOG.warning(
+                "CloudFormation properties don't usually start with lowercase letters: %s",
+                property,
+            )
+        try:
+            property_type = resource_spec.get("properties", [])[property]["type"]
+            property_keywords = resource_spec.get("properties", [])[property].keys()
+            for types, allowed_keywords in [
+                (
+                    {"integer", "number"},
+                    {
+                        "minimum",
+                        "maximum",
+                        "exclusiveMinimum",
+                        "exclusiveMaximum",
+                    },
+                ),
+                (
+                    {"string"},
+                    {
+                        "minLength",
+                        "maxLength",
+                    },
+                ),
+                (
+                    {"object"},
+                    {
+                        "minProperties",
+                        "maxProperties",
+                    },
+                ),
+                (
+                    {"array"},
+                    {
+                        "minItems",
+                        "maxItems",
+                    },
+                ),
+            ]:
+                if (
+                    property_type in types
+                    and min_max_keywords - allowed_keywords & property_keywords
+                ):
+                    LOG.warning(
+                        "Incorrect min/max JSON schema keywords for type: %s for property: %s",
+                        property_type,
+                        property,
+                    )
+        except:
+            pass
+
     for pattern in nested_lookup("pattern", resource_spec):
         if "arn:aws:" in pattern:
             LOG.warning(
