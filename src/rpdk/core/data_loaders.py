@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import re
 import shutil
 from io import TextIOWrapper
 from pathlib import Path
@@ -140,6 +141,14 @@ def load_resource_spec(resource_spec_file):  # pylint: disable=R0912 # noqa: C90
     except ValidationError as e:
         LOG.debug("Resource spec validation failed", exc_info=True)
         raise SpecValidationError(str(e)) from e
+
+    non_ascii_chars = re.findall(
+        r"[^ -~]", json.dumps(resource_spec, ensure_ascii=False)
+    )
+    if non_ascii_chars:
+        LOG.warning(
+            "non-ASCII characters found in resource schema: %s", non_ascii_chars
+        )
 
     list_options = {
         "maxresults",
