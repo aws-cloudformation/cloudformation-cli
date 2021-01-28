@@ -1,0 +1,17 @@
+{
+  "typeName" : "AWS::Service::Type",
+  "description" : "",
+  "additionalProperties" : false,
+  "properties" : {
+    "Property" : {
+      "type" : "string",
+      "pattern" : "arn:aws:[A-Za-z0-9]+{1,255}",
+      "enum" : [ "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z"  ],
+      "minimum" : 0
+    }
+  },
+  "readOnlyProperties": [
+    "/properties/Property"
+  ],
+  "primaryIdentifier" : [ "/properties/Property" ]
+}

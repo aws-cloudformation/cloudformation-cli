@@ -157,8 +157,8 @@ def load_resource_spec(resource_spec_file):  # pylint: disable=R0912 # noqa: C90
     for enum in nested_lookup("enum", resource_spec):
         if len(enum) > 15:
             LOG.warning(
-                "Consider not manually maintaining large constantly evolving enums like ",
-                "instance types, lambda runtimes, partitions, regions, availability zones, etc. that get outdated quickly: %s",
+                "Consider not manually maintaining large constantly evolving enums like"
+                + "instance types, lambda runtimes, partitions, regions, availability zones, etc. that get outdated quickly: %s",
                 enum,
             )
 
