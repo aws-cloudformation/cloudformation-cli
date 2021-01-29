@@ -125,7 +125,7 @@ def get_file_base_uri(file):
     return path.resolve().as_uri()
 
 
-def load_resource_spec(resource_spec_file):  # pylint: disable=R0912 # noqa: C901
+def load_resource_spec(resource_spec_file):  # pylint: disable=R # noqa: C901
     """Load a resource provider definition from a file, and validate it."""
     try:
         resource_spec = json.load(resource_spec_file)
@@ -155,15 +155,15 @@ def load_resource_spec(resource_spec_file):  # pylint: disable=R0912 # noqa: C90
         "exclusiveMinimum",
         "exclusiveMaximum",
     }
-    for property in resource_spec.get("properties", []):
-        if property[0].islower():
+    for prop in resource_spec.get("properties", []):
+        if prop[0].islower():
             LOG.warning(
                 "CloudFormation properties don't usually start with lowercase letters: %s",
-                property,
+                prop,
             )
         try:
-            property_type = resource_spec.get("properties", [])[property]["type"]
-            property_keywords = resource_spec.get("properties", [])[property].keys()
+            property_type = resource_spec.get("properties", [])[prop]["type"]
+            property_keywords = resource_spec.get("properties", [])[prop].keys()
             for types, allowed_keywords in [
                 (
                     {"integer", "number"},
@@ -203,9 +203,9 @@ def load_resource_spec(resource_spec_file):  # pylint: disable=R0912 # noqa: C90
                     LOG.warning(
                         "Incorrect min/max JSON schema keywords for type: %s for property: %s",
                         property_type,
-                        property,
+                        prop,
                     )
-        except:
+        except (KeyError, TypeError):
             pass
 
     for pattern in nested_lookup("pattern", resource_spec):
@@ -222,8 +222,8 @@ def load_resource_spec(resource_spec_file):  # pylint: disable=R0912 # noqa: C90
     for enum in nested_lookup("enum", resource_spec):
         if len(enum) > 15:
             LOG.warning(
-                "Consider not manually maintaining large constantly evolving enums like"
-                + "instance types, lambda runtimes, partitions, regions, availability zones, etc. that get outdated quickly: %s",
+                "Consider not manually maintaining large constantly evolving enums like \
+instance types, lambda runtimes, partitions, regions, availability zones, etc. that get outdated quickly: %s",
                 enum,
             )
 
