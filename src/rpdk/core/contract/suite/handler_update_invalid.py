@@ -51,7 +51,7 @@ def contract_update_create_only_property(resource_client):
          if the resource did not exist prior to the update request",
 )
 def contract_update_non_existent_resource(resource_client):
-    create_request = resource_client.generate_invalid_create_example()
+    create_request = resource_client.generate_create_example()
     update_request = resource_client.generate_update_example(create_request)
     _status, response, _error = resource_client.call_and_assert(
         Action.UPDATE, OperationStatus.FAILED, update_request, create_request
