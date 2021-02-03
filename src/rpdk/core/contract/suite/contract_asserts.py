@@ -78,17 +78,6 @@ def response_does_not_contain_write_only_properties(resource_client, response):
 
 
 @decorate()
-def response_contains_resource_model_equal_current_model(
-    response, current_resource_model
-):
-    assert (
-        response["resourceModel"] == current_resource_model
-    ), "All properties specified in the request MUST be present in the model \
-        returned, and they MUST match exactly, with the exception of properties\
-             defined as writeOnlyProperties in the resource schema"
-
-
-@decorate()
 def response_contains_resource_model_equal_updated_model(
     response, current_resource_model, update_resource_model
 ):
