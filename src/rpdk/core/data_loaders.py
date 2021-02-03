@@ -155,15 +155,15 @@ def load_resource_spec(resource_spec_file):  # pylint: disable=R # noqa: C901
         "exclusiveMinimum",
         "exclusiveMaximum",
     }
-    for prop in resource_spec.get("properties", []):
-        if prop[0].islower():
+    for property_name, property_details in resource_spec.get("properties", {}).items():
+        if property_name[0].islower():
             LOG.warning(
                 "CloudFormation properties don't usually start with lowercase letters: %s",
-                prop,
+                property_name,
             )
         try:
-            property_type = resource_spec.get("properties", [])[prop]["type"]
-            property_keywords = resource_spec.get("properties", [])[prop].keys()
+            property_type = property_details["type"]
+            property_keywords = property_details.keys()
             for types, allowed_keywords in [
                 (
                     {"integer", "number"},
@@ -203,7 +203,7 @@ def load_resource_spec(resource_spec_file):  # pylint: disable=R # noqa: C901
                     LOG.warning(
                         "Incorrect min/max JSON schema keywords for type: %s for property: %s",
                         property_type,
-                        prop,
+                        property_name,
                     )
         except (KeyError, TypeError):
             pass
