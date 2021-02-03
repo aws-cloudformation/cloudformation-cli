@@ -8,7 +8,6 @@ from rpdk.core.contract.resource_client import (
 from rpdk.core.contract.suite.contract_asserts import (
     failed_event,
     response_contains_primary_identifier,
-    response_contains_resource_model_equal_current_model,
     response_contains_resource_model_equal_updated_model,
     response_contains_unchanged_primary_identifier,
     response_does_not_contain_write_only_properties,
@@ -47,10 +46,12 @@ def test_create_failure_if_repeat_writeable_id(resource_client, current_resource
 
 @response_contains_primary_identifier
 @response_does_not_contain_write_only_properties
-@response_contains_resource_model_equal_current_model
 def test_read_success(resource_client, current_resource_model):
     _status, response, _error_code = resource_client.call_and_assert(
         Action.READ, OperationStatus.SUCCESS, current_resource_model
+    )
+    test_input_equals_output(
+        resource_client, current_resource_model, response["resourceModel"]
     )
     return response
 
