@@ -155,7 +155,8 @@ def load_resource_spec(resource_spec_file):  # pylint: disable=R # noqa: C901
         "exclusiveMinimum",
         "exclusiveMaximum",
     }
-    for property_name, property_details in resource_spec.get("properties", {}).items():
+
+    def check_property(property_name, property_details):
         if property_name[0].islower():
             LOG.warning(
                 "CloudFormation properties don't usually start with lowercase letters: %s",
@@ -207,6 +208,18 @@ def load_resource_spec(resource_spec_file):  # pylint: disable=R # noqa: C901
                     )
         except (KeyError, TypeError):
             pass
+
+    for property_name, property_details in resource_spec.get("properties", {}).items():
+        check_property(property_name, property_details)
+    for property_name, property_details in resource_spec.get("definitions", {}).items():
+        check_property(property_name, property_details)
+    for definition in resource_spec.get("definitions", []):
+        for property_name, property_details in (
+            resource_spec.get("definitions", [])[definition]
+            .get("properties", {})
+            .items()
+        ):
+            check_property(property_name, property_details)
 
     for pattern in nested_lookup("pattern", resource_spec):
         if "arn:aws:" in pattern:
