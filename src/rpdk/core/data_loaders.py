@@ -13,7 +13,9 @@ from jsonschema.exceptions import RefResolutionError, ValidationError
 from nested_lookup import nested_lookup
 
 from .exceptions import InternalError, SpecValidationError
+from .jsonutils.flattener import JsonSchemaFlattener
 from .jsonutils.inliner import RefInliner
+from .jsonutils.utils import FlatteningError
 
 LOG = logging.getLogger(__name__)
 
@@ -155,71 +157,62 @@ def load_resource_spec(resource_spec_file):  # pylint: disable=R # noqa: C901
         "exclusiveMinimum",
         "exclusiveMaximum",
     }
-
-    def check_property(property_name, property_details):
-        if property_name[0].islower():
-            LOG.warning(
-                "CloudFormation properties don't usually start with lowercase letters: %s",
-                property_name,
-            )
-        try:
-            property_type = property_details["type"]
-            property_keywords = property_details.keys()
-            for types, allowed_keywords in [
-                (
-                    {"integer", "number"},
-                    {
-                        "minimum",
-                        "maximum",
-                        "exclusiveMinimum",
-                        "exclusiveMaximum",
-                    },
-                ),
-                (
-                    {"string"},
-                    {
-                        "minLength",
-                        "maxLength",
-                    },
-                ),
-                (
-                    {"object"},
-                    {
-                        "minProperties",
-                        "maxProperties",
-                    },
-                ),
-                (
-                    {"array"},
-                    {
-                        "minItems",
-                        "maxItems",
-                    },
-                ),
-            ]:
-                if (
-                    property_type in types
-                    and min_max_keywords - allowed_keywords & property_keywords
-                ):
+    try:  # pylint: disable=R
+        for _key, schema in JsonSchemaFlattener(resource_spec).flatten_schema().items():
+            for property_name, property_details in schema.get("properties", {}).items():
+                if property_name[0].islower():
                     LOG.warning(
-                        "Incorrect min/max JSON schema keywords for type: %s for property: %s",
-                        property_type,
+                        "CloudFormation properties don't usually start with lowercase letters: %s",
                         property_name,
                     )
-        except (KeyError, TypeError):
-            pass
-
-    for property_name, property_details in resource_spec.get("properties", {}).items():
-        check_property(property_name, property_details)
-    for property_name, property_details in resource_spec.get("definitions", {}).items():
-        check_property(property_name, property_details)
-    for definition in resource_spec.get("definitions", []):
-        for property_name, property_details in (
-            resource_spec.get("definitions", [])[definition]
-            .get("properties", {})
-            .items()
-        ):
-            check_property(property_name, property_details)
+                try:
+                    property_type = property_details["type"]
+                    property_keywords = property_details.keys()
+                    for types, allowed_keywords in [
+                        (
+                            {"integer", "number"},
+                            {
+                                "minimum",
+                                "maximum",
+                                "exclusiveMinimum",
+                                "exclusiveMaximum",
+                            },
+                        ),
+                        (
+                            {"string"},
+                            {
+                                "minLength",
+                                "maxLength",
+                            },
+                        ),
+                        (
+                            {"object"},
+                            {
+                                "minProperties",
+                                "maxProperties",
+                            },
+                        ),
+                        (
+                            {"array"},
+                            {
+                                "minItems",
+                                "maxItems",
+                            },
+                        ),
+                    ]:
+                        if (
+                            property_type in types
+                            and min_max_keywords - allowed_keywords & property_keywords
+                        ):
+                            LOG.warning(
+                                "Incorrect min/max JSON schema keywords for type: %s for property: %s",
+                                property_type,
+                                property_name,
+                            )
+                except (KeyError, TypeError):
+                    pass
+    except FlatteningError:
+        pass
 
     for pattern in nested_lookup("pattern", resource_spec):
         if "arn:aws:" in pattern:
