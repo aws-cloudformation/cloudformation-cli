@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import re
 import shutil
 from io import TextIOWrapper
 from pathlib import Path
@@ -9,9 +10,12 @@ import pkg_resources
 import yaml
 from jsonschema import Draft7Validator, RefResolver
 from jsonschema.exceptions import RefResolutionError, ValidationError
+from nested_lookup import nested_lookup
 
 from .exceptions import InternalError, SpecValidationError
+from .jsonutils.flattener import JsonSchemaFlattener
 from .jsonutils.inliner import RefInliner
+from .jsonutils.utils import FlatteningError
 
 LOG = logging.getLogger(__name__)
 
@@ -123,7 +127,7 @@ def get_file_base_uri(file):
     return path.resolve().as_uri()
 
 
-def load_resource_spec(resource_spec_file):  # pylint: disable=R0912 # noqa: C901
+def load_resource_spec(resource_spec_file):  # pylint: disable=R # noqa: C901
     """Load a resource provider definition from a file, and validate it."""
     try:
         resource_spec = json.load(resource_spec_file)
@@ -140,6 +144,102 @@ def load_resource_spec(resource_spec_file):  # pylint: disable=R0912 # noqa: C90
     except ValidationError as e:
         LOG.debug("Resource spec validation failed", exc_info=True)
         raise SpecValidationError(str(e)) from e
+
+    min_max_keywords = {
+        "minimum",
+        "maximum",
+        "minLength",
+        "maxLength",
+        "minProperties",
+        "maxProperties",
+        "minItems",
+        "maxItems",
+        "exclusiveMinimum",
+        "exclusiveMaximum",
+    }
+    try:  # pylint: disable=R
+        for _key, schema in JsonSchemaFlattener(resource_spec).flatten_schema().items():
+            for property_name, property_details in schema.get("properties", {}).items():
+                if property_name[0].islower():
+                    LOG.warning(
+                        "CloudFormation properties don't usually start with lowercase letters: %s",
+                        property_name,
+                    )
+                try:
+                    property_type = property_details["type"]
+                    property_keywords = property_details.keys()
+                    for types, allowed_keywords in [
+                        (
+                            {"integer", "number"},
+                            {
+                                "minimum",
+                                "maximum",
+                                "exclusiveMinimum",
+                                "exclusiveMaximum",
+                            },
+                        ),
+                        (
+                            {"string"},
+                            {
+                                "minLength",
+                                "maxLength",
+                            },
+                        ),
+                        (
+                            {"object"},
+                            {
+                                "minProperties",
+                                "maxProperties",
+                            },
+                        ),
+                        (
+                            {"array"},
+                            {
+                                "minItems",
+                                "maxItems",
+                            },
+                        ),
+                    ]:
+                        if (
+                            property_type in types
+                            and min_max_keywords - allowed_keywords & property_keywords
+                        ):
+                            LOG.warning(
+                                "Incorrect min/max JSON schema keywords for type: %s for property: %s",
+                                property_type,
+                                property_name,
+                            )
+                except (KeyError, TypeError):
+                    pass
+    except FlatteningError:
+        pass
+
+    for pattern in nested_lookup("pattern", resource_spec):
+        if "arn:aws:" in pattern:
+            LOG.warning(
+                "Don't hardcode the aws partition in ARN patterns: %s",
+                pattern,
+            )
+        try:
+            re.compile(pattern)
+        except re.error:
+            LOG.warning("Could not validate regular expression: %s", pattern)
+
+    for enum in nested_lookup("enum", resource_spec):
+        if len(enum) > 15:
+            LOG.warning(
+                "Consider not manually maintaining large constantly evolving enums like \
+instance types, lambda runtimes, partitions, regions, availability zones, etc. that get outdated quickly: %s",
+                enum,
+            )
+
+    non_ascii_chars = re.findall(
+        r"[^ -~]", json.dumps(resource_spec, ensure_ascii=False)
+    )
+    if non_ascii_chars:
+        LOG.warning(
+            "non-ASCII characters found in resource schema: %s", non_ascii_chars
+        )
 
     list_options = {
         "maxresults",
