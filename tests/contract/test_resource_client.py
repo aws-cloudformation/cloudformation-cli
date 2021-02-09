@@ -375,6 +375,7 @@ def test_get_metadata(resource_client):
         },
         "readOnlyProperties": ["/properties/c"],
         "createOnlyProperties": ["/properties/d"],
+        "propertyTransform": {"/properties/a": "test"},
     }
     resource_client._update_schema(schema)
     assert resource_client.get_metadata() == {"b"}

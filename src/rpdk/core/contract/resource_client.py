@@ -10,6 +10,7 @@ from uuid import uuid4
 import docker
 from botocore import UNSIGNED
 from botocore.config import Config
+from jinja2 import Environment, PackageLoader, select_autoescape
 
 from rpdk.core.contract.interface import Action, HandlerErrorCode, OperationStatus
 from rpdk.core.exceptions import InvalidProjectError
@@ -158,6 +159,13 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
 
     def _update_schema(self, schema):
         # TODO: resolve $ref
+        self.env = Environment(
+            trim_blocks=True,
+            lstrip_blocks=True,
+            keep_trailing_newline=True,
+            loader=PackageLoader(__name__, "templates/"),
+            autoescape=select_autoescape(["html", "htm", "xml", "md"]),
+        )
         self._schema = schema
         self._strategy = None
         self._update_strategy = None
@@ -168,12 +176,14 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         self.write_only_paths = self._properties_to_paths("writeOnlyProperties")
         self.create_only_paths = self._properties_to_paths("createOnlyProperties")
         self.properties_without_insertion_order = self.get_metadata()
-
+        self.property_transform_keys = self._properties_to_paths("propertyTransform")
+        self.property_transform = self._schema.get("propertyTransform")
         additional_identifiers = self._schema.get("additionalIdentifiers", [])
         self._additional_identifiers_paths = [
             {fragment_decode(prop, prefix="") for prop in identifier}
             for identifier in additional_identifiers
         ]
+        self.transformation_template = self.env.get_template("transformation.template")
 
     def has_only_writable_identifiers(self):
         return all(

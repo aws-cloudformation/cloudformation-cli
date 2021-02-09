@@ -1,0 +1,5 @@
+var jsonata = require('jsonata')
+var model = {{input_model}}
+var expression = jsonata("{{jsonata_expression}}");
+var result = expression.evaluate(model);
+console.log(result);
