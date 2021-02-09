@@ -79,6 +79,24 @@ SCHEMA_WITH_COMPOSITE_KEY = {
     "primaryIdentifier": ["/properties/c", "/properties/d"],
 }
 
+SCHEMA_WITH_TRANSFORM = {
+    "properties": {
+        "a": {"type": "string"},
+        "b": {"type": "number"},
+        "c": {"type": "number"},
+        "d": {"type": "number"},
+    },
+    "readOnlyProperties": ["/properties/b"],
+    "createOnlyProperties": ["/properties/c"],
+    "primaryIdentifier": ["/properties/c"],
+    "writeOnlyProperties": ["/properties/d"],
+    "propertyTransform": {"/properties/a": '$join([a, "Test"])'},
+}
+
+TRANSFORM_OUTPUT = {"a": "ValueATest", "c": 1}
+INPUT = {"a": "ValueA", "c": 1}
+INVALID_OUTPUT = {"a": "ValueB", "c": 1}
+
 
 @pytest.fixture
 def resource_client():
@@ -101,14 +119,18 @@ def resource_client():
             mock_sesh = mock_create_sesh.return_value
             mock_sesh.region_name = DEFAULT_REGION
             client = ResourceClient(
-                DEFAULT_FUNCTION, endpoint, DEFAULT_REGION, {}, EMPTY_OVERRIDE
+                DEFAULT_FUNCTION,
+                endpoint,
+                DEFAULT_REGION,
+                SCHEMA_WITH_TRANSFORM,
+                EMPTY_OVERRIDE,
             )
 
     mock_sesh.client.assert_called_once_with("lambda", endpoint_url=endpoint)
     mock_creds.assert_called_once_with(mock_sesh, LOWER_CAMEL_CRED_KEYS, None)
     mock_account.assert_called_once_with(mock_sesh, {})
     assert client._function_name == DEFAULT_FUNCTION
-    assert client._schema == {}
+    assert client._schema == SCHEMA_WITH_TRANSFORM
     assert client._overrides == EMPTY_OVERRIDE
     assert client.account == ACCOUNT
 
@@ -1193,3 +1215,44 @@ def test_generate_update_example_with_composite_key(
         created_resource
     )
     assert updated_resource == {"a": 1, "c": 2, "d": 3}
+
+
+def test_update_transformed_property_loookup_error(resource_client):
+    input_model = INPUT.copy()
+    document = resource_client.update_transformed_property(
+        ("properties", "d"), "", input_model
+    )
+    assert document is None
+
+
+def test_transform_model_equal_input_and_output(resource_client):
+    input_model = INPUT.copy()
+    output_model = INPUT.copy()
+
+    resource_client.transform_model(input_model, output_model)
+    assert input_model == INPUT
+
+
+def test_transform_model_equal_output(resource_client):
+    input_model = INPUT.copy()
+    output_model = TRANSFORM_OUTPUT.copy()
+
+    resource_client.transform_model(input_model, output_model)
+    assert input_model == TRANSFORM_OUTPUT
+
+
+def test_transform_model_unequal_models(resource_client):
+    input_model = INPUT.copy()
+    output_model = INVALID_OUTPUT.copy()
+
+    resource_client.transform_model(input_model, output_model)
+    assert input_model != output_model
+    assert input_model == TRANSFORM_OUTPUT
+
+
+def test_non_transform_model_not_equal(resource_client_inputs_schema):
+    input_model = INPUT.copy()
+    output_model = INVALID_OUTPUT.copy()
+
+    resource_client_inputs_schema.transform_model(input_model, output_model)
+    assert input_model != output_model
