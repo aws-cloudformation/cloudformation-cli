@@ -1,8 +1,12 @@
 # pylint: disable=import-outside-toplevel
 # pylint: disable=R0904
+# have to skip B404, import_subprocess is required for executing typescript
+# have to skip B60*, to allow typescript code to be executed using subprocess
 import json
 import logging
 import re
+import subprocess  # nosec
+import tempfile
 import time
 from time import sleep
 from uuid import uuid4
@@ -210,6 +214,78 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
                 if "insertionOrder" in properties[prop]
                 and properties[prop]["insertionOrder"] == "false"
             }
+
+    def transform_model(self, input_model, output_model):
+        if self.property_transform_keys:
+            self.check_npm()
+        for prop in self.property_transform_keys:
+            document_input, _path_input, _parent_input = traverse(
+                input_model, list(prop)[1:]
+            )
+            document_output, _path_output, _parent_output = traverse(
+                output_model, list(prop)[1:]
+            )
+            if document_input != document_output:
+                transformed_property = self.transform(prop, input_model)
+                self.update_transformed_property(
+                    prop, transformed_property, input_model
+                )
+
+    def transform(self, property_path, input_model):
+
+        path = "/" + "/".join(property_path)
+        property_transform_value = self.property_transform[path].replace('"', '\\"')
+
+        content = self.transformation_template.render(
+            input_model=input_model, jsonata_expression=property_transform_value
+        )
+
+        file = tempfile.NamedTemporaryFile(
+            mode="w+b",
+            buffering=-1,
+            encoding=None,
+            newline=None,
+            suffix=".js",
+            prefix=None,
+            dir=".",
+            delete=True,
+        )
+        file.write(str.encode(content))
+
+        LOG.debug("Jsonata transformation content %s", file.read().decode())
+        jsonata_output = subprocess.getoutput("node " + file.name)
+
+        file.close()
+        return jsonata_output
+
+    # removing coverage for this method as it is not possible to check both npm
+    # exists and does not exist condition in unit test
+    @staticmethod
+    def check_npm():  # pragma: no cover
+        output = subprocess.getoutput("npm list jsonata")
+        if "npm: command not found" not in output:
+            if "jsonata@" not in output:
+                subprocess.getoutput("npm install jsonata")
+        else:
+            LOG.error(
+                "NPM is required to support propertyTransform. "
+                "Please install npm using the following link: https://www.npmjs.com/get-npm"
+            )
+
+    @staticmethod
+    def update_transformed_property(property_path, transformed_property, input_model):
+        try:
+            _prop, resolved_path, parent = traverse(
+                input_model, list(property_path)[1:]
+            )
+        except LookupError:
+            LOG.debug(
+                "Override failed.\nPath %s\nDocument %s", property_path, input_model
+            )
+            LOG.warning("Override with path %s not found, skipping", property_path)
+        else:
+            key = resolved_path[-1]
+            parent[key] = transformed_property
 
     @property
     def strategy(self):

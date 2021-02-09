@@ -1,8 +1,4 @@
-# have to skip B404, import_subprocess is required for executing typescript
-# have to skip B60*, to allow typescript code to be executed using subprocess
 import logging
-import subprocess  # nosec
-import tempfile
 
 from rpdk.core.contract.interface import Action, HandlerErrorCode, OperationStatus
 from rpdk.core.contract.resource_client import (
@@ -16,7 +12,6 @@ from rpdk.core.contract.suite.contract_asserts import (
     response_contains_unchanged_primary_identifier,
     response_does_not_contain_write_only_properties,
 )
-from rpdk.core.jsonutils.utils import traverse
 
 LOG = logging.getLogger(__name__)
 
@@ -174,7 +169,9 @@ def test_input_equals_output(resource_client, input_model, output_model):
     # only comparing properties in input model to those in output model and
     # ignoring extraneous properties that maybe present in output model.
     try:
-        transform_model1(pruned_input_model, pruned_output_model, resource_client)
+        resource_client.transform_model(
+            pruned_input_model, pruned_output_model, resource_client
+        )
         for key in pruned_input_model:
             if key in resource_client.properties_without_insertion_order:
                 assert test_unordered_list_match(
@@ -194,71 +191,3 @@ def test_unordered_list_match(inputs, outputs):
         assert all(input in outputs for input in inputs)
     except KeyError as exception:
         raise AssertionError("lists do not match") from exception
-
-
-def transform_model1(input_model, output_model, resource_client):
-    if not resource_client.property_transform_keys:
-        check_npm()
-    for prop in resource_client.property_transform_keys:
-        document_input, _path_input, _parent_input = traverse(
-            input_model, list(prop)[1:]
-        )
-        document_output, _path_output, _parent_output = traverse(
-            output_model, list(prop)[1:]
-        )
-        if document_input != document_output:
-            transformed_property = transform(prop, input_model, resource_client)
-            update_transformed_property(prop, transformed_property, input_model)
-
-
-def transform(property_path, input_model, resource_client):
-
-    path = "/" + "/".join(property_path)
-    property_transform_value = resource_client.property_transform[path].replace(
-        '"', '\\"'
-    )
-
-    content = resource_client.transformation_template.render(
-        input_model=input_model, jsonata_expression=property_transform_value
-    )
-
-    file = tempfile.NamedTemporaryFile(
-        mode="w+b",
-        buffering=-1,
-        encoding=None,
-        newline=None,
-        suffix=".js",
-        prefix=None,
-        dir=".",
-        delete=True,
-    )
-    file.write(str.encode(content))
-
-    LOG.debug("Jsonata transformation content %s", file.read().decode())
-    jsonata_output = subprocess.getoutput("node " + file.name)
-
-    file.close()
-    return jsonata_output
-
-
-def check_npm():
-    output = subprocess.getoutput("npm list jsonata")
-    if "npm: command not found" not in output:
-        if "jsonata@" not in output:
-            subprocess.getoutput("npm install jsonata")
-    else:
-        LOG.error(
-            "NPM is required to support propertyTransform. "
-            "Please install npm using the following link: https://www.npmjs.com/get-npm"
-        )
-
-
-def update_transformed_property(property_path, transformed_property, input_model):
-    try:
-        _prop, resolved_path, parent = traverse(input_model, list(property_path)[1:])
-    except LookupError:
-        LOG.debug("Override failed.\nPath %s\nDocument %s", property_path, input_model)
-        LOG.warning("Override with path %s not found, skipping", property_path)
-    else:
-        key = resolved_path[-1]
-        parent[key] = transformed_property

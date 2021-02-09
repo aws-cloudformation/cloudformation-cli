@@ -3,14 +3,13 @@ from unittest.mock import patch
 
 import pytest
 
-import rpdk.core.contract.suite.handler_commons as commons
 from rpdk.core.boto_helpers import LOWER_CAMEL_CRED_KEYS
 from rpdk.core.test import DEFAULT_FUNCTION, DEFAULT_REGION, empty_override
 
 LOG = logging.getLogger(__name__)
 EMPTY_OVERRIDE = empty_override()
 ACCOUNT = "11111111"
-SCHEMA = {
+SCHEMA_WITH_TRANSFORM = {
     "properties": {
         "a": {"type": "string"},
         "b": {"type": "number"},
@@ -22,6 +21,19 @@ SCHEMA = {
     "primaryIdentifier": ["/properties/c"],
     "writeOnlyProperties": ["/properties/d"],
     "propertyTransform": {"/properties/a": '$join([a, "Test"])'},
+}
+
+SCHEMA = {
+    "properties": {
+        "a": {"type": "string"},
+        "b": {"type": "number"},
+        "c": {"type": "number"},
+        "d": {"type": "number"},
+    },
+    "readOnlyProperties": ["/properties/b"],
+    "createOnlyProperties": ["/properties/c"],
+    "primaryIdentifier": ["/properties/c"],
+    "writeOnlyProperties": ["/properties/d"],
 }
 
 TRANSFORM_OUTPUT = {"a": "ValueATest", "c": 1}
@@ -55,7 +67,7 @@ def resource_client():
                 DEFAULT_FUNCTION,
                 endpoint,
                 DEFAULT_REGION,
-                SCHEMA,
+                SCHEMA_WITH_TRANSFORM,
                 EMPTY_OVERRIDE,
                 {
                     "CREATE": {"a": "ValueA", "c": 3},
@@ -69,7 +81,7 @@ def resource_client():
     mock_account.assert_called_once_with(mock_sesh, {})
 
     assert client._function_name == DEFAULT_FUNCTION
-    assert client._schema == SCHEMA
+    assert client._schema == SCHEMA_WITH_TRANSFORM
     assert client._overrides == EMPTY_OVERRIDE
     assert client.account == ACCOUNT
 
@@ -80,7 +92,7 @@ def test_transform_model_equal_input_and_output(resource_client):
     input_model = INPUT.copy()
     output_model = INPUT.copy()
 
-    commons.transform_model1(input_model, output_model, resource_client)
+    resource_client.transform_model(input_model, output_model)
     assert input_model == INPUT
 
 
@@ -88,7 +100,7 @@ def test_transform_model_equal_output(resource_client):
     input_model = INPUT.copy()
     output_model = TRANSFORM_OUTPUT.copy()
 
-    commons.transform_model1(input_model, output_model, resource_client)
+    resource_client.transform_model(input_model, output_model)
     assert input_model == TRANSFORM_OUTPUT
 
 
@@ -96,6 +108,23 @@ def test_transform_model_unequal_models(resource_client):
     input_model = INPUT.copy()
     output_model = INVALID_OUTPUT.copy()
 
-    commons.transform_model1(input_model, output_model, resource_client)
+    resource_client.transform_model(input_model, output_model)
     assert input_model != output_model
     assert input_model == TRANSFORM_OUTPUT
+
+
+def test_non_transform_model_equals(resource_client):
+    resource_client._update_schema(SCHEMA)
+    input_model = INPUT.copy()
+    output_model = INVALID_OUTPUT.copy()
+
+    resource_client.transform_model(input_model, output_model)
+    assert input_model != output_model
+
+
+def test_update_transformed_property_Loookup_Error(resource_client):
+    input_model = INPUT.copy()
+    document = resource_client.update_transformed_property(
+        ("properties", "d"), "", input_model
+    )
+    assert document is None
