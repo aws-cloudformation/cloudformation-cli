@@ -149,10 +149,8 @@ def test_delete_failure_not_found(resource_client, current_resource_model):
 
 def test_input_equals_output(resource_client, input_model, output_model):
     pruned_input_model = prune_properties_from_model(
-        input_model.copy(), resource_client.write_only_paths
-    )
-    pruned_input_model = prune_properties_from_model(
-        pruned_input_model, resource_client.read_only_paths
+        input_model.copy(),
+        list(resource_client.write_only_paths, resource_client.read_only_paths),
     )
 
     pruned_output_model = prune_properties_from_model(
