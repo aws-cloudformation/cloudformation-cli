@@ -267,10 +267,12 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
             if "jsonata@" not in output:
                 subprocess.getoutput("npm install jsonata")
         else:
-            LOG.error(
+            err_msg = (
                 "NPM is required to support propertyTransform. "
                 "Please install npm using the following link: https://www.npmjs.com/get-npm"
             )
+            LOG.error(err_msg)
+            raise AssertionError(err_msg)
 
     @staticmethod
     def update_transformed_property(property_path, transformed_property, input_model):

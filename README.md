@@ -15,7 +15,7 @@ This tool can be installed using [pip](https://pypi.org/project/pip/) from the P
 ```bash
 pip install cloudformation-cli cloudformation-cli-java-plugin cloudformation-cli-go-plugin cloudformation-cli-python-plugin
 ```
-You will need npm to run contract test (cfn test) if your resource schema requires property transform. Please ensure you have npm installed. Follow the instructions: https://www.npmjs.com/get-npm to get npm installed on your machine.
+You will need npm to run contract tests (cfn test) if your resource schema requires property transform. Please ensure you have npm installed. Follow the instructions: https://www.npmjs.com/get-npm to get npm installed on your machine.
 
 
 ### Command: init
