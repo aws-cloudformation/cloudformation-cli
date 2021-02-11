@@ -234,12 +234,14 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
     def transform(self, property_path, input_model):
 
         path = "/" + "/".join(property_path)
-        property_transform_value = self.property_transform[path].replace('"', '\\"')
+        property_transform_value = json.dumps(self.property_transform[path])
+        # self.property_transform[path].replace('"', '\\"')
 
+        LOG.warning("This is the transform %s", property_transform_value)
         content = self.transformation_template.render(
             input_model=input_model, jsonata_expression=property_transform_value
         )
-
+        LOG.warning("This is the content %s", content)
         file = tempfile.NamedTemporaryFile(
             mode="w+b",
             buffering=-1,
