@@ -106,8 +106,7 @@ def main(args_in=None):  # pylint: disable=too-many-statements
         # some cases where it makes sense for the commands to raise SystemExit.)
         log.debug("Caught exit recommendation", exc_info=e)
         log.critical(str(e))
-        # pylint: disable=W0707
-        raise SystemExit(1)
+        raise SystemExit(1) from e
     except DownstreamError as e:
         # For these operations, we don't want to swallow the exception
         log.debug("Caught downstream error", exc_info=e)
@@ -127,9 +126,8 @@ def main(args_in=None):  # pylint: disable=too-many-statements
             "https://github.com/aws-cloudformation/aws-cloudformation-rpdk/issues",
             file=sys.stderr,
         )
-        # pylint: disable=W0707
-        raise SystemExit(2)
-    except Exception:  # pylint: disable=broad-except
+        raise SystemExit(2) from e
+    except Exception as e:  # pylint: disable=broad-except
         print("=== Unhandled exception ===", file=sys.stderr)
         print("Please report this issue to the team.", file=sys.stderr)
         print(
@@ -146,5 +144,4 @@ def main(args_in=None):  # pylint: disable=too-many-statements
             import traceback  # pylint: disable=import-outside-toplevel
 
             traceback.print_exc()
-        # pylint: disable=W0707
-        raise SystemExit(EXIT_UNHANDLED_EXCEPTION)
+        raise SystemExit(EXIT_UNHANDLED_EXCEPTION) from e

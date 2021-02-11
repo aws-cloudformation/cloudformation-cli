@@ -71,9 +71,8 @@ class ValidatePluginChoice:
     def __call__(self, value):
         try:
             choice = int(value)
-        except ValueError:
-            # pylint: disable=W0707
-            raise WizardValidationError("Please enter an integer")
+        except ValueError as value_error:
+            raise WizardValidationError("Please enter an integer") from value_error
         choice -= 1
         if choice < 0 or choice >= self.max:
             raise WizardValidationError("Please select a choice")
@@ -149,10 +148,9 @@ def ignore_abort(function):
     def wrapper(args):
         try:
             function(args)
-        except (KeyboardInterrupt, WizardAbortError):
+        except (KeyboardInterrupt, WizardAbortError) as exception:
             print("\naborted")
-            # pylint: disable=W0707
-            raise SystemExit(1)
+            raise SystemExit(1) from exception
 
     return wrapper
 
