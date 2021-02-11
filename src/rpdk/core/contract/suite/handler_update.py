@@ -6,7 +6,6 @@ import pytest
 # WARNING: contract tests should use fully qualified imports to avoid issues
 # when being loaded by pytest
 from rpdk.core.contract.interface import Action, OperationStatus
-from rpdk.core.contract.resource_client import prune_properties_from_model
 from rpdk.core.contract.suite.handler_commons import (
     test_input_equals_output,
     test_model_in_list,
@@ -27,19 +26,15 @@ def updated_resource(resource_client):
 
         update_request = resource_client.generate_update_example(created_model)
 
-        updated_input_model = prune_properties_from_model(
-            update_request.copy(), resource_client.read_only_paths
-        )
-
         _status, response, _error = resource_client.call_and_assert(
             Action.UPDATE, OperationStatus.SUCCESS, update_request, created_model
         )
         updated_model = response["resourceModel"]
-        test_input_equals_output(resource_client, updated_input_model, updated_model)
+        test_input_equals_output(resource_client, update_request, updated_model)
 
         # flake8: noqa: B950
         # pylint: disable=C0301
-        yield create_request, created_model, update_request, updated_model, updated_input_model
+        yield create_request, created_model, update_request, updated_model, update_request
     finally:
         resource_client.call_and_assert(Action.DELETE, OperationStatus.SUCCESS, model)
 
