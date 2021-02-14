@@ -411,7 +411,10 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
             self.load_settings()
         except FileNotFoundError as e:
             self._raise_invalid_project(
-                "Project file not found. Have you run 'init'?", e
+                "Project file {} not found. Have you run 'init' or in a wrong directory?".format(
+                    self.settings_path
+                ),
+                e,
             )
 
         if self.artifact_type == ARTIFACT_TYPE_MODULE:
