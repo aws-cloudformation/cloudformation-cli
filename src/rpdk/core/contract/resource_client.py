@@ -215,28 +215,67 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
                 and properties[prop]["insertionOrder"] == "false"
             }
 
-    def transform_model(self, input_model, output_model):
+    def transform_model(self, input_model, output_model):  # pylint: disable=R0914
         if self.property_transform_keys:
             self.check_npm()
-        for prop in self.property_transform_keys:
-            document_input, _path_input, _parent_input = traverse(
-                input_model, list(prop)[1:]
-            )
-            document_output, _path_output, _parent_output = traverse(
-                output_model, list(prop)[1:]
-            )
-            if document_input != document_output:
-                transformed_property = self.transform(prop, input_model)
-                self.update_transformed_property(
-                    prop, transformed_property, input_model
+        for prop in self.property_transform_keys:  # pylint: disable=R1702
+            try:
+                document_input, _path_input, _parent_input = traverse(
+                    input_model, list(prop)[1:]
                 )
+                document_output, _path_output, _parent_output = traverse(
+                    output_model, list(prop)[1:]
+                )
+                if not self.compare(document_input, document_output):
+                    path = "/" + "/".join(prop)
+                    property_transform_value = self.property_transform[path].replace(
+                        '"', '\\"'
+                    )
+                    if "OR" in property_transform_value:
+                        transform_functions = property_transform_value.split("OR")
+                        for transform_function in transform_functions:
+                            transformed_property = self.transform(
+                                transform_function, input_model
+                            )
+                            value = self.convert_type(
+                                document_input, transformed_property
+                            )
+                            if self.compare(value, document_output):
+                                self.update_transformed_property(
+                                    prop, value, input_model
+                                )
+                    else:
+                        transformed_property = self.transform(
+                            property_transform_value, input_model
+                        )
+                        value = self.convert_type(document_input, transformed_property)
+                        self.update_transformed_property(prop, value, input_model)
 
-    def transform(self, property_path, input_model):
+            except KeyError:
+                pass
 
-        path = "/" + "/".join(property_path)
-        property_transform_value = json.dumps(self.property_transform[path])
-        # self.property_transform[path].replace('"', '\\"')
+    @staticmethod
+    def convert_type(document_input, transformed_property):
+        if isinstance(document_input, bool):
+            return bool(transformed_property)
+        if isinstance(document_input, int):
+            return int(transformed_property)
+        if isinstance(document_input, float):
+            return float(transformed_property)
+        return transformed_property
 
+    @staticmethod
+    def compare(document_input, document_output):
+        try:
+            if isinstance(document_input, str):
+                regex = r"^{}$".format(document_input)
+                re.compile(regex)
+                return re.match(regex, document_output)
+            return document_input == document_output
+        except re.error:
+            return document_input == document_output
+
+    def transform(self, property_transform_value, input_model):
         LOG.warning("This is the transform %s", property_transform_value)
         content = self.transformation_template.render(
             input_model=input_model, jsonata_expression=property_transform_value
