@@ -94,7 +94,7 @@ SCHEMA_WITH_TRANSFORM = {
     "propertyTransform": {
         "/properties/a": '$join([a, "Test"])',
         "/properties/c": "$power(2, 2)",
-        "/properties/e": '$join([e, "Test"])OR$join([e, "Value"])',
+        "/properties/e": '$join([e, "Test"]) $OR $join([e, "Value"])',
     },
 }
 
@@ -1251,21 +1251,24 @@ def test_transform_model_equal_output(resource_client):
     assert input_model == output_model
 
 
-def test_transform_model_equal_output_OR(resource_client):
+@pytest.mark.parametrize(
+    "output",
+    [{"e": "newValue", "a": "ValueA", "c": 1}, {"e": "newTest", "a": "ValueA", "c": 1}],
+)
+def test_transform_model_equal_output_OR(resource_client, output):
     input_model = {"e": "new", "a": "ValueA", "c": 1}
-    output_model = {"e": "newValue", "a": "ValueA", "c": 1}
 
-    resource_client.transform_model(input_model, output_model)
-    assert input_model == output_model
+    resource_client.transform_model(input_model, output)
+    assert input_model == output
 
 
 def test_transform_model_not_equal_output_OR(resource_client):
     input_model = {"e": "new", "a": "ValueA", "c": 1}
-    output_model = {"e": "newValue", "a": "ValueA", "c": 5}
+    output_model = {"e": "not-newValue", "a": "ValueA", "c": 4}
 
     resource_client.transform_model(input_model, output_model)
     assert input_model != output_model
-    assert input_model == {"a": "ValueA", "c": 4, "e": "newValue"}
+    assert input_model == {"a": "ValueA", "c": 4, "e": "new"}
 
 
 def test_transform_model_unequal_models(resource_client):

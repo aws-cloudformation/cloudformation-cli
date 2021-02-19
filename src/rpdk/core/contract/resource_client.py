@@ -231,8 +231,8 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
                     property_transform_value = self.property_transform[path].replace(
                         '"', '\\"'
                     )
-                    if "OR" in property_transform_value:
-                        transform_functions = property_transform_value.split("OR")
+                    if "$OR" in property_transform_value:
+                        transform_functions = property_transform_value.split("$OR")
                         for transform_function in transform_functions:
                             transformed_property = self.transform(
                                 transform_function, input_model
@@ -268,9 +268,7 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
     def compare(document_input, document_output):
         try:
             if isinstance(document_input, str):
-                regex = r"^{}$".format(document_input)
-                re.compile(regex)
-                return re.match(regex, document_output)
+                return re.match(f"^{document_input}$", document_output)
             return document_input == document_output
         except re.error:
             return document_input == document_output
@@ -497,7 +495,7 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         creds,
         token,
         callback_context=None,
-        **kwargs
+        **kwargs,
     ):
         return {
             "requestData": {
@@ -573,7 +571,7 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
                 self._session, LOWER_CAMEL_CRED_KEYS, self._role_arn
             ),
             self.generate_token(),
-            **kwargs
+            **kwargs,
         )
 
     def _call(self, payload):
