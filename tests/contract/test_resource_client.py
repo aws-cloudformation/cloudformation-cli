@@ -85,15 +85,21 @@ SCHEMA_WITH_TRANSFORM = {
         "b": {"type": "number"},
         "c": {"type": "number"},
         "d": {"type": "number"},
+        "e": {"type": "string"},
     },
     "readOnlyProperties": ["/properties/b"],
     "createOnlyProperties": ["/properties/c"],
-    "primaryIdentifier": ["/properties/c"],
+    "primaryIdentifier": ["/properties/b"],
     "writeOnlyProperties": ["/properties/d"],
-    "propertyTransform": {"/properties/a": '$join([a, "Test"])'},
+    "propertyTransform": {
+        "/properties/a": '$join([a, "Test"])',
+        "/properties/c": "$power(2, 2)",
+        "/properties/e": '$join([e, "Test"]) $OR $join([e, "Value"])',
+    },
 }
 
-TRANSFORM_OUTPUT = {"a": "ValueATest", "c": 1}
+TRANSFORM_OUTPUT = {"a": "ValueATest", "c": 4}
+TRANSFORM_OUTPUT_WITHOUT_C = {"a": "ValueATest", "c": 1}
 INPUT = {"a": "ValueA", "c": 1}
 INVALID_OUTPUT = {"a": "ValueB", "c": 1}
 
@@ -834,7 +840,11 @@ def test_call_async(resource_client, action):
     )
 
     mock_client.invoke.side_effect = [
-        {"Payload": StringIO('{"status": "IN_PROGRESS", "resourceModel": {"c": 3} }')},
+        {
+            "Payload": StringIO(
+                '{"status": "IN_PROGRESS", "resourceModel": {"c": 3, "b": 1} }'
+            )
+        },
         {"Payload": StringIO('{"status": "SUCCESS"}')},
     ]
 
@@ -1238,7 +1248,27 @@ def test_transform_model_equal_output(resource_client):
     output_model = TRANSFORM_OUTPUT.copy()
 
     resource_client.transform_model(input_model, output_model)
-    assert input_model == TRANSFORM_OUTPUT
+    assert input_model == output_model
+
+
+@pytest.mark.parametrize(
+    "output",
+    [{"e": "newValue", "a": "ValueA", "c": 1}, {"e": "newTest", "a": "ValueA", "c": 1}],
+)
+def test_transform_model_equal_output_OR(resource_client, output):
+    input_model = {"e": "new", "a": "ValueA", "c": 1}
+
+    resource_client.transform_model(input_model, output)
+    assert input_model == output
+
+
+def test_transform_model_not_equal_output_OR(resource_client):
+    input_model = {"e": "new", "a": "ValueA", "c": 1}
+    output_model = {"e": "not-newValue", "a": "ValueA", "c": 4}
+
+    resource_client.transform_model(input_model, output_model)
+    assert input_model != output_model
+    assert input_model == {"a": "ValueA", "c": 4, "e": "new"}
 
 
 def test_transform_model_unequal_models(resource_client):
@@ -1247,7 +1277,7 @@ def test_transform_model_unequal_models(resource_client):
 
     resource_client.transform_model(input_model, output_model)
     assert input_model != output_model
-    assert input_model == TRANSFORM_OUTPUT
+    assert input_model == TRANSFORM_OUTPUT_WITHOUT_C
 
 
 def test_non_transform_model_not_equal(resource_client_inputs_schema):
@@ -1256,3 +1286,14 @@ def test_non_transform_model_not_equal(resource_client_inputs_schema):
 
     resource_client_inputs_schema.transform_model(input_model, output_model)
     assert input_model != output_model
+
+
+def test_compare_raise_exception(resource_client):
+    assert not resource_client.compare("he(lo", "hello")
+
+
+@pytest.mark.parametrize("value", [1, 2.3, True, "test"])
+def test_convert_type(resource_client, value):
+    converted_value = resource_client.convert_type(value, str(value))
+    assert isinstance(converted_value, type(value))
+    assert converted_value == value
