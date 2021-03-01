@@ -22,6 +22,7 @@ class OperationStatus(AutoName):
     FAILED = auto()
 
 
+# pylint: disable=invalid-name
 class HandlerErrorCode(AutoName):
     NotUpdatable = auto()
     InvalidRequest = auto()

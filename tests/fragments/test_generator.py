@@ -86,6 +86,12 @@ def test_template_fragments_without_parameter_section_is_valid(template_fragment
     )
 
 
+def test_template_fragments_with_date_in_version(template_fragment):
+    __assert_validation_throws_no_error(
+        "template_with_date_in_version.yaml", template_fragment
+    )
+
+
 def test_template_fragments_without_description(template_fragment):
     schema = __generate_schema("template_without_description.json", template_fragment)
 
