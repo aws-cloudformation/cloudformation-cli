@@ -105,7 +105,7 @@ class TemplateFragment:  # pylint: disable=too-many-instance-attributes
         filename = "temporary_fragment.json"
 
         with open(filename, "w") as outfile:
-            json.dump(raw_fragment, outfile, indent=4)
+            json.dump(raw_fragment, outfile, indent=4, default=str)
 
         template = cfnlint.decode.cfn_json.load(filename)
 
