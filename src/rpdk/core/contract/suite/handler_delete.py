@@ -7,7 +7,6 @@ import pytest
 # WARNING: contract tests should use fully qualified imports to avoid issues
 # when being loaded by pytest
 from rpdk.core.contract.interface import Action, HandlerErrorCode, OperationStatus
-from rpdk.core.contract.resource_client import prune_properties_from_model
 from rpdk.core.contract.suite.handler_commons import (
     test_create_success,
     test_delete_failure_not_found,
@@ -91,22 +90,11 @@ def contract_delete_delete(resource_client, deleted_resource):
 @pytest.mark.delete
 def contract_delete_create(resource_client, deleted_resource):
     if resource_client.has_only_writable_identifiers():
-        deleted_model, request = deleted_resource
+        _deleted_model, request = deleted_resource
         response = test_create_success(resource_client, request)
-        created_response = response.copy()
-        # read-only properties should be excluded from the comparison
-        prune_properties_from_model(deleted_model, resource_client.read_only_paths)
-        prune_properties_from_model(
-            response["resourceModel"], resource_client.read_only_paths
-        )
 
-        assert (
-            deleted_model == response["resourceModel"]
-        ), "Once a delete operation successfully completes, a subsequent\
-             create request with the same primaryIdentifier or additionalIdentifiers\
-                  MUST NOT return FAILED with an AlreadyExists error code"
         resource_client.call_and_assert(
-            Action.DELETE, OperationStatus.SUCCESS, created_response["resourceModel"]
+            Action.DELETE, OperationStatus.SUCCESS, response["resourceModel"]
         )
     else:
         pytest.skip("No writable identifiers. Skipping test.")
