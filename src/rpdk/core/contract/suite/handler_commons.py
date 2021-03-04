@@ -150,7 +150,10 @@ def test_delete_failure_not_found(resource_client, current_resource_model):
 def test_input_equals_output(resource_client, input_model, output_model):
     pruned_input_model = prune_properties_from_model(
         input_model.copy(),
-        list(resource_client.write_only_paths, resource_client.read_only_paths),
+        set(
+            list(resource_client.read_only_paths)
+            + list(resource_client.write_only_paths)
+        ),
     )
 
     pruned_output_model = prune_properties_from_model(
@@ -170,9 +173,7 @@ def test_input_equals_output(resource_client, input_model, output_model):
     # only comparing properties in input model to those in output model and
     # ignoring extraneous properties that maybe present in output model.
     try:
-        resource_client.transform_model(
-            pruned_input_model, pruned_output_model, resource_client
-        )
+        resource_client.transform_model(pruned_input_model, pruned_output_model)
         for key in pruned_input_model:
             if key in resource_client.properties_without_insertion_order:
                 assert test_unordered_list_match(
