@@ -21,18 +21,11 @@ def get_template_file_size_in_bytes(fragment_dir):
 def _load_fragment(fragment_file):
     try:
         with open(fragment_file, "r", encoding="utf-8") as f:
-            return yaml.safe_load(
-                __first_pass_syntax_check(__convert_function(f.read()))
-            )
+            return load_yaml(__first_pass_syntax_check(f.read()))
     except yaml.parser.ParserError as e:
-        try:
-            LOG.info("Parsing with cfn_flip")
-            with open(fragment_file, "r", encoding="utf-8") as f:
-                return load_yaml(f.read())
-        except yaml.parser.ParserError as parser_error:
-            raise FragmentValidationError(
-                "Fragment file '{}' is invalid: {}".format(fragment_file, str(e))
-            ) from parser_error
+        raise FragmentValidationError(
+            "Fragment file '{}' is invalid: {}".format(fragment_file, str(e))
+        ) from e
 
 
 def _get_fragment_file(fragment_dir):
@@ -54,20 +47,8 @@ def _get_fragment_file(fragment_dir):
 
 
 def __first_pass_syntax_check(template):
-    if "Fn::ImportValue" in template:
+    if "Fn::ImportValue" in template or "!ImportValue" in template:
         raise FragmentValidationError(
             "Template fragment can't contain any Fn::ImportValue."
         )
     return template
-
-
-def __convert_function(template):
-    """
-    When generating schema, we don't care about the actual reference.
-    So the following will only make a valid YAML file.
-    """
-    return (
-        template.replace("!Transform", "Fn::Transform")
-        .replace("!ImportValue", "Fn::ImportValue")
-        .replace("!", "")
-    )
