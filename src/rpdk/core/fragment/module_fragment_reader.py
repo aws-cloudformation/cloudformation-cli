@@ -22,7 +22,7 @@ def _load_fragment(fragment_file):
     try:
         with open(fragment_file, "r", encoding="utf-8") as f:
             return load_yaml(__first_pass_syntax_check(f.read()))
-    except yaml.parser.ParserError as e:
+    except (yaml.parser.ParserError, yaml.scanner.ScannerError) as e:
         raise FragmentValidationError(
             "Fragment file '{}' is invalid: {}".format(fragment_file, str(e))
         ) from e

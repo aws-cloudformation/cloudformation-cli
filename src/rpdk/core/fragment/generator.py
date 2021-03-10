@@ -11,17 +11,11 @@ import logging
 import os
 from pathlib import Path
 
-import cfnlint.config
-import cfnlint.core
-
 from rpdk.core.data_loaders import resource_json
 from rpdk.core.exceptions import FragmentValidationError
 
-from .module_fragment_reader import (
-    _get_fragment_file,
-    get_template_file_size_in_bytes,
-    read_raw_fragments,
-)
+from .lint_warning_printer import print_cfn_lint_warnings
+from .module_fragment_reader import get_template_file_size_in_bytes, read_raw_fragments
 
 LOG = logging.getLogger(__name__)
 FRAGMENT_DIR = "fragments"
@@ -81,46 +75,11 @@ class TemplateFragment:  # pylint: disable=too-many-instance-attributes
         self.__validate_no_transforms_present(raw_fragments)
         self.__validate_outputs(raw_fragments)
         self.__validate_mappings(raw_fragments)
-        self.__validate_fragment_thru_cfn_lint()
-
-    def __validate_fragment_thru_cfn_lint(self):
-        lint_warnings = self.__get_cfn_lint_matches()
-        if not lint_warnings:
-            LOG.warning("Module fragment is valid.")
-        else:
-            LOG.warning(
-                "Module fragment might be valid, but there are "
-                "warnings from cfn-lint "
-                "(https://github.com/aws-cloudformation/cfn-python-lint):"
-            )
-            for lint_warning in lint_warnings:
-                print(
-                    "\t{} (from rule {})".format(
-                        lint_warning.message, lint_warning.rule
-                    ),
-                )
+        print_cfn_lint_warnings(self.fragment_dir)
 
     def __validate_outputs(self, raw_fragments):
         self.__validate_no_exports_present(raw_fragments)
         self.__validate_output_limit(raw_fragments)
-
-    def __get_cfn_lint_matches(self):
-        filepath = _get_fragment_file(self.fragment_dir)
-        try:
-            template = cfnlint.decode.cfn_json.load(filepath)
-        except json.decoder.JSONDecodeError:
-            template = cfnlint.decode.cfn_yaml.load(filepath)
-
-        # Initialize the ruleset to be applied (no overrules, no excludes)
-        rules = cfnlint.core.get_rules([], [], [], [], False, [])
-
-        # Default region used by cfn-lint
-        regions = ["us-east-1"]
-
-        # Runs Warning and Error rules
-        matches = cfnlint.core.run_checks(filepath, template, rules, regions)
-
-        return matches
 
     @staticmethod
     def __validate_no_exports_present(raw_fragments):
