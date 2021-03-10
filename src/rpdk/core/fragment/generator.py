@@ -13,17 +13,17 @@ from pathlib import Path
 
 import cfnlint.config
 import cfnlint.core
-import yaml
 
 from rpdk.core.data_loaders import resource_json
 from rpdk.core.exceptions import FragmentValidationError
+
+from .module_fragment_reader import get_template_file_size_in_bytes, read_raw_fragments
 
 LOG = logging.getLogger(__name__)
 FRAGMENT_DIR = "fragments"
 SAMPLE_FRAGMENT_OUTPUT = "sample.json"
 SCHEMA_NAME = "schema.json"
 SAMPLE_FRAGMENT = "../data/examples/module/sample.json"
-ALLOWED_EXTENSIONS = {".json", ".yaml", ".yml"}
 RESOURCE_LIMIT = 500
 OUTPUT_LIMIT = 200
 MAPPING_LIMIT = 200
@@ -45,7 +45,7 @@ class TemplateFragment:  # pylint: disable=too-many-instance-attributes
         LOG.debug("Fragment directory: %s", self.fragment_dir)
 
     def generate_schema(self):
-        raw_fragments = self._read_raw_fragments()
+        raw_fragments = read_raw_fragments(self.fragment_dir)
 
         schema = {}
         properties = {}
@@ -70,7 +70,7 @@ class TemplateFragment:  # pylint: disable=too-many-instance-attributes
         Note: Fn::ImportValue was checked when loading the fragments
             since it can occur anywhere in the template.
         """
-        raw_fragments = self._read_raw_fragments()
+        raw_fragments = read_raw_fragments(self.fragment_dir)
         self.__validate_file_size_limit()
         self.__validate_resources(raw_fragments)
         self.__validate_parameters(raw_fragments)
@@ -85,8 +85,8 @@ class TemplateFragment:  # pylint: disable=too-many-instance-attributes
             LOG.warning("Module fragment is valid.")
         else:
             LOG.warning(
-                "Module fragment is probably valid, but there are "
-                "warnings/errors from cfn-lint "
+                "Module fragment might be valid, but there are "
+                "warnings from cfn-lint "
                 "(https://github.com/aws-cloudformation/cfn-python-lint):"
             )
             for lint_warning in lint_warnings:
@@ -236,15 +236,12 @@ class TemplateFragment:  # pylint: disable=too-many-instance-attributes
                     )
 
     def __validate_file_size_limit(self):
-        total_size = self.__get_template_file_size_in_bytes()
+        total_size = get_template_file_size_in_bytes(self.fragment_dir)
         if total_size > self.template_file_size_in_bytes_limit:
             raise FragmentValidationError(
                 "The total file size of the template"
                 " fragments exceeds the CloudFormation Template size limit"
             )
-
-    def __get_template_file_size_in_bytes(self):
-        return os.stat(self._get_fragment_file()).st_size
 
     @staticmethod
     def __build_resources(raw_fragments):
@@ -328,37 +325,6 @@ class TemplateFragment:  # pylint: disable=too-many-instance-attributes
         else:
             print("Directory ", self.fragment_dir, " already exists")
 
-    def _read_raw_fragments(self):
-        return self._load_fragment(self._get_fragment_file())
-
-    def _load_fragment(self, fragment_file):
-        try:
-            with open(fragment_file, "r", encoding="utf-8") as f:
-                return yaml.safe_load(
-                    self.__first_pass_syntax_check(self.__convert_function(f.read()))
-                )
-        except (json.JSONDecodeError, yaml.parser.ParserError) as e:
-            raise FragmentValidationError(
-                "Fragment file '{}' is invalid: {}".format(fragment_file, str(e))
-            ) from e
-
-    def _get_fragment_file(self):
-        all_fragment_files = []
-        for root, _directories, files in os.walk(self.fragment_dir):
-            for f in files:
-                ext = os.path.splitext(f)[-1].lower()
-                if ext in ALLOWED_EXTENSIONS:
-                    all_fragment_files.append(os.path.join(root, f))
-        if len(all_fragment_files) > 1:
-            raise FragmentValidationError(
-                "A Module can only consist of a "
-                "single template file, but there are "
-                + str(len(all_fragment_files))
-                + ": "
-                + str(all_fragment_files)
-            )
-        return all_fragment_files[0]
-
     @staticmethod
     def _overwrite(path, contents):
         LOG.debug("Overwriting '%s'", path)
@@ -367,23 +333,3 @@ class TemplateFragment:  # pylint: disable=too-many-instance-attributes
                 contents(f)
             else:
                 f.write(contents)
-
-    @staticmethod
-    def __first_pass_syntax_check(template):
-        if "Fn::ImportValue" in template:
-            raise FragmentValidationError(
-                "Template fragment can't contain any Fn::ImportValue."
-            )
-        return template
-
-    @staticmethod
-    def __convert_function(template):
-        """
-        When generating schema, we don't care about the actual reference.
-        So the following will only make a valid YAML file.
-        """
-        return (
-            template.replace("!Transform", "Fn::Transform")
-            .replace("!ImportValue", "Fn::ImportValue")
-            .replace("!", "")
-        )

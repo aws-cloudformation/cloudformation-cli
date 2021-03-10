@@ -1,0 +1,13 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Resources:
+  EC2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: ami-09c5e030f74651050
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash -e
+          sudo yum install -y https://s3.region.amazonaws.com/amazon-ssm-region/latest/linux_amd64/amazon-ssm-agent.rpm
+          sudo systemctl status amazon-ssm-agent
+          sudo systemctl enable amazon-ssm-agent
+          sudo systemctl start amazon-ssm-agent

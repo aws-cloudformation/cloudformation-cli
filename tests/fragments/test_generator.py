@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from unittest.mock import patch
+from shutil import copyfile
 
 import pytest
 
@@ -117,12 +117,8 @@ def test_template_fragment_with_empty_description(template_fragment):
 
 
 def __generate_schema(fragment_file_name, template_fragment):
-    fragment = os.path.join(directory, "../data/sample_fragments/" + fragment_file_name)
-    merged_fragment = template_fragment._load_fragment(fragment)
-    with patch.object(
-        template_fragment, "_read_raw_fragments", return_value=merged_fragment
-    ):
-        schema = template_fragment.generate_schema()
+    create_fragments_folder_with_template(fragment_file_name, template_fragment)
+    schema = template_fragment.generate_schema()
     return schema
 
 
@@ -146,11 +142,7 @@ def test_generate_sample_fragment(template_fragment, tmpdir):
 
 
 def test_fragments_are_loaded_yaml_short(template_fragment):
-    fragment = os.path.join(directory, "../data/sample_fragments/ec2_short.yaml")
-    merged_fragment = template_fragment._load_fragment(fragment)
-    assert len(merged_fragment) == 2
-    assert len(merged_fragment["Resources"]) == 1
-    assert "MyEC2Instance" in merged_fragment["Resources"]
+    __assert_validation_throws_no_error("ec2_short.yaml", template_fragment)
 
 
 def test_template_fragments_are_valid(template_fragment):
@@ -249,6 +241,10 @@ def test_template_fragments_output_without_export_is_valid(template_fragment):
     __assert_validation_throws_no_error("output.json", template_fragment)
 
 
+def test_template_fragments_with_sub_is_valid(template_fragment):
+    __assert_validation_throws_no_error("ec2withsub.yaml", template_fragment)
+
+
 def test_template_exceeding_resource_limit(template_fragment):
     template_fragment.resource_limit = 2
     __assert_throws_validation_error(
@@ -318,28 +314,24 @@ def test_merge_fragments_ignores_unrelated_files():
 
 
 def __assert_validation_throws_no_error(template_file_name, template_fragment):
-    with patch.object(
-        template_fragment,
-        "_get_fragment_file",
-        return_value=os.path.join(
-            directory, "../data/sample_fragments/" + template_file_name
-        ),
-    ):
-        template_fragment.validate_fragments()
+    create_fragments_folder_with_template(template_file_name, template_fragment)
+    template_fragment.validate_fragments()
+
+
+def create_fragments_folder_with_template(template_file_name, template_fragment):
+    os.mkdir(template_fragment.fragment_dir)
+    copyfile(
+        os.path.join(directory, "../data/sample_fragments/" + template_file_name),
+        os.path.join(template_fragment.fragment_dir, template_file_name),
+    )
 
 
 def __assert_throws_validation_error(
     template_file_name, template_fragment, expected_error_message_fragment
 ):
+    create_fragments_folder_with_template(template_file_name, template_fragment)
     with pytest.raises(FragmentValidationError) as validation_error:
-        with patch.object(
-            template_fragment,
-            "_get_fragment_file",
-            return_value=os.path.join(
-                directory, "../data/sample_fragments/" + template_file_name
-            ),
-        ):
-            template_fragment.validate_fragments()
+        template_fragment.validate_fragments()
     assert expected_error_message_fragment in str(validation_error.value)
 
 
