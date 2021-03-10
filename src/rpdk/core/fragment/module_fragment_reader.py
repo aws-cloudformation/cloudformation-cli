@@ -35,6 +35,10 @@ def _get_fragment_file(fragment_dir):
             ext = os.path.splitext(f)[-1].lower()
             if ext in ALLOWED_EXTENSIONS:
                 all_fragment_files.append(os.path.join(root, f))
+    if len(all_fragment_files) == 0:
+        raise FragmentValidationError(
+            f"No module fragment files found in the fragments folder ending on one of {ALLOWED_EXTENSIONS}"
+        )
     if len(all_fragment_files) > 1:
         raise FragmentValidationError(
             "A Module can only consist of a "
