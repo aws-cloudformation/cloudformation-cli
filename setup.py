@@ -52,6 +52,7 @@ setup(
         "docker>=4.3.1",
         "ordered-set>=4.0.2",
         "cfn-lint>=0.43.0",
+        "cfn_flip>=1.2.3",
         "nested-lookup",
     ],
     entry_points={

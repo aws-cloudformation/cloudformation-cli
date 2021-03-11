@@ -131,8 +131,7 @@ def main(args_in=None):  # pylint: disable=too-many-statements
         print("=== Unhandled exception ===", file=sys.stderr)
         print("Please report this issue to the team.", file=sys.stderr)
         print(
-            "Issue tracker: "
-            "https://github.com/aws-cloudformation/aws-cloudformation-rpdk/issues",
+            "Issue tracker: github.com/aws-cloudformation/cloudformation-cli/issues",
             file=sys.stderr,
         )
 
