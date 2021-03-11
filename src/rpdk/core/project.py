@@ -25,6 +25,7 @@ from .exceptions import (
     InvalidProjectError,
     SpecValidationError,
 )
+from .fragment.module_fragment_reader import _get_fragment_file
 from .jsonutils.pointer import fragment_decode, fragment_encode
 from .jsonutils.utils import traverse
 from .plugin_registry import load_plugin
@@ -438,6 +439,17 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
                 msg = "Resource specification is invalid: " + str(e)
                 self._raise_invalid_project(msg, e)
 
+    def _add_modules_content_to_zip(self, zip_file):
+        if not os.path.exists(self.root / SCHEMA_UPLOAD_FILENAME):
+            msg = "Module schema could not be found"
+            raise InternalError(msg)
+        zip_file.write(self.root / SCHEMA_UPLOAD_FILENAME, SCHEMA_UPLOAD_FILENAME)
+        file = _get_fragment_file(self.fragment_dir)
+        zip_file.write(
+            file,
+            arcname=file.replace(str(self.fragment_dir), "fragments/"),
+        )
+
     @staticmethod
     def _validate_fragments(template_fragment):
         template_fragment.validate_fragments()
@@ -461,23 +473,8 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
             # file-size check on upload
             with zipfile.ZipFile(f, mode="w") as zip_file:
                 zip_file.write(self.settings_path, SETTINGS_FILENAME)
-                # Include all fragments in zip file
                 if self.artifact_type == ARTIFACT_TYPE_MODULE:
-                    if not os.path.exists(self.root / SCHEMA_UPLOAD_FILENAME):
-                        msg = "Module schema could not be found."
-                        raise InternalError(msg)
-                    zip_file.write(
-                        self.root / SCHEMA_UPLOAD_FILENAME, SCHEMA_UPLOAD_FILENAME
-                    )
-                    for root, _dirs, files in os.walk(self.fragment_dir):
-                        for file in files:
-                            zip_file.write(
-                                os.path.join(root, file),
-                                arcname=os.path.join(
-                                    root.replace(str(self.fragment_dir), "fragments/"),
-                                    file,
-                                ),
-                            )
+                    self._add_modules_content_to_zip(zip_file)
                 else:
                     zip_file.write(self.schema_path, SCHEMA_UPLOAD_FILENAME)
                 try:
