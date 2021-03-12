@@ -1,3 +1,5 @@
+[![CloudFormation CLI Release](https://github.com/aws-cloudformation/cloudformation-cli/actions/workflows/pypi-release.yaml/badge.svg)](https://github.com/aws-cloudformation/cloudformation-cli/actions/workflows/pypi-release.yaml)
+
 # AWS CloudFormation CLI
 
 The CloudFormation CLI (cfn) allows you to author your own resource providers and modules that can be used by CloudFormation.
