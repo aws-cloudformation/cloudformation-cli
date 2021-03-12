@@ -1,6 +1,6 @@
 {
     "AWSTemplateFormatVersion": "2010-09-09",
-    "Description": "A secure S3 Bucket. The features are Versioning and DeletionPolicy.",
+    "Description": "A module example wrapping an S3 Bucket. The features are Versioning, Encryption and DeletionPolicy.",
     "Parameters": {
         "BucketName": {
             "Description": "Name for the bucket",
@@ -11,6 +11,7 @@
         "S3Bucket": {
             "Type": "AWS::S3::Bucket",
             "DeletionPolicy": "Retain",
+            "UpdateReplacePolicy" : "Retain",
             "Properties": {
                 "BucketName": {
                     "Ref": "BucketName"

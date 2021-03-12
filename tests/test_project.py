@@ -654,6 +654,7 @@ def test_load_invalid_schema(project):
 def test_load_module_project_succeeds(project):
     project.artifact_type = "MODULE"
     project.type_name = "Unit::Test::Malik::MODULE"
+    project.root = os.path.join(os.path.dirname(__file__), "data/sample_fragments/")
     patch_load_settings = patch.object(
         project, "load_settings", return_value={"artifact_type": "MODULE"}
     )
@@ -1069,7 +1070,7 @@ def test__upload_good_path_skip_role_creation(
             "LogRoleArn": "some-log-role-arn",
             "LogGroupName": "aws-color-red-logs",
         },
-        **expected_additional_args
+        **expected_additional_args,
     )
 
 
