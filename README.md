@@ -1,4 +1,4 @@
-[![CloudFormation CLI Release](https://github.com/aws-cloudformation/cloudformation-cli/actions/workflows/pypi-release.yaml/badge.svg)](https://github.com/aws-cloudformation/cloudformation-cli/actions/workflows/pypi-release.yaml)
+[![CloudFormation CLI](https://github.com/aws-cloudformation/cloudformation-cli/actions/workflows/pr-ci.yaml/badge.svg?branch=master)](https://github.com/aws-cloudformation/cloudformation-cli/actions/workflows/pr-ci.yaml)
 
 # AWS CloudFormation CLI
 
