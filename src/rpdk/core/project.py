@@ -420,7 +420,7 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
 
         if self.artifact_type == ARTIFACT_TYPE_MODULE:
             LOG.info("Validating your module fragments...")
-            template_fragment = TemplateFragment(self.type_name)
+            template_fragment = TemplateFragment(self.type_name, self.root)
             try:
                 self._validate_fragments(template_fragment)
             except FragmentValidationError as e:
