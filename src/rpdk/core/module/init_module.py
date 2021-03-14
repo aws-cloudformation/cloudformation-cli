@@ -24,7 +24,7 @@ def init_module(args, project):
         type_name = input_typename()
 
     project.init_module(type_name)
-    template_fragment = TemplateFragment(type_name)
+    template_fragment = TemplateFragment(type_name, project.root)
     template_fragment.generate_sample_fragment()
 
 
