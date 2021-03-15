@@ -141,6 +141,16 @@ def test_generate_sample_fragment(template_fragment, tmpdir):
     assert os.path.exists(sample_fragment_path)
 
 
+def test_generate_sample_fragment_succeeds_even_if_fragment_folder_exists(
+    template_fragment, tmpdir
+):
+    sample_fragment_path = tmpdir.join("fragments").join("sample.json")
+    os.mkdir(tmpdir.join("fragments"))
+    assert not os.path.exists(sample_fragment_path)
+    template_fragment.generate_sample_fragment()
+    assert os.path.exists(sample_fragment_path)
+
+
 def test_fragments_are_loaded_yaml_short(template_fragment):
     __assert_validation_throws_no_error("ec2_short.yaml", template_fragment)
 

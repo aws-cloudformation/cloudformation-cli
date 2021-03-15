@@ -1,3 +1,5 @@
+from pathlib import Path
+from tempfile import TemporaryDirectory
 from unittest.mock import ANY, Mock, PropertyMock, patch
 
 import pytest
@@ -73,8 +75,10 @@ def test_init_module_method_interactive():
     )
     patch_at = patch("rpdk.core.init.init_artifact_type", return_value="MODULE")
 
-    with patch_project, patch_tn as mock_tn, patch_l as mock_l, patch_at as mock_t:
-        main(args_in=["init"])
+    with TemporaryDirectory() as temporary_directory:
+        mock_project.root = Path(temporary_directory)
+        with patch_project, patch_tn as mock_tn, patch_l as mock_l, patch_at as mock_t:
+            main(args_in=["init"])
 
     mock_tn.assert_called_once_with()
     mock_l.assert_not_called()
@@ -95,8 +99,6 @@ def test_init_resource_method_noninteractive():
         "rpdk.core.init.get_parsers", return_value={"dummy": dummy_parser}
     )
 
-    # flake8: noqa: B950
-    # pylint: disable=line-too-long
     with patch_project, patch_get_parser as mock_parser:
         main(
             args_in=[
@@ -146,8 +148,6 @@ def test_init_resource_method_noninteractive_invalid_type_name():
         "rpdk.core.init.get_parsers", return_value={"dummy": dummy_parser}
     )
 
-    # flake8: noqa: B950
-    # pylint: disable=line-too-long
     with patch_project, patch_t, patch_tn as mock_tn, patch_get_parser as mock_parser:
         main(
             args_in=[
@@ -275,20 +275,20 @@ def test_init_module_method_noninteractive():
         "rpdk.core.init.get_parsers", return_value={"dummy": dummy_parser}
     )
 
-    # flake8: noqa: B950
-    # pylint: disable=line-too-long
-    with patch_project, patch_get_parser as mock_parser:
-        main(
-            args_in=[
-                "init",
-                "--type-name",
-                args.type_name,
-                "--artifact-type",
-                args.artifact_type,
-                args.language,
-                "--dummy",
-            ]
-        )
+    with TemporaryDirectory() as temporary_directory:
+        mock_project.root = Path(temporary_directory)
+        with patch_project, patch_get_parser as mock_parser:
+            main(
+                args_in=[
+                    "init",
+                    "--type-name",
+                    args.type_name,
+                    "--artifact-type",
+                    args.artifact_type,
+                    args.language,
+                    "--dummy",
+                ]
+            )
 
     mock_parser.assert_called_once()
 

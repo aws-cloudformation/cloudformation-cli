@@ -92,7 +92,7 @@ def get_mock_project():
 
     patch_project = patch("rpdk.core.init.Project", return_value=mock_project)
 
-    return (mock_project, patch_project)
+    return mock_project, patch_project
 
 
 def get_args(language=None, type_name=None, artifact_type=None):

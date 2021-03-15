@@ -10,6 +10,7 @@ import zipfile
 from contextlib import contextmanager
 from io import StringIO
 from pathlib import Path
+from shutil import copyfile
 from unittest.mock import ANY, MagicMock, patch
 
 import pytest
@@ -651,15 +652,26 @@ def test_load_invalid_schema(project):
     assert "invalid" in str(excinfo.value)
 
 
-def test_load_module_project_succeeds(project):
+def test_load_module_project_succeeds(project, tmp_path_factory):
     project.artifact_type = "MODULE"
     project.type_name = "Unit::Test::Malik::MODULE"
-    project.root = os.path.join(os.path.dirname(__file__), "data/sample_fragments/")
+    project.root = tmp_path_factory.mktemp("load_module_test")
+    os.mkdir(os.path.join(project.root, "fragments"))
+    copyfile(
+        os.path.join(
+            os.path.dirname(__file__),
+            "data/sample_fragments/fragments/valid_fragment.json",
+        ),
+        os.path.join(project.root, "fragments/valid_fragment.json"),
+    )
     patch_load_settings = patch.object(
         project, "load_settings", return_value={"artifact_type": "MODULE"}
     )
+
+    assert not os.path.exists(os.path.join(project.root, "schema.json"))
     with patch_load_settings:
         project.load()
+    assert os.path.exists(os.path.join(project.root, "schema.json"))
 
 
 def test_load_resource_succeeds(project):
