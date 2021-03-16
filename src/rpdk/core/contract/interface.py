@@ -38,3 +38,4 @@ class HandlerErrorCode(AutoName):
     ServiceInternalError = auto()
     NetworkFailure = auto()
     InternalFailure = auto()
+    InvalidTypeConfiguration = auto()
