@@ -47,7 +47,11 @@ def invoke(args):
     try:
         while _needs_reinvocation(args.max_reinvoke, current_invocation):
             print("=== Handler input ===")
-            print(json.dumps({**payload, "credentials": "<redacted>"}, indent=2))
+
+            payload_copy = payload.copy()
+            payload_copy["requestData"]["callerCredentials"] = "<redacted>"
+            print(json.dumps({**payload_copy}, indent=2))
+
             response = client._call(payload)
             current_invocation = current_invocation + 1
             print("=== Handler response ===")
