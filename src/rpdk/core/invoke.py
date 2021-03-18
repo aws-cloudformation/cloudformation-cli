@@ -48,9 +48,20 @@ def invoke(args):
         while _needs_reinvocation(args.max_reinvoke, current_invocation):
             print("=== Handler input ===")
 
-            payload_copy = payload.copy()
-            payload_copy["requestData"]["callerCredentials"] = "<redacted>"
-            print(json.dumps({**payload_copy}, indent=2))
+            payload_to_log = {
+                "callbackContext": payload["callbackContext"],
+                "action": payload["action"],
+                "requestData": {
+                    "resourceProperties": payload["requestData"]["resourceProperties"],
+                    "previousResourceProperties": payload["requestData"][
+                        "previousResourceProperties"
+                    ],
+                },
+                "region": payload["region"],
+                "awsAccountId": payload["awsAccountId"],
+                "bearerToken": payload["bearerToken"],
+            }
+            print(json.dumps({**payload_to_log}, indent=2))
 
             response = client._call(payload)
             current_invocation = current_invocation + 1
