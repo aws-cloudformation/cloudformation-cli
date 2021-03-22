@@ -787,7 +787,7 @@ def test_submit_dry_run(project):
     # fmt: on
 
     mock_temp.assert_not_called()
-    mock_path.assert_called_once_with("{}.zip".format(project.hypenated_name))
+    mock_path.assert_called_with("{}.zip".format(project.hypenated_name))
     mock_plugin.package.assert_called_once_with(project, ANY)
     mock_upload.assert_not_called()
 
@@ -868,7 +868,7 @@ def test_submit_dry_run_modules(project):
     # fmt: on
 
     mock_temp.assert_not_called()
-    mock_path.assert_called_once_with("{}.zip".format(project.hypenated_name))
+    mock_path.assert_called_with("{}.zip".format(project.hypenated_name))
     mock_plugin.package.assert_not_called()
     mock_upload.assert_not_called()
 
