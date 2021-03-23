@@ -103,7 +103,11 @@ If you're creating a resource type, you will also need to install a language plu
 pip install -e ../cloudformation-cli-java-plugin
 ```
 
-Linting and running unit tests is done via [pre-commit](https://pre-commit.com/), and so is performed automatically on commit. The continuous integration also runs these checks. Manual options are available so you don't have to commit):
+Linting and running unit tests is done via [pre-commit](https://pre-commit.com/), and so is performed automatically on commit. The continuous integration also runs these checks. Manual options are available, so you don't have to commit:
+
+These one-time steps are required to ensure all unit tests are passing:
+ * Ensure npm is installed by [following these steps](https://www.npmjs.com/get-npm)
+ * Install jsonata: `npm install jsonata`
 
 ```bash
 # run all hooks on all files, mirrors what the CI runs
