@@ -6,7 +6,7 @@ jobs:
       - uses: actions/checkout@v2
       - uses: actions/checkout@v2
         with:
-          repository: aws-cloudformation/aws-cloudformation-resource-providers-iotwireless
+          repository: aws-cloudformation/aws-cloudformation-resource-providers-lookoutvision
           path: provider
       - uses: actions/setup-java@v1
         with:
@@ -18,7 +18,7 @@ jobs:
           pip install --quiet cloudformation-cli-java-plugin aws-sam-cli
           pip install -e .
           pip list | grep 'cloudformation'
-          cd provider/*wirelessgateway
+          cd provider/*project
           sed -i 's/180/720/' template.yml # increasing Timeout
           sed -i 's/256/2048/' template.yml # increasing MemorySize
           mvn package --no-transfer-progress
