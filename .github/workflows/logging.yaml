@@ -6,7 +6,7 @@ jobs:
       - uses: actions/checkout@v2
       - uses: actions/checkout@v2
         with:
-          repository: aws-cloudformation/aws-cloudformation-resource-providers-lookoutvision
+          repository: aws-cloudformation/aws-cloudformation-resource-providers-iotwireless
           path: provider
       - uses: actions/setup-java@v1
         with:
@@ -17,7 +17,7 @@ jobs:
       - run: |
           pip install -e .
           pip install --quiet cloudformation-cli-java-plugin aws-sam-cli
-          cd provider/*project
+          cd provider/*serviceprofile
           mvn package --no-transfer-progress
           sam local start-lambda &
           cfn test --enforce-timeout 240
