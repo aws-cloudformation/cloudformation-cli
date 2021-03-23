@@ -17,6 +17,7 @@ jobs:
       - run: |
           pip install -e .
           pip install --quiet cloudformation-cli-java-plugin aws-sam-cli
+          pip list | grep 'cloudformation'
           cd provider/*deviceprofile
           sed -i 's/180/720/' template.yml # increasing Timeout
           sed -i 's/256/2048/' template.yml # increasing MemorySize
