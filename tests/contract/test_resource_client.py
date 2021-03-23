@@ -345,6 +345,174 @@ def test_prune_properties():
     assert document == {"one": "two", "array": ["first"]}
 
 
+def test_prune_properties_for_all_sequence_members():
+    document: dict = {
+        "foo": "bar",
+        "spam": "eggs",
+        "one": "two",
+        "array": ["first", "second"],
+    }
+    prune_properties(
+        document,
+        [
+            ("foo",),  # prune foo: bar
+            ("spam",),  # prune spam: eggs
+            ("not_found",),  # missing members are fine
+            (
+                "not_found",  # missing sequences are fine
+                "*",
+            ),
+            (
+                "array",  # prune members of sequence "array"
+                "*",
+            ),
+        ],
+    )
+    assert document == {"one": "two", "array": []}
+
+
+def test_prune_properties_nested_sequence():
+    document: dict = {
+        "array": [
+            {
+                "outer1": {"inner1": "valueA", "inner2": "valueA"},
+                "outer2": ["valueA", "valueB"],
+            },
+            {
+                "outer1": {"inner1": "valueB", "inner2": "valueB"},
+                "outer2": ["valueC", "valueD"],
+            },
+        ],
+    }
+    prune_properties(
+        document,
+        [
+            (
+                "not_found",
+                "*",
+                "not_found",
+                "*",
+            ),
+            (
+                "array",
+                "*",
+                "outer1",
+                "inner1",
+            ),
+            (
+                "array",
+                "*",
+                "outer2",
+                "*",
+            ),
+        ],
+    )
+    assert document == {
+        "array": [
+            {"outer1": {"inner2": "valueA"}, "outer2": []},
+            {"outer1": {"inner2": "valueB"}, "outer2": []},
+        ]
+    }
+
+
+def test_prune_properties_nested_sequence_2():
+    document: dict = {
+        "array": [
+            {
+                "array2": [{"i1": "A", "i2": "B"}, {"i1": "C", "i2": "D"}],
+                "outer1": {"inner1": "valueA", "inner2": "valueA"},
+                "outer2": ["valueA", "valueB"],
+            },
+            {
+                "array2": [{"i1": "E", "i2": "F"}, {"i1": "G", "i2": "H"}],
+                "outer1": {"inner1": "valueB", "inner2": "valueB"},
+                "outer2": ["valueC", "valueD"],
+            },
+        ],
+    }
+    prune_properties(
+        document,
+        [
+            (
+                "not_found",
+                "*",
+                "not_found",
+                "*",
+            ),
+            (
+                "array",
+                "*",
+                "outer1",
+                "inner1",
+            ),
+            (
+                "array",
+                "*",
+                "outer2",
+                "*",
+            ),
+            (
+                "array",
+                "1",
+                "1",
+                "i1",
+            ),
+        ],
+    )
+    assert document == {
+        "array": [
+            {
+                "array2": [{"i1": "A", "i2": "B"}, {"i1": "C", "i2": "D"}],
+                "outer1": {"inner2": "valueA"},
+                "outer2": [],
+            },
+            {
+                "array2": [{"i1": "E", "i2": "F"}, {"i1": "G", "i2": "H"}],
+                "outer1": {"inner2": "valueB"},
+                "outer2": [],
+            },
+        ]
+    }
+
+
+def test_prune_properties_specific_sequence_indices():
+    document: dict = {
+        "array": [
+            {
+                "outer1": {"inner1": "valueA", "inner2": "valueA"},
+                "outer2": ["valueA", "valueB"],
+            },
+            {
+                "outer1": {"inner1": "valueB", "inner2": "valueB"},
+                "outer2": ["valueC", "valueD"],
+            },
+        ],
+    }
+    prune_properties(
+        document,
+        [
+            (
+                "array",
+                "0",
+                "outer1",
+                "inner1",
+            ),
+            (
+                "array",
+                "1",
+                "outer2",
+                "1",
+            ),
+        ],
+    )
+    assert document == {
+        "array": [
+            {"outer1": {"inner2": "valueA"}, "outer2": ["valueA", "valueB"]},
+            {"outer1": {"inner1": "valueB", "inner2": "valueB"}, "outer2": ["valueC"]},
+        ]
+    }
+
+
 def test_prune_properties_from_model():
     document = {
         "foo": "bar",

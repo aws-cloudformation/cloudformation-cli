@@ -22,9 +22,18 @@ from ..boto_helpers import (
     get_temporary_credentials,
 )
 from ..jsonutils.pointer import fragment_decode, fragment_list
-from ..jsonutils.utils import item_hash, traverse, traverse_raw_schema
+from ..jsonutils.utils import (
+    UNPACK_SEQUENCE_IDENTIFIER,
+    item_hash,
+    traverse,
+    traverse_path_for_sequence_members,
+    traverse_raw_schema,
+)
 
 LOG = logging.getLogger(__name__)
+LOOKUP_ERROR_MESSAGE_FORMAT = (
+    "Caught LookupError when pruning properties for document %s and path %s"
+)
 
 
 def prune_properties(document, paths):
@@ -35,13 +44,37 @@ def prune_properties(document, paths):
     for convenience. (The return value may be ignored.)
     """
     for path in paths:
+        # if '*' is in path, we need to prune more than one property (prune property for all members of array)
+        if UNPACK_SEQUENCE_IDENTIFIER in path:
+            document = _prune_properties_for_all_sequence_members(document, path)
+            continue
         try:
             _prop, resolved_path, parent = traverse(document, path)
         except LookupError:
-            pass  # not found means nothing to delete
+            # not found means nothing to delete
+            LOG.info(LOOKUP_ERROR_MESSAGE_FORMAT, document, path)
         else:
             key = resolved_path[-1]
             del parent[key]
+    return document
+
+
+def _prune_properties_for_all_sequence_members(document: dict, path: list) -> dict:
+    try:
+        # this returns multiple paths
+        _prop, resolved_paths = traverse_path_for_sequence_members(document, path)
+    except LookupError:
+        # not found means nothing to delete
+        LOG.info(LOOKUP_ERROR_MESSAGE_FORMAT, document, path)
+    else:
+        # paths with indices are gathered in increasing order, but we need to prune in reverse order
+        resolved_paths = resolved_paths[::-1]
+        for resolved_path in resolved_paths:
+            new_doc = document
+            for key in resolved_path[: len(resolved_path) - 1]:
+                new_doc = new_doc[key]
+            key = resolved_path[-1]
+            del new_doc[key]
     return document
 
 
