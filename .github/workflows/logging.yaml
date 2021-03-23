@@ -17,7 +17,7 @@ jobs:
       - run: |
           pip install -e .
           pip install --quiet cloudformation-cli-java-plugin aws-sam-cli
-          cd provider/*wirelessgateway
+          cd provider/*serviceprofile
           mvn package --no-transfer-progress
           sam local start-lambda &
           cfn test --enforce-timeout 240
