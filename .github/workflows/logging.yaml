@@ -18,8 +18,8 @@ jobs:
           pip install -e .
           pip install --quiet cloudformation-cli-java-plugin aws-sam-cli
           cd provider/*deviceprofile
-          sed -i 's/180/720/' template.yml
-          sed -i 's/256/2048/' template.yml
+          sed -i 's/180/720/' template.yml # increasing Timeout
+          sed -i 's/256/2048/' template.yml # increasing MemorySize
           mvn package --no-transfer-progress
           sam local start-lambda &
           cfn test --enforce-timeout 240
