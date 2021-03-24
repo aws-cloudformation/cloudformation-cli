@@ -15,17 +15,13 @@ jobs:
         with:
           python-version: 3
       - run: |
+          cd provider/*project
           curl -s -L https://github.com/aws/aws-sam-cli/releases/latest/download/aws-sam-cli-linux-x86_64.zip -o sam.zip
           unzip sam.zip -d sam-install
           sudo ./sam-install/install
-          sam --version
           sam local start-lambda &
           pip install --quiet cloudformation-cli-java-plugin
           pip install -e .
-          pip list | grep 'cloudformation'
-          cd provider/*project
-          sed -i 's/180/720/' template.yml # increasing Timeout
-          sed -i 's/256/2048/' template.yml # increasing MemorySize
           mvn package --no-transfer-progress -Dmaven.test.skip=true
           cfn test --enforce-timeout 240
           ! grep -q -E -i '(accessKeyId|secretAccessKey|sessionToken)' rpdk.log*
