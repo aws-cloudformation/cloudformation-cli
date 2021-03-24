@@ -20,6 +20,7 @@ jobs:
           curl -L https://github.com/aws/aws-sam-cli/releases/latest/download/aws-sam-cli-linux-x86_64.zip -o sam.zip
           unzip sam.zip -d sam-install
           sudo ./sam-install/install
+          sam --version
           pip list | grep 'cloudformation'
           cd provider/*project
           sed -i 's/180/720/' template.yml # increasing Timeout
