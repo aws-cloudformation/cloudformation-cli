@@ -15,8 +15,9 @@ jobs:
         with:
           python-version: 3
       - run: |
-          pip install --quiet cloudformation-cli-java-plugin aws-sam-cli
+          pip install --quiet cloudformation-cli-java-plugin
           pip install -e .
+          pip install --quiet aws-sam-cli
           pip list | grep 'cloudformation'
           cd provider/*project
           sed -i 's/180/720/' template.yml # increasing Timeout
