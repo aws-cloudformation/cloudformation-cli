@@ -21,7 +21,7 @@ jobs:
           cd provider/*project
           sed -i 's/180/720/' template.yml # increasing Timeout
           sed -i 's/256/2048/' template.yml # increasing MemorySize
-          mvn package --no-transfer-progress
+          mvn package --no-transfer-progress -Dmaven.test.skip=true
           sam local start-lambda &
           cfn test --enforce-timeout 240
           ! grep -q -E -i '(accessKeyId|secretAccessKey|sessionToken)' rpdk.log*
