@@ -22,7 +22,7 @@ jobs:
           sudo ./sam-install/install
           sam --version
           pip list | grep 'cloudformation'
-          cd provider/*deviceprofile
+          cd provider/*serviceprofile
           sed -i 's/180/720/' template.yml # increasing Timeout
           sed -i 's/256/2048/' template.yml # increasing MemorySize
           mvn package --no-transfer-progress -Dmaven.test.skip=true
