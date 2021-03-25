@@ -111,19 +111,10 @@ class TemplateFragment:  # pylint: disable=too-many-instance-attributes
         self.__validate_resource_limit(raw_fragments)
         for _resource_name, resource in raw_fragments["Resources"].items():
             if "Type" in resource:
-                if resource["Type"] == "AWS::CloudFormation::Stack":
-                    raise FragmentValidationError(
-                        "Template fragment can't contain nested stack."
-                    )
-                if resource["Type"] == "AWS::CloudFormation::Macro":
-                    raise FragmentValidationError(
-                        "Template fragment can't contain any macro."
-                    )
+                self.__validate_no_nested_stacks(resource)
+                self.__validate_no_macros(resource)
             elif "Name" in resource:
-                if resource["Name"] == "AWS::Include":
-                    raise FragmentValidationError(
-                        "Template fragment can't use AWS::Include transform."
-                    )
+                self.__validate_no_include(resource)
                 raise FragmentValidationError(
                     "Resource '" + _resource_name + "' is invalid"
                 )
@@ -131,6 +122,25 @@ class TemplateFragment:  # pylint: disable=too-many-instance-attributes
                 raise FragmentValidationError(
                     "Resource '" + _resource_name + "' has neither Type nor Name"
                 )
+
+    @staticmethod
+    def __validate_no_include(resource):
+        if resource["Name"] == "AWS::Include":
+            raise FragmentValidationError(
+                "Template fragment can't use AWS::Include transform."
+            )
+
+    @staticmethod
+    def __validate_no_macros(resource):
+        if resource["Type"] == "AWS::CloudFormation::Macro":
+            raise FragmentValidationError("Template fragment can't contain any macro.")
+
+    @staticmethod
+    def __validate_no_nested_stacks(resource):
+        if resource["Type"] == "AWS::CloudFormation::Stack":
+            raise FragmentValidationError(
+                "Template fragment can't contain nested stack."
+            )
 
     def __validate_resource_limit(self, raw_fragments):
         resource_count = len(raw_fragments["Resources"].items())

@@ -160,7 +160,7 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
 
     @property
     def schema_filename(self):
-        return "{}.json".format(self.hypenated_name)
+        return f"{self.hypenated_name}.json"
 
     @property
     def schema_path(self):
@@ -190,7 +190,7 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
                 raw_settings = json.load(f)
         except json.JSONDecodeError as e:
             self._raise_invalid_project(
-                "Project file '{}' is invalid".format(self.settings_path), e
+                f"Project file '{self.settings_path}' is invalid", e
             )
 
         # backward compatible
@@ -207,7 +207,7 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
             MODULE_SETTINGS_VALIDATOR.validate(raw_settings)
         except ValidationError as e:
             self._raise_invalid_project(
-                "Project file '{}' is invalid".format(self.settings_path), e
+                f"Project file '{self.settings_path}' is invalid", e
             )
         self.type_name = raw_settings["typeName"]
         self.artifact_type = raw_settings["artifact_type"]
@@ -218,7 +218,7 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
             SETTINGS_VALIDATOR.validate(raw_settings)
         except ValidationError as e:
             self._raise_invalid_project(
-                "Project file '{}' is invalid".format(self.settings_path), e
+                f"Project file '{self.settings_path}' is invalid", e
             )
         self.type_name = raw_settings["typeName"]
         self.artifact_type = raw_settings["artifact_type"]
@@ -412,32 +412,36 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
             self.load_settings()
         except FileNotFoundError as e:
             self._raise_invalid_project(
-                "Project file {} not found. Have you run 'init' or in a wrong directory?".format(
-                    self.settings_path
-                ),
+                f"Project file {self.settings_path} not found. Have you run 'init' or in a wrong directory?",
                 e,
             )
 
         if self.artifact_type == ARTIFACT_TYPE_MODULE:
-            LOG.info("Validating your module fragments...")
-            template_fragment = TemplateFragment(self.type_name, self.root)
-            try:
-                self._validate_fragments(template_fragment)
-            except FragmentValidationError as e:
-                msg = "Invalid template fragment: " + str(e)
-                self._raise_invalid_project(msg, e)
-            self.schema = template_fragment.generate_schema()
-            self.fragment_dir = template_fragment.fragment_dir
+            self._load_modules_project()
         else:
-            LOG.info("Validating your resource specification...")
-            try:
-                self.load_schema()
-                LOG.warning("Resource schema is valid.")
-            except FileNotFoundError as e:
-                self._raise_invalid_project("Resource specification not found.", e)
-            except SpecValidationError as e:
-                msg = "Resource specification is invalid: " + str(e)
-                self._raise_invalid_project(msg, e)
+            self._load_resources_project()
+
+    def _load_resources_project(self):
+        LOG.info("Validating your resource specification...")
+        try:
+            self.load_schema()
+            LOG.warning("Resource schema is valid.")
+        except FileNotFoundError as e:
+            self._raise_invalid_project("Resource specification not found.", e)
+        except SpecValidationError as e:
+            msg = "Resource specification is invalid: " + str(e)
+            self._raise_invalid_project(msg, e)
+
+    def _load_modules_project(self):
+        LOG.info("Validating your module fragments...")
+        template_fragment = TemplateFragment(self.type_name, self.root)
+        try:
+            self._validate_fragments(template_fragment)
+        except FragmentValidationError as e:
+            msg = "Invalid template fragment: " + str(e)
+            self._raise_invalid_project(msg, e)
+        self.schema = template_fragment.generate_schema()
+        self.fragment_dir = template_fragment.fragment_dir
 
     def _add_modules_content_to_zip(self, zip_file):
         if not os.path.exists(self.root / SCHEMA_UPLOAD_FILENAME):
@@ -454,19 +458,10 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
     def _validate_fragments(template_fragment):
         template_fragment.validate_fragments()
 
-    # flake8: noqa: C901
-    # pylint: disable=too-many-locals
-    # pylint: disable=too-many-branches
-    # pylint: disable=too-many-public-methods
     def submit(
         self, dry_run, endpoint_url, region_name, role_arn, use_role, set_default
     ):  # pylint: disable=too-many-arguments
-        # if it's a dry run, keep the file; otherwise can delete after upload
-        if dry_run:
-            path = Path("{}.zip".format(self.hypenated_name))
-            context_mgr = path.open("wb")
-        else:
-            context_mgr = TemporaryFile("w+b")
+        context_mgr = self._create_context_manager(dry_run)
 
         with context_mgr as f:
             # the default compression is ZIP_STORED, which helps with the
@@ -476,48 +471,53 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
                 if self.artifact_type == ARTIFACT_TYPE_MODULE:
                     self._add_modules_content_to_zip(zip_file)
                 else:
-                    zip_file.write(self.schema_path, SCHEMA_UPLOAD_FILENAME)
-                try:
-                    zip_file.write(self.overrides_path, OVERRIDES_FILENAME)
-                    LOG.debug("%s found. Writing to package.", OVERRIDES_FILENAME)
-                except FileNotFoundError:
-                    LOG.debug(
-                        "%s not found. Not writing to package.", OVERRIDES_FILENAME
-                    )
+                    self._add_resources_content_to_zip(zip_file)
 
-                if self.artifact_type != ARTIFACT_TYPE_MODULE:
-                    if os.path.isdir(self.inputs_path):
-                        for filename in os.listdir(self.inputs_path):
-                            absolute_path = self.inputs_path / filename
-                            zip_file.write(
-                                absolute_path, INPUTS_FOLDER + "/" + filename
-                            )
-                            LOG.debug("%s found. Writing to package.", filename)
-                    else:
-                        LOG.debug(
-                            "%s not found. Not writing to package.", INPUTS_FOLDER
-                        )
-                    self._plugin.package(self, zip_file)
-
-                    cli_metadata = {}
-
-                    try:
-                        cli_metadata = self._plugin.get_plugin_information(self)
-                    except AttributeError:
-                        LOG.debug(
-                            "Version info is not available for plugins, not writing to metadata file"
-                        )
-
-                    cli_metadata["cli-version"] = __version__
-                    zip_file.writestr(CFN_METADATA_FILENAME, json.dumps(cli_metadata))
+                self._add_overrides_file_to_zip(zip_file)
 
             if dry_run:
-                LOG.error("Dry run complete: %s", path.resolve())
+                LOG.error("Dry run complete: %s", self._get_zip_file_path().resolve())
             else:
                 f.seek(0)
                 self._upload(
                     f, endpoint_url, region_name, role_arn, use_role, set_default
                 )
+
+    def _add_overrides_file_to_zip(self, zip_file):
+        try:
+            zip_file.write(self.overrides_path, OVERRIDES_FILENAME)
+            LOG.debug("%s found. Writing to package.", OVERRIDES_FILENAME)
+        except FileNotFoundError:
+            LOG.debug("%s not found. Not writing to package.", OVERRIDES_FILENAME)
+
+    def _add_resources_content_to_zip(self, zip_file):
+        zip_file.write(self.schema_path, SCHEMA_UPLOAD_FILENAME)
+        if os.path.isdir(self.inputs_path):
+            for filename in os.listdir(self.inputs_path):
+                absolute_path = self.inputs_path / filename
+                zip_file.write(absolute_path, INPUTS_FOLDER + "/" + filename)
+                LOG.debug("%s found. Writing to package.", filename)
+        else:
+            LOG.debug("%s not found. Not writing to package.", INPUTS_FOLDER)
+        self._plugin.package(self, zip_file)
+        cli_metadata = {}
+        try:
+            cli_metadata = self._plugin.get_plugin_information(self)
+        except AttributeError:
+            LOG.debug(
+                "Version info is not available for plugins, not writing to metadata file"
+            )
+        cli_metadata["cli-version"] = __version__
+        zip_file.writestr(CFN_METADATA_FILENAME, json.dumps(cli_metadata))
+
+    def _create_context_manager(self, dry_run):
+        # if it's a dry run, keep the file; otherwise can delete after upload
+        if dry_run:
+            return self._get_zip_file_path().open("wb")
+        return TemporaryFile("w+b")
+
+    def _get_zip_file_path(self):
+        return Path(f"{self.hypenated_name}.zip")
 
     def generate_docs(self):
         if self.artifact_type == ARTIFACT_TYPE_MODULE:
@@ -565,9 +565,7 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
     def generate_image_build_config(self):
         if not hasattr(self._plugin, "generate_image_build_config"):
             raise InvalidProjectError(
-                "Plugin for the {} runtime does not support building an image".format(
-                    self.runtime
-                )
+                f"Plugin for the {self.runtime} runtime does not support building an image"
             )
         return self._plugin.generate_image_build_config(self)
 
@@ -824,7 +822,7 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
             "ClientRequestToken": str(uuid4()),
             "LoggingConfig": {
                 "LogRoleArn": log_delivery_role,
-                "LogGroupName": "{}-logs".format(self.hypenated_name),
+                "LogGroupName": f"{self.hypenated_name}-logs",
             },
         }
         if role_arn and use_role:
