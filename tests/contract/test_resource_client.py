@@ -1213,7 +1213,7 @@ def test_generate_update_example_with_primary_identifier(resource_client_inputs_
     updated_resource = resource_client_inputs_schema.generate_update_example(
         created_resource
     )
-    assert updated_resource == {"a": 1, "c": 2}
+    assert updated_resource == {"a": 1, "c": 2, "d": 3}
 
 
 def test_generate_update_example_with_composite_key(

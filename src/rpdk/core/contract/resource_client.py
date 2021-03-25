@@ -426,7 +426,7 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
             if self.create_only_paths:
                 self.validate_update_example_keys(unique_identifiers, update_example)
             update_example.update(unique_identifiers)
-            return update_example
+            return {**create_model, **update_example}
         overrides = self._overrides.get("UPDATE", self._overrides.get("CREATE", {}))
         example = override_properties(self.update_strategy.example(), overrides)
         return {**create_model, **example}
