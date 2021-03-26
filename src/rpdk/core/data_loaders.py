@@ -264,9 +264,7 @@ instance types, lambda runtimes, partitions, regions, availability zones, etc. t
         resource_spec.get("conditionallyCreateOnlyProperties", [])
     )
 
-    read_only_properties_intersection = set(
-        resource_spec.get("readOnlyProperties", [])
-    ) & (
+    read_only_properties_intersection = read_only_properties & (
         create_only_properties
         | set(resource_spec.get("writeOnlyProperties", []))
         | {"/properties/" + s for s in resource_spec.get("required", [])}
@@ -310,6 +308,11 @@ as either readOnly or createOnly",
     if conditionally_create_only_properties & create_only_properties:
         raise SpecValidationError(
             "createOnlyProperties and conditionallyCreateOnlyProperties MUST NOT have common properties"
+        )
+
+    if conditionally_create_only_properties & read_only_properties:
+        raise SpecValidationError(
+            "readOnlyProperties and conditionallyCreateOnlyProperties MUST NOT have common properties"
         )
 
     # TODO: more general validation framework
