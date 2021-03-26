@@ -42,6 +42,23 @@ def test_schema_generator(template_fragment, tmpdir):
     __validate_against_meta_schema(schema)
 
 
+def test_schema_generator_with_complex_real_module(template_fragment, tmpdir):
+    schema = __generate_schema("OpsWorks.json", template_fragment)
+    schema_file = tmpdir.join("schema.json")
+    assert os.path.exists(schema_file)
+    generated_schema = __read_file(schema_file)
+    expected_schema = __read_file(
+        os.path.join(directory, "../data/sample_fragments/OpsWorksSchema.json")
+    )
+    assert generated_schema == expected_schema
+    __validate_against_meta_schema(schema)
+
+
+def __read_file(fragment_file):
+    with open(fragment_file, "r", encoding="utf-8") as f:
+        return f.read()
+
+
 def test_schema_generation_param_without_description(template_fragment):
     schema = __generate_schema("paramWithoutDescription.yaml", template_fragment)
 
