@@ -134,13 +134,13 @@ def test_load_resource_spec_conditionally_create_only_match_create_only():
         "primaryIdentifier": ["/properties/foo"],
         "readOnlyProperties": ["/properties/foo"],
         "createOnlyProperties": ["/properties/bar"],
-        "conditionallyCreateOnlyProperties": ["/properties/bar"],
+        "conditionalCreateOnlyProperties": ["/properties/bar"],
     }
     with pytest.raises(SpecValidationError) as excinfo:
         load_resource_spec(json_s(schema))
     assert (
         str(excinfo.value)
-        == "createOnlyProperties and conditionallyCreateOnlyProperties MUST NOT have common properties"
+        == "createOnlyProperties and conditionalCreateOnlyProperties MUST NOT have common properties"
     )
 
 
@@ -152,13 +152,13 @@ def test_load_resource_spec_conditionally_create_only_match_read_only():
         "properties": {"foo": {"type": "string"}},
         "primaryIdentifier": ["/properties/foo"],
         "readOnlyProperties": ["/properties/foo"],
-        "conditionallyCreateOnlyProperties": ["/properties/foo"],
+        "conditionalCreateOnlyProperties": ["/properties/foo"],
     }
     with pytest.raises(SpecValidationError) as excinfo:
         load_resource_spec(json_s(schema))
     assert (
         str(excinfo.value)
-        == "readOnlyProperties and conditionallyCreateOnlyProperties MUST NOT have common properties"
+        == "readOnlyProperties and conditionalCreateOnlyProperties MUST NOT have common properties"
     )
 
 
