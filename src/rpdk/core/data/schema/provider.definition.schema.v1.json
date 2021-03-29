@@ -387,6 +387,10 @@
             "description": "A list of JSON pointers to properties (typically sensitive) that are able to be specified by the customer but unable to be returned in a Read request",
             "$ref": "#/definitions/jsonPointerArray"
         },
+        "conditionalCreateOnlyProperties": {
+            "description": "A list of JSON pointers for properties that can only be updated under certain conditions. For example, you can upgrade the engine version of an RDS DBInstance but you cannot downgrade it.  When updating this property for a resource in a CloudFormation stack, the resource will be replaced if it cannot be updated.",
+            "$ref": "#/definitions/jsonPointerArray"
+        },
         "createOnlyProperties": {
             "description": "A list of JSON pointers to properties that are only able to be specified by the customer when creating a resource. Conversely, any property *not* in this list can be applied to an Update request.",
             "$ref": "#/definitions/jsonPointerArray"

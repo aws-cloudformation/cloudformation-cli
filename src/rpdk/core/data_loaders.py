@@ -258,10 +258,14 @@ instance types, lambda runtimes, partitions, regions, availability zones, etc. t
             list_options,
         )
 
-    read_only_properties_intersection = set(
-        resource_spec.get("readOnlyProperties", [])
-    ) & (
-        set(resource_spec.get("createOnlyProperties", []))
+    read_only_properties = set(resource_spec.get("readOnlyProperties", []))
+    create_only_properties = set(resource_spec.get("createOnlyProperties", []))
+    conditional_create_only_properties = set(
+        resource_spec.get("conditionalCreateOnlyProperties", [])
+    )
+
+    read_only_properties_intersection = read_only_properties & (
+        create_only_properties
         | set(resource_spec.get("writeOnlyProperties", []))
         | {"/properties/" + s for s in resource_spec.get("required", [])}
     )
@@ -291,14 +295,25 @@ in it. Please fix the warnings: %s",
         )
 
     for primary_id in resource_spec["primaryIdentifier"]:
-        if primary_id not in resource_spec.get(
-            "readOnlyProperties", []
-        ) and primary_id not in resource_spec.get("createOnlyProperties", []):
+        if (
+            primary_id not in read_only_properties
+            and primary_id not in create_only_properties
+        ):
             LOG.warning(
                 "Property 'primaryIdentifier' - %s must be specified \
 as either readOnly or createOnly",
                 primary_id,
             )
+
+    if conditional_create_only_properties & create_only_properties:
+        raise SpecValidationError(
+            "createOnlyProperties and conditionalCreateOnlyProperties MUST NOT have common properties"
+        )
+
+    if conditional_create_only_properties & read_only_properties:
+        raise SpecValidationError(
+            "readOnlyProperties and conditionalCreateOnlyProperties MUST NOT have common properties"
+        )
 
     # TODO: more general validation framework
     if "remote" in resource_spec:
