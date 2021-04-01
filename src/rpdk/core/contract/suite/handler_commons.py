@@ -180,8 +180,8 @@ def test_input_equals_output(resource_client, input_model, output_model):
                     pruned_input_model[key], pruned_output_model[key]
                 )
             else:
-                assert (
-                    pruned_input_model[key] == pruned_output_model[key]
+                assert resource_client.compare(
+                    pruned_input_model[key], pruned_output_model[key]
                 ), assertion_error_message
     except KeyError as e:
         raise AssertionError(assertion_error_message) from e

@@ -268,17 +268,17 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
     def compare(document_input, document_output):
         try:
             if isinstance(document_input, str):
-                return re.match(f"^{document_input}$", document_output)
+                return bool(re.match(f"^{document_input}$", document_output))
             return document_input == document_output
         except re.error:
             return document_input == document_output
 
     def transform(self, property_transform_value, input_model):
-        LOG.warning("This is the transform %s", property_transform_value)
+        LOG.debug("This is the transform %s", property_transform_value)
         content = self.transformation_template.render(
             input_model=input_model, jsonata_expression=property_transform_value
         )
-        LOG.warning("This is the content %s", content)
+        LOG.debug("This is the content %s", content)
         file = tempfile.NamedTemporaryFile(
             mode="w+b",
             buffering=-1,
