@@ -74,8 +74,8 @@ def prune_properties_which_dont_exist_in_path(model, paths):
     from the model which does not exists in the paths
 
     This assumes properties will always have an object (dict) as a parent.
-    The function returns the model after pruning the path which exists
-    in the paths tuple but not in the input_model
+    The function returns the model after pruning all but the path which exists
+    in the paths tuple from the input_model
     """
     document = {"properties": model.copy()}
     for model_path in model.keys():
