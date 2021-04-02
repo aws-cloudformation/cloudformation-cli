@@ -69,6 +69,24 @@ def prune_properties_if_not_exist_in_path(output_model, input_model, paths):
     return output_document["properties"]
 
 
+def prune_properties_which_dont_exist_in_path(model, paths):
+    """Prunes model to properties present in path. This method removes any property
+    from the model which does not exists in the paths
+
+    This assumes properties will always have an object (dict) as a parent.
+    The function returns the model after pruning all but the path which exists
+    in the paths tuple from the input_model
+    """
+    document = {"properties": model.copy()}
+    for model_path in model.keys():
+        path_tuple = ("properties", model_path)
+        if path_tuple not in paths:
+            _prop, resolved_path, parent = traverse(document, path_tuple)
+            key = resolved_path[-1]
+            del parent[key]
+    return document["properties"]
+
+
 def path_exists(document, path):
     try:
         _prop, _resolved_path, _parent = traverse(document, path)
@@ -426,7 +444,12 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
             if self.create_only_paths:
                 self.validate_update_example_keys(unique_identifiers, update_example)
             update_example.update(unique_identifiers)
-            return update_example
+            create_model_with_read_only_properties = (
+                prune_properties_which_dont_exist_in_path(
+                    create_model, self.read_only_paths
+                )
+            )
+            return {**create_model_with_read_only_properties, **update_example}
         overrides = self._overrides.get("UPDATE", self._overrides.get("CREATE", {}))
         example = override_properties(self.update_strategy.example(), overrides)
         return {**create_model, **example}

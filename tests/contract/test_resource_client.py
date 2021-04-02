@@ -15,6 +15,7 @@ from rpdk.core.contract.resource_client import (
     prune_properties,
     prune_properties_from_model,
     prune_properties_if_not_exist_in_path,
+    prune_properties_which_dont_exist_in_path,
 )
 from rpdk.core.exceptions import InvalidProjectError
 from rpdk.core.test import (
@@ -327,6 +328,21 @@ def test_prune_properties_if_not_exist_in_path():
         ],
     )
     assert model == previous_model
+
+
+def test_prune_properties_which_dont_exist_in_path():
+    model = {
+        "spam": "eggs",
+        "one": "two",
+        "array": ["first", "second"],
+    }
+    model1 = prune_properties_which_dont_exist_in_path(
+        model,
+        [
+            ("properties", "one"),
+        ],
+    )
+    assert model1 == {"one": "two"}
 
 
 def test_init_sam_cli_client():
@@ -1210,10 +1226,12 @@ def test_generate_invalid_update_example_with_inputs(resource_client_inputs):
 
 def test_generate_update_example_with_primary_identifier(resource_client_inputs_schema):
     created_resource = resource_client_inputs_schema.generate_create_example()
+    # adding read only property to denote a realistic scenario
+    created_resource["b"] = 2
     updated_resource = resource_client_inputs_schema.generate_update_example(
         created_resource
     )
-    assert updated_resource == {"a": 1, "c": 2}
+    assert updated_resource == {"a": 1, "c": 2, "b": 2}
 
 
 def test_generate_update_example_with_composite_key(
