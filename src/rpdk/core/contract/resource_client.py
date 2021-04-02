@@ -70,7 +70,7 @@ def prune_properties_if_not_exist_in_path(output_model, input_model, paths):
 
 
 def prune_properties_which_dont_exist_in_path(model, paths):
-    """Prune given properties from a model. This method removes any property
+    """Prunes model to properties present in path. This method removes any property
     from the model which does not exists in the paths
 
     This assumes properties will always have an object (dict) as a parent.
