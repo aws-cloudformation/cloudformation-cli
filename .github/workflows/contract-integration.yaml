@@ -24,13 +24,14 @@ jobs:
           python-version: 3
       - run: |
           pip install -e .
-          cd lookoutvision/*project
+          cd frauddetector/*outcome
           curl -s -L https://github.com/aws/aws-sam-cli/releases/latest/download/aws-sam-cli-linux-x86_64.zip -o sam.zip
           unzip -q sam.zip -d sam-install
           sudo ./sam-install/install
           sam local start-lambda &
           pip install --quiet cloudformation-cli-java-plugin cloudformation-cli-python-plugin
-          mvn package --no-transfer-progress -Dmaven.test.skip=true
+          # mvn package --no-transfer-progress -Dmaven.test.skip=true
+          cfn submit --dry-run
           cfn test --enforce-timeout 240
           ! grep -q -E -i '(accessKeyId|secretAccessKey|sessionToken)' rpdk.log*
         env:
