@@ -12,6 +12,10 @@ jobs:
         with:
           repository: aws-cloudformation/aws-cloudformation-resource-providers-lookoutvision
           path: lookoutvision
+      - uses: actions/checkout@v2
+        with:
+          repository: aws-cloudformation/aws-cloudformation-resource-providers-frauddetector
+          path: frauddetector
       - uses: actions/setup-java@v1
         with:
           java-version: 8
@@ -25,7 +29,7 @@ jobs:
           unzip -q sam.zip -d sam-install
           sudo ./sam-install/install
           sam local start-lambda &
-          pip install --quiet cloudformation-cli-java-plugin
+          pip install --quiet cloudformation-cli-java-plugin cloudformation-cli-python-plugin
           mvn package --no-transfer-progress -Dmaven.test.skip=true
           cfn test --enforce-timeout 240
           ! grep -q -E -i '(accessKeyId|secretAccessKey|sessionToken)' rpdk.log*
