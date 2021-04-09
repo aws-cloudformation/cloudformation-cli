@@ -15,7 +15,7 @@ Primary documentation for the CloudFormation CLI can be found at the [AWS Docume
 This tool can be installed using [pip](https://pypi.org/project/pip/) from the Python Package Index (PyPI). It requires Python 3. For resource types, the tool requires at least one language plugin. Language plugins are not needed to create a module type. The language plugins are also available on PyPI and as such can be installed all at once:
 
 ```bash
-pip install cloudformation-cli cloudformation-cli-java-plugin cloudformation-cli-go-plugin cloudformation-cli-python-plugin
+pip install cloudformation-cli cloudformation-cli-java-plugin cloudformation-cli-go-plugin cloudformation-cli-python-plugin cloudformation-cli-typescript-plugin
 ```
 You will need npm to run contract tests (cfn test) if your resource schema requires property transform. Please ensure you have npm installed. Follow the instructions: https://www.npmjs.com/get-npm to get npm installed on your machine.
 
@@ -134,9 +134,10 @@ Plugins must provide the same interface as `LanguagePlugin` (in `plugin_base.py`
 
 | Language | Status            | Github                                                                                                      | PyPI                                                                                       |
 | -------- | ----------------- | ----------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| Java     | Available         | [cloudformation-cli-java-plugin](https://github.com/aws-cloudformation/cloudformation-cli-java-plugin/)     | [cloudformation-cli-java-plugin](https://pypi.org/project/cloudformation-cli-java-plugin/)     |
-| Go       | Available         | [cloudformation-cli-go-plugin](https://github.com/aws-cloudformation/cloudformation-cli-go-plugin/)         | [cloudformation-cli-go-plugin](https://pypi.org/project/cloudformation-cli-go-plugin/)         |
-| Python   | Available         | [cloudformation-cli-python-plugin](https://github.com/aws-cloudformation/cloudformation-cli-python-plugin/) | [cloudformation-cli-python-plugin](https://pypi.org/project/cloudformation-cli-python-plugin/) |
+| Java      | Available         | [cloudformation-cli-java-plugin](https://github.com/aws-cloudformation/cloudformation-cli-java-plugin/)     | [cloudformation-cli-java-plugin](https://pypi.org/project/cloudformation-cli-java-plugin/)     |
+| Go        | Available         | [cloudformation-cli-go-plugin](https://github.com/aws-cloudformation/cloudformation-cli-go-plugin/)         | [cloudformation-cli-go-plugin](https://pypi.org/project/cloudformation-cli-go-plugin/)         |
+| Python    | Available         | [cloudformation-cli-python-plugin](https://github.com/aws-cloudformation/cloudformation-cli-python-plugin/) | [cloudformation-cli-python-plugin](https://pypi.org/project/cloudformation-cli-python-plugin/) |
+| TypeScript| Available         | [cloudformation-cli-typescript-plugin](https://github.com/aws-cloudformation/cloudformation-cli-typescript-plugin/) | [cloudformation-cli-typescript-plugin](https://pypi.org/project/cloudformation-cli-typescript-plugin/) |
 
 ## License
 
