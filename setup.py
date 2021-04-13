@@ -49,7 +49,7 @@ setup(
         "requests>=2.22",
         "hypothesis>=4.32",
         "colorama>=0.4.1",
-        "docker>=4.3.1",
+        "docker>=4.3.1,<5",
         "ordered-set>=4.0.2",
         "cfn-lint>=0.43.0",
         "cfn_flip>=1.2.3",
