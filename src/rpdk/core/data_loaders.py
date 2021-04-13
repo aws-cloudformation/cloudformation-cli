@@ -158,6 +158,10 @@ def load_resource_spec(resource_spec_file):  # pylint: disable=R # noqa: C901
         "exclusiveMaximum",
         "additionalItems",
         "additionalProperties",
+        "uniqueItems",
+        "pattern",
+        "patternProperties",
+        "multipleOf",
     }
     try:  # pylint: disable=R
         for _key, schema in JsonSchemaFlattener(resource_spec).flatten_schema().items():
@@ -178,6 +182,7 @@ def load_resource_spec(resource_spec_file):  # pylint: disable=R # noqa: C901
                                 "maximum",
                                 "exclusiveMinimum",
                                 "exclusiveMaximum",
+                                "multipleOf",
                             },
                         ),
                         (
@@ -185,6 +190,7 @@ def load_resource_spec(resource_spec_file):  # pylint: disable=R # noqa: C901
                             {
                                 "minLength",
                                 "maxLength",
+                                "pattern",
                             },
                         ),
                         (
@@ -193,6 +199,7 @@ def load_resource_spec(resource_spec_file):  # pylint: disable=R # noqa: C901
                                 "minProperties",
                                 "maxProperties",
                                 "additionalProperties",
+                                "patternProperties",
                             },
                         ),
                         (
@@ -201,6 +208,7 @@ def load_resource_spec(resource_spec_file):  # pylint: disable=R # noqa: C901
                                 "minItems",
                                 "maxItems",
                                 "additionalItems",
+                                "uniqueItems",
                             },
                         ),
                     ]:
