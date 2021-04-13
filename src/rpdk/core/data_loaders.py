@@ -145,7 +145,7 @@ def load_resource_spec(resource_spec_file):  # pylint: disable=R # noqa: C901
         LOG.debug("Resource spec validation failed", exc_info=True)
         raise SpecValidationError(str(e)) from e
 
-    min_max_keywords = {
+    type_specific_keywords = {
         "minimum",
         "maximum",
         "minLength",
@@ -156,6 +156,8 @@ def load_resource_spec(resource_spec_file):  # pylint: disable=R # noqa: C901
         "maxItems",
         "exclusiveMinimum",
         "exclusiveMaximum",
+        "additionalItems",
+        "additionalProperties",
     }
     try:  # pylint: disable=R
         for _key, schema in JsonSchemaFlattener(resource_spec).flatten_schema().items():
@@ -190,6 +192,7 @@ def load_resource_spec(resource_spec_file):  # pylint: disable=R # noqa: C901
                             {
                                 "minProperties",
                                 "maxProperties",
+                                "additionalProperties",
                             },
                         ),
                         (
@@ -197,15 +200,17 @@ def load_resource_spec(resource_spec_file):  # pylint: disable=R # noqa: C901
                             {
                                 "minItems",
                                 "maxItems",
+                                "additionalItems",
                             },
                         ),
                     ]:
                         if (
                             property_type in types
-                            and min_max_keywords - allowed_keywords & property_keywords
+                            and type_specific_keywords - allowed_keywords & property_keywords
                         ):
                             LOG.warning(
-                                "Incorrect min/max JSON schema keywords for type: %s for property: %s",
+                                "Incorrect JSON schema keyword(s) %s for type: %s for property: %s",
+                                type_specific_keywords - allowed_keywords & property_keywords,
                                 property_type,
                                 property_name,
                             )
