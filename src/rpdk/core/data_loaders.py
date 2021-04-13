@@ -214,11 +214,13 @@ def load_resource_spec(resource_spec_file):  # pylint: disable=R # noqa: C901
                     ]:
                         if (
                             property_type in types
-                            and type_specific_keywords - allowed_keywords & property_keywords
+                            and type_specific_keywords - allowed_keywords
+                            & property_keywords
                         ):
                             LOG.warning(
                                 "Incorrect JSON schema keyword(s) %s for type: %s for property: %s",
-                                type_specific_keywords - allowed_keywords & property_keywords,
+                                type_specific_keywords - allowed_keywords
+                                & property_keywords,
                                 property_type,
                                 property_name,
                             )
