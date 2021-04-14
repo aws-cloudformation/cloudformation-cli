@@ -290,7 +290,14 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
             k: v
             for k, v in create_model.items()
             if self.is_property_in_path(k, self.primary_identifier_paths)
-            or self.is_property_in_path(k, self._additional_identifiers_paths)
+            or any(
+                map(
+                    lambda additional_identifier_paths, key=k: self.is_property_in_path(
+                        key, additional_identifier_paths
+                    ),
+                    self._additional_identifiers_paths,
+                )
+            )
         }
 
     @staticmethod
