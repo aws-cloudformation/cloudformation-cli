@@ -145,24 +145,6 @@ def load_resource_spec(resource_spec_file):  # pylint: disable=R # noqa: C901
         LOG.debug("Resource spec validation failed", exc_info=True)
         raise SpecValidationError(str(e)) from e
 
-    type_specific_keywords = {
-        "minimum",
-        "maximum",
-        "minLength",
-        "maxLength",
-        "minProperties",
-        "maxProperties",
-        "minItems",
-        "maxItems",
-        "exclusiveMinimum",
-        "exclusiveMaximum",
-        "additionalItems",
-        "additionalProperties",
-        "uniqueItems",
-        "pattern",
-        "patternProperties",
-        "multipleOf",
-    }
     try:  # pylint: disable=R
         for _key, schema in JsonSchemaFlattener(resource_spec).flatten_schema().items():
             for property_name, property_details in schema.get("properties", {}).items():
@@ -174,7 +156,7 @@ def load_resource_spec(resource_spec_file):  # pylint: disable=R # noqa: C901
                 try:
                     property_type = property_details["type"]
                     property_keywords = property_details.keys()
-                    for types, allowed_keywords in [
+                    keyword_mappings = [
                         (
                             {"integer", "number"},
                             {
@@ -211,7 +193,11 @@ def load_resource_spec(resource_spec_file):  # pylint: disable=R # noqa: C901
                                 "uniqueItems",
                             },
                         ),
-                    ]:
+                    ]
+                    type_specific_keywords = set().union(
+                        *(mapping[1] for mapping in keyword_mappings)
+                    )
+                    for types, allowed_keywords in keyword_mappings:
                         if (
                             property_type in types
                             and type_specific_keywords - allowed_keywords
