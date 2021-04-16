@@ -428,6 +428,7 @@
             "$ref": "#/definitions/resourceLink"
         },
         "propertyTransform": {
+            "description": "A map which allows resource owners to define a function for a property with possible transformation. This property helps ensure the input to the model is equal to output",
             "type": "object",
             "patternProperties": {
                 "^[A-Za-z0-9]{1,64}$": {
