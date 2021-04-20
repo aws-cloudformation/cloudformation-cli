@@ -73,16 +73,15 @@ class Uploader:
                 for output in outputs
                 if output["OutputKey"] == output_key
             )
-        except StopIteration as stop_iteration:
+        except StopIteration:
             LOG.debug(
                 "Outputs from stack '%s' did not contain '%s':\n%s",
                 stack_id,
                 output_key,
                 ", ".join(output["OutputKey"] for output in outputs),
             )
-            raise InternalError(
-                "Required output not found on stack"
-            ) from stop_iteration
+            # pylint: disable=W0707
+            raise InternalError("Required output not found on stack")
 
     def _create_or_update_stack(self, template, stack_name):
         args = {"StackName": stack_name, "TemplateBody": template}
@@ -141,14 +140,15 @@ class Uploader:
         try:
             with template_path.open("r", encoding="utf-8") as f:
                 template = f.read()
-        except FileNotFoundError as file_not_found:
+        except FileNotFoundError:
             LOG.critical(
                 "CloudFormation template 'resource-role.yaml' "
                 "for execution role not found. "
                 "Please run `generate` or "
                 "provide an execution role via the --role-arn parameter."
             )
-            raise InvalidProjectError() from file_not_found
+            # pylint: disable=W0707
+            raise InvalidProjectError()
         stack_id = self._create_or_update_stack(
             template, "{}-role-stack".format(resource_type)
         )

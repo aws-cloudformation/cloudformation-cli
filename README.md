@@ -17,7 +17,6 @@ This tool can be installed using [pip](https://pypi.org/project/pip/) from the P
 ```bash
 pip install cloudformation-cli cloudformation-cli-java-plugin cloudformation-cli-go-plugin cloudformation-cli-python-plugin cloudformation-cli-typescript-plugin
 ```
-You will need npm to run contract tests (cfn test) if your resource schema requires property transform. Please ensure you have npm installed. Follow the instructions: https://www.npmjs.com/get-npm to get npm installed on your machine.
 
 
 ### Command: init
@@ -102,12 +101,6 @@ If you're creating a resource type, you will also need to install a language plu
 ```bash
 pip install -e ../cloudformation-cli-java-plugin
 ```
-
-Linting and running unit tests is done via [pre-commit](https://pre-commit.com/), and so is performed automatically on commit. The continuous integration also runs these checks. Manual options are available, so you don't have to commit:
-
-These one-time steps are required to ensure all unit tests are passing:
- * Ensure npm is installed by [following these steps](https://www.npmjs.com/get-npm)
- * Install jsonata: `npm install jsonata`
 
 ```bash
 # run all hooks on all files, mirrors what the CI runs
