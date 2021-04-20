@@ -1,12 +1,8 @@
 # pylint: disable=import-outside-toplevel
 # pylint: disable=R0904
-# have to skip B404, import_subprocess is required for executing typescript
-# have to skip B60*, to allow typescript code to be executed using subprocess
 import json
 import logging
 import re
-import subprocess  # nosec
-import tempfile
 import time
 from time import sleep
 from uuid import uuid4
@@ -14,7 +10,6 @@ from uuid import uuid4
 import docker
 from botocore import UNSIGNED
 from botocore.config import Config
-from jinja2 import Environment, PackageLoader, select_autoescape
 
 from rpdk.core.contract.interface import Action, HandlerErrorCode, OperationStatus
 from rpdk.core.exceptions import InvalidProjectError
@@ -181,13 +176,6 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
 
     def _update_schema(self, schema):
         # TODO: resolve $ref
-        self.env = Environment(
-            trim_blocks=True,
-            lstrip_blocks=True,
-            keep_trailing_newline=True,
-            loader=PackageLoader(__name__, "templates/"),
-            autoescape=select_autoescape(["html", "htm", "xml", "md"]),
-        )
         self._schema = schema
         self._strategy = None
         self._update_strategy = None
@@ -198,14 +186,12 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         self.write_only_paths = self._properties_to_paths("writeOnlyProperties")
         self.create_only_paths = self._properties_to_paths("createOnlyProperties")
         self.properties_without_insertion_order = self.get_metadata()
-        self.property_transform_keys = self._properties_to_paths("propertyTransform")
-        self.property_transform = self._schema.get("propertyTransform")
+
         additional_identifiers = self._schema.get("additionalIdentifiers", [])
         self._additional_identifiers_paths = [
             {fragment_decode(prop, prefix="") for prop in identifier}
             for identifier in additional_identifiers
         ]
-        self.transformation_template = self.env.get_template("transformation.template")
 
     def has_only_writable_identifiers(self):
         return all(
@@ -232,119 +218,6 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
                 if "insertionOrder" in properties[prop]
                 and properties[prop]["insertionOrder"] == "false"
             }
-
-    def transform_model(self, input_model, output_model):  # pylint: disable=R0914
-        if self.property_transform_keys:
-            self.check_npm()
-        for prop in self.property_transform_keys:  # pylint: disable=R1702
-            try:
-                document_input, _path_input, _parent_input = traverse(
-                    input_model, list(prop)[1:]
-                )
-                document_output, _path_output, _parent_output = traverse(
-                    output_model, list(prop)[1:]
-                )
-                if not self.compare(document_input, document_output):
-                    path = "/" + "/".join(prop)
-                    property_transform_value = self.property_transform[path].replace(
-                        '"', '\\"'
-                    )
-                    if "$OR" in property_transform_value:
-                        transform_functions = property_transform_value.split("$OR")
-                        for transform_function in transform_functions:
-                            transformed_property = self.transform(
-                                transform_function, input_model
-                            )
-                            value = self.convert_type(
-                                document_input, transformed_property
-                            )
-                            if self.compare(value, document_output):
-                                self.update_transformed_property(
-                                    prop, value, input_model
-                                )
-                    else:
-                        transformed_property = self.transform(
-                            property_transform_value, input_model
-                        )
-                        value = self.convert_type(document_input, transformed_property)
-                        self.update_transformed_property(prop, value, input_model)
-
-            except KeyError:
-                pass
-
-    @staticmethod
-    def convert_type(document_input, transformed_property):
-        if isinstance(document_input, bool):
-            return bool(transformed_property)
-        if isinstance(document_input, int):
-            return int(transformed_property)
-        if isinstance(document_input, float):
-            return float(transformed_property)
-        return transformed_property
-
-    @staticmethod
-    def compare(document_input, document_output):
-        try:
-            if isinstance(document_input, str):
-                return bool(re.match(f"^{document_input}$", document_output))
-            return document_input == document_output
-        except re.error:
-            return document_input == document_output
-
-    def transform(self, property_transform_value, input_model):
-        LOG.debug("This is the transform %s", property_transform_value)
-        content = self.transformation_template.render(
-            input_model=input_model, jsonata_expression=property_transform_value
-        )
-        LOG.debug("This is the content %s", content)
-        file = tempfile.NamedTemporaryFile(
-            mode="w+b",
-            buffering=-1,
-            encoding=None,
-            newline=None,
-            suffix=".js",
-            prefix=None,
-            dir=".",
-            delete=True,
-        )
-        file.write(str.encode(content))
-
-        LOG.debug("Jsonata transformation content %s", file.read().decode())
-        jsonata_output = subprocess.getoutput("node " + file.name)
-
-        file.close()
-        return jsonata_output
-
-    # removing coverage for this method as it is not possible to check both npm
-    # exists and does not exist condition in unit test
-    @staticmethod
-    def check_npm():  # pragma: no cover
-        output = subprocess.getoutput("npm list jsonata")
-        if "npm: command not found" not in output:
-            if "jsonata@" not in output:
-                subprocess.getoutput("npm install jsonata")
-        else:
-            err_msg = (
-                "NPM is required to support propertyTransform. "
-                "Please install npm using the following link: https://www.npmjs.com/get-npm"
-            )
-            LOG.error(err_msg)
-            raise AssertionError(err_msg)
-
-    @staticmethod
-    def update_transformed_property(property_path, transformed_property, input_model):
-        try:
-            _prop, resolved_path, parent = traverse(
-                input_model, list(property_path)[1:]
-            )
-        except LookupError:
-            LOG.debug(
-                "Override failed.\nPath %s\nDocument %s", property_path, input_model
-            )
-            LOG.warning("Override with path %s not found, skipping", property_path)
-        else:
-            key = resolved_path[-1]
-            parent[key] = transformed_property
 
     @property
     def strategy(self):
@@ -518,7 +391,7 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         creds,
         token,
         callback_context=None,
-        **kwargs,
+        **kwargs
     ):
         return {
             "requestData": {
@@ -594,7 +467,7 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
                 self._session, LOWER_CAMEL_CRED_KEYS, self._role_arn
             ),
             self.generate_token(),
-            **kwargs,
+            **kwargs
         )
 
     def _call(self, payload):

@@ -189,7 +189,7 @@ def schema_merge(target, src, path):  # noqa: C901 # pylint: disable=R0912
             next_path = path + (key,)
             try:
                 target[key] = schema_merge(target_schema, src_schema, next_path)
-            except TypeError as type_error:
+            except TypeError:
                 if key in (TYPE, REF):  # combining multiple $ref and types
                     src_set = to_set(src_schema)
 
@@ -222,8 +222,7 @@ def schema_merge(target, src, path):  # noqa: C901 # pylint: disable=R0912
                             "Object at path '{path}' declared multiple values "
                             "for '{}': found '{}' and '{}'"
                         )
-                        raise ConstraintError(
-                            msg, path, key, target_schema, src_schema
-                        ) from type_error
+                        # pylint: disable=W0707
+                        raise ConstraintError(msg, path, key, target_schema, src_schema)
                     target[key] = src_schema
     return target
