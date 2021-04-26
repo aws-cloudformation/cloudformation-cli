@@ -145,18 +145,6 @@ def load_resource_spec(resource_spec_file):  # pylint: disable=R # noqa: C901
         LOG.debug("Resource spec validation failed", exc_info=True)
         raise SpecValidationError(str(e)) from e
 
-    min_max_keywords = {
-        "minimum",
-        "maximum",
-        "minLength",
-        "maxLength",
-        "minProperties",
-        "maxProperties",
-        "minItems",
-        "maxItems",
-        "exclusiveMinimum",
-        "exclusiveMaximum",
-    }
     try:  # pylint: disable=R
         for _key, schema in JsonSchemaFlattener(resource_spec).flatten_schema().items():
             for property_name, property_details in schema.get("properties", {}).items():
@@ -168,7 +156,7 @@ def load_resource_spec(resource_spec_file):  # pylint: disable=R # noqa: C901
                 try:
                     property_type = property_details["type"]
                     property_keywords = property_details.keys()
-                    for types, allowed_keywords in [
+                    keyword_mappings = [
                         (
                             {"integer", "number"},
                             {
@@ -176,6 +164,7 @@ def load_resource_spec(resource_spec_file):  # pylint: disable=R # noqa: C901
                                 "maximum",
                                 "exclusiveMinimum",
                                 "exclusiveMaximum",
+                                "multipleOf",
                             },
                         ),
                         (
@@ -183,6 +172,7 @@ def load_resource_spec(resource_spec_file):  # pylint: disable=R # noqa: C901
                             {
                                 "minLength",
                                 "maxLength",
+                                "pattern",
                             },
                         ),
                         (
@@ -190,6 +180,8 @@ def load_resource_spec(resource_spec_file):  # pylint: disable=R # noqa: C901
                             {
                                 "minProperties",
                                 "maxProperties",
+                                "additionalProperties",
+                                "patternProperties",
                             },
                         ),
                         (
@@ -197,15 +189,24 @@ def load_resource_spec(resource_spec_file):  # pylint: disable=R # noqa: C901
                             {
                                 "minItems",
                                 "maxItems",
+                                "additionalItems",
+                                "uniqueItems",
                             },
                         ),
-                    ]:
+                    ]
+                    type_specific_keywords = set().union(
+                        *(mapping[1] for mapping in keyword_mappings)
+                    )
+                    for types, allowed_keywords in keyword_mappings:
                         if (
                             property_type in types
-                            and min_max_keywords - allowed_keywords & property_keywords
+                            and type_specific_keywords - allowed_keywords
+                            & property_keywords
                         ):
                             LOG.warning(
-                                "Incorrect min/max JSON schema keywords for type: %s for property: %s",
+                                "Incorrect JSON schema keyword(s) %s for type: %s for property: %s",
+                                type_specific_keywords - allowed_keywords
+                                & property_keywords,
                                 property_type,
                                 property_name,
                             )
