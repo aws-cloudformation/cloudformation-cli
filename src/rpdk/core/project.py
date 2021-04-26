@@ -650,7 +650,11 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
             and proppath_ptr in self.schema["createOnlyProperties"]
         ):
             prop["createonly"] = True
-
+        if (
+            "conditionalCreateOnlyProperties" in self.schema
+            and proppath_ptr in self.schema["conditionalCreateOnlyProperties"]
+        ):
+            prop["conditionalCreateOnly"] = True
         if (
             "readOnlyProperties" in self.schema
             and proppath_ptr in self.schema["readOnlyProperties"]
