@@ -80,6 +80,19 @@ SCHEMA_WITH_COMPOSITE_KEY = {
     "primaryIdentifier": ["/properties/c", "/properties/d"],
 }
 
+SCHEMA_WITH_ADDITIONAL_IDENTIFIERS = {
+    "properties": {
+        "a": {"type": "number"},
+        "b": {"type": "number"},
+        "c": {"type": "number"},
+        "d": {"type": "number"},
+    },
+    "readOnlyProperties": ["/properties/b"],
+    "createOnlyProperties": ["/properties/c"],
+    "primaryIdentifier": ["/properties/c"],
+    "additionalIdentifiers": [["/properties/b"]],
+}
+
 
 @pytest.fixture
 def resource_client():
@@ -157,8 +170,8 @@ def resource_client_inputs():
     return client
 
 
-@pytest.fixture
-def resource_client_inputs_schema():
+@pytest.fixture(params=[SCHEMA_, SCHEMA_WITH_ADDITIONAL_IDENTIFIERS])
+def resource_client_inputs_schema(request):
     endpoint = "https://"
     patch_sesh = patch(
         "rpdk.core.contract.resource_client.create_sdk_session", autospec=True
@@ -181,7 +194,7 @@ def resource_client_inputs_schema():
                 DEFAULT_FUNCTION,
                 endpoint,
                 DEFAULT_REGION,
-                SCHEMA_,
+                request.param,
                 EMPTY_OVERRIDE,
                 {
                     "CREATE": {"a": 111, "c": 2, "d": 3},
@@ -195,7 +208,7 @@ def resource_client_inputs_schema():
     mock_account.assert_called_once_with(mock_sesh, {})
 
     assert client._function_name == DEFAULT_FUNCTION
-    assert client._schema == SCHEMA_
+    assert client._schema == request.param
     assert client._overrides == EMPTY_OVERRIDE
     assert client.account == ACCOUNT
 

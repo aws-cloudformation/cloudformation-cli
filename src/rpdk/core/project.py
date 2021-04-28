@@ -514,6 +514,8 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
         # if it's a dry run, keep the file; otherwise can delete after upload
         if dry_run:
             return self._get_zip_file_path().open("wb")
+
+        # pylint: disable=consider-using-with
         return TemporaryFile("w+b")
 
     def _get_zip_file_path(self):
