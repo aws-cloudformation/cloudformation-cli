@@ -1262,7 +1262,7 @@ def test_compare_should_throw_exception(resource_client):
     try:
         resource_client.compare(inputs, outputs)
     except AssertionError:
-        logging.debug("Expected")
+        logging.debug("This test expects Assertion Exception to be thrown")
 
 
 def test_compare_should_throw_key_error(resource_client):
@@ -1273,7 +1273,7 @@ def test_compare_should_throw_key_error(resource_client):
     try:
         resource_client.compare(inputs, outputs)
     except AssertionError:
-        logging.debug("Expected")
+        logging.debug("This test expects Assertion Exception to be thrown")
 
 
 def test_compare_ordered_list_throws_assertion_exception(resource_client):
@@ -1284,4 +1284,4 @@ def test_compare_ordered_list_throws_assertion_exception(resource_client):
     try:
         resource_client.compare(inputs, outputs)
     except AssertionError:
-        logging.debug("Expected")
+        logging.debug("This test expects Assertion Exception to be thrown")
