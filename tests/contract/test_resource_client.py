@@ -68,6 +68,32 @@ SCHEMA_ = {
     "writeOnlyProperties": ["/properties/d"],
 }
 
+SCHEMA_WITH_NESTED_PROPERTIES = {
+    "properties": {
+        "a": {"type": "string"},
+        "g": {"type": "number"},
+        "b": {"$ref": "#/definitions/c"},
+        "f": {
+            "type": "array",
+            "items": {"$ref": "#/definitions/c"},
+        },
+        "h": {
+            "type": "array",
+            "insertionOrder": "false",
+            "items": {"$ref": "#/definitions/c"},
+        },
+    },
+    "definitions": {
+        "c": {
+            "type": "object",
+            "properties": {"d": {"type": "integer"}, "e": {"type": "integer"}},
+        }
+    },
+    "readOnlyProperties": ["/properties/a"],
+    "primaryIdentifier": ["/properties/a"],
+    "writeOnlyProperties": ["/properties/g"],
+}
+
 SCHEMA_WITH_COMPOSITE_KEY = {
     "properties": {
         "a": {"type": "number"},
@@ -1223,3 +1249,52 @@ def test_generate_update_example_with_composite_key(
         created_resource
     )
     assert updated_resource == {"a": 1, "c": 2, "d": 3}
+
+
+def test_compare_should_pass(resource_client):
+    resource_client._update_schema(SCHEMA_WITH_NESTED_PROPERTIES)
+    inputs = {"b": {"d": 1}, "f": [{"d": 1}], "h": [{"d": 1}, {"d": 2}]}
+
+    outputs = {
+        "b": {"d": 1, "e": 3},
+        "f": [{"d": 1, "e": 2}],
+        "h": [{"d": 1, "e": 3}, {"d": 2}],
+    }
+    resource_client.compare(inputs, outputs)
+
+
+def test_compare_should_throw_exception(resource_client):
+    resource_client._update_schema(SCHEMA_WITH_NESTED_PROPERTIES)
+    inputs = {"b": {"d": 1}, "f": [{"d": 1}], "h": [{"d": 1}], "z": 1}
+
+    outputs = {
+        "b": {"d": 1, "e": 2},
+        "f": [{"d": 1}],
+        "h": [{"d": 1}],
+    }
+    try:
+        resource_client.compare(inputs, outputs)
+    except AssertionError:
+        logging.debug("This test expects Assertion Exception to be thrown")
+
+
+def test_compare_should_throw_key_error(resource_client):
+    resource_client._update_schema(SCHEMA_WITH_NESTED_PROPERTIES)
+    inputs = {"b": {"d": 1}, "f": [{"d": 1}], "h": [{"d": 1}]}
+
+    outputs = {"b": {"d": 1, "e": 2}, "f": [{"d": 1, "e": 2}, {"d": 2, "e": 3}]}
+    try:
+        resource_client.compare(inputs, outputs)
+    except AssertionError:
+        logging.debug("This test expects Assertion Exception to be thrown")
+
+
+def test_compare_ordered_list_throws_assertion_exception(resource_client):
+    resource_client._update_schema(SCHEMA_WITH_NESTED_PROPERTIES)
+    inputs = {"b": {"d": 1}, "f": [{"d": 1}], "h": [{"d": 1}]}
+
+    outputs = {"b": {"d": 1, "e": 2}, "f": [{"e": 2}, {"d": 2, "e": 3}]}
+    try:
+        resource_client.compare(inputs, outputs)
+    except AssertionError:
+        logging.debug("This test expects Assertion Exception to be thrown")

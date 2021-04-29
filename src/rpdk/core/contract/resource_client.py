@@ -341,6 +341,29 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         example = override_properties(self.invalid_strategy.example(), overrides)
         return {**create_model, **example}
 
+    def compare(self, inputs, outputs):
+        assertion_error_message = (
+            "All properties specified in the request MUST "
+            "be present in the model returned, and they MUST"
+            " match exactly, with the exception of properties"
+            " defined as writeOnlyProperties in the resource schema"
+        )
+        try:
+            for key in inputs:
+                if isinstance(inputs[key], dict):
+                    self.compare(inputs[key], outputs[key])
+                elif isinstance(inputs[key], list):
+                    assert len(inputs[key]) == len(outputs[key])
+                    self.compare_list(inputs[key], outputs[key])
+                else:
+                    assert inputs[key] == outputs[key], assertion_error_message
+        except KeyError as e:
+            raise AssertionError(assertion_error_message) from e
+
+    def compare_list(self, inputs, outputs):
+        for index in range(len(inputs)):  # pylint: disable=C0200
+            self.compare(inputs[index], outputs[index])
+
     @staticmethod
     def key_error_safe_traverse(resource_model, write_only_property):
         try:
