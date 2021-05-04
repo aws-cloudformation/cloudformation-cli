@@ -12,6 +12,7 @@ from botocore import UNSIGNED
 from botocore.config import Config
 
 from rpdk.core.contract.interface import Action, HandlerErrorCode, OperationStatus
+from rpdk.core.contract.type_configuration import TypeConfiguration
 from rpdk.core.exceptions import InvalidProjectError
 
 from ..boto_helpers import (
@@ -611,7 +612,13 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         return status, response, error_code
 
     def call(self, action, current_model, previous_model=None, **kwargs):
-        request = self._make_payload(action, current_model, previous_model, **kwargs)
+        request = self._make_payload(
+            action,
+            current_model,
+            previous_model,
+            TypeConfiguration.get_type_configuration(),
+            **kwargs,
+        )
         start_time = time.time()
         response = self._call(request)
         self.assert_time(start_time, time.time(), action)
