@@ -810,9 +810,9 @@ def test_submit_dry_run(project):
         # https://docs.python.org/3/library/zipfile.html#zipfile.ZipFile.testzip
         input_create = json.loads(zip_file.read(CREATE_INPUTS_FILE).decode("utf-8"))
         assert input_create == {}
-        input_invalid = json.loads(zip_file.read(UPDATE_INPUTS_FILE).decode("utf-8"))
+        input_invalid = json.loads(zip_file.read(INVALID_INPUTS_FILE).decode("utf-8"))
         assert input_invalid == {}
-        input_update = json.loads(zip_file.read(INVALID_INPUTS_FILE).decode("utf-8"))
+        input_update = json.loads(zip_file.read(UPDATE_INPUTS_FILE).decode("utf-8"))
         assert input_update == {}
         assert zip_file.testzip() is None
         metadata_info = json.loads(zip_file.read(CFN_METADATA_FILENAME).decode("utf-8"))
