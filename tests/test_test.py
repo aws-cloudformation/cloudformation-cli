@@ -134,6 +134,9 @@ def test_test_command_happy_path(
         {"CREATE": {"a": 1}, "UPDATE": {"a": 2}, "INVALID": {"b": 1}},
         None,
         enforce_timeout,
+        mock_project.type_name,
+        None,
+        None,
         None,
         None,
     )
