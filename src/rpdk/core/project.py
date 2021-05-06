@@ -65,6 +65,7 @@ LAMBDA_RUNTIMES = {
     "dotnetcore2.1",
     "nodejs10.x",
     "nodejs12.x",
+    "nodejs14.x",
 }
 
 SETTINGS_VALIDATOR = Draft7Validator(
