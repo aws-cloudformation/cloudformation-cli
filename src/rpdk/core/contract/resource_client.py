@@ -130,12 +130,18 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         inputs=None,
         role_arn=None,
         timeout_in_seconds="30",
+        type_name=None,
+        log_group_name=None,
+        log_role_arn=None,
         docker_image=None,
         executable_entrypoint=None,
     ):  # pylint: disable=too-many-arguments
         self._schema = schema
         self._session = create_sdk_session(region)
         self._role_arn = role_arn
+        self._type_name = type_name
+        self._log_group_name = log_group_name
+        self._log_role_arn = log_role_arn
         self.region = region
         self.account = get_account(
             self._session,
@@ -419,11 +425,14 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         account,
         action,
         creds,
+        type_name,
+        log_group_name,
+        log_creds,
         token,
         callback_context=None,
-        **kwargs
+        **kwargs,
     ):
-        return {
+        request_body = {
             "requestData": {
                 "callerCredentials": creds,
                 "resourceProperties": desired_resource_state,
@@ -435,8 +444,13 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
             "action": action,
             "callbackContext": callback_context,
             "bearerToken": token,
+            "resourceType": type_name,
             **kwargs,
         }
+        if log_group_name and log_creds:
+            request_body["requestData"]["providerCredentials"] = log_creds
+            request_body["requestData"]["providerLogGroupName"] = log_group_name
+        return request_body
 
     @staticmethod
     def generate_token():
@@ -496,8 +510,13 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
             get_temporary_credentials(
                 self._session, LOWER_CAMEL_CRED_KEYS, self._role_arn
             ),
+            self._type_name,
+            self._log_group_name,
+            get_temporary_credentials(
+                self._session, LOWER_CAMEL_CRED_KEYS, self._log_role_arn
+            ),
             self.generate_token(),
-            **kwargs
+            **kwargs,
         )
 
     def _call(self, payload):

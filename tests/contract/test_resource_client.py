@@ -392,7 +392,20 @@ def test_generate_token():
     assert len(token) == 36
 
 
-def test_make_request():
+@pytest.mark.parametrize("resource_type", [None, "Org::Srv::Type"])
+@pytest.mark.parametrize("log_group_name", [None, "random_name"])
+@pytest.mark.parametrize(
+    "log_creds",
+    [
+        {},
+        {
+            "AccessKeyId": object(),
+            "SecretAccessKey": object(),
+            "SessionToken": object(),
+        },
+    ],
+)
+def test_make_request(resource_type, log_group_name, log_creds):
     desired_resource_state = object()
     previous_resource_state = object()
     token = object()
@@ -403,9 +416,12 @@ def test_make_request():
         ACCOUNT,
         "CREATE",
         {},
+        resource_type,
+        log_group_name,
+        log_creds,
         token,
     )
-    assert request == {
+    expected_request = {
         "requestData": {
             "callerCredentials": {},
             "resourceProperties": desired_resource_state,
@@ -417,7 +433,12 @@ def test_make_request():
         "action": "CREATE",
         "bearerToken": token,
         "callbackContext": None,
+        "resourceType": resource_type,
     }
+    if log_group_name and log_creds:
+        expected_request["requestData"]["providerCredentials"] = log_creds
+        expected_request["requestData"]["providerLogGroupName"] = log_group_name
+    assert request == expected_request
 
 
 def test_get_metadata(resource_client):
@@ -758,6 +779,7 @@ def test_make_payload(resource_client):
         "action": "CREATE",
         "bearerToken": token,
         "callbackContext": None,
+        "resourceType": None,
     }
 
 
