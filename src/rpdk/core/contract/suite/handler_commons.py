@@ -1,3 +1,4 @@
+import copy
 import logging
 
 from rpdk.core.contract.interface import Action, HandlerErrorCode, OperationStatus
@@ -149,7 +150,7 @@ def test_delete_failure_not_found(resource_client, current_resource_model):
 
 def test_input_equals_output(resource_client, input_model, output_model):
     pruned_input_model = prune_properties_from_model(
-        input_model.copy(),
+        copy.deepcopy(input_model),
         set(
             list(resource_client.read_only_paths)
             + list(resource_client.write_only_paths)
@@ -157,7 +158,7 @@ def test_input_equals_output(resource_client, input_model, output_model):
     )
 
     pruned_output_model = prune_properties_from_model(
-        output_model.copy(), resource_client.read_only_paths
+        copy.deepcopy(output_model), resource_client.read_only_paths
     )
 
     pruned_output_model = prune_properties_if_not_exist_in_path(
