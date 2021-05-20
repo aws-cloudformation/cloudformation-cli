@@ -1,5 +1,5 @@
-import logging
 import copy
+import logging
 
 from rpdk.core.contract.interface import Action, HandlerErrorCode, OperationStatus
 from rpdk.core.contract.resource_client import (
