@@ -355,16 +355,19 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
             " defined as writeOnlyProperties in the resource schema"
         )
         try:
-            for key in inputs:
-                if isinstance(inputs[key], dict):
-                    self.compare(inputs[key], outputs[key])
-                elif isinstance(inputs[key], list):
-                    assert len(inputs[key]) == len(outputs[key])
-                    self.compare_list(inputs[key], outputs[key])
-                else:
-                    assert inputs[key] == outputs[key], assertion_error_message
-        except KeyError as e:
-            raise AssertionError(assertion_error_message) from e
+            if isinstance(inputs, dict):
+                for key in inputs:
+                    if isinstance(inputs[key], dict):
+                        self.compare(inputs[key], outputs[key])
+                    elif isinstance(inputs[key], list):
+                        assert len(inputs[key]) == len(outputs[key])
+                        self.compare_list(inputs[key], outputs[key])
+                    else:
+                        assert inputs[key] == outputs[key], assertion_error_message
+            else:
+                assert inputs == outputs, assertion_error_message
+        except Exception as exception:
+            raise AssertionError(assertion_error_message) from exception
 
     def compare_list(self, inputs, outputs):
         for index in range(len(inputs)):  # pylint: disable=C0200
