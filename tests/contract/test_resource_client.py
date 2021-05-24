@@ -82,6 +82,11 @@ SCHEMA_WITH_NESTED_PROPERTIES = {
             "insertionOrder": "false",
             "items": {"$ref": "#/definitions/c"},
         },
+        "i": {
+            "type": "array",
+            "insertionOrder": "false",
+            "items": "string",
+        },
     },
     "definitions": {
         "c": {
@@ -1275,12 +1280,18 @@ def test_generate_update_example_with_composite_key(
 
 def test_compare_should_pass(resource_client):
     resource_client._update_schema(SCHEMA_WITH_NESTED_PROPERTIES)
-    inputs = {"b": {"d": 1}, "f": [{"d": 1}], "h": [{"d": 1}, {"d": 2}]}
+    inputs = {
+        "b": {"d": 1},
+        "f": [{"d": 1}],
+        "h": [{"d": 1}, {"d": 2}],
+        "i": ["abc", "ghi"],
+    }
 
     outputs = {
         "b": {"d": 1, "e": 3},
         "f": [{"d": 1, "e": 2}],
         "h": [{"d": 1, "e": 3}, {"d": 2}],
+        "i": ["abc", "ghi"],
     }
     resource_client.compare(inputs, outputs)
 
@@ -1313,9 +1324,13 @@ def test_compare_should_throw_key_error(resource_client):
 
 def test_compare_ordered_list_throws_assertion_exception(resource_client):
     resource_client._update_schema(SCHEMA_WITH_NESTED_PROPERTIES)
-    inputs = {"b": {"d": 1}, "f": [{"d": 1}], "h": [{"d": 1}]}
+    inputs = {"b": {"d": 1}, "f": [{"d": 1}], "h": [{"d": 1}], "i": ["abc", "ghi"]}
 
-    outputs = {"b": {"d": 1, "e": 2}, "f": [{"e": 2}, {"d": 2, "e": 3}]}
+    outputs = {
+        "b": {"d": 1, "e": 2},
+        "f": [{"e": 2}, {"d": 2, "e": 3}],
+        "i": ["abc", "ghi", "tt"],
+    }
     try:
         resource_client.compare(inputs, outputs)
     except AssertionError:
