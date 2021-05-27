@@ -302,9 +302,9 @@
             "$ref": "#/definitions/httpsUrl"
         },
         "taggable": {
-            "$comment": "A boolean flag indicating whether this resource type supports updatable tagging.",
+            "description": "A boolean flag indicating whether this resource type supports tagging.",
             "type": "boolean",
-            "description": "Default to true if there's an UpdateHandler, and false if no UpdateHandler is provided."
+            "default": true
         },
         "replacementStrategy": {
             "$comment": "The order of replacement for an immutable resource update.",
