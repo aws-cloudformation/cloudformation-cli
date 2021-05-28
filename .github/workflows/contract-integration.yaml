@@ -23,7 +23,7 @@ jobs:
           cd lookoutvision/*project
           curl -s -L https://github.com/aws/aws-sam-cli/releases/latest/download/aws-sam-cli-linux-x86_64.zip -o sam.zip
           unzip -q sam.zip -d sam-install
-          sudo ./sam-install/install --upgrade
+          sudo ./sam-install/install --update
           sam local start-lambda &
           pip install --quiet cloudformation-cli-java-plugin cloudformation-cli-python-plugin
           mvn package --no-transfer-progress -Dmaven.test.skip=true
@@ -49,7 +49,7 @@ jobs:
           cd frauddetector/*outcome
           curl -s -L https://github.com/aws/aws-sam-cli/releases/latest/download/aws-sam-cli-linux-x86_64.zip -o sam.zip
           unzip -q sam.zip -d sam-install
-          sudo ./sam-install/install --upgrade
+          sudo ./sam-install/install --update
           sam local start-lambda &
           pip install --quiet cloudformation-cli-java-plugin cloudformation-cli-python-plugin
           cfn submit --dry-run
