@@ -40,6 +40,7 @@ SCHEMA = {
     "createOnlyProperties": ["/properties/c"],
     "primaryIdentifier": ["/properties/c"],
     "writeOnlyProperties": ["/properties/d"],
+    "handlers": {"create": {}, "delete": {}, "read": {}},
 }
 
 SCHEMA_WITH_MULTIPLE_WRITE_PROPERTIES = {
@@ -53,6 +54,7 @@ SCHEMA_WITH_MULTIPLE_WRITE_PROPERTIES = {
     "createOnlyProperties": ["/properties/c"],
     "primaryIdentifier": ["/properties/c"],
     "writeOnlyProperties": ["/properties/d", "/properties/a"],
+    "handlers": {"create": {}, "delete": {}, "read": {}},
 }
 
 SCHEMA_ = {
@@ -66,6 +68,7 @@ SCHEMA_ = {
     "createOnlyProperties": ["/properties/c"],
     "primaryIdentifier": ["/properties/c"],
     "writeOnlyProperties": ["/properties/d"],
+    "handlers": {"create": {}, "delete": {}, "read": {}},
 }
 
 SCHEMA_WITH_NESTED_PROPERTIES = {
@@ -97,6 +100,7 @@ SCHEMA_WITH_NESTED_PROPERTIES = {
     "readOnlyProperties": ["/properties/a"],
     "primaryIdentifier": ["/properties/a"],
     "writeOnlyProperties": ["/properties/g"],
+    "handlers": {"create": {}, "delete": {}, "read": {}},
 }
 
 SCHEMA_WITH_COMPOSITE_KEY = {
@@ -109,6 +113,7 @@ SCHEMA_WITH_COMPOSITE_KEY = {
     "readOnlyProperties": ["/properties/d"],
     "createOnlyProperties": ["/properties/c"],
     "primaryIdentifier": ["/properties/c", "/properties/d"],
+    "handlers": {"create": {}, "delete": {}, "read": {}},
 }
 
 SCHEMA_WITH_ADDITIONAL_IDENTIFIERS = {
@@ -122,11 +127,49 @@ SCHEMA_WITH_ADDITIONAL_IDENTIFIERS = {
     "createOnlyProperties": ["/properties/c"],
     "primaryIdentifier": ["/properties/c"],
     "additionalIdentifiers": [["/properties/b"]],
+    "handlers": {"create": {}, "delete": {}, "read": {}},
 }
+
+EMPTY_SCHEMA = {"handlers": {"create": [], "delete": [], "read": []}}
 
 
 @pytest.fixture
 def resource_client():
+    endpoint = "https://"
+    patch_sesh = patch(
+        "rpdk.core.contract.resource_client.create_sdk_session", autospec=True
+    )
+    patch_creds = patch(
+        "rpdk.core.contract.resource_client.get_temporary_credentials",
+        autospec=True,
+        return_value={},
+    )
+    patch_account = patch(
+        "rpdk.core.contract.resource_client.get_account",
+        autospec=True,
+        return_value=ACCOUNT,
+    )
+    with patch_sesh as mock_create_sesh, patch_creds as mock_creds:
+        with patch_account as mock_account:
+            mock_sesh = mock_create_sesh.return_value
+            mock_sesh.region_name = DEFAULT_REGION
+            client = ResourceClient(
+                DEFAULT_FUNCTION, endpoint, DEFAULT_REGION, EMPTY_SCHEMA, EMPTY_OVERRIDE
+            )
+
+    mock_sesh.client.assert_called_once_with("lambda", endpoint_url=endpoint)
+    mock_creds.assert_called_once_with(mock_sesh, LOWER_CAMEL_CRED_KEYS, None)
+    mock_account.assert_called_once_with(mock_sesh, {})
+    assert client._function_name == DEFAULT_FUNCTION
+    assert client._schema == EMPTY_SCHEMA
+    assert client._overrides == EMPTY_OVERRIDE
+    assert client.account == ACCOUNT
+
+    return client
+
+
+@pytest.fixture
+def resource_client_no_handler():
     endpoint = "https://"
     patch_sesh = patch(
         "rpdk.core.contract.resource_client.create_sdk_session", autospec=True
@@ -184,7 +227,7 @@ def resource_client_inputs():
                 DEFAULT_FUNCTION,
                 endpoint,
                 DEFAULT_REGION,
-                {},
+                EMPTY_SCHEMA,
                 EMPTY_OVERRIDE,
                 {"CREATE": {"a": 1}, "UPDATE": {"a": 2}, "INVALID": {"b": 2}},
             )
@@ -194,7 +237,7 @@ def resource_client_inputs():
     mock_account.assert_called_once_with(mock_sesh, {})
 
     assert client._function_name == DEFAULT_FUNCTION
-    assert client._schema == {}
+    assert client._schema == EMPTY_SCHEMA
     assert client._overrides == EMPTY_OVERRIDE
     assert client.account == ACCOUNT
 
@@ -968,6 +1011,23 @@ def test_call_and_assert_success(resource_client):
     assert status == OperationStatus.SUCCESS
     assert response == {"status": OperationStatus.SUCCESS.value}
     assert error_code is None
+
+
+def test_call_and_assert_fails(resource_client_no_handler):
+    patch_creds = patch(
+        "rpdk.core.contract.resource_client.get_temporary_credentials",
+        autospec=True,
+        return_value={},
+    )
+    with patch_creds:
+        try:
+            resource_client_no_handler.call_and_assert(
+                Action.CREATE, OperationStatus.SUCCESS, {}, None
+            )
+        except ValueError:
+            LOG.debug(
+                "Value Error Exception is expected when required CRD handlers are not present"
+            )
 
 
 def test_call_and_assert_failed_invalid_payload(resource_client):

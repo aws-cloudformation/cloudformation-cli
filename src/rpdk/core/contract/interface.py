@@ -25,6 +25,7 @@ class OperationStatus(AutoName):
 # pylint: disable=invalid-name
 class HandlerErrorCode(AutoName):
     NotUpdatable = auto()
+    InvalidTypeConfiguration = auto()
     InvalidRequest = auto()
     AccessDenied = auto()
     InvalidCredentials = auto()
