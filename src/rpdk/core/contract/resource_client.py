@@ -588,7 +588,7 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         self, action, assert_status, current_model, previous_model=None, **kwargs
     ):
         if not self.has_required_handlers_exist():
-            raise ValueError("Create/Read/Delete/List handlers are required")
+            raise ValueError("Create/Read/Delete handlers are required")
         if assert_status not in [OperationStatus.SUCCESS, OperationStatus.FAILED]:
             raise ValueError("Assert status {} not supported.".format(assert_status))
 
