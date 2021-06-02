@@ -587,7 +587,7 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
     def call_and_assert(
         self, action, assert_status, current_model, previous_model=None, **kwargs
     ):
-        if not self.has_required_handlers_exist():
+        if not self.has_required_handlers():
             raise ValueError("Create/Read/Delete handlers are required")
         if assert_status not in [OperationStatus.SUCCESS, OperationStatus.FAILED]:
             raise ValueError("Assert status {} not supported.".format(assert_status))
@@ -635,7 +635,7 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
     def has_update_handler(self):
         return "update" in self._schema["handlers"]
 
-    def has_required_handlers_exist(self):
+    def has_required_handlers(self):
         try:
             has_delete = "delete" in self._schema["handlers"]
             has_create = "create" in self._schema["handlers"]
