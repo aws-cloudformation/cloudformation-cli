@@ -156,6 +156,14 @@ def load_resource_spec(resource_spec_file):  # pylint: disable=R # noqa: C901
                 try:
                     property_type = property_details["type"]
                     property_keywords = property_details.keys()
+                    if (
+                        property_type == "array"
+                        and "insertionOrder" not in property_keywords
+                    ):
+                        LOG.warning(
+                            "Explicitly specify value for insertionOrder for array: %s",
+                            property_name,
+                        )
                     keyword_mappings = [
                         (
                             {"integer", "number"},
@@ -315,6 +323,9 @@ as either readOnly or createOnly",
         raise SpecValidationError(
             "readOnlyProperties and conditionalCreateOnlyProperties MUST NOT have common properties"
         )
+
+    if "taggable" not in resource_spec:
+        LOG.warning("Explicitly specify value for taggable")
 
     # TODO: more general validation framework
     if "remote" in resource_spec:
