@@ -434,7 +434,7 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         token,
         callback_context=None,
         type_configuration=None,
-        **kwargs
+        **kwargs,
     ):
         request_body = {
             "requestData": {
@@ -505,7 +505,14 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
                      match the primaryIdentifier passed into the request"
             ) from e
 
-    def _make_payload(self, action, current_model, previous_model=None, type_configuration=None, **kwargs):
+    def _make_payload(
+        self,
+        action,
+        current_model,
+        previous_model=None,
+        type_configuration=None,
+        **kwargs,
+    ):
         return self.make_request(
             current_model,
             previous_model,
@@ -522,7 +529,7 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
             ),
             self.generate_token(),
             type_configuration=type_configuration,
-            **kwargs
+            **kwargs,
         )
 
     def _call(self, payload):

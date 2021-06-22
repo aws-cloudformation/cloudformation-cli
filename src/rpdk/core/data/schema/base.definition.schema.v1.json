@@ -1,8 +1,8 @@
 {
     "$schema": "http://json-schema.org/draft-07/schema#",
     "$id": "https://schema.cloudformation.us-east-1.amazonaws.com/base.definition.schema.v1.json",
-    "title": "CloudFormation Base Definition MetaSchema",
-    "description": "This schema validates a CloudFormation resource provider definition.",
+    "title": "CloudFormation Provider Base Definition MetaSchema",
+    "description": "All the basic building blocks for the provider definition schemas are in this schema to maintain consistency among different provider definition schemas. Provider definition schemas could refer to this schema for using basic things like properties, definitions etc.",
     "definitions": {
         "httpsUrl": {
             "type": "string",
@@ -259,6 +259,14 @@
                 }
             },
             "additionalProperties": false
+        },
+        "propertyTransform": {
+            "type": "object",
+            "patternProperties": {
+                "^[A-Za-z0-9]{1,64}$": {
+                    "type": "string"
+                }
+            }
         },
         "remote": {
             "description": "Reserved for CloudFormation use. A namespace to inline remote schemas.",

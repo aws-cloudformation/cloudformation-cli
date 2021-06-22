@@ -352,7 +352,7 @@ def test_get_schema_store_schemas_with_id():
     schema_store = get_schema_store(
         BASEDIR.parent / "src" / "rpdk" / "core" / "data" / "schema"
     )
-    assert len(schema_store) == 4
+    assert len(schema_store) == 6
     assert "http://json-schema.org/draft-07/schema#" in schema_store
     assert (
         "https://schema.cloudformation.us-east-1.amazonaws.com/base.definition.schema.v1.json"

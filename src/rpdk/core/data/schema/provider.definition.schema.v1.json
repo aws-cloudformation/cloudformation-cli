@@ -30,7 +30,7 @@
         },
         "replacementStrategy": {
             "type": "string",
-            "description": "The valid replacement strategies are [create_then_delete] and [delete_then_create]. All other inputs are invalid.",
+            "description": "The valid replacement strategies are create_then_delete and delete_then_create. All other inputs are invalid.",
             "default": "create_then_delete",
             "enum": [
                 "create_then_delete",
@@ -113,19 +113,14 @@
             ],
             "$ref": "base.definition.schema.v1.json#/definitions/httpsUrl"
         },
-        "taggable": {
-            "$comment": "A boolean flag indicating whether this resource type supports tagging.",
-            "type": "boolean",
-            "default": "true"
-        },
-        "taggable": {
-            "description": "A boolean flag indicating whether this resource type supports tagging.",
-            "type": "boolean",
-            "default": true
-        },
         "replacementStrategy": {
             "$comment": "The order of replacement for an immutable resource update.",
-            "$ref": "base.definition.schema.v1.json#/definitions/jsonPointerArray"
+            "$ref": "#/definitions/replacementStrategy"
+        },
+        "taggable": {
+            "$comment": "A boolean flag indicating whether this resource type supports updatable tagging.",
+            "type": "boolean",
+            "default": true
         },
         "additionalProperties": {
             "$comment": "All properties of a resource must be expressed in the schema - arbitrary inputs are not allowed",
@@ -136,7 +131,9 @@
         },
         "definitions": {
             "$ref": "base.definition.schema.v1.json#/properties/definitions"
-
+        },
+        "propertyTransform": {
+            "$ref": "base.definition.schema.v1.json#/properties/propertyTransform"
         },
         "handlers": {
             "description": "Defines the provisioning operations which can be performed on this resource type",
@@ -174,7 +171,7 @@
         },
         "conditionalCreateOnlyProperties": {
             "description": "A list of JSON pointers for properties that can only be updated under certain conditions. For example, you can upgrade the engine version of an RDS DBInstance but you cannot downgrade it.  When updating this property for a resource in a CloudFormation stack, the resource will be replaced if it cannot be updated.",
-            "$ref": "#/definitions/jsonPointerArray"
+            "$ref": "base.definition.schema.v1.json#/definitions/jsonPointerArray"
         },
         "createOnlyProperties": {
             "description": "A list of JSON pointers to properties that are only able to be specified by the customer when creating a resource. Conversely, any property *not* in this list can be applied to an Update request.",
@@ -211,15 +208,6 @@
         "resourceLink": {
             "description": "A template-able link to a resource instance. AWS-internal service links must be relative to the AWS console domain. External service links must be absolute, HTTPS URIs.",
             "$ref": "#/definitions/resourceLink"
-        },
-        "propertyTransform": {
-            "description": "A map which allows resource owners to define a function for a property with possible transformation. This property helps ensure the input to the model is equal to output",
-            "type": "object",
-            "patternProperties": {
-                "^[A-Za-z0-9]{1,64}$": {
-                    "type": "string"
-                }
-            }
         },
         "typeConfiguration": {
             "description": "TypeConfiguration to set the configuration data for registry types. This configuration data is not passed through the resource properties in template. One of the possible use cases is configuring auth keys for 3P resource providers.",

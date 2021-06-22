@@ -264,8 +264,8 @@ def test_write_configuration_schema():
 def test_configuration_schema_filename(project):
     project.type_name = "Vendor::Service::Type"
     assert (
-        "vendor-service-type-configuration.json"
-        == project.configuration_schema_filename
+        project.configuration_schema_filename
+        == "vendor-service-type-configuration.json"
     )
 
 
@@ -802,8 +802,8 @@ def create_input_file(base):
         f.write("{}")
 
 
+# pylint: disable=too-many-arguments, too-many-locals, too-many-statements
 @pytest.mark.parametrize("is_type_configuration_available", (False, True))
-# pylint: disable=too-many-arguments, too-many-locals
 def test_submit_dry_run(project, is_type_configuration_available):
     project.type_name = TYPE_NAME
     project.runtime = RUNTIME
@@ -865,6 +865,12 @@ def test_submit_dry_run(project, is_type_configuration_available):
             assert set(zip_file.namelist()) == file_set
         else:
             assert set(zip_file.namelist()) == file_set
+
+        if is_type_configuration_available:
+            file_set.add(CONFIGURATION_SCHEMA_UPLOAD_FILENAME)
+            assert set(zip_file.namelist()) == file_set
+        else:
+            assert set(zip_file.namelist()) == file_set
         schema_contents = zip_file.read(SCHEMA_UPLOAD_FILENAME).decode("utf-8")
         assert schema_contents == CONTENTS_UTF8
         if is_type_configuration_available:
@@ -892,6 +898,7 @@ def test_submit_dry_run(project, is_type_configuration_available):
         assert "plugin-tool-version" in metadata_info
 
 
+# pylint: disable=too-many-locals
 def test_submit_dry_run_modules(project):
     project.type_name = MODULE_TYPE_NAME
     project.runtime = RUNTIME

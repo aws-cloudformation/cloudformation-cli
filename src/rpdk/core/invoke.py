@@ -39,7 +39,10 @@ def invoke(args):
     except ValueError as e:
         raise SysExitRecommendedError(f"Invalid JSON: {e}") from e
     payload = client._make_payload(
-        action, request["desiredResourceState"], request["previousResourceState"], request.get("typeConfiguration")
+        action,
+        request["desiredResourceState"],
+        request["previousResourceState"],
+        request.get("typeConfiguration"),
     )
 
     current_invocation = 0
