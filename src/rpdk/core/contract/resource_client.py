@@ -12,6 +12,7 @@ from botocore import UNSIGNED
 from botocore.config import Config
 
 from rpdk.core.contract.interface import Action, HandlerErrorCode, OperationStatus
+from rpdk.core.contract.type_configuration import TypeConfiguration
 from rpdk.core.exceptions import InvalidProjectError
 
 from ..boto_helpers import (
@@ -433,6 +434,7 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         log_creds,
         token,
         callback_context=None,
+        type_configuration=None,
         **kwargs,
     ):
         request_body = {
@@ -441,6 +443,7 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
                 "resourceProperties": desired_resource_state,
                 "previousResourceProperties": previous_resource_state,
                 "logicalResourceId": token,
+                "typeConfiguration": type_configuration,
             },
             "region": region,
             "awsAccountId": account,
@@ -503,7 +506,14 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
                      match the primaryIdentifier passed into the request"
             ) from e
 
-    def _make_payload(self, action, current_model, previous_model=None, **kwargs):
+    def _make_payload(
+        self,
+        action,
+        current_model,
+        previous_model=None,
+        type_configuration=None,
+        **kwargs,
+    ):
         return self.make_request(
             current_model,
             previous_model,
@@ -519,6 +529,7 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
                 self._session, LOWER_CAMEL_CRED_KEYS, self._log_role_arn
             ),
             self.generate_token(),
+            type_configuration=type_configuration,
             **kwargs,
         )
 
@@ -601,7 +612,13 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         return status, response, error_code
 
     def call(self, action, current_model, previous_model=None, **kwargs):
-        request = self._make_payload(action, current_model, previous_model, **kwargs)
+        request = self._make_payload(
+            action,
+            current_model,
+            previous_model,
+            TypeConfiguration.get_type_configuration(),
+            **kwargs,
+        )
         start_time = time.time()
         response = self._call(request)
         self.assert_time(start_time, time.time(), action)

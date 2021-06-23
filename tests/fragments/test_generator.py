@@ -376,4 +376,4 @@ def __make_resource_validator(base_uri=None, timeout=TIMEOUT_IN_SECONDS):
         __name__,
         "../../src/rpdk/core/data/schema/provider.definition.schema.modules.v1.json",
     )
-    return make_validator(schema, base_uri=base_uri)
+    return make_validator(schema)

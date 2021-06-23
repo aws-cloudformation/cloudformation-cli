@@ -35,6 +35,7 @@ LOG = logging.getLogger(__name__)
 
 SETTINGS_FILENAME = ".rpdk-config"
 SCHEMA_UPLOAD_FILENAME = "schema.json"
+CONFIGURATION_SCHEMA_UPLOAD_FILENAME = "configuration-schema.json"
 OVERRIDES_FILENAME = "overrides.json"
 INPUTS_FOLDER = "inputs"
 EXAMPLE_INPUTS_FOLDER = "example_inputs"
@@ -103,7 +104,6 @@ BASIC_TYPE_MAPPINGS = {
     "boolean": "Boolean",
 }
 
-
 MARKDOWN_RESERVED_CHARACTERS = frozenset({"^", "*", "+", ".", "(", "[", "{", "#"})
 
 
@@ -127,6 +127,7 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
         self._plugin = None
         self.settings = None
         self.schema = None
+        self.configuration_schema = None
         self._flattened_schema = None
         self._marked_down_properties = {}
         self.runtime = "noexec"
@@ -162,6 +163,10 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
     @property
     def schema_filename(self):
         return f"{self.hypenated_name}.json"
+
+    @property
+    def configuration_schema_filename(self):
+        return "{}-configuration.json".format(self.hypenated_name)
 
     @property
     def schema_path(self):
@@ -335,6 +340,30 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
         with self.schema_path.open("r", encoding="utf-8") as f:
             self.schema = load_resource_spec(f)
 
+    def load_configuration_schema(self):
+        if not self.schema:
+            msg = "Internal error (Must load type schema first)"
+            LOG.critical(msg)
+            raise InternalError(msg)
+
+        if "typeConfiguration" in self.schema:
+            configuration_schema = self.schema["typeConfiguration"]
+            configuration_schema["definitions"] = self.schema["definitions"]
+            configuration_schema["typeName"] = self.type_name
+            self.configuration_schema = configuration_schema
+
+    def write_configuration_schema(self, path):
+        LOG.debug(
+            "Writing type configuration resource specification from resource specification: %s",
+            path,
+        )
+
+        def _write(f):
+            json.dump(self.configuration_schema, f, indent=4)
+            f.write("\n")
+
+        self.overwrite(path, _write)
+
     @staticmethod
     def overwrite(path, contents):
         LOG.debug("Overwriting '%s'", path)
@@ -426,12 +455,14 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
         LOG.info("Validating your resource specification...")
         try:
             self.load_schema()
+            self.load_configuration_schema()
             LOG.warning("Resource schema is valid.")
         except FileNotFoundError as e:
-            self._raise_invalid_project("Resource specification not found.", e)
+            self._raise_invalid_project("Resource schema not found.", e)
         except SpecValidationError as e:
-            msg = "Resource specification is invalid: " + str(e)
+            msg = "Resource schema is invalid: " + str(e)
             self._raise_invalid_project(msg, e)
+        LOG.info("Validating your resource schema...")
 
     def _load_modules_project(self):
         LOG.info("Validating your module fragments...")
@@ -468,6 +499,16 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
             # the default compression is ZIP_STORED, which helps with the
             # file-size check on upload
             with zipfile.ZipFile(f, mode="w") as zip_file:
+                zip_file.write(self.schema_path, SCHEMA_UPLOAD_FILENAME)
+                if self.configuration_schema:
+                    with zip_file.open(
+                        CONFIGURATION_SCHEMA_UPLOAD_FILENAME, "w"
+                    ) as configuration_file:
+                        configuration_file.write(
+                            json.dumps(self.configuration_schema, indent=4).encode(
+                                "utf-8"
+                            )
+                        )
                 zip_file.write(self.settings_path, SETTINGS_FILENAME)
                 if self.artifact_type == ARTIFACT_TYPE_MODULE:
                     self._add_modules_content_to_zip(zip_file)

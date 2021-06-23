@@ -31,7 +31,6 @@ class JsonSchemaFlattener:
 
     def flatten_schema(self):
         self._walk(self._full_schema, ())
-
         return self._schema_map
 
     def _walk(self, sub_schema, property_path):
