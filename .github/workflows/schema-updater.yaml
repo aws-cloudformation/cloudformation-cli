@@ -9,6 +9,8 @@ jobs:
       - uses: actions/checkout@v2
       - run: |
           curl https://raw.githubusercontent.com/aws-cloudformation/aws-cloudformation-resource-schema/master/src/main/resources/schema/provider.definition.schema.v1.json > src/rpdk/core/data/schema/provider.definition.schema.v1.json
+          curl https://raw.githubusercontent.com/aws-cloudformation/aws-cloudformation-resource-schema/master/src/main/resources/schema/base.definition.schema.v1.json > src/rpdk/core/data/schema/base.definition.schema.v1.json
+          curl https://raw.githubusercontent.com/aws-cloudformation/aws-cloudformation-resource-schema/master/src/main/resources/schema/provider.configuration.definition.schema.v1.json > src/rpdk/core/data/schema/provider.configuration.definition.schema.v1.json
       - uses: peter-evans/create-pull-request@v3
         with:
           commit-message: |
