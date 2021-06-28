@@ -41,34 +41,6 @@ Resources:
       VersioningConfiguration:
         Status: Enabled
 
-  ArtifactCopyPolicy:
-    Type: AWS::S3::BucketPolicy
-    Properties:
-      Bucket: !Ref ArtifactBucket
-      PolicyDocument:
-        Version: "2012-10-17"
-        Statement:
-          - Sid: Allow CloudFormation to copy artifacts from the bucket
-            Effect: Allow
-            Principal:
-              Service: cloudformation.amazonaws.com
-            Action:
-              - s3:ListBucket
-              - s3:GetObject
-            Resource:
-              - !Sub "arn:${AWS::Partition}:s3:::${ArtifactBucket}"
-              - !Sub "arn:${AWS::Partition}:s3:::${ArtifactBucket}/*"
-          - Sid: Require Secure Transport
-            Action: "s3:*"
-            Effect: Deny
-            Resource:
-              - !Sub "arn:${AWS::Partition}:s3:::${ArtifactBucket}"
-              - !Sub "arn:${AWS::Partition}:s3:::${ArtifactBucket}/*"
-            Condition:
-              Bool:
-                "aws:SecureTransport": "false"
-            Principal: "*"
-
   EncryptionKey:
     Type: AWS::KMS::Key
     DeletionPolicy: Retain
@@ -83,17 +55,6 @@ Resources:
           Principal:
             AWS: !Ref AWS::AccountId
           Action: kms:*
-          Resource: "*"
-        - Sid: Enable access for cloudformation to copy encrypted objects
-          Effect: Allow
-          Principal:
-            Service: cloudformation.amazonaws.com
-          Action:
-            - "kms:Encrypt"
-            - "kms:Decrypt"
-            - "kms:ReEncrypt*"
-            - "kms:GenerateDataKey*"
-            - "kms:DescribeKey"
           Resource: "*"
 
   LogAndMetricsDeliveryRole:
