@@ -41,7 +41,7 @@ def updated_resource(resource_client):
 
 @pytest.mark.update
 @pytest.mark.read
-def contract_update_read_success(updated_resource, resource_client):
+def contract_update_read(updated_resource, resource_client):
     # should be able to use the created model
     # to read since physical resource id is immutable
     (
@@ -63,7 +63,7 @@ def contract_update_read_success(updated_resource, resource_client):
 
 @pytest.mark.update
 @pytest.mark.list
-def contract_update_list_success(updated_resource, resource_client):
+def contract_update_list(updated_resource, resource_client):
     # should be able to use the created model
     # to read since physical resource id is immutable
     (

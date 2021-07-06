@@ -51,14 +51,14 @@ def contract_create_delete(resource_client):
 
 @pytest.mark.create
 @skip_not_writable_identifier
-def contract_create_duplicate(created_resource, resource_client):
+def contract_create_create(created_resource, resource_client):
     _input_model, _created_model, request = created_resource
     test_create_failure_if_repeat_writeable_id(resource_client, request)
 
 
 @pytest.mark.create
 @pytest.mark.read
-def contract_create_read_success(created_resource, resource_client):
+def contract_create_read(created_resource, resource_client):
     input_model, created_model, _request = created_resource
     read_response = test_read_success(resource_client, created_model)
     test_input_equals_output(
@@ -69,7 +69,7 @@ def contract_create_read_success(created_resource, resource_client):
 @pytest.mark.create
 @pytest.mark.list
 @pytest.mark.read
-def contract_create_list_success(created_resource, resource_client):
+def contract_create_list(created_resource, resource_client):
     _input_model, created_model, _request = created_resource
     assert test_model_in_list(resource_client, created_model)
     test_read_success(resource_client, created_model)
