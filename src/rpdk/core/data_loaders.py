@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import re
 import shutil
 from io import TextIOWrapper
 from pathlib import Path
@@ -9,9 +10,12 @@ import pkg_resources
 import yaml
 from jsonschema import Draft7Validator, RefResolver
 from jsonschema.exceptions import RefResolutionError, ValidationError
+from nested_lookup import nested_lookup
 
 from .exceptions import InternalError, SpecValidationError
+from .jsonutils.flattener import JsonSchemaFlattener
 from .jsonutils.inliner import RefInliner
+from .jsonutils.utils import FlatteningError
 
 LOG = logging.getLogger(__name__)
 
@@ -51,26 +55,66 @@ def copy_resource(package_name, resource_name, out_path):
         shutil.copyfileobj(fsrc, fdst)
 
 
-def make_validator(schema, base_uri=None):
-    if not base_uri:
-        base_uri = Draft7Validator.ID_OF(schema)
+def get_schema_store(schema_search_path):
+    """Load all the schemas in schema_search_path and return a dict"""
+    schema_store = {}
+    schema_fnames = os.listdir(schema_search_path)
+    for schema_fname in schema_fnames:
+        schema_path = os.path.join(schema_search_path, schema_fname)
+        if schema_path.endswith(".json"):
+            with open(schema_path, "r") as schema_f:
+                schema = json.load(schema_f)
+                if "$id" in schema:
+                    schema_store[schema["$id"]] = schema
+    return schema_store
 
-    def get_from_local(uri):  # pylint: disable=unused-argument
-        meta_schema = Path(os.path.dirname(os.path.realpath(__file__))).joinpath(
-            "data/schema/meta-schema.json"
-        )
-        return json.load(meta_schema.open())
 
+def make_validator(schema):
+    schema_search_path = Path(os.path.dirname(os.path.realpath(__file__))).joinpath(
+        "data/schema/"
+    )
     resolver = RefResolver(
-        base_uri=base_uri,
+        base_uri=Draft7Validator.ID_OF(schema),
+        store=get_schema_store(schema_search_path),
         referrer=schema,
-        handlers={"http": get_from_local, "https": get_from_local},
     )
     return Draft7Validator(schema, resolver=resolver)
 
 
 def make_resource_validator():
     schema = resource_json(__name__, "data/schema/provider.definition.schema.v1.json")
+    return make_validator(schema)
+
+
+def make_resource_validator_with_additional_properties_check():
+    schema = resource_json(__name__, "data/schema/base.definition.schema.v1.json")
+    dependencies = schema["definitions"]["validations"]["dependencies"]
+    properties_check = {
+        "properties": {
+            "$comment": "An object cannot have both defined and undefined \
+properties; therefore, patternProperties is not allowed when properties is specified.\
+ Provider should mark additionalProperties as false if the \
+property is of object type and has properties defined \
+in it.",
+            "not": {"required": ["patternProperties"]},
+            "required": ["additionalProperties"],
+        }
+    }
+    pattern_properties_check = {
+        "patternProperties": {
+            "$comment": "An object cannot have both defined and undefined \
+properties; therefore, properties is not allowed when patternProperties is specified. \
+Provider should mark additionalProperties as false if the property is of object type \
+and has patternProperties defined in it.",
+            "not": {"required": ["properties"]},
+            "required": ["additionalProperties"],
+        }
+    }
+    schema["definitions"]["validations"]["dependencies"] = {
+        **dependencies,
+        **properties_check,
+        **pattern_properties_check,
+    }
     return make_validator(schema)
 
 
@@ -91,14 +135,7 @@ def get_file_base_uri(file):
     return path.resolve().as_uri()
 
 
-def _is_in(schema, key):
-    def contains(values):
-        return set(values).issubset(set(schema.get(key, [])))
-
-    return contains
-
-
-def load_resource_spec(resource_spec_file):  # noqa: C901
+def load_resource_spec(resource_spec_file):  # pylint: disable=R # noqa: C901
     """Load a resource provider definition from a file, and validate it."""
     try:
         resource_spec = json.load(resource_spec_file)
@@ -107,21 +144,196 @@ def load_resource_spec(resource_spec_file):  # noqa: C901
         raise SpecValidationError(str(e)) from e
 
     validator = make_resource_validator()
+    additional_properties_validator = (
+        make_resource_validator_with_additional_properties_check()
+    )
     try:
         validator.validate(resource_spec)
     except ValidationError as e:
         LOG.debug("Resource spec validation failed", exc_info=True)
         raise SpecValidationError(str(e)) from e
 
-    in_readonly = _is_in(resource_spec, "readOnlyProperties")
-    in_createonly = _is_in(resource_spec, "createOnlyProperties")
+    try:  # pylint: disable=R
+        for _key, schema in JsonSchemaFlattener(resource_spec).flatten_schema().items():
+            for property_name, property_details in schema.get("properties", {}).items():
+                if property_name[0].islower():
+                    LOG.warning(
+                        "CloudFormation properties don't usually start with lowercase letters: %s",
+                        property_name,
+                    )
+                try:
+                    property_type = property_details["type"]
+                    property_keywords = property_details.keys()
+                    if (
+                        property_type == "array"
+                        and "insertionOrder" not in property_keywords
+                    ):
+                        LOG.warning(
+                            "Explicitly specify value for insertionOrder for array: %s",
+                            property_name,
+                        )
+                    keyword_mappings = [
+                        (
+                            {"integer", "number"},
+                            {
+                                "minimum",
+                                "maximum",
+                                "exclusiveMinimum",
+                                "exclusiveMaximum",
+                                "multipleOf",
+                            },
+                        ),
+                        (
+                            {"string"},
+                            {
+                                "minLength",
+                                "maxLength",
+                                "pattern",
+                            },
+                        ),
+                        (
+                            {"object"},
+                            {
+                                "minProperties",
+                                "maxProperties",
+                                "additionalProperties",
+                                "patternProperties",
+                            },
+                        ),
+                        (
+                            {"array"},
+                            {
+                                "minItems",
+                                "maxItems",
+                                "additionalItems",
+                                "uniqueItems",
+                            },
+                        ),
+                    ]
+                    type_specific_keywords = set().union(
+                        *(mapping[1] for mapping in keyword_mappings)
+                    )
+                    for types, allowed_keywords in keyword_mappings:
+                        if (
+                            property_type in types
+                            and type_specific_keywords - allowed_keywords
+                            & property_keywords
+                        ):
+                            LOG.warning(
+                                "Incorrect JSON schema keyword(s) %s for type: %s for property: %s",
+                                type_specific_keywords - allowed_keywords
+                                & property_keywords,
+                                property_type,
+                                property_name,
+                            )
+                except (KeyError, TypeError):
+                    pass
+    except FlatteningError:
+        pass
 
-    primary_id = resource_spec["primaryIdentifier"]
-    if not in_readonly(primary_id) and not in_createonly(primary_id):
+    for pattern in nested_lookup("pattern", resource_spec):
+        if "arn:aws:" in pattern:
+            LOG.warning(
+                "Don't hardcode the aws partition in ARN patterns: %s",
+                pattern,
+            )
+        try:
+            re.compile(pattern)
+        except re.error:
+            LOG.warning("Could not validate regular expression: %s", pattern)
+
+    for enum in nested_lookup("enum", resource_spec):
+        if len(enum) > 15:
+            LOG.warning(
+                "Consider not manually maintaining large constantly evolving enums like \
+instance types, lambda runtimes, partitions, regions, availability zones, etc. that get outdated quickly: %s",
+                enum,
+            )
+
+    non_ascii_chars = re.findall(
+        r"[^ -~]", json.dumps(resource_spec, ensure_ascii=False)
+    )
+    if non_ascii_chars:
         LOG.warning(
-            "Property 'primaryIdentifier' must be specified \
-as either readOnly or createOnly"
+            "non-ASCII characters found in resource schema: %s", non_ascii_chars
         )
+
+    list_options = {
+        "maxresults",
+        "maxrecords",
+        "maxitems",
+        "nexttoken",
+        "nextmarker",
+        "nextpagetoken",
+        "pagetoken",
+        "paginationtoken",
+    } & set(map(str.lower, resource_spec.get("properties", [])))
+    if list_options:
+        LOG.warning(
+            "LIST API inputs like MaxResults, MaxRecords, MaxItems, NextToken, NextMarker, NextPageToken, PageToken, and Filters are not resource properties. \
+%s should not be present in resource schema",
+            list_options,
+        )
+
+    read_only_properties = set(resource_spec.get("readOnlyProperties", []))
+    create_only_properties = set(resource_spec.get("createOnlyProperties", []))
+    conditional_create_only_properties = set(
+        resource_spec.get("conditionalCreateOnlyProperties", [])
+    )
+
+    read_only_properties_intersection = read_only_properties & (
+        create_only_properties
+        | set(resource_spec.get("writeOnlyProperties", []))
+        | {"/properties/" + s for s in resource_spec.get("required", [])}
+    )
+    if read_only_properties_intersection:
+        LOG.warning(
+            "readOnlyProperties cannot be specified by customers and should not overlap with writeOnlyProperties, createOnlyProperties, or required: %s",
+            read_only_properties_intersection,
+        )
+
+    for handler in resource_spec.get("handlers", []):
+        for permission in resource_spec.get("handlers", [])[handler]["permissions"]:
+            if "*" in permission:
+                LOG.warning(
+                    "Use specific handler permissions instead of using wildcards: %s",
+                    permission,
+                )
+
+    try:
+        additional_properties_validator.validate(resource_spec)
+    except ValidationError as e:
+        LOG.warning(
+            "[Warning] Resource spec validation would fail from next \
+major version. Provider should mark additionalProperties as false if the \
+property is of object type and has properties or patternProperties defined \
+in it. Please fix the warnings: %s",
+            str(e),
+        )
+
+    for primary_id in resource_spec["primaryIdentifier"]:
+        if (
+            primary_id not in read_only_properties
+            and primary_id not in create_only_properties
+        ):
+            LOG.warning(
+                "Property 'primaryIdentifier' - %s must be specified \
+as either readOnly or createOnly",
+                primary_id,
+            )
+
+    if conditional_create_only_properties & create_only_properties:
+        raise SpecValidationError(
+            "createOnlyProperties and conditionalCreateOnlyProperties MUST NOT have common properties"
+        )
+
+    if conditional_create_only_properties & read_only_properties:
+        raise SpecValidationError(
+            "readOnlyProperties and conditionalCreateOnlyProperties MUST NOT have common properties"
+        )
+
+    if "taggable" not in resource_spec:
+        LOG.warning("Explicitly specify value for taggable")
 
     # TODO: more general validation framework
     if "remote" in resource_spec:

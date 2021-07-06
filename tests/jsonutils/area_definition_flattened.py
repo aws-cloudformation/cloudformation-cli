@@ -1,4 +1,3 @@
-# pylint: disable=line-too-long
 AREA_DEFINITION_FLATTENED = {
     (): {
         "typeName": "AWS::geography::areaDescription",

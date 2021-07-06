@@ -39,7 +39,7 @@ setup(
     python_requires=">=3.6",
     install_requires=[
         "boto3>=1.10.20",
-        "Jinja2>=2.10",
+        "Jinja2>=2.10,<3",
         "jsonschema>=3.0.1",
         "pytest>=4.5.0",
         "pytest-random-order>=1.0.4",
@@ -49,6 +49,11 @@ setup(
         "requests>=2.22",
         "hypothesis>=4.32",
         "colorama>=0.4.1",
+        "docker>=4.3.1",
+        "ordered-set>=4.0.2",
+        "cfn-lint>=0.43.0",
+        "cfn_flip>=1.2.3",
+        "nested-lookup",
     ],
     entry_points={
         "console_scripts": ["cfn-cli = rpdk.core.cli:main", "cfn = rpdk.core.cli:main"]

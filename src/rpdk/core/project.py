@@ -12,16 +12,20 @@ from jinja2 import Environment, PackageLoader, select_autoescape
 from jsonschema import Draft7Validator
 from jsonschema.exceptions import ValidationError
 
+from rpdk.core.fragment.generator import TemplateFragment
 from rpdk.core.jsonutils.flattener import JsonSchemaFlattener
 
+from . import __version__
 from .boto_helpers import create_sdk_session
 from .data_loaders import load_resource_spec, resource_json
 from .exceptions import (
     DownstreamError,
+    FragmentValidationError,
     InternalError,
     InvalidProjectError,
     SpecValidationError,
 )
+from .fragment.module_fragment_reader import _get_fragment_file
 from .jsonutils.pointer import fragment_decode, fragment_encode
 from .jsonutils.utils import traverse
 from .plugin_registry import load_plugin
@@ -31,10 +35,17 @@ LOG = logging.getLogger(__name__)
 
 SETTINGS_FILENAME = ".rpdk-config"
 SCHEMA_UPLOAD_FILENAME = "schema.json"
+CONFIGURATION_SCHEMA_UPLOAD_FILENAME = "configuration-schema.json"
 OVERRIDES_FILENAME = "overrides.json"
 INPUTS_FOLDER = "inputs"
+EXAMPLE_INPUTS_FOLDER = "example_inputs"
 ROLE_TEMPLATE_FILENAME = "resource-role.yaml"
-TYPE_NAME_REGEX = "^[a-zA-Z0-9]{2,64}::[a-zA-Z0-9]{2,64}::[a-zA-Z0-9]{2,64}$"
+TYPE_NAME_RESOURCE_REGEX = "^[a-zA-Z0-9]{2,64}::[a-zA-Z0-9]{2,64}::[a-zA-Z0-9]{2,64}$"
+TYPE_NAME_MODULE_REGEX = (
+    "^[a-zA-Z0-9]{2,64}::[a-zA-Z0-9]{2,64}::[a-zA-Z0-9]{2,64}::MODULE$"
+)
+ARTIFACT_TYPE_RESOURCE = "RESOURCE"
+ARTIFACT_TYPE_MODULE = "MODULE"
 
 DEFAULT_ROLE_TIMEOUT_MINUTES = 120  # 2 hours
 # min and max are according to CreateRole API restrictions
@@ -42,6 +53,7 @@ DEFAULT_ROLE_TIMEOUT_MINUTES = 120  # 2 hours
 MIN_ROLE_TIMEOUT_SECONDS = 3600  # 1 hour
 MAX_ROLE_TIMEOUT_SECONDS = 43200  # 12 hours
 
+CFN_METADATA_FILENAME = ".cfn_metadata.json"
 
 LAMBDA_RUNTIMES = {
     "noexec",  # cannot be executed, schema only
@@ -54,20 +66,33 @@ LAMBDA_RUNTIMES = {
     "dotnetcore2.1",
     "nodejs10.x",
     "nodejs12.x",
+    "nodejs14.x",
 }
 
 SETTINGS_VALIDATOR = Draft7Validator(
     {
         "properties": {
+            "artifact_type": {"type": "string"},
             "language": {"type": "string"},
-            "typeName": {"type": "string", "pattern": TYPE_NAME_REGEX},
+            "typeName": {"type": "string", "pattern": TYPE_NAME_RESOURCE_REGEX},
             "runtime": {"type": "string", "enum": list(LAMBDA_RUNTIMES)},
             "entrypoint": {"type": ["string", "null"]},
             "testEntrypoint": {"type": ["string", "null"]},
+            "executableEntrypoint": {"type": ["string", "null"]},
             "settings": {"type": "object"},
         },
         "required": ["language", "typeName", "runtime", "entrypoint"],
-        "additionalProperties": False,
+    }
+)
+
+MODULE_SETTINGS_VALIDATOR = Draft7Validator(
+    {
+        "properties": {
+            "artifact_type": {"type": "string"},
+            "typeName": {"type": "string", "pattern": TYPE_NAME_MODULE_REGEX},
+            "settings": {"type": "object"},
+        },
+        "required": ["artifact_type", "typeName"],
     }
 )
 
@@ -78,7 +103,6 @@ BASIC_TYPE_MAPPINGS = {
     "integer": "Integer",
     "boolean": "Boolean",
 }
-
 
 MARKDOWN_RESERVED_CHARACTERS = frozenset({"^", "*", "+", ".", "(", "[", "{", "#"})
 
@@ -92,20 +116,25 @@ def escape_markdown(string):
     return string
 
 
-class Project:  # pylint: disable=too-many-instance-attributes
+class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-methods
     def __init__(self, overwrite_enabled=False, root=None):
         self.overwrite_enabled = overwrite_enabled
         self.root = Path(root) if root else Path.cwd()
         self.settings_path = self.root / SETTINGS_FILENAME
         self.type_info = None
+        self.artifact_type = None
         self.language = None
         self._plugin = None
         self.settings = None
         self.schema = None
+        self.configuration_schema = None
         self._flattened_schema = None
+        self._marked_down_properties = {}
         self.runtime = "noexec"
         self.entrypoint = None
         self.test_entrypoint = None
+        self.executable_entrypoint = None
+        self.fragment_dir = None
 
         self.env = Environment(
             trim_blocks=True,
@@ -133,7 +162,11 @@ class Project:  # pylint: disable=too-many-instance-attributes
 
     @property
     def schema_filename(self):
-        return "{}.json".format(self.hypenated_name)
+        return f"{self.hypenated_name}.json"
+
+    @property
+    def configuration_schema_filename(self):
+        return "{}-configuration.json".format(self.hypenated_name)
 
     @property
     def schema_path(self):
@@ -147,6 +180,10 @@ class Project:  # pylint: disable=too-many-instance-attributes
     def inputs_path(self):
         return self.root / INPUTS_FOLDER
 
+    @property
+    def example_inputs_path(self):
+        return self.root / EXAMPLE_INPUTS_FOLDER
+
     @staticmethod
     def _raise_invalid_project(msg, e):
         LOG.debug(msg, exc_info=e)
@@ -159,21 +196,43 @@ class Project:  # pylint: disable=too-many-instance-attributes
                 raw_settings = json.load(f)
         except json.JSONDecodeError as e:
             self._raise_invalid_project(
-                "Project file '{}' is invalid".format(self.settings_path), e
+                f"Project file '{self.settings_path}' is invalid", e
             )
 
+        # backward compatible
+        if "artifact_type" not in raw_settings:
+            raw_settings["artifact_type"] = ARTIFACT_TYPE_RESOURCE
+
+        if raw_settings["artifact_type"] == ARTIFACT_TYPE_RESOURCE:
+            self.validate_and_load_resource_settings(raw_settings)
+        else:
+            self.validate_and_load_module_settings(raw_settings)
+
+    def validate_and_load_module_settings(self, raw_settings):
+        try:
+            MODULE_SETTINGS_VALIDATOR.validate(raw_settings)
+        except ValidationError as e:
+            self._raise_invalid_project(
+                f"Project file '{self.settings_path}' is invalid", e
+            )
+        self.type_name = raw_settings["typeName"]
+        self.artifact_type = raw_settings["artifact_type"]
+        self.settings = raw_settings.get("settings", {})
+
+    def validate_and_load_resource_settings(self, raw_settings):
         try:
             SETTINGS_VALIDATOR.validate(raw_settings)
         except ValidationError as e:
             self._raise_invalid_project(
-                "Project file '{}' is invalid".format(self.settings_path), e
+                f"Project file '{self.settings_path}' is invalid", e
             )
-
         self.type_name = raw_settings["typeName"]
+        self.artifact_type = raw_settings["artifact_type"]
         self.language = raw_settings["language"]
         self.runtime = raw_settings["runtime"]
         self.entrypoint = raw_settings["entrypoint"]
         self.test_entrypoint = raw_settings["testEntrypoint"]
+        self.executable_entrypoint = raw_settings.get("executableEntrypoint")
         self._plugin = load_plugin(raw_settings["language"])
         self.settings = raw_settings.get("settings", {})
 
@@ -191,8 +250,8 @@ class Project:  # pylint: disable=too-many-instance-attributes
 
     def _write_example_inputs(self):
 
-        shutil.rmtree(self.inputs_path, ignore_errors=True)
-        self.inputs_path.mkdir(exist_ok=True)
+        shutil.rmtree(self.example_inputs_path, ignore_errors=True)
+        self.example_inputs_path.mkdir(exist_ok=True)
 
         template = self.env.get_template("inputs.json")
         properties = list(self.schema["properties"].keys())
@@ -203,7 +262,7 @@ class Project:  # pylint: disable=too-many-instance-attributes
             "inputs_1_invalid.json",
         ):
             self.safewrite(
-                self.inputs_path / inputs_file,
+                self.example_inputs_path / inputs_file,
                 template.render(
                     properties=properties[:-1], last_property=properties[-1]
                 ),
@@ -216,14 +275,33 @@ class Project:  # pylint: disable=too-many-instance-attributes
             )
             raise InternalError("Internal error (Plugin returned invalid runtime)")
 
-        def _write(f):
+        def _write_resource_settings(f):
+            executable_entrypoint_dict = (
+                {"executableEntrypoint": self.executable_entrypoint}
+                if self.executable_entrypoint
+                else {}
+            )
             json.dump(
                 {
+                    "artifact_type": self.artifact_type,
                     "typeName": self.type_name,
                     "language": self.language,
                     "runtime": self.runtime,
                     "entrypoint": self.entrypoint,
                     "testEntrypoint": self.test_entrypoint,
+                    "settings": self.settings,
+                    **executable_entrypoint_dict,
+                },
+                f,
+                indent=4,
+            )
+            f.write("\n")
+
+        def _write_module_settings(f):
+            json.dump(
+                {
+                    "artifact_type": self.artifact_type,
+                    "typeName": self.type_name,
                     "settings": self.settings,
                 },
                 f,
@@ -231,17 +309,26 @@ class Project:  # pylint: disable=too-many-instance-attributes
             )
             f.write("\n")
 
-        self.overwrite(self.settings_path, _write)
+        if self.artifact_type == ARTIFACT_TYPE_RESOURCE:
+            self.overwrite(self.settings_path, _write_resource_settings)
+        else:
+            self.overwrite(self.settings_path, _write_module_settings)
 
     def init(self, type_name, language, settings=None):
+        self.artifact_type = ARTIFACT_TYPE_RESOURCE
         self.type_name = type_name
         self.language = language
         self._plugin = load_plugin(language)
         self.settings = settings or {}
-
         self._write_example_schema()
         self._write_example_inputs()
         self._plugin.init(self)
+        self.write_settings()
+
+    def init_module(self, type_name):
+        self.artifact_type = ARTIFACT_TYPE_MODULE
+        self.type_name = type_name
+        self.settings = {}
         self.write_settings()
 
     def load_schema(self):
@@ -252,6 +339,30 @@ class Project:  # pylint: disable=too-many-instance-attributes
 
         with self.schema_path.open("r", encoding="utf-8") as f:
             self.schema = load_resource_spec(f)
+
+    def load_configuration_schema(self):
+        if not self.schema:
+            msg = "Internal error (Must load type schema first)"
+            LOG.critical(msg)
+            raise InternalError(msg)
+
+        if "typeConfiguration" in self.schema:
+            configuration_schema = self.schema["typeConfiguration"]
+            configuration_schema["definitions"] = self.schema["definitions"]
+            configuration_schema["typeName"] = self.type_name
+            self.configuration_schema = configuration_schema
+
+    def write_configuration_schema(self, path):
+        LOG.debug(
+            "Writing type configuration resource specification from resource specification: %s",
+            path,
+        )
+
+        def _write(f):
+            json.dump(self.configuration_schema, f, indent=4)
+            f.write("\n")
+
+        self.overwrite(path, _write)
 
     @staticmethod
     def overwrite(path, contents):
@@ -276,6 +387,9 @@ class Project:  # pylint: disable=too-many-instance-attributes
                 LOG.info("File already exists, not overwriting '%s'", path)
 
     def generate(self):
+        if self.artifact_type == ARTIFACT_TYPE_MODULE:
+            return  # for Modules, the schema is already generated in cfn validate
+
         # generate template for IAM role assumed by cloudformation
         # to provision resources if schema has handlers defined
         if "handlers" in self.schema:
@@ -321,66 +435,138 @@ class Project:  # pylint: disable=too-many-instance-attributes
             )
             self.overwrite(path, contents)
 
-        return self._plugin.generate(self)
+        self._plugin.generate(self)
 
     def load(self):
         try:
             self.load_settings()
         except FileNotFoundError as e:
             self._raise_invalid_project(
-                "Project file not found. Have you run 'init'?", e
+                f"Project file {self.settings_path} not found. Have you run 'init' or in a wrong directory?",
+                e,
             )
 
-        LOG.info("Validating your resource schema...")
+        if self.artifact_type == ARTIFACT_TYPE_MODULE:
+            self._load_modules_project()
+        else:
+            self._load_resources_project()
+
+    def _load_resources_project(self):
+        LOG.info("Validating your resource specification...")
         try:
             self.load_schema()
+            self.load_configuration_schema()
+            LOG.warning("Resource schema is valid.")
         except FileNotFoundError as e:
             self._raise_invalid_project("Resource schema not found.", e)
         except SpecValidationError as e:
             msg = "Resource schema is invalid: " + str(e)
             self._raise_invalid_project(msg, e)
+        LOG.info("Validating your resource schema...")
+
+    def _load_modules_project(self):
+        LOG.info("Validating your module fragments...")
+        template_fragment = TemplateFragment(self.type_name, self.root)
+        try:
+            self._validate_fragments(template_fragment)
+        except FragmentValidationError as e:
+            msg = "Invalid template fragment: " + str(e)
+            self._raise_invalid_project(msg, e)
+        self.schema = template_fragment.generate_schema()
+        self.fragment_dir = template_fragment.fragment_dir
+
+    def _add_modules_content_to_zip(self, zip_file):
+        if not os.path.exists(self.root / SCHEMA_UPLOAD_FILENAME):
+            msg = "Module schema could not be found"
+            raise InternalError(msg)
+        zip_file.write(self.root / SCHEMA_UPLOAD_FILENAME, SCHEMA_UPLOAD_FILENAME)
+        file = _get_fragment_file(self.fragment_dir)
+        zip_file.write(
+            file,
+            arcname=file.replace(str(self.fragment_dir), "fragments/"),
+        )
+
+    @staticmethod
+    def _validate_fragments(template_fragment):
+        template_fragment.validate_fragments()
 
     def submit(
         self, dry_run, endpoint_url, region_name, role_arn, use_role, set_default
     ):  # pylint: disable=too-many-arguments
-        # if it's a dry run, keep the file; otherwise can delete after upload
-        if dry_run:
-            path = Path("{}.zip".format(self.hypenated_name))
-            context_mgr = path.open("wb")
-        else:
-            context_mgr = TemporaryFile("w+b")
+        context_mgr = self._create_context_manager(dry_run)
 
         with context_mgr as f:
             # the default compression is ZIP_STORED, which helps with the
             # file-size check on upload
             with zipfile.ZipFile(f, mode="w") as zip_file:
                 zip_file.write(self.schema_path, SCHEMA_UPLOAD_FILENAME)
+                if self.configuration_schema:
+                    with zip_file.open(
+                        CONFIGURATION_SCHEMA_UPLOAD_FILENAME, "w"
+                    ) as configuration_file:
+                        configuration_file.write(
+                            json.dumps(self.configuration_schema, indent=4).encode(
+                                "utf-8"
+                            )
+                        )
                 zip_file.write(self.settings_path, SETTINGS_FILENAME)
-                try:
-                    zip_file.write(self.overrides_path, OVERRIDES_FILENAME)
-                    LOG.debug("%s found. Writing to package.", OVERRIDES_FILENAME)
-                except FileNotFoundError:
-                    LOG.debug(
-                        "%s not found. Not writing to package.", OVERRIDES_FILENAME
-                    )
-                if os.path.isdir(self.inputs_path):
-                    for filename in os.listdir(self.inputs_path):
-                        absolute_path = self.inputs_path / filename
-                        zip_file.write(absolute_path, INPUTS_FOLDER + "/" + filename)
-                        LOG.debug("%s found. Writing to package.", filename)
+                if self.artifact_type == ARTIFACT_TYPE_MODULE:
+                    self._add_modules_content_to_zip(zip_file)
                 else:
-                    LOG.debug("%s not found. Not writing to package.", INPUTS_FOLDER)
-                self._plugin.package(self, zip_file)
+                    self._add_resources_content_to_zip(zip_file)
+
+                self._add_overrides_file_to_zip(zip_file)
 
             if dry_run:
-                LOG.error("Dry run complete: %s", path.resolve())
+                LOG.error("Dry run complete: %s", self._get_zip_file_path().resolve())
             else:
                 f.seek(0)
                 self._upload(
                     f, endpoint_url, region_name, role_arn, use_role, set_default
                 )
 
+    def _add_overrides_file_to_zip(self, zip_file):
+        try:
+            zip_file.write(self.overrides_path, OVERRIDES_FILENAME)
+            LOG.debug("%s found. Writing to package.", OVERRIDES_FILENAME)
+        except FileNotFoundError:
+            LOG.debug("%s not found. Not writing to package.", OVERRIDES_FILENAME)
+
+    def _add_resources_content_to_zip(self, zip_file):
+        zip_file.write(self.schema_path, SCHEMA_UPLOAD_FILENAME)
+        if os.path.isdir(self.inputs_path):
+            for filename in os.listdir(self.inputs_path):
+                absolute_path = self.inputs_path / filename
+                zip_file.write(absolute_path, INPUTS_FOLDER + "/" + filename)
+                LOG.debug("%s found. Writing to package.", filename)
+        else:
+            LOG.debug("%s not found. Not writing to package.", INPUTS_FOLDER)
+        self._plugin.package(self, zip_file)
+        cli_metadata = {}
+        try:
+            cli_metadata = self._plugin.get_plugin_information(self)
+        except AttributeError:
+            LOG.debug(
+                "Version info is not available for plugins, not writing to metadata file"
+            )
+        cli_metadata["cli-version"] = __version__
+        zip_file.writestr(CFN_METADATA_FILENAME, json.dumps(cli_metadata))
+
+    def _create_context_manager(self, dry_run):
+        # if it's a dry run, keep the file; otherwise can delete after upload
+        if dry_run:
+            return self._get_zip_file_path().open("wb")
+
+        # pylint: disable=consider-using-with
+        return TemporaryFile("w+b")
+
+    def _get_zip_file_path(self):
+        return Path(f"{self.hypenated_name}.zip")
+
     def generate_docs(self):
+        if self.artifact_type == ARTIFACT_TYPE_MODULE:
+            return
+
         # generate the docs folder that contains documentation based on the schema
         docs_path = self.root / "docs"
 
@@ -404,9 +590,7 @@ class Project:  # pylint: disable=too-many-instance-attributes
 
         docs_schema["properties"] = {
             name: self._set_docs_properties(name, value, (name,))
-            for name, value in self._flattened_schema[()][
-                "properties"
-            ].items()  # docs_schema["properties"].items()
+            for name, value in self._flattened_schema[()]["properties"].items()
         }
 
         LOG.debug("Finished documenting nested properties")
@@ -421,6 +605,13 @@ class Project:  # pylint: disable=too-many-instance-attributes
             type_name=self.type_name, schema=docs_schema, ref=ref, getatt=getatt
         )
         self.safewrite(readme_path, contents)
+
+    def generate_image_build_config(self):
+        if not hasattr(self._plugin, "generate_image_build_config"):
+            raise InvalidProjectError(
+                f"Plugin for the {self.runtime} runtime does not support building an image"
+            )
+        return self._plugin.generate_image_build_config(self)
 
     @staticmethod
     def _get_docs_primary_identifier(docs_schema):
@@ -457,13 +648,43 @@ class Project:  # pylint: disable=too-many-instance-attributes
 
     def _set_docs_properties(  # noqa: C901
         self, propname, prop, proppath
-    ):  # pylint: disable=too-many-locals
+    ):  # pylint: disable=too-many-locals,too-many-statements
+        """method sets markdown for each property;
+        1. Supports multiple types per property - done via flattened schema so `allOf`,
+        `anyOf`, `oneOf` combined into a collection then method iterates to reapply
+        itself to each type
+        2. Supports circular reference - done via pre calculating hypothetical .md file
+        path and name
+        which is reused once property is hit more than once
+
+        Args:
+            propname ([str]): property name
+            prop ([dict]): all the sub propeties
+            proppath ([tuple]): path of the property
+
+        Returns:
+            [dict]: modified sub dictionary with attached markdown
+        """
+        types = ("jsontype", "yamltype", "longformtype")
+        jsontype, yamltype, longformtype = types
+
+        # reattach prop from reference
         if "$ref" in prop:
             ref = self._flattened_schema[prop["$ref"]]
             propname = prop["$ref"][1]
             # this is to tie object to a definition and not to a property
             proppath = (propname,)
             prop = ref
+
+        # this means method is traversing already visited property
+        if propname in self._marked_down_properties:
+            return {
+                property_item: markdown
+                for property_item, markdown in self._marked_down_properties[
+                    propname
+                ].items()
+                if property_item in types
+            }  # returning already set markdown
 
         proppath_ptr = fragment_encode(("properties",) + proppath, prefix="")
         if (
@@ -478,6 +699,7 @@ class Project:  # pylint: disable=too-many-instance-attributes
         ):
             prop["readonly"] = True
 
+        # join multiple types
         def __join(item1, item2):
             if not item1 or item2 == item1:
                 return item2
@@ -485,20 +707,67 @@ class Project:  # pylint: disable=too-many-instance-attributes
 
         def __set_property_type(prop_type, single_type=True):
             nonlocal prop
+
+            # mark down formatting of the target value - used for complex objects
+            # ($ref) and arrays of such objects
+            markdown_lambda = (
+                lambda fname, name: f'<a href="{fname}">{name}</a>'  # noqa: B950, C0301
+            )
+
             type_json = type_yaml = type_longform = "Unknown"
             if prop_type in BASIC_TYPE_MAPPINGS:
+                # primitives should not occur for circular ref;
                 type_json = type_yaml = type_longform = BASIC_TYPE_MAPPINGS[prop_type]
             elif prop_type == "array":
+
+                # lambdas to reuse formatting
+                markdown_json = (
+                    lambda markdown_value: f"[ {markdown_value}, ... ]"
+                )  # noqa: E731
+                markdown_yaml = lambda markdown_value: (  # noqa: E731
+                    f"\n      - {markdown_value}"
+                    if single_type
+                    else f"[ {markdown_value}, ... ]"
+                )
+                markdown_long = (
+                    lambda markdown_value: f"List of {markdown_value}"
+                )  # noqa: E731
+
+                # potential circular ref
+                # setting up markdown before going deep in the heap to reuse markdown
+                if "$ref" in prop["items"]:
+                    sub_propname = prop["items"]["$ref"][1]  # get target sub property
+                    sub_proppath = (sub_propname,)
+
+                    # calculating hypothetical markdown property before
+                    # actually traversing it - this way it could be reused -
+                    # same .md doc could be attached to both instances
+                    hypothetical = markdown_lambda(
+                        "-".join(sub_proppath).lower() + ".md", sub_propname
+                    )
+
+                    # assigning hypothetical .md file reference before circular
+                    # property gets boundary so when boundary is hit it reuses
+                    # the same document
+                    self._marked_down_properties[propname] = {
+                        jsontype: markdown_json(hypothetical),
+                        yamltype: markdown_yaml(hypothetical),
+                        longformtype: markdown_long(hypothetical),
+                    }
+
+                # traverse nested propertes
                 prop["arrayitems"] = arrayitems = self._set_docs_properties(
                     propname, prop["items"], proppath
                 )
-                type_json = f'[ {arrayitems["jsontype"]}, ... ]'
-                type_yaml = (
-                    f'\n      - {arrayitems["yamltype"]}'
-                    if single_type
-                    else f'[ {arrayitems["yamltype"]}, ... ]'
-                )
-                type_longform = f'List of {arrayitems["longformtype"]}'
+
+                # arrayitems should be similar to markdown of hypothetical target
+                # if there is an object ref
+                # arrayitems are could not be used for hypothetical values
+                # as could not be populated before traversing down
+                type_json = markdown_json(arrayitems[jsontype])
+                type_yaml = markdown_yaml(arrayitems[yamltype])
+                type_longform = markdown_long(arrayitems[longformtype])
+
             elif prop_type == "object":
                 template = self.env.get_template("docs-subproperty.md")
                 docs_path = self.root / "docs"
@@ -509,14 +778,28 @@ class Project:  # pylint: disable=too-many-instance-attributes
 
                 type_json = type_yaml = type_longform = "Map"
                 if object_properties:
-                    prop["properties"] = {
-                        name: self._set_docs_properties(name, value, proppath + (name,))
-                        for name, value in object_properties.items()
-                    }
 
                     subproperty_name = " ".join(proppath)
                     subproperty_filename = "-".join(proppath).lower() + ".md"
                     subproperty_path = docs_path / subproperty_filename
+
+                    type_json = type_yaml = type_longform = markdown_lambda(
+                        subproperty_filename, propname
+                    )
+
+                    # potential circular ref
+                    # setting up markdown before going deep in the heap
+                    # to reuse markdown
+                    self._marked_down_properties[propname] = {
+                        jsontype: type_json,
+                        yamltype: type_json,
+                        longformtype: type_json,
+                    }
+
+                    prop["properties"] = {
+                        name: self._set_docs_properties(name, value, proppath + (name,))
+                        for name, value in object_properties.items()
+                    }
 
                     LOG.debug(
                         "Writing docs %s: %s", subproperty_filename, subproperty_path
@@ -526,18 +809,12 @@ class Project:  # pylint: disable=too-many-instance-attributes
                         subproperty_name=subproperty_name,
                         schema=prop,
                     )
+
                     self.safewrite(subproperty_path, contents)
 
-                    type_json = (
-                        type_yaml
-                    ) = (
-                        type_longform
-                    ) = f'<a href="{subproperty_filename}">{propname}</a>'
-
-            prop["jsontype"] = __join(prop.get("jsontype"), type_json)
-            prop["yamltype"] = __join(prop.get("yamltype"), type_yaml)
-            prop["longformtype"] = __join(prop.get("longformtype"), type_longform)
-
+            prop[jsontype] = __join(prop.get(jsontype), type_json)
+            prop[yamltype] = __join(prop.get(yamltype), type_yaml)
+            prop[longformtype] = __join(prop.get(longformtype), type_longform)
             if "enum" in prop:
                 prop["allowedvalues"] = prop["enum"]
 
@@ -548,12 +825,19 @@ class Project:  # pylint: disable=too-many-instance-attributes
             prop_type = [prop_type]
             single_item = True
 
-        visited = set()
         for prop_item in prop_type:
-            if prop_item not in visited:
-                visited.add(prop_item)
+            if isinstance(prop_item, tuple):  # if tuple, then it's a ref
+                # using doc method to generate the mdo and reassign the ref
+                resolved = self._set_docs_properties(
+                    propname, {"$ref": prop_item}, proppath
+                )
+                prop[jsontype] = __join(prop.get(jsontype), resolved[jsontype])
+                prop[yamltype] = __join(prop.get(yamltype), resolved[yamltype])
+                prop[longformtype] = __join(
+                    prop.get(longformtype), resolved[longformtype]
+                )
+            else:
                 __set_property_type(prop_item, single_type=single_item)
-
         return prop
 
     def _upload(
@@ -576,13 +860,13 @@ class Project:  # pylint: disable=too-many-instance-attributes
         log_delivery_role = uploader.get_log_delivery_role_arn()
         LOG.debug("Got Log Role: %s", log_delivery_role)
         kwargs = {
-            "Type": "RESOURCE",
+            "Type": self.artifact_type,
             "TypeName": self.type_name,
             "SchemaHandlerPackage": s3_url,
             "ClientRequestToken": str(uuid4()),
             "LoggingConfig": {
                 "LogRoleArn": log_delivery_role,
-                "LogGroupName": "{}-logs".format(self.hypenated_name),
+                "LogGroupName": f"{self.hypenated_name}-logs",
             },
         }
         if role_arn and use_role:

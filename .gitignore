@@ -9,7 +9,7 @@ __pycache__/
 # Distribution / packaging
 .Python
 env/
-build/
+build
 develop-eggs/
 dist/
 downloads/
@@ -115,3 +115,4 @@ README.html
 .idea
 out.java
 out/
+node_modules

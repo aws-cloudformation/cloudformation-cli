@@ -23,7 +23,7 @@ from .contract.interface import Action
 from .contract.resource_client import ResourceClient
 from .data_loaders import copy_resource
 from .exceptions import SysExitRecommendedError
-from .project import Project
+from .project import ARTIFACT_TYPE_MODULE, Project
 
 LOG = logging.getLogger(__name__)
 
@@ -176,8 +176,12 @@ def get_marker_options(schema):
 
 
 def test(args):
+    _validate_sam_args(args)
     project = Project()
     project.load()
+    if project.artifact_type == ARTIFACT_TYPE_MODULE:
+        LOG.warning("The test command is not supported in a module project")
+        return
 
     overrides = get_overrides(
         project.root, args.region, args.cloudformation_endpoint_url, args.role_arn
@@ -212,6 +216,11 @@ def invoke_test(args, project, overrides, inputs):
             inputs,
             args.role_arn,
             args.enforce_timeout,
+            project.type_name,
+            args.log_group_name,
+            args.log_role_arn,
+            executable_entrypoint=project.executable_entrypoint,
+            docker_image=args.docker_image,
         )
     )
 
@@ -249,7 +258,25 @@ def setup_subparser(subparsers, parents):
         help="Enforce a different timeout for handlers",
     )
 
+    parser.add_argument(
+        "--log-group-name",
+        help="The log group to which contract tests lambda handler logs will be delivered. "
+        "Specified log group doesn't have to exist as long as log-role-arn specified has logs:CreateLogGroup "
+        "permission. Need to be used together with --log-role-arn",
+    )
+
+    parser.add_argument(
+        "--log-role-arn",
+        help="Role for delivering contract tests lambda handler logs. Need to be used together with --log-group-name",
+    )
+
     parser.add_argument("passed_to_pytest", nargs="*", help=SUPPRESS)
+
+    parser.add_argument(
+        "--docker-image",
+        help="Docker image name to run. If specified, invoke will use docker instead "
+        "of SAM",
+    )
 
 
 def _sam_arguments(parser):
@@ -276,3 +303,12 @@ def _sam_arguments(parser):
             "The region used for temporary credentials " f"(Default: {DEFAULT_REGION})"
         ),
     )
+
+
+def _validate_sam_args(args):
+    if args.docker_image and (
+        args.endpoint != DEFAULT_ENDPOINT or args.function_name != DEFAULT_FUNCTION
+    ):
+        raise SysExitRecommendedError(
+            "Cannot specify both --docker-image and --endpoint or --function-name"
+        )

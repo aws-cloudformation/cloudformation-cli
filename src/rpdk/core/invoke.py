@@ -13,17 +13,24 @@ from .contract.interface import Action, OperationStatus
 from .contract.resource_client import ResourceClient
 from .exceptions import SysExitRecommendedError
 from .project import Project
-from .test import _sam_arguments
+from .test import _sam_arguments, _validate_sam_args
 
 LOG = logging.getLogger(__name__)
 
 
 def invoke(args):
+    _validate_sam_args(args)
     project = Project()
     project.load()
 
     client = ResourceClient(
-        args.function_name, args.endpoint, args.region, project.schema, {}
+        args.function_name,
+        args.endpoint,
+        args.region,
+        project.schema,
+        {},
+        executable_entrypoint=project.executable_entrypoint,
+        docker_image=args.docker_image,
     )
 
     action = Action[args.action]
@@ -31,14 +38,34 @@ def invoke(args):
         request = json.load(args.request)
     except ValueError as e:
         raise SysExitRecommendedError(f"Invalid JSON: {e}") from e
-    payload = client._make_payload(action, request)
+    payload = client._make_payload(
+        action,
+        request["desiredResourceState"],
+        request["previousResourceState"],
+        request.get("typeConfiguration"),
+    )
 
     current_invocation = 0
 
     try:
         while _needs_reinvocation(args.max_reinvoke, current_invocation):
             print("=== Handler input ===")
-            print(json.dumps({**payload, "credentials": "<redacted>"}, indent=2))
+
+            payload_to_log = {
+                "callbackContext": payload["callbackContext"],
+                "action": payload["action"],
+                "requestData": {
+                    "resourceProperties": payload["requestData"]["resourceProperties"],
+                    "previousResourceProperties": payload["requestData"][
+                        "previousResourceProperties"
+                    ],
+                },
+                "region": payload["region"],
+                "awsAccountId": payload["awsAccountId"],
+                "bearerToken": payload["bearerToken"],
+            }
+            print(json.dumps({**payload_to_log}, indent=2))
+
             response = client._call(payload)
             current_invocation = current_invocation + 1
             print("=== Handler response ===")
@@ -79,5 +106,10 @@ def setup_subparser(subparsers, parents):
         help="Maximum number of IN_PROGRESS re-invocations allowed before "
         "exiting. If not specified, will continue to "
         "re-invoke until terminal status is reached.",
+    )
+    parser.add_argument(
+        "--docker-image",
+        help="Docker image name to run. If specified, invoke will use docker instead "
+        "of SAM",
     )
     _sam_arguments(parser)

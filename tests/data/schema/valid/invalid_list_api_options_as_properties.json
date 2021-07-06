@@ -1,0 +1,14 @@
+{
+  "typeName" : "AWS::Service::Type",
+  "description" : "",
+  "additionalProperties" : false,
+  "properties" : {
+    "NextToken" : {
+      "type" : "string"
+    }
+  },
+  "readOnlyProperties": [
+    "/properties/NextToken"
+  ],
+  "primaryIdentifier" : [ "/properties/NextToken" ]
+}

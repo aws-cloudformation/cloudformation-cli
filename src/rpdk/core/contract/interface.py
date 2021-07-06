@@ -22,6 +22,7 @@ class OperationStatus(AutoName):
     FAILED = auto()
 
 
+# pylint: disable=invalid-name
 class HandlerErrorCode(AutoName):
     NotUpdatable = auto()
     InvalidRequest = auto()
@@ -37,3 +38,4 @@ class HandlerErrorCode(AutoName):
     ServiceInternalError = auto()
     NetworkFailure = auto()
     InternalFailure = auto()
+    InvalidTypeConfiguration = auto()

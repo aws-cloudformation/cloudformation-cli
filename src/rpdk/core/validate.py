@@ -13,8 +13,6 @@ def validate(_args):
     project = Project()
     project.load()
 
-    LOG.warning("Resource schema for %s is valid", project.type_name)
-
 
 def setup_subparser(subparsers, parents):
     parser = subparsers.add_parser("validate", description=__doc__, parents=parents)

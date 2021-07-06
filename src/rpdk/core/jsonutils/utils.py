@@ -1,12 +1,25 @@
 from collections.abc import Mapping, Sequence
+from typing import Any
+
+from ordered_set import OrderedSet
 
 from .pointer import fragment_encode
 
-NON_MERGABLE_KEYS = ("$ref", "uniqueItems", "insertionOrder")
+NON_MERGABLE_KEYS = ("uniqueItems", "insertionOrder")
+TYPE = "type"
+REF = "$ref"
 
 
 class FlatteningError(Exception):
     pass
+
+
+def to_set(value: Any) -> OrderedSet:
+    return (
+        OrderedSet(value)
+        if isinstance(value, (list, OrderedSet))
+        else OrderedSet([value])
+    )
 
 
 class ConstraintError(FlatteningError, ValueError):
@@ -14,11 +27,6 @@ class ConstraintError(FlatteningError, ValueError):
         self.path = fragment_encode(path)
         message = message.format(*args, path=self.path)
         super().__init__(message)
-
-
-class CircularRefError(ConstraintError):
-    def __init__(self, path):
-        super().__init__("Detected circular reference at '{path}'", path)
 
 
 class BaseRefPlaceholder:
@@ -103,7 +111,7 @@ def traverse(document, path_parts):
     return document, tuple(path), parent
 
 
-def schema_merge(target, src, path):  # noqa: C901
+def schema_merge(target, src, path):  # noqa: C901 # pylint: disable=R0912
     """Merges the src schema into the target schema in place.
 
     If there are duplicate keys, src will overwrite target.
@@ -115,27 +123,66 @@ def schema_merge(target, src, path):  # noqa: C901
     {}
     >>> schema_merge({'foo': 'a'}, {}, ())
     {'foo': 'a'}
+
     >>> schema_merge({}, {'foo': 'a'}, ())
     {'foo': 'a'}
+
     >>> schema_merge({'foo': 'a'}, {'foo': 'b'}, ())
     {'foo': 'b'}
+
     >>> schema_merge({'required': 'a'}, {'required': 'b'}, ())
     {'required': ['a', 'b']}
+
+    >>> a, b = {'$ref': 'a'}, {'foo': 'b'}
+    >>> schema_merge(a, b, ('foo',))
+    {'$ref': 'a', 'foo': 'b'}
+
     >>> a, b = {'$ref': 'a'}, {'type': 'b'}
     >>> schema_merge(a, b, ('foo',))
-    {'$ref': 'a', 'type': 'b'}
+    {'type': OrderedSet(['a', 'b'])}
+
+    >>> a, b = {'$ref': 'a'}, {'$ref': 'b'}
+    >>> schema_merge(a, b, ('foo',))
+    {'type': OrderedSet(['a', 'b'])}
+
+    >>> a, b = {'$ref': 'a'}, {'type': ['b', 'c']}
+    >>> schema_merge(a, b, ('foo',))
+    {'type': OrderedSet(['a', 'b', 'c'])}
+
+    >>> a, b = {'$ref': 'a'}, {'type': OrderedSet(['b', 'c'])}
+    >>> schema_merge(a, b, ('foo',))
+    {'type': OrderedSet(['a', 'b', 'c'])}
+
+    >>> a, b = {'type': ['a', 'b']}, {'$ref': 'c'}
+    >>> schema_merge(a, b, ('foo',))
+    {'type': OrderedSet(['a', 'b', 'c'])}
+
+    >>> a, b = {'type': OrderedSet(['a', 'b'])}, {'$ref': 'c'}
+    >>> schema_merge(a, b, ('foo',))
+    {'type': OrderedSet(['a', 'b', 'c'])}
+
     >>> a, b = {'Foo': {'$ref': 'a'}}, {'Foo': {'type': 'b'}}
     >>> schema_merge(a, b, ('foo',))
-    {'Foo': {'$ref': 'a', 'type': 'b'}}
+    {'Foo': {'type': OrderedSet(['a', 'b'])}}
+
     >>> schema_merge({'type': 'a'}, {'type': 'b'}, ()) # doctest: +NORMALIZE_WHITESPACE
-    {'type': ['a', 'b']}
+    {'type': OrderedSet(['a', 'b'])}
+
+    >>> schema_merge({'type': 'string'}, {'type': 'integer'}, ())
+    {'type': OrderedSet(['string', 'integer'])}
     """
     if not (isinstance(target, Mapping) and isinstance(src, Mapping)):
         raise TypeError("Both schemas must be dictionaries")
 
     for key, src_schema in src.items():
         try:
-            target_schema = target[key]
+            if key in (
+                REF,
+                TYPE,
+            ):  # $ref and type are treated similarly and unified
+                target_schema = target.get(key) or target.get(TYPE) or target[REF]
+            else:
+                target_schema = target[key]  # carry over existing properties
         except KeyError:
             target[key] = src_schema
         else:
@@ -143,11 +190,30 @@ def schema_merge(target, src, path):  # noqa: C901
             try:
                 target[key] = schema_merge(target_schema, src_schema, next_path)
             except TypeError:
-                if key == "type":
-                    if isinstance(target_schema, list):
-                        target_schema.append(src_schema)
-                        continue
-                    target[key] = [target_schema, src_schema]
+                if key in (TYPE, REF):  # combining multiple $ref and types
+                    src_set = to_set(src_schema)
+
+                    try:
+                        target[TYPE] = to_set(
+                            target[TYPE]
+                        )  # casting to ordered set as lib
+                        # implicitly converts strings to sets
+                        target[TYPE] |= src_set
+                    except (TypeError, KeyError):
+                        target_set = to_set(target_schema)
+                        target[TYPE] = target_set | src_set
+
+                    try:
+                        # check if there are conflicting $ref and type
+                        # at the same sub schema. Conflicting $ref could only
+                        # happen on combiners because method merges two json
+                        # objects without losing any previous info:
+                        # e.g. "oneOf": [{"$ref": "..#1.."},{"$ref": "..#2.."}] ->
+                        # { "ref": "..#1..", "type": [{},{}] }
+                        target.pop(REF)
+                    except KeyError:
+                        pass
+
                 elif key == "required":
                     target[key] = sorted(set(target_schema) | set(src_schema))
                 else:

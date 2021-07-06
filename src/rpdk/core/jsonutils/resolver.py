@@ -7,6 +7,7 @@ from .utils import BASE, fragment_encode
 
 UNDEFINED = "undefined"
 MULTIPLE = "multiple"
+FORMAT_DEFAULT = "default"
 
 
 class ContainerType(Enum):
@@ -19,9 +20,10 @@ class ContainerType(Enum):
 
 
 class ResolvedType:
-    def __init__(self, container, item_type):
+    def __init__(self, container, item_type, type_format=FORMAT_DEFAULT):
         self.container = container
         self.type = item_type
+        self.type_format = type_format
 
     def __repr__(self):
         return f"<ResolvedType({self.container}, {self.type})>"
@@ -114,7 +116,7 @@ class ModelResolver:
             return self._get_array_lang_type(property_schema)
         if schema_type == "object":
             return self._get_object_lang_type(property_schema)
-        return self._get_primitive_lang_type(schema_type)
+        return self._get_primitive_lang_type(schema_type, property_schema)
 
     @staticmethod
     def _get_array_container_type(property_schema):
@@ -131,8 +133,12 @@ class ModelResolver:
         return ResolvedType(ContainerType.MULTIPLE, schema_type)
 
     @staticmethod
-    def _get_primitive_lang_type(schema_type):
-        return ResolvedType(ContainerType.PRIMITIVE, schema_type)
+    def _get_primitive_lang_type(schema_type, property_schema):
+        return ResolvedType(
+            ContainerType.PRIMITIVE,
+            schema_type,
+            property_schema.get("format", FORMAT_DEFAULT),
+        )
 
     def _get_array_lang_type(self, property_schema):
         container = self._get_array_container_type(property_schema)
@@ -140,7 +146,7 @@ class ModelResolver:
         try:
             items = property_schema["items"]
         except KeyError:
-            items = self._get_primitive_lang_type(UNDEFINED)
+            items = self._get_primitive_lang_type(UNDEFINED, property_schema)
         else:
             items = self._schema_to_lang_type(items)
 
@@ -159,7 +165,7 @@ class ModelResolver:
           we set the value type to the UNDEFINED constant for language implementations
           to distinguish it from a JSON object.
         """
-        items = self._get_primitive_lang_type(UNDEFINED)
+        items = self._get_primitive_lang_type(UNDEFINED, property_schema)
         try:
             pattern_properties = list(property_schema["patternProperties"].items())
         except KeyError:

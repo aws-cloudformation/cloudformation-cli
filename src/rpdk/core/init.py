@@ -1,20 +1,28 @@
-"""This sub command generates IDE and build files for a given language.
+"""This sub command generates IDE and build files for a resource,
+or schema files for a module.
 """
+import argparse
 import logging
 import re
-from argparse import SUPPRESS
 from functools import wraps
 
 from colorama import Fore, Style
 
 from .exceptions import WizardAbortError, WizardValidationError
-from .plugin_registry import PLUGIN_CHOICES
-from .project import Project
+from .module.init_module import init_module
+from .plugin_registry import get_parsers, get_plugin_choices
+from .project import ARTIFACT_TYPE_MODULE, Project
+from .resource.init_resource import init_resource
+from .utils.init_utils import init_artifact_type, validate_yes
 
 LOG = logging.getLogger(__name__)
 
 
 TYPE_NAME_REGEX = r"^[a-zA-Z0-9]{2,64}::[a-zA-Z0-9]{2,64}::[a-zA-Z0-9]{2,64}$"
+
+
+def print_error(error):
+    print(Style.BRIGHT, Fore.RED, str(error), Style.RESET_ALL, sep="")
 
 
 def input_with_validation(prompt, validate, description=""):
@@ -33,7 +41,7 @@ def input_with_validation(prompt, validate, description=""):
         try:
             return validate(response)
         except WizardValidationError as e:
-            print(Style.BRIGHT, Fore.RED, str(e), Style.RESET_ALL, sep="")
+            print_error(e)
 
 
 def validate_type_name(value):
@@ -42,12 +50,8 @@ def validate_type_name(value):
         return value
     LOG.debug("'%s' did not match '%s'", value, TYPE_NAME_REGEX)
     raise WizardValidationError(
-        "Please enter a value matching '{}'".format(TYPE_NAME_REGEX)
+        "Please enter a resource type name matching '{}'".format(TYPE_NAME_REGEX)
     )
-
-
-def validate_yes(value):
-    return value.lower() in ("y", "yes")
 
 
 class ValidatePluginChoice:
@@ -77,7 +81,7 @@ class ValidatePluginChoice:
 
 
 validate_plugin_choice = ValidatePluginChoice(  # pylint: disable=invalid-name
-    PLUGIN_CHOICES
+    get_plugin_choices()
 )
 
 
@@ -105,16 +109,6 @@ def check_for_existing_project(project):
             raise WizardAbortError()
 
 
-def input_typename():
-    type_name = input_with_validation(
-        "What's the name of your resource type?",
-        validate_type_name,
-        "\n(Organization::Service::Resource)",
-    )
-    LOG.debug("Resource type identifier: %s", type_name)
-    return type_name
-
-
 def input_language():
     # language/plugin
     if validate_plugin_choice.max < 1:
@@ -139,16 +133,13 @@ def init(args):
 
     check_for_existing_project(project)
 
-    type_name = input_typename()
-    if args.language:
-        language = args.language
-        LOG.warning("Language plugin '%s' selected non-interactively", language)
-    else:
-        language = input_language()
+    artifact_type = init_artifact_type(args)
 
-    project.init(type_name, language)
-    project.generate()
-    project.generate_docs()
+    if artifact_type == ARTIFACT_TYPE_MODULE:
+        init_module(args, project)
+    # artifact type can only be module or resource at this point
+    else:
+        init_resource(args, project)
 
     LOG.warning("Initialized a new project in %s", project.root.resolve())
 
@@ -171,8 +162,26 @@ def setup_subparser(subparsers, parents):
     parser = subparsers.add_parser("init", description=__doc__, parents=parents)
     parser.set_defaults(command=ignore_abort(init))
 
+    language_subparsers = parser.add_subparsers(dest="subparser_name")
+    base_subparser = argparse.ArgumentParser(add_help=False)
+    for language_setup_subparser in get_parsers().values():
+        language_setup_subparser()(language_subparsers, [base_subparser])
+
     parser.add_argument(
-        "--force", action="store_true", help="Force files to be overwritten."
+        "-f",
+        "--force",
+        action="store_true",
+        help="Force files to be overwritten.",
     )
-    # this is mainly for CI, so suppress it to keep it simple
-    parser.add_argument("--language", help=SUPPRESS)
+
+    parser.add_argument(
+        "-t",
+        "--type-name",
+        help="Select the name of the type.",
+    )
+
+    parser.add_argument(
+        "-a",
+        "--artifact-type",
+        help="Select the type of artifact (RESOURCE or MODULE)",
+    )

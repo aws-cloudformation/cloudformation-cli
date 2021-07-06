@@ -1,0 +1,36 @@
+
+# This workflow will install Python dependencies, run tests and lint with a multiple versions of Python
+name: CloudFormation CLI Pull Request CI
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+    env:
+      AWS_DEFAULT_REGION: us-east-1
+    strategy:
+      matrix:
+        python: [3.6, 3.7, 3.8]
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python ${{ matrix.python }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python }}
+    - name: Install dependencies
+      run: |
+        pip install --upgrade 'attrs==19.2.0' wheel -r requirements.txt
+    - name: Install cli
+      run: |
+        pip install .
+    - name: pre-commit, twine checks
+      run: |
+        pre-commit run --all-files
+        python setup.py sdist bdist_wheel
+        twine check ./dist/*

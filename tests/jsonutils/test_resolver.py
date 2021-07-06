@@ -3,6 +3,7 @@ import pytest
 
 from rpdk.core.exceptions import ModelResolverError
 from rpdk.core.jsonutils.resolver import (
+    FORMAT_DEFAULT,
     UNDEFINED,
     ContainerType,
     ModelResolver,
@@ -102,9 +103,10 @@ def test_modelresolver__get_array_container_type(schema, result):
 
 def test_modelresolver__get_primitive_lang_type():
     sentinel = object()
-    resolved_type = ModelResolver._get_primitive_lang_type(sentinel)
+    resolved_type = ModelResolver._get_primitive_lang_type(sentinel, {})
     assert resolved_type.container == ContainerType.PRIMITIVE
     assert resolved_type.type is sentinel
+    assert resolved_type.type_format == FORMAT_DEFAULT
 
 
 @pytest.mark.parametrize(
@@ -151,6 +153,7 @@ def test_modelresolver__get_object_lang_type(schema, result):
     item_type = resolved_type.type
     assert item_type.container == ContainerType.PRIMITIVE
     assert item_type.type == result
+    assert item_type.type_format == FORMAT_DEFAULT
 
 
 def test_modelresolver__schema_to_lang_type_ref():
@@ -179,6 +182,7 @@ def test_modelresolver__schema_to_lang_type_object():
     item_type = resolved_type.type
     assert item_type.container == ContainerType.PRIMITIVE
     assert item_type.type == UNDEFINED
+    assert item_type.type_format == FORMAT_DEFAULT
 
 
 def test_modelresolver__schema_to_lang_type_undef():
@@ -196,6 +200,7 @@ def test_modelresolver__schema_to_lang_type_primitive():
     resolved_type = resolver._schema_to_lang_type({"type": "string"})
     assert resolved_type.container == ContainerType.PRIMITIVE
     assert resolved_type.type == "string"
+    assert resolved_type.type_format == FORMAT_DEFAULT
 
 
 def test_modelresolver__schema_to_lang_type_multiple():
@@ -210,3 +215,13 @@ def test_modelresolver__schema_to_lang_duplicatetype():
     resolved_type = resolver._schema_to_lang_type({"type": ["string", "string"]})
     assert resolved_type.container == ContainerType.PRIMITIVE
     assert resolved_type.type == "string"
+
+
+def test_modelresolver__schema_to_lang_type_primitive_nondefault_format():
+    resolver = ModelResolver({})
+    resolved_type = resolver._schema_to_lang_type(
+        {"type": "integer", "format": "int64"}
+    )
+    assert resolved_type.container == ContainerType.PRIMITIVE
+    assert resolved_type.type == "integer"
+    assert resolved_type.type_format == "int64"

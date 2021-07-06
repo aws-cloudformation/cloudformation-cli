@@ -21,4 +21,4 @@ good-names=e,ex,f,fp,i,j,k,n,_
 [FORMAT]
 
 indent-string='    '
-max-line-length=88
+max-line-length=160

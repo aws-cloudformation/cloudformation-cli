@@ -2,14 +2,18 @@
 # pylint: disable=R0904
 import json
 import logging
+import re
 import time
 from time import sleep
 from uuid import uuid4
 
+import docker
 from botocore import UNSIGNED
 from botocore.config import Config
 
 from rpdk.core.contract.interface import Action, HandlerErrorCode, OperationStatus
+from rpdk.core.contract.type_configuration import TypeConfiguration
+from rpdk.core.exceptions import InvalidProjectError
 
 from ..boto_helpers import (
     LOWER_CAMEL_CRED_KEYS,
@@ -42,10 +46,10 @@ def prune_properties(document, paths):
 
 
 def prune_properties_if_not_exist_in_path(output_model, input_model, paths):
-    """Prune given properties from a document.
+    """Prune given properties from a model.
 
     This assumes properties will always have an object (dict) as a parent.
-    The function returns the document after pruning the path which exists
+    The function returns the model after pruning the path which exists
     in the paths tuple but not in the input_model
     """
     output_document = {"properties": output_model.copy()}
@@ -59,6 +63,24 @@ def prune_properties_if_not_exist_in_path(output_model, input_model, paths):
         except LookupError:
             pass
     return output_document["properties"]
+
+
+def prune_properties_which_dont_exist_in_path(model, paths):
+    """Prunes model to properties present in path. This method removes any property
+    from the model which does not exists in the paths
+
+    This assumes properties will always have an object (dict) as a parent.
+    The function returns the model after pruning all but the path which exists
+    in the paths tuple from the input_model
+    """
+    document = {"properties": model.copy()}
+    for model_path in model.keys():
+        path_tuple = ("properties", model_path)
+        if path_tuple not in paths:
+            _prop, resolved_path, parent = traverse(document, path_tuple)
+            key = resolved_path[-1]
+            del parent[key]
+    return document["properties"]
 
 
 def path_exists(document, path):
@@ -98,22 +120,6 @@ def override_properties(document, overrides):
     return document
 
 
-def create_model_with_properties_in_path(src_model, paths):
-    """Creates a model with values preset in the paths.
-
-    This assumes properties will always have an object (dict) as a parent.
-    The function returns the created model.
-    """
-    model = {}
-    try:
-        for path in paths:
-            pruned_path = path[-1]
-            model[pruned_path] = src_model[pruned_path]
-    except LookupError:
-        pass
-    return model
-
-
 class ResourceClient:  # pylint: disable=too-many-instance-attributes
     def __init__(
         self,
@@ -125,15 +131,23 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         inputs=None,
         role_arn=None,
         timeout_in_seconds="30",
+        type_name=None,
+        log_group_name=None,
+        log_role_arn=None,
+        docker_image=None,
+        executable_entrypoint=None,
     ):  # pylint: disable=too-many-arguments
         self._schema = schema
         self._session = create_sdk_session(region)
-        self._creds = get_temporary_credentials(
-            self._session, LOWER_CAMEL_CRED_KEYS, role_arn
-        )
+        self._role_arn = role_arn
+        self._type_name = type_name
+        self._log_group_name = log_group_name
+        self._log_role_arn = log_role_arn
         self.region = region
-        self.account = get_account(self._session, self._creds)
-        self.partition = self._get_partition()
+        self.account = get_account(
+            self._session,
+            get_temporary_credentials(self._session, LOWER_CAMEL_CRED_KEYS, role_arn),
+        )
         self._function_name = function_name
         if endpoint.startswith("http://"):
             self._client = self._session.client(
@@ -160,13 +174,9 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         self._update_schema(schema)
         self._inputs = inputs
         self._timeout_in_seconds = int(timeout_in_seconds)
-
-    def _get_partition(self):
-        if self.region.startswith("cn"):
-            return "aws-cn"
-        if self.region.startswith("us-gov"):
-            return "aws-gov"
-        return "aws"
+        self._docker_image = docker_image
+        self._docker_client = docker.from_env() if self._docker_image else None
+        self._executable_entrypoint = executable_entrypoint
 
     def _properties_to_paths(self, key):
         return {fragment_decode(prop, prefix="") for prop in self._schema.get(key, [])}
@@ -182,6 +192,7 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         self.read_only_paths = self._properties_to_paths("readOnlyProperties")
         self.write_only_paths = self._properties_to_paths("writeOnlyProperties")
         self.create_only_paths = self._properties_to_paths("createOnlyProperties")
+        self.properties_without_insertion_order = self.get_metadata()
 
         additional_identifiers = self._schema.get("additionalIdentifiers", [])
         self._additional_identifiers_paths = [
@@ -189,22 +200,31 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
             for identifier in additional_identifiers
         ]
 
-    def has_writable_identifier(self):
-        for path in self.primary_identifier_paths:
-            if path not in self.read_only_paths:
-                return True
-        for identifier_paths in self._additional_identifiers_paths:
-            for path in identifier_paths:
-                if path not in self.read_only_paths:
-                    return True
-        return False
+    def has_only_writable_identifiers(self):
+        return all(
+            path in self.create_only_paths for path in self.primary_identifier_paths
+        )
 
     def assert_write_only_property_does_not_exist(self, resource_model):
         if self.write_only_paths:
             assert not any(
                 self.key_error_safe_traverse(resource_model, write_only_property)
                 for write_only_property in self.write_only_paths
-            )
+            ), "The model MUST NOT return properties defined as \
+                writeOnlyProperties in the resource schema"
+
+    def get_metadata(self):
+        try:
+            properties = self._schema["properties"]
+        except KeyError:
+            return set()
+        else:
+            return {
+                prop
+                for prop in properties.keys()
+                if "insertionOrder" in properties[prop]
+                and properties[prop]["insertionOrder"] == "false"
+            }
 
     @property
     def strategy(self):
@@ -272,9 +292,51 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         example = self.invalid_strategy.example()
         return override_properties(example, self._overrides.get("CREATE", {}))
 
+    def get_unique_keys_for_model(self, create_model):
+        return {
+            k: v
+            for k, v in create_model.items()
+            if self.is_property_in_path(k, self.primary_identifier_paths)
+            or any(
+                map(
+                    lambda additional_identifier_paths, key=k: self.is_property_in_path(
+                        key, additional_identifier_paths
+                    ),
+                    self._additional_identifiers_paths,
+                )
+            )
+        }
+
+    @staticmethod
+    def is_property_in_path(key, paths):
+        for path in paths:
+            prop = fragment_list(path, "properties")[0]
+            if prop == key:
+                return True
+        return False
+
+    def validate_update_example_keys(self, unique_identifiers, update_example):
+        for primary_identifier in self.primary_identifier_paths:
+            if primary_identifier in self.create_only_paths:
+                primary_key = fragment_list(primary_identifier, "properties")[0]
+                assert update_example[primary_key] == unique_identifiers[primary_key], (
+                    "Any createOnlyProperties specified in update handler input "
+                    "MUST NOT be different from their previous state"
+                )
+
     def generate_update_example(self, create_model):
         if self._inputs:
-            return {**create_model, **self._inputs["UPDATE"]}
+            unique_identifiers = self.get_unique_keys_for_model(create_model)
+            update_example = self._inputs["UPDATE"]
+            if self.create_only_paths:
+                self.validate_update_example_keys(unique_identifiers, update_example)
+            update_example.update(unique_identifiers)
+            create_model_with_read_only_properties = (
+                prune_properties_which_dont_exist_in_path(
+                    create_model, self.read_only_paths
+                )
+            )
+            return {**create_model_with_read_only_properties, **update_example}
         overrides = self._overrides.get("UPDATE", self._overrides.get("CREATE", {}))
         example = override_properties(self.update_strategy.example(), overrides)
         return {**create_model, **example}
@@ -285,6 +347,32 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         overrides = self._overrides.get("UPDATE", self._overrides.get("CREATE", {}))
         example = override_properties(self.invalid_strategy.example(), overrides)
         return {**create_model, **example}
+
+    def compare(self, inputs, outputs):
+        assertion_error_message = (
+            "All properties specified in the request MUST "
+            "be present in the model returned, and they MUST"
+            " match exactly, with the exception of properties"
+            " defined as writeOnlyProperties in the resource schema"
+        )
+        try:
+            if isinstance(inputs, dict):
+                for key in inputs:
+                    if isinstance(inputs[key], dict):
+                        self.compare(inputs[key], outputs[key])
+                    elif isinstance(inputs[key], list):
+                        assert len(inputs[key]) == len(outputs[key])
+                        self.compare_list(inputs[key], outputs[key])
+                    else:
+                        assert inputs[key] == outputs[key], assertion_error_message
+            else:
+                assert inputs == outputs, assertion_error_message
+        except Exception as exception:
+            raise AssertionError(assertion_error_message) from exception
+
+    def compare_list(self, inputs, outputs):
+        for index in range(len(inputs)):  # pylint: disable=C0200
+            self.compare(inputs[index], outputs[index])
 
     @staticmethod
     def key_error_safe_traverse(resource_model, write_only_property):
@@ -339,27 +427,36 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         previous_resource_state,
         region,
         account,
-        partition,
         action,
         creds,
+        type_name,
+        log_group_name,
+        log_creds,
         token,
         callback_context=None,
-        **kwargs
+        type_configuration=None,
+        **kwargs,
     ):
-        return {
+        request_body = {
             "requestData": {
                 "callerCredentials": creds,
                 "resourceProperties": desired_resource_state,
                 "previousResourceProperties": previous_resource_state,
-                "logicalResourceIdentifier": token,
+                "logicalResourceId": token,
+                "typeConfiguration": type_configuration,
             },
             "region": region,
-            "awsPartition": partition,
             "awsAccountId": account,
             "action": action,
             "callbackContext": callback_context,
+            "bearerToken": token,
+            "resourceType": type_name,
             **kwargs,
         }
+        if log_group_name and log_creds:
+            request_body["requestData"]["providerCredentials"] = log_creds
+            request_body["requestData"]["providerLogGroupName"] = log_group_name
+        return request_body
 
     @staticmethod
     def generate_token():
@@ -377,63 +474,132 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
 
     @staticmethod
     def assert_primary_identifier(primary_identifier_paths, resource_model):
-        assert all(
-            traverse(resource_model, fragment_list(primary_identifier, "properties"))[0]
-            for primary_identifier in primary_identifier_paths
-        )
+        try:
+            assert all(
+                traverse(
+                    resource_model, fragment_list(primary_identifier, "properties")
+                )[0]
+                for primary_identifier in primary_identifier_paths
+            ), "Every returned model MUST include the primaryIdentifier"
+        except KeyError as e:
+            raise AssertionError(
+                "Every returned model MUST include the primaryIdentifier"
+            ) from e
 
     @staticmethod
     def is_primary_identifier_equal(
         primary_identifier_path, created_model, updated_model
     ):
-        return all(
-            traverse(created_model, fragment_list(primary_identifier, "properties"))[0]
-            == traverse(updated_model, fragment_list(primary_identifier, "properties"))[
-                0
-            ]
-            for primary_identifier in primary_identifier_path
-        )
+        try:
+            return all(
+                traverse(
+                    created_model, fragment_list(primary_identifier, "properties")
+                )[0]
+                == traverse(
+                    updated_model, fragment_list(primary_identifier, "properties")
+                )[0]
+                for primary_identifier in primary_identifier_path
+            )
+        except KeyError as e:
+            raise AssertionError(
+                "The primaryIdentifier returned in every progress event must\
+                     match the primaryIdentifier passed into the request"
+            ) from e
 
-    def _make_payload(self, action, current_model, previous_model=None, **kwargs):
+    def _make_payload(
+        self,
+        action,
+        current_model,
+        previous_model=None,
+        type_configuration=None,
+        **kwargs,
+    ):
         return self.make_request(
             current_model,
             previous_model,
             self.region,
             self.account,
-            self.partition,
             action,
-            self._creds.copy(),
+            get_temporary_credentials(
+                self._session, LOWER_CAMEL_CRED_KEYS, self._role_arn
+            ),
+            self._type_name,
+            self._log_group_name,
+            get_temporary_credentials(
+                self._session, LOWER_CAMEL_CRED_KEYS, self._log_role_arn
+            ),
             self.generate_token(),
-            **kwargs
+            type_configuration=type_configuration,
+            **kwargs,
         )
 
     def _call(self, payload):
+        request_without_write_properties = prune_properties(
+            payload["requestData"]["resourceProperties"], self.write_only_paths
+        )
+
+        previous_request_without_write_properties = None
+        if payload["requestData"]["previousResourceProperties"]:
+            previous_request_without_write_properties = prune_properties(
+                payload["requestData"]["previousResourceProperties"],
+                self.write_only_paths,
+            )
         payload_to_log = {
-            key: payload[key]
-            for key in [
-                "callbackContext",
-                "action",
-                "requestData",
-                "region",
-                "awsPartition",
-                "awsAccountId",
-            ]
+            "callbackContext": payload["callbackContext"],
+            "action": payload["action"],
+            "requestData": {
+                "resourceProperties": request_without_write_properties,
+                "previousResourceProperties": previous_request_without_write_properties,
+                "logicalResourceId": payload["requestData"]["logicalResourceId"],
+            },
+            "region": payload["region"],
+            "awsAccountId": payload["awsAccountId"],
+            "bearerToken": payload["bearerToken"],
         }
         LOG.debug(
             "Sending request\n%s",
             json.dumps(payload_to_log, ensure_ascii=False, indent=2),
         )
         payload = json.dumps(payload, ensure_ascii=False, indent=2)
-        result = self._client.invoke(
-            FunctionName=self._function_name, Payload=payload.encode("utf-8")
-        )
-        payload = json.load(result["Payload"])
+        if self._docker_image:
+            if not self._executable_entrypoint:
+                raise InvalidProjectError(
+                    "executableEntrypoint not set in .rpdk-config. "
+                    "Have you run cfn generate?"
+                )
+            result = (
+                self._docker_client.containers.run(
+                    self._docker_image,
+                    self._executable_entrypoint + " '" + payload + "'",
+                )
+                .decode()
+                .strip()
+            )
+            LOG.debug("=== Handler execution logs ===")
+            LOG.debug(result)
+            # pylint: disable=W1401
+            regex = "__CFN_RESOURCE_START_RESPONSE__([\s\S]*)__CFN_RESOURCE_END_RESPONSE__"  # noqa: W605,B950 # pylint: disable=C0301
+            payload = json.loads(re.search(regex, result).group(1))
+        else:
+            result = self._client.invoke(
+                FunctionName=self._function_name, Payload=payload.encode("utf-8")
+            )
+
+            try:
+                payload = json.load(result["Payload"])
+            except json.decoder.JSONDecodeError as json_error:
+                LOG.debug("Received invalid response\n%s", result["Payload"])
+                raise ValueError(
+                    "Handler Output is not a valid JSON document"
+                ) from json_error
         LOG.debug("Received response\n%s", payload)
         return payload
 
     def call_and_assert(
         self, action, assert_status, current_model, previous_model=None, **kwargs
     ):
+        if not self.has_required_handlers():
+            raise ValueError("Create/Read/Delete handlers are required")
         if assert_status not in [OperationStatus.SUCCESS, OperationStatus.FAILED]:
             raise ValueError("Assert status {} not supported.".format(assert_status))
 
@@ -446,7 +612,13 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         return status, response, error_code
 
     def call(self, action, current_model, previous_model=None, **kwargs):
-        request = self._make_payload(action, current_model, previous_model, **kwargs)
+        request = self._make_payload(
+            action,
+            current_model,
+            previous_model,
+            TypeConfiguration.get_type_configuration(),
+            **kwargs,
+        )
         start_time = time.time()
         response = self._call(request)
         self.assert_time(start_time, time.time(), action)
@@ -479,3 +651,12 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
 
     def has_update_handler(self):
         return "update" in self._schema["handlers"]
+
+    def has_required_handlers(self):
+        try:
+            has_delete = "delete" in self._schema["handlers"]
+            has_create = "create" in self._schema["handlers"]
+            has_read = "read" in self._schema["handlers"]
+            return has_read and has_create and has_delete
+        except KeyError:
+            return False

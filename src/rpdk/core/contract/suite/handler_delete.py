@@ -7,10 +7,6 @@ import pytest
 # WARNING: contract tests should use fully qualified imports to avoid issues
 # when being loaded by pytest
 from rpdk.core.contract.interface import Action, HandlerErrorCode, OperationStatus
-from rpdk.core.contract.resource_client import (
-    create_model_with_properties_in_path,
-    prune_properties_from_model,
-)
 from rpdk.core.contract.suite.handler_commons import (
     test_create_success,
     test_delete_failure_not_found,
@@ -28,29 +24,30 @@ LOG = logging.getLogger(__name__)
 
 @pytest.fixture(scope="module")
 def deleted_resource(resource_client):
-    request = input_model = pruned_model = resource_client.generate_create_example()
+    request = input_model = model = resource_client.generate_create_example()
     try:
         _status, response, _error = resource_client.call_and_assert(
             Action.CREATE, OperationStatus.SUCCESS, request
         )
         model = response["resourceModel"]
         test_input_equals_output(resource_client, input_model, model)
-        primay_identifier_only_model = create_model_with_properties_in_path(
-            model,
-            resource_client.primary_identifier_paths,
-        )
         _status, response, _error = resource_client.call_and_assert(
-            Action.DELETE, OperationStatus.SUCCESS, primay_identifier_only_model
+            Action.DELETE, OperationStatus.SUCCESS, model
         )
-        assert "resourceModel" not in response
+        assert (
+            "resourceModel" not in response
+        ), "The deletion handler's response object MUST NOT contain a model"
         yield model, request
     finally:
-        status, response = resource_client.call(Action.DELETE, pruned_model)
+        status, response = resource_client.call(Action.DELETE, model)
 
         # a failed status is allowed if the error code is NotFound
         if status == OperationStatus.FAILED:
             error_code = resource_client.assert_failed(status, response)
-            assert error_code == HandlerErrorCode.NotFound
+            assert (
+                error_code == HandlerErrorCode.NotFound
+            ), "A delete hander MUST return FAILED with a NotFound error code\
+                 if the resource did not exist prior to the delete request"
         else:
             resource_client.assert_success(status, response)
 
@@ -70,7 +67,10 @@ def contract_delete_list(resource_client, deleted_resource):
     #       remove the model from the list, however.
 
     deleted_model, _request = deleted_resource
-    assert not test_model_in_list(resource_client, deleted_model)
+    assert not test_model_in_list(
+        resource_client, deleted_model
+    ), "A list operation MUST NOT return the primaryIdentifier \
+        of any deleted resource instance"
 
 
 @pytest.mark.delete
@@ -89,19 +89,12 @@ def contract_delete_delete(resource_client, deleted_resource):
 @pytest.mark.create
 @pytest.mark.delete
 def contract_delete_create(resource_client, deleted_resource):
-    if resource_client.has_writable_identifier():
-        deleted_model, request = deleted_resource
+    if resource_client.has_only_writable_identifiers():
+        _deleted_model, request = deleted_resource
         response = test_create_success(resource_client, request)
-        created_response = response.copy()
-        # read-only properties should be excluded from the comparison
-        prune_properties_from_model(deleted_model, resource_client.read_only_paths)
-        prune_properties_from_model(
-            response["resourceModel"], resource_client.read_only_paths
-        )
 
-        assert deleted_model == response["resourceModel"]
         resource_client.call_and_assert(
-            Action.DELETE, OperationStatus.SUCCESS, created_response["resourceModel"]
+            Action.DELETE, OperationStatus.SUCCESS, response["resourceModel"]
         )
     else:
         pytest.skip("No writable identifiers. Skipping test.")

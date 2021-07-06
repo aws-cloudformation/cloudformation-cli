@@ -1,0 +1,21 @@
+{
+    "typeName": "AWS::Valid::TypeName",
+    "description": "a test schema",
+    "properties": {
+        "property1": {
+            "type": "object",
+            "properties": {
+                "property1": {
+                    "type": "integer"
+                }
+            }
+        }
+    },
+    "primaryIdentifier": [
+        "/properties/property1"
+    ],
+    "readOnlyProperties": [
+        "/properties/property1"
+    ],
+    "additionalProperties": false
+}

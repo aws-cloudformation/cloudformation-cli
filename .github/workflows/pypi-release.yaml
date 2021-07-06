@@ -1,0 +1,26 @@
+# This workflow will release project to PyPI
+name: CloudFormation CLI Release
+
+on:
+  release:
+    types: [ published ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python 3.8
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.8
+    - name: Install dependencies
+      run: |
+        pip install --upgrade wheel twine
+    - name: Package project
+      run: |
+        python setup.py sdist bdist_wheel
+    - name: Publish distribution 📦 to PyPI (If triggered from release)
+      uses: pypa/gh-action-pypi-publish@master
+      with:
+        password: ${{ secrets.PYPI_API_KEY_CLOUDFORMATION_CLI }}

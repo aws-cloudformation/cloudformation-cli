@@ -1,0 +1,20 @@
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch: # Enables on-demand/manual triggering: https://docs.github.com/en/free-pro-team@latest/actions/managing-workflow-runs/manually-running-a-workflow
+jobs:
+  schema-updater:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - run: |
+          curl https://raw.githubusercontent.com/aws-cloudformation/aws-cloudformation-resource-schema/master/src/main/resources/schema/provider.definition.schema.v1.json > src/rpdk/core/data/schema/provider.definition.schema.v1.json
+      - uses: peter-evans/create-pull-request@v3
+        with:
+          commit-message: |
+            CloudFormation Resource Provider Definition MetaSchema update
+          delete-branch: true
+          title: CloudFormation Resource Provider Definition MetaSchema update
+          body: |
+            If tests are stuck on https://github.com/peter-evans/create-pull-request/issues/48:
+            ["Manually close pull requests and immediately reopen them. This will enable `on: pull_request` workflows to run and be added as checks."](https://github.com/peter-evans/create-pull-request/blob/master/docs/concepts-guidelines.md#triggering-further-workflow-runs)

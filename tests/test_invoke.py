@@ -20,8 +20,8 @@ def payload_path(tmp_path):
     with path.open("w", encoding="utf-8") as f:
         json.dump(
             {
-                "desiredResourceState": None,
-                "previousResourceState": None,
+                "desiredResourceState": {"foo": "bar"},
+                "previousResourceState": {"foo": "prev_bar"},
                 "logicalResourceIdentifier": None,
             },
             f,
@@ -87,6 +87,7 @@ def test_value_error_on_json_load(capsys, invalid_payload, command):
     mock_project = Mock(spec=Project)
     mock_project.schema = {}
     mock_project.root = None
+    mock_project.executable_entrypoint = None
 
     patch_project = patch(
         "rpdk.core.invoke.Project", autospec=True, return_value=mock_project
@@ -118,6 +119,7 @@ def test_keyboard_interrupt(capsys, payload_path, command):
     mock_project = Mock(spec=Project)
     mock_project.schema = {}
     mock_project.root = None
+    mock_project.executable_entrypoint = None
 
     patch_project = patch(
         "rpdk.core.invoke.Project", autospec=True, return_value=mock_project
@@ -167,6 +169,7 @@ def _invoke_and_expect(status, payload_path, command, *args):
     mock_project = Mock(spec=Project)
     mock_project.schema = {}
     mock_project.root = None
+    mock_project.executable_entrypoint = None
 
     patch_project = patch(
         "rpdk.core.invoke.Project", autospec=True, return_value=mock_project
@@ -196,6 +199,6 @@ def _invoke_and_expect(status, payload_path, command, *args):
         }
         main(args_in=["invoke", command, str(payload_path), *args])
     # fmt: on
-    mock_creds.assert_called_once()
+    mock_creds.assert_called()
 
     return mock_project, mock_client.invoke

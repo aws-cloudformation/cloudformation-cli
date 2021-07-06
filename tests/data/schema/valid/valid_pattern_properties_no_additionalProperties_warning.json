@@ -1,0 +1,28 @@
+{
+    "typeName": "AWS::Valid::TypeName",
+    "description": "a test schema",
+    "definitions": {
+        "obj2def": {
+            "type": "object",
+            "patternProperties": {
+                ".*": {
+                    "type": "string"
+                }
+            }
+        }
+    },
+    "properties": {
+        "obj2": {
+            "type": "object",
+            "description": "",
+            "$ref": "#/definitions/obj2def"
+        },
+        "enum1": {
+            "type": "string"
+        }
+    },
+    "primaryIdentifier": [
+        "/properties/enum1"
+    ],
+    "additionalProperties": false
+}

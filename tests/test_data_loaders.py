@@ -16,8 +16,8 @@ from pytest_localserver.http import Request, Response, WSGIServer
 from rpdk.core.data_loaders import (
     STDIN_NAME,
     get_file_base_uri,
+    get_schema_store,
     load_resource_spec,
-    make_validator,
     resource_json,
     resource_stream,
     resource_yaml,
@@ -83,19 +83,90 @@ def json_files_params(path, glob="*.json"):
 
 
 @pytest.mark.parametrize(
-    "example", json_files_params(BASEDIR.parent / "examples" / "schema", "*-*-*.json")
-)
-def test_load_resource_spec_example_spec_is_valid(example):
-    with example.open("r", encoding="utf-8") as f:
-        assert load_resource_spec(f)
-
-
-@pytest.mark.parametrize(
     "example", json_files_params(BASEDIR / "data" / "schema" / "valid")
 )
 def test_load_resource_spec_valid_snippets(example):
     with example.open("r", encoding="utf-8") as f:
         assert load_resource_spec(f)
+
+
+@pytest.mark.parametrize(
+    "schema",
+    [
+        "valid_nested_property_object_no_additionalProperties_warning.json",
+        "valid_pattern_properties_no_additionalProperties_warning.json",
+    ],
+)
+def test_load_resource_spec_object_property_missing_additional_properties(
+    schema, caplog
+):
+    schema = BASEDIR / "data" / "schema" / "valid" / schema
+    with schema.open("r", encoding="utf-8") as f:
+        assert load_resource_spec(f)
+    assert "Resource spec validation would fail from next major version" in caplog.text
+
+
+def test_load_resource_spec_unmodeled_object_property_missing_additional_properties(
+    caplog,
+):
+    schema = BASEDIR / "data" / "schema" / "valid" / "valid_no_properties.json"
+    with schema.open("r", encoding="utf-8") as f:
+        assert load_resource_spec(f)
+    assert (
+        "Resource spec validation would fail from next major version" not in caplog.text
+    )
+
+
+def test_load_resource_spec_conditionally_create_only_match_create_only():
+    schema = {
+        "typeName": "AWS::FOO::BAR",
+        "description": "test schema",
+        "additionalProperties": False,
+        "properties": {"foo": {"type": "string"}, "bar": {"type": "string"}},
+        "primaryIdentifier": ["/properties/foo"],
+        "readOnlyProperties": ["/properties/foo"],
+        "createOnlyProperties": ["/properties/bar"],
+        "conditionalCreateOnlyProperties": ["/properties/bar"],
+    }
+    with pytest.raises(SpecValidationError) as excinfo:
+        load_resource_spec(json_s(schema))
+    assert (
+        str(excinfo.value)
+        == "createOnlyProperties and conditionalCreateOnlyProperties MUST NOT have common properties"
+    )
+
+
+def test_load_resource_spec_conditionally_create_only_match_read_only():
+    schema = {
+        "typeName": "AWS::FOO::BAR",
+        "description": "test schema",
+        "additionalProperties": False,
+        "properties": {"foo": {"type": "string"}},
+        "primaryIdentifier": ["/properties/foo"],
+        "readOnlyProperties": ["/properties/foo"],
+        "conditionalCreateOnlyProperties": ["/properties/foo"],
+    }
+    with pytest.raises(SpecValidationError) as excinfo:
+        load_resource_spec(json_s(schema))
+    assert (
+        str(excinfo.value)
+        == "readOnlyProperties and conditionalCreateOnlyProperties MUST NOT have common properties"
+    )
+
+
+@pytest.mark.parametrize(
+    "schema",
+    [
+        "invalid_nested_property_object_additionalProperties_true_warning.json",
+        "invalid_pattern_properties_additionalProperties_true_warning.json",
+    ],
+)
+def test_load_resource_spec_object_property_additional_properties_true(schema):
+    schema = BASEDIR / "data" / "schema" / "invalid" / schema
+    with schema.open("r", encoding="utf-8") as f:
+        with pytest.raises(SpecValidationError) as excinfo:
+            load_resource_spec(f)
+    assert "False was expected" in str(excinfo.value)
 
 
 @pytest.mark.parametrize(
@@ -223,16 +294,6 @@ def plugin():
     return mock_plugin
 
 
-def test_make_validator_handlers_use_local_meta_schema():
-    try:
-        validator = make_validator(
-            {"$ref": "https://somewhere/does/not/exist"}, base_uri="http://localhost/"
-        )
-        validator.validate(True)
-    except Exception:  # pylint: disable=broad-except
-        pytest.fail("Unexpect error, should success")
-
-
 def mock_pkg_resource_stream(bytes_in, func=resource_stream):
     resource_name = "data/test.utf-8"
     target = "rpdk.core.data_loaders.pkg_resources.resource_stream"
@@ -285,3 +346,30 @@ def test_resource_yaml():
     encoded = yaml.dump(obj).encode("utf-8")
     result = mock_pkg_resource_stream(encoded, func=resource_yaml)
     assert result == obj
+
+
+def test_get_schema_store_schemas_with_id():
+    schema_store = get_schema_store(
+        BASEDIR.parent / "src" / "rpdk" / "core" / "data" / "schema"
+    )
+    assert len(schema_store) == 5
+    assert "http://json-schema.org/draft-07/schema#" in schema_store
+    assert (
+        "https://schema.cloudformation.us-east-1.amazonaws.com/base.definition.schema.v1.json"
+        in schema_store
+    )
+    assert (
+        "https://schema.cloudformation.us-east-1.amazonaws.com/provider.configuration.definition.schema.v1.json"
+        in schema_store
+    )
+    assert (
+        "https://schema.cloudformation.us-east-1.amazonaws.com/provider.definition.schema.v1.json"
+        in schema_store
+    )
+
+
+def test_get_schema_store_schemas_with_out_id():
+    schema_store = get_schema_store(
+        BASEDIR.parent / "src" / "rpdk" / "core" / "data" / "examples" / "resource"
+    )
+    assert len(schema_store) == 0

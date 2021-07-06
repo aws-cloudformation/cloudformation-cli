@@ -12,5 +12,6 @@
     "readOnlyProperties": [
         "/properties/property1"
     ],
-    "additionalProperties": false
+    "additionalProperties": false,
+    "taggable": false
 }

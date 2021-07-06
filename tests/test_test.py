@@ -10,11 +10,13 @@ import pytest
 
 from rpdk.core.cli import EXIT_UNHANDLED_EXCEPTION, main
 from rpdk.core.contract.interface import Action
-from rpdk.core.project import Project
+from rpdk.core.exceptions import SysExitRecommendedError
+from rpdk.core.project import ARTIFACT_TYPE_MODULE, ARTIFACT_TYPE_RESOURCE, Project
 from rpdk.core.test import (
     DEFAULT_ENDPOINT,
     DEFAULT_FUNCTION,
     DEFAULT_REGION,
+    _validate_sam_args,
     empty_override,
     get_inputs,
     get_marker_options,
@@ -100,6 +102,8 @@ def test_test_command_happy_path(
     mock_project = Mock(spec=Project)
     mock_project.schema = SCHEMA
     mock_project.root = base
+    mock_project.executable_entrypoint = None
+    mock_project.artifact_type = ARTIFACT_TYPE_RESOURCE
 
     patch_project = patch(
         "rpdk.core.test.Project", autospec=True, return_value=mock_project
@@ -130,6 +134,11 @@ def test_test_command_happy_path(
         {"CREATE": {"a": 1}, "UPDATE": {"a": 2}, "INVALID": {"b": 1}},
         None,
         enforce_timeout,
+        mock_project.type_name,
+        None,
+        None,
+        None,
+        None,
     )
     mock_plugin.assert_called_once_with(mock_client.return_value)
     mock_ini.assert_called_once_with()
@@ -146,6 +155,8 @@ def test_test_command_return_code_on_error():
 
     mock_project.root = None
     mock_project.schema = SCHEMA
+    mock_project.executable_entrypoint = None
+    mock_project.artifact_type = ARTIFACT_TYPE_RESOURCE
     patch_project = patch(
         "rpdk.core.test.Project", autospec=True, return_value=mock_project
     )
@@ -157,6 +168,17 @@ def test_test_command_return_code_on_error():
             main(args_in=["test"])
 
     assert excinfo.value.code != EXIT_UNHANDLED_EXCEPTION
+
+
+def test_test_command_module_project_succeeds():
+    mock_project = Mock(spec=Project)
+
+    mock_project.artifact_type = ARTIFACT_TYPE_MODULE
+    patch_project = patch(
+        "rpdk.core.test.Project", autospec=True, return_value=mock_project
+    )
+    with patch_project:
+        main(args_in=["test"])
 
 
 def test_temporary_ini_file():
@@ -376,3 +398,16 @@ def test_get_input_file_not_found(base):
     path = base / "inputs"
     os.mkdir(path, mode=0o777)
     assert not get_inputs(base, DEFAULT_REGION, "", 1, None)
+
+
+def test_use_both_sam_and_docker_arguments():
+    args = Mock(spec_set=["docker_image", "endpoint"])
+    args.docker_image = "image"
+    args.endpoint = "endpoint"
+    try:
+        _validate_sam_args(args)
+    except SysExitRecommendedError as e:
+        assert (
+            "Cannot specify both --docker-image and --endpoint or --function-name"
+            in str(e)
+        )
