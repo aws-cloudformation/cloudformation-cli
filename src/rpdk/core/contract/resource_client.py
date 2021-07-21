@@ -158,7 +158,7 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
                 config=Config(
                     signature_version=UNSIGNED,
                     # needs to be long if docker is running on a slow machine
-                    read_timeout=5 * 60,
+                    read_timeout=15 * 60,
                     retries={"max_attempts": 0},
                     region_name=self._session.region_name,
                 ),
