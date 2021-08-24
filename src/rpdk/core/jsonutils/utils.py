@@ -1,3 +1,5 @@
+import hashlib
+import json
 from collections.abc import Mapping, Sequence
 from typing import Any
 
@@ -12,6 +14,14 @@ REF = "$ref"
 
 class FlatteningError(Exception):
     pass
+
+
+def item_hash(item):
+    """MD5 hash for an item (Dictionary/Scalar)"""
+    dhash = hashlib.md5()  # nosec
+    encoded = json.dumps(item, sort_keys=True).encode()
+    dhash.update(encoded)
+    return dhash.hexdigest()
 
 
 def to_set(value: Any) -> OrderedSet:

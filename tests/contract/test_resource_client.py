@@ -1373,6 +1373,30 @@ def test_compare_should_throw_exception(resource_client):
         logging.debug("This test expects Assertion Exception to be thrown")
 
 
+@pytest.mark.parametrize(
+    "inputs,outputs,schema_fragment",
+    [
+        (
+            {"CollectionToCompare": ["item1", "item2", "item3"]},
+            {"CollectionToCompare": ["item3", "item2", "item1"]},
+            {"properties": {"CollectionToCompare": {"insetionOrder": False}}},
+        ),
+        (
+            {"CollectionToCompare": ["item1", "item2", "item3"]},
+            {"CollectionToCompare": ["item1", "item2", "item3"]},
+            {"properties": {"CollectionToCompare": {"insetionOrder": True}}},
+        ),
+    ],
+)
+def test_compare_collection(resource_client, inputs, outputs, schema_fragment):
+    resource_client._update_schema(schema_fragment)
+
+    try:
+        resource_client.compare(inputs, outputs)
+    except AssertionError:
+        logging.debug("This test expects Assertion Exception to be thrown")
+
+
 def test_compare_should_throw_key_error(resource_client):
     resource_client._update_schema(SCHEMA_WITH_NESTED_PROPERTIES)
     inputs = {"b": {"d": 1}, "f": [{"d": 1}], "h": [{"d": 1}]}

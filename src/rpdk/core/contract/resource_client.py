@@ -22,7 +22,7 @@ from ..boto_helpers import (
     get_temporary_credentials,
 )
 from ..jsonutils.pointer import fragment_decode, fragment_list
-from ..jsonutils.utils import traverse
+from ..jsonutils.utils import item_hash, traverse
 
 LOG = logging.getLogger(__name__)
 
@@ -362,7 +362,10 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
                         self.compare(inputs[key], outputs[key])
                     elif isinstance(inputs[key], list):
                         assert len(inputs[key]) == len(outputs[key])
-                        self.compare_list(inputs[key], outputs[key])
+                        is_ordered = self._schema["properties"][key].get(
+                            "insertionOrder", True
+                        )
+                        self.compare_collection(inputs[key], outputs[key], is_ordered)
                     else:
                         assert inputs[key] == outputs[key], assertion_error_message
             else:
@@ -370,9 +373,15 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         except Exception as exception:
             raise AssertionError(assertion_error_message) from exception
 
-    def compare_list(self, inputs, outputs):
-        for index in range(len(inputs)):  # pylint: disable=C0200
-            self.compare(inputs[index], outputs[index])
+    def compare_collection(self, inputs, outputs, is_ordered):
+        if is_ordered:
+            for index in range(len(inputs)):  # pylint: disable=C0200
+                self.compare(inputs[index], outputs[index])
+            return
+
+        assert {item_hash(item) for item in inputs} == {
+            item_hash(item) for item in outputs
+        }
 
     @staticmethod
     def key_error_safe_traverse(resource_model, write_only_property):
