@@ -1379,22 +1379,19 @@ def test_compare_should_throw_exception(resource_client):
         (
             {"CollectionToCompare": ["item1", "item2", "item3"]},
             {"CollectionToCompare": ["item3", "item2", "item1"]},
-            {"properties": {"CollectionToCompare": {"insetionOrder": False}}},
+            {"properties": {"CollectionToCompare": {"insertionOrder": False}}},
         ),
         (
             {"CollectionToCompare": ["item1", "item2", "item3"]},
             {"CollectionToCompare": ["item1", "item2", "item3"]},
-            {"properties": {"CollectionToCompare": {"insetionOrder": True}}},
+            {"properties": {"CollectionToCompare": {"insertionOrder": True}}},
         ),
     ],
 )
 def test_compare_collection(resource_client, inputs, outputs, schema_fragment):
     resource_client._update_schema(schema_fragment)
 
-    try:
-        resource_client.compare(inputs, outputs)
-    except AssertionError:
-        logging.debug("This test expects Assertion Exception to be thrown")
+    resource_client.compare(inputs, outputs)
 
 
 def test_compare_should_throw_key_error(resource_client):
