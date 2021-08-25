@@ -499,7 +499,6 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
             # the default compression is ZIP_STORED, which helps with the
             # file-size check on upload
             with zipfile.ZipFile(f, mode="w") as zip_file:
-                zip_file.write(self.schema_path, SCHEMA_UPLOAD_FILENAME)
                 if self.configuration_schema:
                     with zip_file.open(
                         CONFIGURATION_SCHEMA_UPLOAD_FILENAME, "w"
