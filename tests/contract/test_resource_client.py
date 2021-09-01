@@ -1386,6 +1386,33 @@ def test_compare_should_throw_exception(resource_client):
             {"CollectionToCompare": ["item1", "item2", "item3"]},
             {"properties": {"CollectionToCompare": {"insertionOrder": True}}},
         ),
+        (
+            {
+                "CollectionToCompare": [
+                    "item1",
+                    "item2",
+                    "item3",
+                    {"i": ["item1", "item2"]},
+                    [
+                        {"j1": {"z": {"l": 10}}, "k3": ["item5", "item4", "item1"]},
+                        {"j": {"z": {"l": 10}}, "k": ["item4", "item3", "item2"]},
+                    ],
+                ]
+            },
+            {
+                "CollectionToCompare": [
+                    "item3",
+                    "item2",
+                    "item1",
+                    {"i": ["item2", "item1"]},
+                    [
+                        {"j": {"k": ["item2", "item3", "item4"], "z": {"l": 10}}},
+                        {"j1": {"k3": ["item1", "item5", "item4"], "z": {"l": 10}}},
+                    ],
+                ]
+            },
+            {"properties": {"CollectionToCompare": {"insertionOrder": False}}},
+        ),
     ],
 )
 def test_compare_collection(resource_client, inputs, outputs, schema_fragment):

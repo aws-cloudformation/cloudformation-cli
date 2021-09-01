@@ -16,9 +16,15 @@ class FlatteningError(Exception):
     pass
 
 
-def item_hash(item):
-    """MD5 hash for an item (Dictionary/Scalar)"""
+def item_hash(
+    item,
+):  # assumption -> input is only json comparable type (dict/list/scalar)
+    """MD5 hash for an item (Dictionary/Iterable/Scalar)"""
     dhash = hashlib.md5()  # nosec
+    if isinstance(item, dict):
+        item = {k: item_hash(v) for k, v in item.items()}
+    if isinstance(item, list):
+        item = [item_hash(i) for i in item].sort()
     encoded = json.dumps(item, sort_keys=True).encode()
     dhash.update(encoded)
     return dhash.hexdigest()
