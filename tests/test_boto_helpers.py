@@ -101,7 +101,7 @@ def test_get_temporary_credentials_needs_token():
         endpoint_url="https://sts.us-east-2.amazonaws.com",
         region_name="us-east-2",
     )
-    client.get_session_token.assert_called_once_with(DurationSeconds=21600)
+    client.get_session_token.assert_called_once_with(DurationSeconds=900)
 
     assert len(creds) == 3
     assert tuple(creds.keys()) == LOWER_CAMEL_CRED_KEYS
@@ -135,7 +135,7 @@ def test_get_temporary_credentials_invalid_credentials():
         endpoint_url="https://sts.us-east-2.amazonaws.com",
         region_name="us-east-2",
     )
-    client.get_session_token.assert_called_once_with(DurationSeconds=21600)
+    client.get_session_token.assert_called_once_with(DurationSeconds=900)
 
 
 def test_get_temporary_credentials_assume_role_fails():
@@ -163,7 +163,7 @@ def test_get_temporary_credentials_assume_role_fails():
         region_name="us-east-2",
     )
     client.assume_role.assert_called_once_with(
-        RoleArn=EXPECTED_ROLE, RoleSessionName=ANY, DurationSeconds=21600
+        RoleArn=EXPECTED_ROLE, RoleSessionName=ANY, DurationSeconds=900
     )
 
 
@@ -192,7 +192,7 @@ def test_get_temporary_credentials_assume_role():
         region_name="cn-north-1",
     )
     client.assume_role.assert_called_once_with(
-        RoleArn=EXPECTED_ROLE, RoleSessionName=ANY, DurationSeconds=21600
+        RoleArn=EXPECTED_ROLE, RoleSessionName=ANY, DurationSeconds=900
     )
 
     assert len(creds) == 3
