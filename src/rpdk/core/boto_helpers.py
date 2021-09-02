@@ -44,7 +44,7 @@ def get_temporary_credentials(session, key_names=BOTO_CRED_KEYS, role_arn=None):
         )
         try:
             response = sts_client.assume_role(
-                RoleArn=role_arn, RoleSessionName=session_name, DurationSeconds=21600
+                RoleArn=role_arn, RoleSessionName=session_name, DurationSeconds=900
             )
         except ClientError:
             # pylint: disable=W1201
@@ -64,7 +64,7 @@ def get_temporary_credentials(session, key_names=BOTO_CRED_KEYS, role_arn=None):
             creds = (frozen.access_key, frozen.secret_key, frozen.token)
         else:
             try:
-                response = sts_client.get_session_token(DurationSeconds=21600)
+                response = sts_client.get_session_token(DurationSeconds=900)
             except ClientError as e:
                 LOG.debug(
                     "Getting session token resulted in unknown ClientError", exc_info=e
