@@ -5,7 +5,7 @@ from typing import Any
 
 from ordered_set import OrderedSet
 
-from .pointer import fragment_encode
+from .pointer import fragment_decode, fragment_encode
 
 NON_MERGABLE_KEYS = ("uniqueItems", "insertionOrder")
 TYPE = "type"
@@ -125,6 +125,55 @@ def traverse(document, path_parts):
         document = document[part]
         path.append(part)
     return document, tuple(path), parent
+
+
+def _resolve_ref(sub_schema, definitions):
+    if "$ref" in sub_schema:
+        sub_schema = definitions[fragment_decode(sub_schema["$ref"])[-1]]
+    if "properties" in sub_schema:
+        sub_schema = sub_schema["properties"]
+    return sub_schema
+
+
+# pylint: disable=C0301
+def traverse_raw_schema(schema: dict, path: tuple):
+    """Traverse the raw json schema resolving $ref
+
+    :raises TypeError: either schema is not of type dict
+    :raises ConstraintError: the schema tries to override "type" or "$ref"
+
+    >>> traverse_raw_schema({"properties": {"bar": [42]}}, tuple())
+    {'bar': [42]}
+    >>> traverse_raw_schema({"properties": {"bar": [42]}}, ("bar",))
+    [42]
+
+    >>> traverse_raw_schema({"definitions": {"bar": {"type": "boolean"}},"properties": {"bar": {"$ref": "#/definitions/bar"}}}, ("bar",))
+    {'type': 'boolean'}
+
+    >>> traverse_raw_schema({"definitions":{"b":[1],"f":{"properties":{"b":{"$ref":"#/definitions/b"}}}},"properties":{"f":{"$ref":"#/definitions/f"}}},("f", "b")) # noqa: B950
+    [1]
+
+    >>> traverse_raw_schema({}, ("foo"))
+    Traceback (most recent call last):
+    ...
+    core.jsonutils.utils.ConstraintError: Malformed Schema
+    >>> traverse_raw_schema([], ["foo"])
+    Traceback (most recent call last):
+    ...
+    TypeError: Schema must be a dictionary
+    """
+    if not isinstance(schema, Mapping):
+        raise TypeError("Schema must be a dictionary")
+
+    try:
+        properties = schema["properties"]
+        definitions = schema.get("definitions", {})
+        sub_properties = properties
+        for step in path:
+            sub_properties = _resolve_ref(sub_properties[step], definitions)
+        return sub_properties
+    except KeyError as e:
+        raise ConstraintError("Malformed Schema", path) from e
 
 
 def schema_merge(target, src, path):  # noqa: C901 # pylint: disable=R0912
