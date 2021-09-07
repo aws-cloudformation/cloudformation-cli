@@ -349,7 +349,6 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         return {**create_model, **example}
 
     def compare(self, inputs, outputs, path=()):
-
         assertion_error_message = (
             "All properties specified in the request MUST "
             "be present in the model returned, and they MUST"

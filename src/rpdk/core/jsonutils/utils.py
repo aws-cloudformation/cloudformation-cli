@@ -1,12 +1,15 @@
 import hashlib
 import json
+import logging
 from collections.abc import Mapping, Sequence
 from typing import Any
 
+from nested_lookup import nested_lookup
 from ordered_set import OrderedSet
 
 from .pointer import fragment_decode, fragment_encode
-from nested_lookup import nested_lookup
+
+LOG = logging.getLogger(__name__)
 
 NON_MERGABLE_KEYS = ("uniqueItems", "insertionOrder")
 TYPE = "type"
@@ -136,7 +139,7 @@ def _resolve_ref(sub_schema, definitions):
         # [-1] $ref must follow #/definitions/object
         sub_schema = definitions[fragment_decode(ref[0])[-1]]
     # resolve properties
-    properties = nested_lookup('properties', sub_schema)
+    properties = nested_lookup("properties", sub_schema)
     if properties:
         sub_schema = properties[0]
     return sub_schema
@@ -161,9 +164,7 @@ def traverse_raw_schema(schema: dict, path: tuple):
     [1]
 
     >>> traverse_raw_schema({}, ("foo"))
-    Traceback (most recent call last):
-    ...
-    core.jsonutils.utils.ConstraintError: Malformed Schema
+    {}
     >>> traverse_raw_schema([], ["foo"])
     Traceback (most recent call last):
     ...
@@ -180,7 +181,8 @@ def traverse_raw_schema(schema: dict, path: tuple):
             sub_properties = _resolve_ref(sub_properties[step], definitions)
         return sub_properties
     except KeyError as e:
-        raise ConstraintError("Malformed Schema", path) from e
+        LOG.debug("Malformed Schema or incorrect path provided\n%s\n%s", path, e)
+        return {}
 
 
 def schema_merge(target, src, path):  # noqa: C901 # pylint: disable=R0912
