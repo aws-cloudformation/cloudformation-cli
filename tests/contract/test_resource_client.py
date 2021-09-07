@@ -1449,6 +1449,65 @@ def test_compare_should_throw_exception(resource_client):
                 "properties": {"Collection": {"$ref": "#/definitions/Collection"}},
             },
         ),
+
+        (
+            {
+                "Collections": [
+                    {
+                        "InnerCollection": {
+                            "Items": ["item2", "item1"],
+                            "IntegerProperty": 10
+                        }
+                    }
+                ]
+            },
+            {
+                "Collections": [
+                    {
+                        "InnerCollection": {
+                            "Items": ["item1", "item2"],
+                            "IntegerProperty": 10
+                        }
+                    }
+                ]
+            },
+            {
+                "definitions": {
+                    "InnerCollection": {
+                        "type": "object",
+                        "properties": {
+                            "Items": {
+                                "type": "array",
+                                "insertionOrder": False,
+                                "items": {
+                                    "type": "string"
+                                }
+                            },
+                            "IntegerProperty": {
+                                "type": "integer"
+                            }
+                        }
+                    },
+                    "Collection": {
+                        "type": "object",
+                        "properties": {
+                            "InnerCollection": {
+                                "$ref": "#/definitions/InnerCollection"
+                            }
+                        }
+                    }
+                },
+                "properties": {
+                    "Collections": {
+                        "type": "array",
+                        "uniqueItems": True,
+                        "items": {
+                            "$ref": "#/definitions/Collection"
+                        }
+                    },
+                }
+            }
+        ),
     ],
 )
 def test_compare_collection(resource_client, inputs, outputs, schema_fragment):

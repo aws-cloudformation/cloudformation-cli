@@ -6,6 +6,7 @@ from typing import Any
 from ordered_set import OrderedSet
 
 from .pointer import fragment_decode, fragment_encode
+from nested_lookup import nested_lookup
 
 NON_MERGABLE_KEYS = ("uniqueItems", "insertionOrder")
 TYPE = "type"
@@ -128,10 +129,16 @@ def traverse(document, path_parts):
 
 
 def _resolve_ref(sub_schema, definitions):
-    if "$ref" in sub_schema:
-        sub_schema = definitions[fragment_decode(sub_schema["$ref"])[-1]]
-    if "properties" in sub_schema:
-        sub_schema = sub_schema["properties"]
+    # resolve $ref
+    ref = nested_lookup(REF, sub_schema)
+    if ref:
+        # [0] should be a single $ref in subschema on the top level
+        # [-1] $ref must follow #/definitions/object
+        sub_schema = definitions[fragment_decode(ref[0])[-1]]
+    # resolve properties
+    properties = nested_lookup('properties', sub_schema)
+    if properties:
+        sub_schema = properties[0]
     return sub_schema
 
 
