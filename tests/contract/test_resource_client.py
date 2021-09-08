@@ -1303,6 +1303,12 @@ def test_assert_write_only_property_does_not_exist_fail(resource_client, schema)
         resource_client.assert_write_only_property_does_not_exist(created_resource)
 
 
+def test_get_value_by_key_path_with_string_key(resource_client):
+    model = {"a": 1, "b": 2}
+    key_path = "a"
+    assert resource_client.get_value_by_key_path(model, key_path) == 1
+
+
 def test_generate_create_example_with_inputs(resource_client_inputs):
     assert resource_client_inputs.generate_create_example() == {"a": 1}
 
