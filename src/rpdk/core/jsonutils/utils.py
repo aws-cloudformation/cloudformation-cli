@@ -1,11 +1,15 @@
 import hashlib
 import json
+import logging
 from collections.abc import Mapping, Sequence
 from typing import Any
 
+from nested_lookup import nested_lookup
 from ordered_set import OrderedSet
 
-from .pointer import fragment_encode
+from .pointer import fragment_decode, fragment_encode
+
+LOG = logging.getLogger(__name__)
 
 NON_MERGABLE_KEYS = ("uniqueItems", "insertionOrder")
 TYPE = "type"
@@ -125,6 +129,60 @@ def traverse(document, path_parts):
         document = document[part]
         path.append(part)
     return document, tuple(path), parent
+
+
+def _resolve_ref(sub_schema, definitions):
+    # resolve $ref
+    ref = nested_lookup(REF, sub_schema)
+    if ref:
+        # [0] should be a single $ref in subschema on the top level
+        # [-1] $ref must follow #/definitions/object
+        sub_schema = definitions[fragment_decode(ref[0])[-1]]
+    # resolve properties
+    properties = nested_lookup("properties", sub_schema)
+    if properties:
+        sub_schema = properties[0]
+    return sub_schema
+
+
+# pylint: disable=C0301
+def traverse_raw_schema(schema: dict, path: tuple):
+    """Traverse the raw json schema resolving $ref
+
+    :raises TypeError: either schema is not of type dict
+    :raises ConstraintError: the schema tries to override "type" or "$ref"
+
+    >>> traverse_raw_schema({"properties": {"bar": [42]}}, tuple())
+    {'bar': [42]}
+    >>> traverse_raw_schema({"properties": {"bar": [42]}}, ("bar",))
+    [42]
+
+    >>> traverse_raw_schema({"definitions": {"bar": {"type": "boolean"}},"properties": {"bar": {"$ref": "#/definitions/bar"}}}, ("bar",))
+    {'type': 'boolean'}
+
+    >>> traverse_raw_schema({"definitions":{"b":[1],"f":{"properties":{"b":{"$ref":"#/definitions/b"}}}},"properties":{"f":{"$ref":"#/definitions/f"}}},("f", "b")) # noqa: B950
+    [1]
+
+    >>> traverse_raw_schema({}, ("foo"))
+    {}
+    >>> traverse_raw_schema([], ["foo"])
+    Traceback (most recent call last):
+    ...
+    TypeError: Schema must be a dictionary
+    """
+    if not isinstance(schema, Mapping):
+        raise TypeError("Schema must be a dictionary")
+
+    try:
+        properties = schema["properties"]
+        definitions = schema.get("definitions", {})
+        sub_properties = properties
+        for step in path:
+            sub_properties = _resolve_ref(sub_properties[step], definitions)
+        return sub_properties
+    except KeyError as e:
+        LOG.debug("Malformed Schema or incorrect path provided\n%s\n%s", path, e)
+        return {}
 
 
 def schema_merge(target, src, path):  # noqa: C901 # pylint: disable=R0912

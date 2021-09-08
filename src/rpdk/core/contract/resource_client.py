@@ -22,7 +22,7 @@ from ..boto_helpers import (
     get_temporary_credentials,
 )
 from ..jsonutils.pointer import fragment_decode, fragment_list
-from ..jsonutils.utils import item_hash, traverse
+from ..jsonutils.utils import item_hash, traverse, traverse_raw_schema
 
 LOG = logging.getLogger(__name__)
 
@@ -348,7 +348,7 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         example = override_properties(self.invalid_strategy.example(), overrides)
         return {**create_model, **example}
 
-    def compare(self, inputs, outputs):
+    def compare(self, inputs, outputs, path=()):
         assertion_error_message = (
             "All properties specified in the request MUST "
             "be present in the model returned, and they MUST"
@@ -358,14 +358,18 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         try:
             if isinstance(inputs, dict):
                 for key in inputs:
+                    new_path = path + (key,)
                     if isinstance(inputs[key], dict):
-                        self.compare(inputs[key], outputs[key])
+                        self.compare(inputs[key], outputs[key], new_path)
                     elif isinstance(inputs[key], list):
                         assert len(inputs[key]) == len(outputs[key])
-                        is_ordered = self._schema["properties"][key].get(
+
+                        is_ordered = traverse_raw_schema(self._schema, new_path).get(
                             "insertionOrder", True
                         )
-                        self.compare_collection(inputs[key], outputs[key], is_ordered)
+                        self.compare_collection(
+                            inputs[key], outputs[key], is_ordered, new_path
+                        )
                     else:
                         assert inputs[key] == outputs[key], assertion_error_message
             else:
@@ -373,10 +377,10 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         except Exception as exception:
             raise AssertionError(assertion_error_message) from exception
 
-    def compare_collection(self, inputs, outputs, is_ordered):
+    def compare_collection(self, inputs, outputs, is_ordered, path):
         if is_ordered:
             for index in range(len(inputs)):  # pylint: disable=C0200
-                self.compare(inputs[index], outputs[index])
+                self.compare(inputs[index], outputs[index], path)
             return
 
         assert {item_hash(item) for item in inputs} == {
