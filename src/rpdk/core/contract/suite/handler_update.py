@@ -85,21 +85,17 @@ def contract_update_list(updated_resource, resource_client):
 
 @pytest.mark.update
 @skip_not_tag_updatable
-def contract_update_tag_updatable(resource_client):
+def contract_update_tag_updatable(updated_resource, resource_client):
     assert (
         resource_client.metadata_contains_tag_property()
     ), "Resource marked taggable but tagProperty attribute missing in tagging metadata."
-    create_request = input_model = resource_client.generate_create_example()
-    model = {}
-    try:
-        _status, response, _error = resource_client.call_and_assert(
-            Action.CREATE, OperationStatus.SUCCESS, create_request
-        )
-        created_model = model = response["resourceModel"]
-        test_input_equals_output(resource_client, input_model, created_model)
-        update_request = resource_client.generate_update_example(created_model)
-        assert resource_client.validate_model_contain_tags(
-            update_request
-        ), "Contract test update input does not contain tags property."
-    finally:
-        resource_client.call_and_assert(Action.DELETE, OperationStatus.SUCCESS, model)
+    (
+        _create_request,
+        _created_model,
+        update_request,
+        _updated_model,
+        _updated_input_model,
+    ) = updated_resource
+    assert resource_client.validate_model_contain_tags(
+        update_request
+    ), "Contract test update input does not contain tags property."
