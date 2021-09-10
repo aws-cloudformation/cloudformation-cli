@@ -661,6 +661,37 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
     def has_update_handler(self):
         return "update" in self._schema["handlers"]
 
+    def is_taggable(self):
+        try:
+            return self._schema["tagging"]["taggable"]
+        except KeyError:
+            try:
+                return self._schema["taggable"]
+            except KeyError:
+                return True
+
+    def metadata_contains_tag_property(self):
+        try:
+            return "tagProperty" in self._schema["tagging"]
+        except KeyError:
+            return False
+
+    def validate_model_contain_tags(self, inputs):
+        assertion_error_message = "Contract test inputs does not contain tags property."
+        tag_property_path = self._schema["tagging"]["tagProperty"]
+        tag_property_name = tag_property_path.split("/")[-1]
+        LOG.debug("Defined tag property name is: %s\n", tag_property_name)
+        try:
+            if isinstance(inputs, dict):
+                for key in inputs:
+                    if key == tag_property_name:
+                        return True
+            else:
+                raise assertion_error_message
+        except Exception as exception:
+            raise AssertionError(assertion_error_message) from exception
+        return False
+
     def has_required_handlers(self):
         try:
             has_delete = "delete" in self._schema["handlers"]
