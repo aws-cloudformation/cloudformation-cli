@@ -2,7 +2,7 @@ import hashlib
 import json
 import logging
 from collections.abc import Mapping, Sequence
-from typing import Any
+from typing import Any, List, Tuple
 
 from nested_lookup import nested_lookup
 from ordered_set import OrderedSet
@@ -14,6 +14,7 @@ LOG = logging.getLogger(__name__)
 NON_MERGABLE_KEYS = ("uniqueItems", "insertionOrder")
 TYPE = "type"
 REF = "$ref"
+UNPACK_SEQUENCE_IDENTIFIER = "*"
 
 
 class FlatteningError(Exception):
@@ -183,6 +184,133 @@ def traverse_raw_schema(schema: dict, path: tuple):
     except KeyError as e:
         LOG.debug("Malformed Schema or incorrect path provided\n%s\n%s", path, e)
         return {}
+
+
+def traverse_path_for_sequence_members(
+    document: dict, path_parts: Sequence, path: list = None
+) -> Tuple[List[object], List[tuple]]:
+    """Traverse the paths for all sequence members in the document according to the reference.
+
+    Since the document is presumed to be the reference's base, the base is
+    discarded. There is no validation that the reference is valid.
+
+    Differing from traverse, this returns a list of documents and a list of resolved paths.
+
+    :parameter document: document to traverse (dict or list)
+    :parameter path_parts: document paths to traverse
+    :parameter path: traversed path so far
+
+    :raises ValueError, LookupError: the reference is invalid for this document
+
+    >>> traverse_path_for_sequence_members({"foo": {"bar": [42, 43, 44]}}, tuple())
+    ([{'foo': {'bar': [42, 43, 44]}}], [()])
+    >>> traverse_path_for_sequence_members({"foo": {"bar": [42, 43, 44]}}, ["foo"])
+    ([{'bar': [42, 43, 44]}], [('foo',)])
+    >>> traverse_path_for_sequence_members({"foo": {"bar": [42, 43, 44]}}, ("foo", "bar"))
+    ([[42, 43, 44]], [('foo', 'bar')])
+    >>> traverse_path_for_sequence_members({"foo": {"bar": [42, 43, 44]}}, ("foo", "bar", "*"))
+    ([42, 43, 44], [('foo', 'bar', 0), ('foo', 'bar', 1), ('foo', 'bar', 2)])
+    >>> traverse_path_for_sequence_members({"foo": {"bar": [{"baz": 1, "bin": 1}, {"baz": 2, "bin": 2}]}}, ("foo", "bar", "*"))
+    ([{'baz': 1, 'bin': 1}, {'baz': 2, 'bin': 2}], [('foo', 'bar', 0), ('foo', 'bar', 1)])
+    >>> traverse_path_for_sequence_members({"foo": {"bar": [{"baz": 1, "bin": 1}, {"baz": 2, "bin": 2}]}}, ("foo", "bar", "*", "baz"))
+    ([1, 2], [('foo', 'bar', 0, 'baz'), ('foo', 'bar', 1, 'baz')])
+    >>> traverse_path_for_sequence_members({}, ["foo"])
+    Traceback (most recent call last):
+    ...
+    KeyError: 'foo'
+    >>> traverse_path_for_sequence_members([], ["foo"])
+    Traceback (most recent call last):
+    ...
+    ValueError: invalid literal for int() with base 10: 'foo'
+    >>> traverse_path_for_sequence_members([], [0])
+    Traceback (most recent call last):
+    ...
+    IndexError: list index out of range
+    """
+    if path is None:
+        path = []
+    if not path_parts:
+        return [document], [tuple(path)]
+    path_parts = list(path_parts)
+    if not isinstance(document, Sequence):
+        return _handle_non_sequence_for_traverse(document, path_parts, path)
+    return _handle_sequence_for_traverse(document, path_parts, path)
+
+
+def _handle_non_sequence_for_traverse(
+    current_document: dict, current_path_parts: list, current_path: list
+) -> Tuple[List[object], List[tuple]]:
+    """
+    Handling a non-sequence member for `traverse_path_for_sequence_members` is like the loop block in `traverse`:
+
+    The next path part is the first part in the list of path parts.
+    The new document is obtained from the current document using the new path part as the key.
+    The next path part is added to the traversed path.
+
+    The traversal continues by recursively calling `traverse_path_for_sequence_members`
+    """
+    part_to_handle = current_path_parts.pop(0)
+    current_document = current_document[part_to_handle]
+    current_path.append(part_to_handle)
+    return traverse_path_for_sequence_members(
+        current_document, current_path_parts, current_path
+    )
+
+
+def _handle_sequence_for_traverse(
+    current_document: Sequence, current_path_parts: list, current_path: list
+) -> Tuple[List[object], List[tuple]]:
+    """
+    Check the new path part for the unpack sequence identifier (e.g. '*'), otherwise traverse index and continue:
+
+    The new document is obtained from the current document (a sequence) using the new path part as the index.
+    The next path part is added to the traversed path
+    """
+    sequence_part = current_path_parts.pop(0)
+    if sequence_part == UNPACK_SEQUENCE_IDENTIFIER:
+        return _handle_unpack_sequence_for_traverse(
+            current_document, current_path_parts, current_path
+        )
+    # otherwise, sequence part should be a valid index
+    current_sequence_part = int(sequence_part)
+    current_document = current_document[current_sequence_part]
+    current_path.append(current_sequence_part)
+    return [current_document], [tuple(current_path)]
+
+
+def _handle_unpack_sequence_for_traverse(
+    current_document: Sequence, current_path_parts: list, current_path: list
+) -> Tuple[List[object], List[tuple]]:
+    """
+    When unpacking a sequence, we need to include multiple paths and multiple documents, one for each sequence member.
+
+    For each sequence member:
+    Append the traversed paths w/ the sequence index, and get the new document.
+    The new document is obtained by traversing the current document using the sequence index.
+    The new document is appended to the list of new documents.
+
+    For each new document:
+    The remaining document is traversed using the remaining path parts.
+    The list of traversed documents and traversed paths are returned.
+    """
+    documents = []
+    resolved_paths = []
+    new_documents = []
+    new_paths = []
+    for sequence_index in range(len(current_document)):
+        new_paths.append(current_path.copy() + [sequence_index])
+        new_document = traverse_path_for_sequence_members(
+            current_document, [sequence_index] + current_path_parts, current_path.copy()
+        )[0]
+        new_documents.extend(new_document)
+    for i in range(len(new_documents)):  # pylint: disable=consider-using-enumerate
+        new_document = new_documents[i]
+        newer_documents, newer_paths = traverse_path_for_sequence_members(
+            new_document, current_path_parts, new_paths[i]
+        )
+        documents.extend(newer_documents)
+        resolved_paths.extend(newer_paths)
+    return documents, resolved_paths
 
 
 def schema_merge(target, src, path):  # noqa: C901 # pylint: disable=R0912
