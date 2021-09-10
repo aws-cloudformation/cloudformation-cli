@@ -665,10 +665,19 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         try:
             return self._schema["tagging"]["taggable"]
         except KeyError:
-            try:
-                return self._schema["taggable"]
-            except KeyError:
-                return True
+            return self.get_default_taggable_value
+
+    def is_tag_updatable(self):
+        try:
+            return self._schema["tagging"]["tagUpdatable"]
+        except KeyError:
+            return self.get_default_taggable_value
+
+    def get_default_taggable_value(self):
+        try:
+            return self._schema["taggable"]
+        except KeyError:
+            return True
 
     def metadata_contains_tag_property(self):
         try:

@@ -1213,6 +1213,37 @@ def test_has_update_handler(resource_client):
     assert resource_client.has_update_handler()
 
 
+def test_is_taggable(resource_client):
+    schema = {"tagging": {"taggable": True}}
+    resource_client._update_schema(schema)
+    assert resource_client.is_taggable()
+
+
+def test_is_tag_updatable(resource_client):
+    schema = {"tagging": {"taggable": True, "tagUpdatable": True}}
+    resource_client._update_schema(schema)
+    assert resource_client.is_tag_updatable()
+
+
+def test_get_default_taggable_value(resource_client):
+    schema = {"taggable": False}
+    resource_client._update_schema(schema)
+    assert not resource_client.get_default_taggable_value()
+
+
+def test_metadata_contains_tag_property(resource_client):
+    schema = {"tagging": {"taggable": True, "tagProperty": "/properties/Tags"}}
+    resource_client._update_schema(schema)
+    assert resource_client.metadata_contains_tag_property()
+
+
+def test_validate_model_contain_tags(resource_client):
+    schema = {"tagging": {"taggable": True, "tagProperty": "/properties/Tags"}}
+    resource_client._update_schema(schema)
+    inputs = {"Tags": [{"Key": "key1", "Value": "value1"}]}
+    assert resource_client.validate_model_contain_tags(inputs)
+
+
 @pytest.mark.parametrize("action", [Action.CREATE, Action.UPDATE, Action.DELETE])
 def test_assert_CUD_time(resource_client, action):
     resource_client.assert_time(time.time() - 59, time.time(), action)

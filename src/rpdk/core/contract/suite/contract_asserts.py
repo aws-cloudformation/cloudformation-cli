@@ -120,6 +120,12 @@ def skip_not_taggable(resource_client):
         pytest.skip("Resource is not taggable. Skipping test.")
 
 
+@decorate(after=False)
+def skip_not_tag_updatable(resource_client):
+    if not resource_client.is_tag_updatable():
+        pytest.skip("Resource is not tagUpdatable. Skipping test.")
+
+
 def failed_event(error_code, msg=""):
     def decorator_wrapper(func: object):
         @wraps(func)

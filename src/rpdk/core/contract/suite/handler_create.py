@@ -87,4 +87,4 @@ def contract_create_taggable(resource_client):
     input_model = resource_client.generate_create_example()
     assert resource_client.validate_model_contain_tags(
         input_model
-    ), "Contract test inputs does not contain tags property."
+    ), "Contract test create input does not contain tags property."
