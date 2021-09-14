@@ -115,6 +115,12 @@ def skip_not_writable_identifier(resource_client):
 
 
 @decorate(after=False)
+def skip_no_tagging(resource_client):
+    if not resource_client.contains_tagging_metadata():
+        pytest.skip("Resource does not contain tagging metadata. Skipping test.")
+
+
+@decorate(after=False)
 def skip_not_taggable(resource_client):
     if not resource_client.is_taggable():
         pytest.skip("Resource is not taggable. Skipping test.")

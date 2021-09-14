@@ -661,23 +661,23 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
     def has_update_handler(self):
         return "update" in self._schema["handlers"]
 
+    def contains_tagging_metadata(self):
+        return "tagging" in self._schema
+
     def is_taggable(self):
         try:
             return self._schema["tagging"]["taggable"]
         except KeyError:
-            return self.get_default_taggable_value
+            try:
+                return self._schema["taggable"]
+            except KeyError:
+                return True
 
     def is_tag_updatable(self):
         try:
             return self._schema["tagging"]["tagUpdatable"]
         except KeyError:
-            return self.get_default_taggable_value
-
-    def get_default_taggable_value(self):
-        try:
-            return self._schema["taggable"]
-        except KeyError:
-            return True
+            return self.is_taggable()
 
     def metadata_contains_tag_property(self):
         try:
@@ -687,7 +687,10 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
 
     def validate_model_contain_tags(self, inputs):
         assertion_error_message = "Contract test inputs does not contain tags property."
-        tag_property_path = self._schema["tagging"]["tagProperty"]
+        try:
+            tag_property_path = self._schema["tagging"]["tagProperty"]
+        except KeyError:
+            tag_property_path = "/properties/Tags"
         tag_property_name = tag_property_path.split("/")[-1]
         LOG.debug("Defined tag property name is: %s\n", tag_property_name)
         try:

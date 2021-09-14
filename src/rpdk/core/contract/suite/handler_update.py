@@ -6,7 +6,10 @@ import pytest
 # WARNING: contract tests should use fully qualified imports to avoid issues
 # when being loaded by pytest
 from rpdk.core.contract.interface import Action, OperationStatus
-from rpdk.core.contract.suite.contract_asserts import skip_not_tag_updatable
+from rpdk.core.contract.suite.contract_asserts import (
+    skip_no_tagging,
+    skip_not_tag_updatable,
+)
 from rpdk.core.contract.suite.handler_commons import (
     test_input_equals_output,
     test_model_in_list,
@@ -84,11 +87,9 @@ def contract_update_list(updated_resource, resource_client):
 
 
 @pytest.mark.update
+@skip_no_tagging
 @skip_not_tag_updatable
 def contract_update_tag_updatable(updated_resource, resource_client):
-    assert (
-        resource_client.metadata_contains_tag_property()
-    ), "Resource marked taggable but tagProperty attribute missing in tagging metadata."
     (
         _create_request,
         _created_model,

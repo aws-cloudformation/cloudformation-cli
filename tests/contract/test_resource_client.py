@@ -1219,16 +1219,22 @@ def test_is_taggable(resource_client):
     assert resource_client.is_taggable()
 
 
+def test_is_taggable_default_value(resource_client):
+    schema = {}
+    resource_client._update_schema(schema)
+    assert resource_client.is_taggable()
+
+
 def test_is_tag_updatable(resource_client):
     schema = {"tagging": {"taggable": True, "tagUpdatable": True}}
     resource_client._update_schema(schema)
     assert resource_client.is_tag_updatable()
 
 
-def test_get_default_taggable_value(resource_client):
+def test_contains_tagging_metadata(resource_client):
     schema = {"taggable": False}
     resource_client._update_schema(schema)
-    assert not resource_client.get_default_taggable_value()
+    assert not resource_client.contains_tagging_metadata()
 
 
 def test_metadata_contains_tag_property(resource_client):

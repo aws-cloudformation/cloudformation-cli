@@ -8,6 +8,7 @@ import pytest
 # when being loaded by pytest
 from rpdk.core.contract.interface import Action, OperationStatus
 from rpdk.core.contract.suite.contract_asserts import (
+    skip_no_tagging,
     skip_not_taggable,
     skip_not_writable_identifier,
 )
@@ -79,11 +80,9 @@ def contract_create_list(created_resource, resource_client):
 
 
 @pytest.mark.create
+@skip_no_tagging
 @skip_not_taggable
 def contract_create_taggable(resource_client):
-    assert (
-        resource_client.metadata_contains_tag_property()
-    ), "Resource marked taggable but tagProperty attribute missing in tagging metadata."
     input_model = resource_client.generate_create_example()
     assert resource_client.validate_model_contain_tags(
         input_model
