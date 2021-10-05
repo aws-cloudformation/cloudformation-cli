@@ -173,6 +173,14 @@
             "description": "A list of JSON pointers for properties that can only be updated under certain conditions. For example, you can upgrade the engine version of an RDS DBInstance but you cannot downgrade it.  When updating this property for a resource in a CloudFormation stack, the resource will be replaced if it cannot be updated.",
             "$ref": "base.definition.schema.v1.json#/definitions/jsonPointerArray"
         },
+        "nonPublicProperties": {
+            "description": "A list of JSON pointers for properties that are hidden. These properties will still be used but will not be visible",
+            "$ref": "base.definition.schema.v1.json#/definitions/jsonPointerArray"
+        },
+        "nonPublicDefinitions": {
+            "description": "A list of JSON pointers for definitions that are hidden. These definitions will still be used but will not be visible",
+            "$ref": "base.definition.schema.v1.json#/definitions/jsonPointerArray"
+        },
         "createOnlyProperties": {
             "description": "A list of JSON pointers to properties that are only able to be specified by the customer when creating a resource. Conversely, any property *not* in this list can be applied to an Update request.",
             "$ref": "base.definition.schema.v1.json#/definitions/jsonPointerArray"

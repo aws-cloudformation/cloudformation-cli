@@ -154,6 +154,21 @@ def test_load_resource_spec_conditionally_create_only_match_read_only():
     )
 
 
+def test_load_resource_spec_non_public_properties_and_definitions():
+    schema = {
+        "typeName": "AWS::FOO::BAR",
+        "description": "test schema",
+        "additionalProperties": False,
+        "definitions": {"bar": {"type": "string"}},
+        "properties": {"foo": {"type": "string"}},
+        "primaryIdentifier": ["/properties/foo"],
+        "readOnlyProperties": ["/properties/foo"],
+        "nonPublicProperties": ["/properties/foo"],
+        "nonPublicDefinitions": ["/definitions/bar"],
+    }
+    load_resource_spec(json_s(schema))
+
+
 @pytest.mark.parametrize(
     "schema",
     [
