@@ -118,7 +118,7 @@
             "$ref": "#/definitions/replacementStrategy"
         },
         "taggable": {
-            "$comment": "(deprecated) A boolean flag indicating whether this resource type supports tagging.",
+            "$comment": "(Deprecated, please use new metadata attribute tagging) A boolean flag indicating whether this resource type supports tagging.",
             "type": "boolean",
             "default": true
         },
@@ -147,7 +147,8 @@
                 },
                 "tagProperty": {
                     "description": "A reference to the Tags property in the schema.",
-                    "$ref": "http://json-schema.org/draft-07/schema#/properties/$ref"
+                    "$ref": "http://json-schema.org/draft-07/schema#/properties/$ref",
+                    "default": "/properties/Tags"
                 }
             },
             "required": [
