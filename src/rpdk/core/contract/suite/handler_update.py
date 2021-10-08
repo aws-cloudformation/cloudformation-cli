@@ -6,6 +6,10 @@ import pytest
 # WARNING: contract tests should use fully qualified imports to avoid issues
 # when being loaded by pytest
 from rpdk.core.contract.interface import Action, OperationStatus
+from rpdk.core.contract.suite.contract_asserts import (
+    skip_no_tagging,
+    skip_not_tag_updatable,
+)
 from rpdk.core.contract.suite.handler_commons import (
     test_input_equals_output,
     test_model_in_list,
@@ -80,3 +84,19 @@ def contract_update_list(updated_resource, resource_client):
     assert test_model_in_list(
         resource_client, updated_model
     ), "A list handler MUST always return an updated model"
+
+
+@pytest.mark.update
+@skip_no_tagging
+@skip_not_tag_updatable
+def contract_update_tag_updatable(updated_resource, resource_client):
+    (
+        _create_request,
+        _created_model,
+        update_request,
+        _updated_model,
+        _updated_input_model,
+    ) = updated_resource
+    assert resource_client.validate_model_contain_tags(
+        update_request
+    ), "Contract test update input does not contain tags property."

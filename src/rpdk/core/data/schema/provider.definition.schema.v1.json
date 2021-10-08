@@ -118,9 +118,43 @@
             "$ref": "#/definitions/replacementStrategy"
         },
         "taggable": {
-            "$comment": "A boolean flag indicating whether this resource type supports updatable tagging.",
+            "$comment": "(Deprecated, please use new metadata attribute tagging) A boolean flag indicating whether this resource type supports tagging.",
             "type": "boolean",
             "default": true
+        },
+        "tagging": {
+            "type": "object",
+            "properties": {
+                "taggable": {
+                    "description": "A boolean flag indicating whether this resource type supports tagging.",
+                    "type": "boolean",
+                    "default": true
+                },
+                "tagOnCreate": {
+                    "description": "A boolean flag indicating whether this resource type supports tagging resources upon creation.",
+                    "type": "boolean",
+                    "default": true
+                },
+                "tagUpdatable": {
+                    "description": "A boolean flag indicating whether this resource type supports updatable tagging.",
+                    "type": "boolean",
+                    "default": true
+                },
+                "cloudFormationSystemTags": {
+                    "description": "A boolean flag indicating whether this resource type supports CloudFormation system tags.",
+                    "type": "boolean",
+                    "default": true
+                },
+                "tagProperty": {
+                    "description": "A reference to the Tags property in the schema.",
+                    "$ref": "http://json-schema.org/draft-07/schema#/properties/$ref",
+                    "default": "/properties/Tags"
+                }
+            },
+            "required": [
+                "taggable"
+            ],
+            "additionalProperties": false
         },
         "additionalProperties": {
             "$comment": "All properties of a resource must be expressed in the schema - arbitrary inputs are not allowed",
