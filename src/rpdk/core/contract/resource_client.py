@@ -170,7 +170,6 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         docker_image=None,
         executable_entrypoint=None,
     ):  # pylint: disable=too-many-arguments
-        self._schema = schema
         self._session = create_sdk_session(region)
         self._role_arn = role_arn
         self._type_name = type_name
@@ -348,11 +347,26 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
                 return True
         return False
 
+    @staticmethod
+    def get_value_by_key_path(model, key_path):
+        if isinstance(key_path, (tuple, list)):
+            value = model
+            for path in key_path:
+                value = value[path]
+            return value
+        return model[key_path]
+
     def validate_update_example_keys(self, unique_identifiers, update_example):
         for primary_identifier in self.primary_identifier_paths:
             if primary_identifier in self.create_only_paths:
-                primary_key = fragment_list(primary_identifier, "properties")[0]
-                assert update_example[primary_key] == unique_identifiers[primary_key], (
+                primary_key_path = fragment_list(primary_identifier, "properties")
+                update_example_pk_value = self.get_value_by_key_path(
+                    update_example, primary_key_path
+                )
+                unique_identifiers_pk_value = self.get_value_by_key_path(
+                    unique_identifiers, primary_key_path
+                )
+                assert update_example_pk_value == unique_identifiers_pk_value, (
                     "Any createOnlyProperties specified in update handler input "
                     "MUST NOT be different from their previous state"
                 )
