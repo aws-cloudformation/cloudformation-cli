@@ -699,6 +699,10 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
 
             request["requestData"]["resourceProperties"] = response.get("resourceModel")
             request["callbackContext"] = response.get("callbackContext")
+            # refresh credential for every handler invocation
+            request["requestData"]["callerCredentials"] = get_temporary_credentials(
+                self._session, LOWER_CAMEL_CRED_KEYS, self._role_arn
+            )
 
             response = self._call(request)
             status = OperationStatus[response["status"]]
