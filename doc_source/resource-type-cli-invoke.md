@@ -2,17 +2,17 @@
 
 ## Description<a name="resource-type-cli-invoke-description"></a>
 
-Performs contract tests on the specified handler of a resource provider\.
+Performs contract tests on the specified handler of a resource type\.
 
 ## Synopsis<a name="resource-type-cli-invoke-synopsis"></a>
 
 ```
-  cfn invoke
-[--endpoint <value>]
+  cfn invoke 
+[--endpoint <value>] 
 [--function-name <value>]
 [--region <value>]
 [--max-reinvoke <value>]
-action
+action 
 request
 ```
 
@@ -26,9 +26,9 @@ Default: `http://127.0.0.1.3001`
 
 `--function-name <value>`
 
-The logical lambda function name in the SAM template\. Alternately, you can also specify an actual Lambda endpoint and function name in your AWS account\.
+The logical Lambda function name in the SAM template\. Alternately, you can also specify an actual Lambda endpoint and function name in your AWS account\.
 
-Default: `TestEntrypoint`
+Default: `TypeFunction`
 
 `--region <value>`
 
