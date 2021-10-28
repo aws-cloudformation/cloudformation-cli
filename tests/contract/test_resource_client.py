@@ -130,6 +130,23 @@ SCHEMA_WITH_ADDITIONAL_IDENTIFIERS = {
     "handlers": {"create": {}, "delete": {}, "read": {}},
 }
 
+SCHEMA_WITH_PROPERTY_TRANSFORM = {
+    "properties": {
+        "a": {"type": "string"},
+        "b": {"$ref": "#/definitions/c"},
+    },
+    "definitions": {
+        "c": {
+            "type": "object",
+            "properties": {"d": {"type": "String"}, "e": {"type": "integer"}},
+        }
+    },
+    "readOnlyProperties": ["/properties/a"],
+    "primaryIdentifier": ["/properties/a"],
+    "handlers": {"create": {}, "delete": {}, "read": {}},
+    "propertyTransform": {"/properties/b/c/d": '.b.c.d + "Test"'},
+}
+
 EMPTY_SCHEMA = {"handlers": {"create": [], "delete": [], "read": []}}
 
 
@@ -328,6 +345,45 @@ def resource_client_inputs_composite_key():
 
     assert client._function_name == DEFAULT_FUNCTION
     assert client._schema == SCHEMA_WITH_COMPOSITE_KEY
+    assert client._overrides == EMPTY_OVERRIDE
+    assert client.account == ACCOUNT
+
+    return client
+
+
+@pytest.fixture
+def resource_client_inputs_property_transform():
+    endpoint = "https://"
+    patch_sesh = patch(
+        "rpdk.core.contract.resource_client.create_sdk_session", autospec=True
+    )
+    patch_creds = patch(
+        "rpdk.core.contract.resource_client.get_temporary_credentials",
+        autospec=True,
+        return_value={},
+    )
+    patch_account = patch(
+        "rpdk.core.contract.resource_client.get_account",
+        autospec=True,
+        return_value=ACCOUNT,
+    )
+    with patch_sesh as mock_create_sesh, patch_creds as mock_creds:
+        with patch_account as mock_account:
+            mock_sesh = mock_create_sesh.return_value
+            mock_sesh.region_name = DEFAULT_REGION
+            client = ResourceClient(
+                DEFAULT_FUNCTION,
+                endpoint,
+                DEFAULT_REGION,
+                SCHEMA_WITH_PROPERTY_TRANSFORM,
+                EMPTY_OVERRIDE,
+            )
+
+    mock_sesh.client.assert_called_once_with("lambda", endpoint_url=endpoint)
+    mock_creds.assert_called_once_with(mock_sesh, LOWER_CAMEL_CRED_KEYS, None)
+    mock_account.assert_called_once_with(mock_sesh, {})
+    assert client._function_name == DEFAULT_FUNCTION
+    assert client._schema == SCHEMA_WITH_PROPERTY_TRANSFORM
     assert client._overrides == EMPTY_OVERRIDE
     assert client.account == ACCOUNT
 
@@ -690,6 +746,40 @@ def test_update_schema(resource_client):
     assert resource_client.read_only_paths == {("properties", "b")}
     assert resource_client.write_only_paths == {("properties", "c")}
     assert resource_client.create_only_paths == {("properties", "d")}
+
+
+def test_transform_model(resource_client_inputs_property_transform):
+    inputs = {"a": "ValueA", "b": {"c": {"d": "ValueD", "e": 1}}}
+    transformed_inputs = {"a": "ValueA", "b": {"c": {"d": "ValueDTest", "e": 1}}}
+
+    resource_client_inputs_property_transform.transform_model(inputs)
+
+    assert inputs == transformed_inputs
+
+
+def test_compare_with_transform_should_pass(resource_client_inputs_property_transform):
+    inputs = {"a": "ValueA", "b": {"c": {"d": "ValueD", "e": 1}}}
+    transformed_inputs = {"a": "ValueA", "b": {"c": {"d": "ValueDTest", "e": 1}}}
+    outputs = {"a": "ValueA", "b": {"c": {"d": "ValueDTest", "e": 1}}}
+
+    resource_client_inputs_property_transform.compare(
+        inputs, outputs, transformed_inputs
+    )
+
+
+def test_compare_with_transform_should_throw_exception(
+    resource_client_inputs_property_transform,
+):
+    inputs = {"a": "ValueA", "b": {"c": {"d": "ValueD", "e": 1}}}
+    transformed_inputs = {"a": "ValueA", "b": {"c": {"d": "ValueDTest", "e": 1}}}
+    outputs = {"a": "ValueA", "b": {"c": {"d": "D", "e": 1}}}
+
+    try:
+        resource_client_inputs_property_transform.compare(
+            inputs, outputs, transformed_inputs
+        )
+    except AssertionError:
+        logging.debug("This test expects Assertion Exception to be thrown")
 
 
 def test_strategy(resource_client):
@@ -1566,7 +1656,7 @@ def test_compare_should_pass(resource_client):
         "h": [{"d": 1, "e": 3}, {"d": 2}],
         "i": ["abc", "ghi"],
     }
-    resource_client.compare(inputs, outputs)
+    resource_client.compare(inputs, outputs, None)
 
 
 def test_compare_should_throw_exception(resource_client):
@@ -1579,7 +1669,7 @@ def test_compare_should_throw_exception(resource_client):
         "h": [{"d": 1}],
     }
     try:
-        resource_client.compare(inputs, outputs)
+        resource_client.compare(inputs, outputs, None)
     except AssertionError:
         logging.debug("This test expects Assertion Exception to be thrown")
 
@@ -1715,7 +1805,7 @@ def test_compare_should_throw_exception(resource_client):
 def test_compare_collection(resource_client, inputs, outputs, schema_fragment):
     resource_client._update_schema(schema_fragment)
 
-    resource_client.compare(inputs, outputs)
+    resource_client.compare(inputs, outputs, None)
 
 
 def test_compare_should_throw_key_error(resource_client):
@@ -1724,7 +1814,7 @@ def test_compare_should_throw_key_error(resource_client):
 
     outputs = {"b": {"d": 1, "e": 2}, "f": [{"d": 1, "e": 2}, {"d": 2, "e": 3}]}
     try:
-        resource_client.compare(inputs, outputs)
+        resource_client.compare(inputs, outputs, None)
     except AssertionError:
         logging.debug("This test expects Assertion Exception to be thrown")
 
@@ -1739,6 +1829,6 @@ def test_compare_ordered_list_throws_assertion_exception(resource_client):
         "i": ["abc", "ghi", "tt"],
     }
     try:
-        resource_client.compare(inputs, outputs)
+        resource_client.compare(inputs, outputs, None)
     except AssertionError:
         logging.debug("This test expects Assertion Exception to be thrown")

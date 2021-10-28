@@ -8,6 +8,7 @@ from time import sleep
 from uuid import uuid4
 
 import docker
+import pyjq
 from botocore import UNSIGNED
 from botocore.config import Config
 
@@ -225,12 +226,32 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         self.write_only_paths = self._properties_to_paths("writeOnlyProperties")
         self.create_only_paths = self._properties_to_paths("createOnlyProperties")
         self.properties_without_insertion_order = self.get_metadata()
+        self.property_transform_keys = self._properties_to_paths("propertyTransform")
+        self.property_transform = self._schema.get("propertyTransform")
 
         additional_identifiers = self._schema.get("additionalIdentifiers", [])
         self._additional_identifiers_paths = [
             {fragment_decode(prop, prefix="") for prop in identifier}
             for identifier in additional_identifiers
         ]
+
+    def transform_model(self, input_model):
+        if not self.property_transform:
+            return None
+        for key in self.property_transform_keys:
+            path = "/" + "/".join(key)
+            expression = self.property_transform[path]
+            tranformed_value = pyjq.first(expression, input_model)
+            input_model = self.update_property(input_model, tranformed_value, key[1:])
+
+        return input_model
+
+    def update_property(self, model, value, path):
+        if len(path) > 1:
+            model = self.update_property(model[path[0]], value, path[1:])
+        elif len(path) == 1:
+            model[path[0]] = value
+        return model
 
     def has_only_writable_identifiers(self):
         return all(
@@ -395,7 +416,7 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         example = override_properties(self.invalid_strategy.example(), overrides)
         return {**create_model, **example}
 
-    def compare(self, inputs, outputs, path=()):
+    def compare(self, inputs, outputs, transformed_inputs, path=()):
         assertion_error_message = (
             "All properties specified in the request MUST "
             "be present in the model returned, and they MUST"
@@ -407,7 +428,12 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
                 for key in inputs:
                     new_path = path + (key,)
                     if isinstance(inputs[key], dict):
-                        self.compare(inputs[key], outputs[key], new_path)
+                        self.compare(
+                            inputs[key],
+                            outputs[key],
+                            transformed_inputs[key] if transformed_inputs else None,
+                            new_path,
+                        )
                     elif isinstance(inputs[key], list):
                         assert len(inputs[key]) == len(outputs[key])
 
@@ -415,19 +441,33 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
                             "insertionOrder", True
                         )
                         self.compare_collection(
-                            inputs[key], outputs[key], is_ordered, new_path
+                            inputs[key],
+                            outputs[key],
+                            is_ordered,
+                            new_path,
+                            transformed_inputs[key] if transformed_inputs else None,
                         )
                     else:
                         assert inputs[key] == outputs[key], assertion_error_message
             else:
                 assert inputs == outputs, assertion_error_message
         except Exception as exception:
-            raise AssertionError(assertion_error_message) from exception
+            # When input model not equal to output model, and there is transformed model,
+            # need to compare transformed model with output model also
+            if transformed_inputs:
+                self.compare(transformed_inputs, outputs, None)
+            else:
+                raise AssertionError(assertion_error_message) from exception
 
-    def compare_collection(self, inputs, outputs, is_ordered, path):
+    def compare_collection(self, inputs, outputs, is_ordered, path, transformed_inputs):
         if is_ordered:
             for index in range(len(inputs)):  # pylint: disable=C0200
-                self.compare(inputs[index], outputs[index], path)
+                self.compare(
+                    inputs[index],
+                    outputs[index],
+                    transformed_inputs[index] if transformed_inputs else None,
+                    path,
+                )
             return
 
         assert {item_hash(item) for item in inputs} == {
