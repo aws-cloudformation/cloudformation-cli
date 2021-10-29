@@ -332,8 +332,8 @@ as either readOnly or createOnly",
             "readOnlyProperties and conditionalCreateOnlyProperties MUST NOT have common properties"
         )
 
-    if "taggable" not in resource_spec:
-        LOG.warning("Explicitly specify value for taggable")
+    if "tagging" not in resource_spec:
+        LOG.warning("Explicitly specify value for tagging")
 
     # TODO: more general validation framework
     if "remote" in resource_spec:
