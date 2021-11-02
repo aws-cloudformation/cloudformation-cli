@@ -15,7 +15,7 @@ jobs:
     strategy:
       matrix:
         python: [3.6, 3.7, 3.8]
-        os: [ubuntu-latest]
+        os: [macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
     - uses: actions/checkout@v2
@@ -25,7 +25,8 @@ jobs:
         python-version: ${{ matrix.python }}
     - name: Install JQ
       run: |
-        pip install jq
+        brew install autoconf automake libtool
+        brew install jq
     - name: Install dependencies
       run: |
         pip install --upgrade 'attrs==19.2.0' wheel -r requirements.txt
