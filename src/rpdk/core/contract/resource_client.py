@@ -451,7 +451,7 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
                         assert inputs[key] == outputs[key], assertion_error_message
             else:
                 assert inputs == outputs, assertion_error_message
-        except Exception as exception:
+        except Exception as exception:  # pylint: disable=broad-except
             # When input model not equal to output model, and there is transformed model,
             # need to compare transformed model with output model also
             if transformed_inputs:

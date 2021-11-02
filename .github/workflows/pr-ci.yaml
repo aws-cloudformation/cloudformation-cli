@@ -25,7 +25,7 @@ jobs:
         python-version: ${{ matrix.python }}
     - name: Install JQ
       run: |
-        pip install jq
+        choco install jq
     - name: Install dependencies
       run: |
         pip install --upgrade 'attrs==19.2.0' wheel -r requirements.txt
