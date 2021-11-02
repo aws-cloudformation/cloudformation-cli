@@ -25,6 +25,7 @@ jobs:
         python-version: ${{ matrix.python }}
     - name: Install JQ
       run: |
+        choco install autoconf automake libtool
         choco install jq
     - name: Install dependencies
       run: |
