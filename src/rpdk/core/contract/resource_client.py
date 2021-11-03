@@ -3,12 +3,12 @@
 import json
 import logging
 import re
+import subprocess
 import time
 from time import sleep
 from uuid import uuid4
 
 import docker
-import pyjq
 from botocore import UNSIGNED
 from botocore.config import Config
 
@@ -241,7 +241,13 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         for key in self.property_transform_keys:
             path = "/" + "/".join(key)
             expression = self.property_transform[path]
-            tranformed_value = pyjq.first(expression, input_model)
+            child_process = subprocess.Popen(
+                ["jq", expression], stdin=subprocess.PIPE, stdout=subprocess.PIPE
+            )
+            child_process_output = child_process.communicate(
+                json.dumps(input_model).encode()
+            )[0]
+            tranformed_value = json.loads(child_process_output.decode())
             input_model = self.update_property(input_model, tranformed_value, key[1:])
 
         return input_model
