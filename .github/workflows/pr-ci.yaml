@@ -25,10 +25,10 @@ jobs:
         python-version: ${{ matrix.python }}
     - name: Install JQ on windows
       run: choco install jq
-      if: matrix.os == windows-latest
+      if: matrix.os == 'windows-latest'
     - name: Install JQ on Macos
       run: brew install jq
-      if: matrix.os == macos-latest
+      if: matrix.os == 'macos-latest'
     - name: Install dependencies
       run: |
         pip install --upgrade 'attrs==19.2.0' wheel -r requirements.txt
