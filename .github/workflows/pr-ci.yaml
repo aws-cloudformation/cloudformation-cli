@@ -15,7 +15,7 @@ jobs:
     strategy:
       matrix:
         python: [3.6, 3.7, 3.8]
-        os: [windows-latest]
+        os: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
     - uses: actions/checkout@v2
@@ -24,8 +24,10 @@ jobs:
       with:
         python-version: ${{ matrix.python }}
     - name: Install JQ
-      run: |
-        choco install jq
+      - run: choco install jq
+        if: matrix.os == windows-latest
+      - run: brew install jq
+        if: matrix.os == macos-latest
     - name: Install dependencies
       run: |
         pip install --upgrade 'attrs==19.2.0' wheel -r requirements.txt
