@@ -23,11 +23,12 @@ jobs:
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python }}
-    - name: Install JQ
-      - run: choco install jq
-        if: matrix.os == windows-latest
-      - run: brew install jq
-        if: matrix.os == macos-latest
+    - name: Install JQ on windows
+      run: choco install jq
+      if: matrix.os == windows-latest
+    - name: Install JQ on Macos
+      run: brew install jq
+      if: matrix.os == macos-latest
     - name: Install dependencies
       run: |
         pip install --upgrade 'attrs==19.2.0' wheel -r requirements.txt
