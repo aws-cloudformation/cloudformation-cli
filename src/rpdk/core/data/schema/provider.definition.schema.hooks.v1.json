@@ -1,0 +1,136 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "https://schema.cloudformation.us-east-1.amazonaws.com/provider.definition.schema.hooks.v1.json",
+    "title": "CloudFormation Hook Provider Definition MetaSchema",
+    "description": "This schema validates a CloudFormation hook provider definition.",
+    "definitions": {
+        "handlerDefinition": {
+            "description": "Defines any execution operations which can be performed on this hook provider",
+            "type": "object",
+            "properties": {
+                "targetNames": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "additionalItems": false
+                },
+                "permissions": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "additionalItems": false
+                }
+            },
+            "additionalProperties": false,
+            "required": [
+                "targetNames",
+                "permissions"
+            ]
+        }
+    },
+    "type": "object",
+    "patternProperties": {
+        "^\\$id$": {
+            "$ref": "http://json-schema.org/draft-07/schema#/properties/$id"
+        }
+    },
+    "properties": {
+        "$schema": {
+            "$ref": "base.definition.schema.v1.json#/properties/$schema"
+        },
+        "type": {
+            "$comment": "Hook Type",
+            "type": "string",
+            "const": "HOOK"
+        },
+        "typeName": {
+            "$comment": "Hook Type Identifier",
+            "examples": [
+                "Organization::Service::Hook",
+                "AWS::EC2::Hook",
+                "Initech::TPS::Hook"
+            ],
+            "$ref": "base.definition.schema.v1.json#/properties/typeName"
+        },
+        "$comment": {
+            "$ref": "base.definition.schema.v1.json#/properties/$comment"
+        },
+        "title": {
+            "$ref": "base.definition.schema.v1.json#/properties/title"
+        },
+        "description": {
+            "$comment": "A short description of the hook provider. This will be shown in the AWS CloudFormation console.",
+            "$ref": "base.definition.schema.v1.json#/properties/description"
+        },
+        "sourceUrl": {
+            "$comment": "The location of the source code for this hook provider, to help interested parties submit issues or improvements.",
+            "examples": [
+                "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-s3"
+            ],
+            "$ref": "base.definition.schema.v1.json#/properties/sourceUrl"
+        },
+        "documentationUrl": {
+            "$comment": "A page with supplemental documentation. The property documentation in schemas should be able to stand alone, but this is an opportunity for e.g. rich examples or more guided documents.",
+            "examples": [
+                "https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/CHAP_Using.html"
+            ],
+            "$ref": "base.definition.schema.v1.json#/definitions/httpsUrl"
+        },
+        "additionalProperties": {
+            "$comment": "All properties of a hook must be expressed in the schema - arbitrary inputs are not allowed",
+            "$ref": "base.definition.schema.v1.json#/properties/additionalProperties"
+        },
+        "definitions": {
+            "$ref": "base.definition.schema.v1.json#/properties/definitions"
+        },
+        "handlers": {
+            "description": "Defines the provisioning operations which can be performed on this hook type",
+            "type": "object",
+            "properties": {
+                "preCreate": {
+                    "$ref": "#/definitions/handlerDefinition"
+                },
+                "preUpdate": {
+                    "$ref": "#/definitions/handlerDefinition"
+                },
+                "preDelete": {
+                    "$ref": "#/definitions/handlerDefinition"
+                }
+            },
+            "additionalProperties": false
+        },
+        "remote": {
+            "description": "Reserved for CloudFormation use. A namespace to inline remote schemas.",
+            "$ref": "base.definition.schema.v1.json#/properties/remote"
+        },
+        "deprecatedProperties": {
+            "description": "A list of JSON pointers to properties that have been deprecated by the underlying service provider. These properties are still accepted in create & update operations, however they may be ignored, or converted to a consistent model on application. Deprecated properties are not guaranteed to be present in read paths.",
+            "$ref": "base.definition.schema.v1.json#/definitions/jsonPointerArray"
+        },
+        "required": {
+            "$ref": "base.definition.schema.v1.json#/properties/required"
+        },
+        "allOf": {
+            "$ref": "base.definition.schema.v1.json#/definitions/schemaArray"
+        },
+        "anyOf": {
+            "$ref": "base.definition.schema.v1.json#/definitions/schemaArray"
+        },
+        "oneOf": {
+            "$ref": "base.definition.schema.v1.json#/definitions/schemaArray"
+        },
+        "typeConfiguration": {
+            "description": "TypeConfiguration to set the configuration data for registry types. This configuration data is not passed through the hook properties in template. One of the possible use cases is configuring auth keys for 3P hook providers.",
+            "$ref": "provider.configuration.definition.schema.hooks.v1.json"
+        }
+    },
+    "required": [
+        "typeName",
+        "typeConfiguration",
+        "description",
+        "additionalProperties"
+    ],
+    "additionalProperties": false
+}

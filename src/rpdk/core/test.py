@@ -6,6 +6,7 @@ import json
 import logging
 import os
 from argparse import SUPPRESS
+from collections import OrderedDict
 from contextlib import contextmanager
 from pathlib import Path
 from tempfile import NamedTemporaryFile
@@ -15,15 +16,17 @@ from jinja2 import Environment, Template, meta
 from jsonschema import Draft6Validator
 from jsonschema.exceptions import ValidationError
 
+from rpdk.core.contract.hook_client import HookClient
 from rpdk.core.jsonutils.pointer import fragment_decode
+from rpdk.core.utils.handler_utils import generate_handler_name
 
 from .boto_helpers import create_sdk_session, get_temporary_credentials
 from .contract.contract_plugin import ContractPlugin
-from .contract.interface import Action
+from .contract.interface import Action, HookInvocationPoint
 from .contract.resource_client import ResourceClient
 from .data_loaders import copy_resource
 from .exceptions import SysExitRecommendedError
-from .project import ARTIFACT_TYPE_MODULE, Project
+from .project import ARTIFACT_TYPE_HOOK, ARTIFACT_TYPE_MODULE, Project
 
 LOG = logging.getLogger(__name__)
 
@@ -33,7 +36,7 @@ DEFAULT_REGION = "us-east-1"
 DEFAULT_TIMEOUT = "30"
 INPUTS = "inputs"
 
-OVERRIDES_VALIDATOR = Draft6Validator(
+RESOURCE_OVERRIDES_VALIDATOR = Draft6Validator(
     {
         "properties": {"CREATE": {"type": "object"}, "UPDATE": {"type": "object"}},
         "anyOf": [{"required": ["CREATE"]}, {"required": ["UPDATE"]}],
@@ -41,9 +44,37 @@ OVERRIDES_VALIDATOR = Draft6Validator(
     }
 )
 
+HOOK_OVERRIDES_VALIDATOR = Draft6Validator(
+    {
+        "properties": {
+            "CREATE_PRE_PROVISION": {"type": "object"},
+            "UPDATE_PRE_PROVISION": {"type": "object"},
+            "DELETE_PRE_PROVISION": {"type": "object"},
+            "INVALID_CREATE_PRE_PROVISION": {"type": "object"},
+            "INVALID_UPDATE_PRE_PROVISION": {"type": "object"},
+            "INVALID_DELETE_PRE_PROVISION": {"type": "object"},
+            "INVALID": {"type": "object"},
+        },
+        "anyOf": [
+            {"required": ["CREATE_PRE_PROVISION"]},
+            {"required": ["UPDATE_PRE_PROVISION"]},
+            {"required": ["DELETE_PRE_PROVISION"]},
+            {"required": ["INVALID_CREATE_PRE_PROVISION"]},
+            {"required": ["INVALID_UPDATE_PRE_PROVISION"]},
+            {"required": ["INVALID_DELETE_PRE_PROVISION"]},
+            {"required": ["INVALID"]},
+        ],
+        "additionalProperties": False,
+    }
+)
+
 
 def empty_override():
     return {"CREATE": {}}
+
+
+def empty_hook_override():
+    return {"CREATE_PRE_PROVISION": {}}
 
 
 @contextmanager
@@ -92,6 +123,18 @@ def render_jinja(overrides_string, region_name, endpoint_url, role_arn):
     return to_return
 
 
+def filter_overrides(overrides, project):
+    if project.artifact_type == ARTIFACT_TYPE_HOOK:
+        actions = set(HookInvocationPoint)
+    else:
+        actions = set(Action)
+
+    for k in set(overrides) - actions:
+        del overrides[k]
+
+    return overrides
+
+
 def get_overrides(root, region_name, endpoint_url, role_arn):
     if not root:
         return empty_override()
@@ -105,7 +148,7 @@ def get_overrides(root, region_name, endpoint_url, role_arn):
         return empty_override()
 
     try:
-        OVERRIDES_VALIDATOR.validate(overrides_raw)
+        RESOURCE_OVERRIDES_VALIDATOR.validate(overrides_raw)
     except ValidationError as e:
         LOG.warning("Override file invalid: %s\n" "No overrides will be applied", e)
         return empty_override()
@@ -121,6 +164,60 @@ def get_overrides(root, region_name, endpoint_url, role_arn):
             else:
                 items[pointer] = obj
         overrides[operation] = items
+
+    return overrides
+
+
+# pylint: disable=R0914
+# flake8: noqa: C901
+def get_hook_overrides(root, region_name, endpoint_url, role_arn):
+    if not root:
+        return empty_hook_override()
+
+    path = root / "overrides.json"
+    try:
+        with path.open("r", encoding="utf-8") as f:
+            overrides_raw = render_jinja(f.read(), region_name, endpoint_url, role_arn)
+    except FileNotFoundError:
+        LOG.debug("Override file '%s' not found. No overrides will be applied", path)
+        return empty_hook_override()
+
+    try:
+        HOOK_OVERRIDES_VALIDATOR.validate(overrides_raw)
+    except ValidationError as e:
+        LOG.warning("Override file invalid: %s\n" "No overrides will be applied", e)
+        return empty_hook_override()
+
+    overrides = empty_hook_override()
+    for (
+        operation,
+        operation_items_raw,
+    ) in overrides_raw.items():  # Hook invocation point (e.g. CREATE_PRE_PROVISION)
+        operation_items = {}
+        for (
+            target_name,
+            target_items_raw,
+        ) in operation_items_raw.items():  # Hook targets (e.g. AWS::S3::Bucket)
+            target_items = {}
+            for (
+                item,
+                items_raw,
+            ) in (
+                target_items_raw.items()
+            ):  # Target Model fields (e.g. 'resourceProperties', 'previousResourceProperties')
+                items = {}
+                for pointer, obj in items_raw.items():
+                    try:
+                        pointer = fragment_decode(pointer, prefix="")
+                    except ValueError:  # pragma: no cover
+                        LOG.warning(
+                            "%s pointer '%s' is invalid. Skipping", operation, pointer
+                        )
+                    else:
+                        items[pointer] = obj
+                target_items[item] = items
+            operation_items[target_name] = target_items
+        overrides[operation] = operation_items
 
     return overrides
 
@@ -158,7 +255,20 @@ def get_inputs(root, region_name, endpoint_url, value, role_arn):
     return None
 
 
+# pylint: disable=too-many-return-statements
 def get_type(file_name):
+    if "invalid_pre_create" in file_name:
+        return "INVALID_CREATE_PRE_PROVISION"
+    if "invalid_pre_update" in file_name:
+        return "INVALID_UPDATE_PRE_PROVISION"
+    if "invalid_pre_delete" in file_name:
+        return "INVALID_DELETE_PRE_PROVISION"
+    if "pre_create" in file_name:
+        return "CREATE_PRE_PROVISION"
+    if "pre_update" in file_name:
+        return "UPDATE_PRE_PROVISION"
+    if "pre_delete" in file_name:
+        return "DELETE_PRE_PROVISION"
     if "create" in file_name:
         return "CREATE"
     if "update" in file_name:
@@ -168,11 +278,74 @@ def get_type(file_name):
     return None
 
 
+def get_resource_marker_options(schema):
+    lowercase_actions = [action.lower() for action in Action]
+    handlers = schema.get("handlers", {}).keys()
+    return [action for action in lowercase_actions if action not in handlers]
+
+
+def get_hook_marker_options(schema):
+    handlers = schema.get("handlers", {}).keys()
+    action_to_handler = OrderedDict()
+    for invocation_point in HookInvocationPoint:
+        handler_name = generate_handler_name(invocation_point)
+        action_to_handler[handler_name] = invocation_point.lower()
+
+    excluded_actions = [
+        action for action in action_to_handler.keys() if action not in handlers
+    ]
+    return [action_to_handler[excluded_action] for excluded_action in excluded_actions]
+
+
 def get_marker_options(schema):
-    lowercase_actions = {action.lower() for action in Action}
-    excluded_actions = lowercase_actions - schema.get("handlers", {}).keys()
+    excluded_actions = get_resource_marker_options(schema) + get_hook_marker_options(
+        schema
+    )
     marker_list = ["not " + action for action in excluded_actions]
     return " and ".join(marker_list)
+
+
+def get_contract_plugin_client(args, project, overrides, inputs):
+    plugin_clients = {}
+    if project.artifact_type == ARTIFACT_TYPE_HOOK:
+        plugin_clients["hook_client"] = HookClient(
+            args.function_name,
+            args.endpoint,
+            args.region,
+            project.schema,
+            overrides,
+            inputs,
+            args.role_arn,
+            args.enforce_timeout,
+            project.type_name,
+            args.log_group_name,
+            args.log_role_arn,
+            executable_entrypoint=project.executable_entrypoint,
+            docker_image=args.docker_image,
+            target_info=project._load_target_info(  # pylint: disable=protected-access
+                args.cloudformation_endpoint_url, args.region
+            ),
+        )
+        LOG.debug("Setup plugin for HOOK type")
+        return plugin_clients
+
+    plugin_clients["resource_client"] = ResourceClient(
+        args.function_name,
+        args.endpoint,
+        args.region,
+        project.schema,
+        overrides,
+        inputs,
+        args.role_arn,
+        args.enforce_timeout,
+        project.type_name,
+        args.log_group_name,
+        args.log_role_arn,
+        executable_entrypoint=project.executable_entrypoint,
+        docker_image=args.docker_image,
+    )
+    LOG.debug("Setup plugin for RESOURCE type")
+    return plugin_clients
 
 
 def test(args):
@@ -183,9 +356,15 @@ def test(args):
         LOG.warning("The test command is not supported in a module project")
         return
 
-    overrides = get_overrides(
-        project.root, args.region, args.cloudformation_endpoint_url, args.role_arn
-    )
+    if project.artifact_type == ARTIFACT_TYPE_HOOK:
+        overrides = get_hook_overrides(
+            project.root, args.region, args.cloudformation_endpoint_url, args.role_arn
+        )
+    else:
+        overrides = get_overrides(
+            project.root, args.region, args.cloudformation_endpoint_url, args.role_arn
+        )
+        filter_overrides(overrides, project)
 
     index = 1
     while True:
@@ -206,24 +385,8 @@ def test(args):
 
 
 def invoke_test(args, project, overrides, inputs):
-    plugin = ContractPlugin(
-        ResourceClient(
-            args.function_name,
-            args.endpoint,
-            args.region,
-            project.schema,
-            overrides,
-            inputs,
-            args.role_arn,
-            args.enforce_timeout,
-            project.type_name,
-            args.log_group_name,
-            args.log_role_arn,
-            executable_entrypoint=project.executable_entrypoint,
-            docker_image=args.docker_image,
-        )
-    )
-
+    plugin_clients = get_contract_plugin_client(args, project, overrides, inputs)
+    plugin = ContractPlugin(plugin_clients)
     with temporary_ini_file() as path:
         pytest_args = ["-c", path, "-m", get_marker_options(project.schema)]
         if args.passed_to_pytest:

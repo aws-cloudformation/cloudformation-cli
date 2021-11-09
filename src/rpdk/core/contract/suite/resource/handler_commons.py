@@ -6,8 +6,8 @@ from rpdk.core.contract.resource_client import (
     prune_properties_from_model,
     prune_properties_if_not_exist_in_path,
 )
-from rpdk.core.contract.suite.contract_asserts import (
-    failed_event,
+from rpdk.core.contract.suite.contract_asserts_commons import failed_event
+from rpdk.core.contract.suite.resource.contract_asserts import (
     response_contains_primary_identifier,
     response_contains_resource_model_equal_updated_model,
     response_contains_unchanged_primary_identifier,

@@ -3,13 +3,18 @@ import logging
 from colorama import Fore, Style
 
 from rpdk.core.exceptions import WizardValidationError
-from rpdk.core.project import ARTIFACT_TYPE_MODULE, ARTIFACT_TYPE_RESOURCE
+from rpdk.core.project import (
+    ARTIFACT_TYPE_HOOK,
+    ARTIFACT_TYPE_MODULE,
+    ARTIFACT_TYPE_RESOURCE,
+)
 
 LOG = logging.getLogger(__name__)
 
-INPUT_TYPES_STRING = "resource(r) or a module(m)"
+INPUT_TYPES_STRING = "resource(r) or a module(m) or a hook(h)"
 VALID_RESOURCES_REPRESENTATION = {"r", "resource", "resources"}
 VALID_MODULES_REPRESENTATION = {"m", "module", "modules"}
+VALID_HOOKS_REPRESENTATION = {"h", "hook", "hooks"}
 
 
 # NOTE this function is also in init, for compatibility with language plugins
@@ -61,6 +66,8 @@ def validate_artifact_type(value):
         return ARTIFACT_TYPE_RESOURCE
     if value.lower() in VALID_MODULES_REPRESENTATION:
         return ARTIFACT_TYPE_MODULE
+    if value.lower() in VALID_HOOKS_REPRESENTATION:
+        return ARTIFACT_TYPE_HOOK
     raise WizardValidationError(
         "Please enter a value matching {}".format(INPUT_TYPES_STRING)
     )
