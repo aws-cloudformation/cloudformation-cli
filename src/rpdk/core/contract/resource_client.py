@@ -3,7 +3,7 @@
 import json
 import logging
 import re
-import subprocess
+import sys
 import time
 from time import sleep
 from uuid import uuid4
@@ -236,18 +236,14 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         ]
 
     def transform_model(self, input_model):
-        if not self.property_transform:
+        if not self.property_transform or sys.platform.startswith("win"):
             return None
+        import pyjq
+
         for key in self.property_transform_keys:
             path = "/" + "/".join(key)
             expression = self.property_transform[path]
-            child_process = subprocess.Popen(
-                ["jq", expression], stdin=subprocess.PIPE, stdout=subprocess.PIPE
-            )
-            child_process_output = child_process.communicate(
-                json.dumps(input_model).encode()
-            )[0]
-            tranformed_value = json.loads(child_process_output.decode())
+            tranformed_value = pyjq.first(expression, input_model)
             input_model = self.update_property(input_model, tranformed_value, key[1:])
 
         return input_model

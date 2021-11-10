@@ -23,11 +23,16 @@ jobs:
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python }}
-    - name: Install JQ on windows
-      run: choco install jq
-      if: matrix.os == 'windows-latest'
-    - name: Install JQ on Macos
-      run: brew install jq
+    - name: Install PYJQ dependencies on Ubuntu
+      run: |
+        yum install autoconf automake libtool
+        pip install pyjq
+      if: matrix.os == 'ubuntu-latest'
+    - name: Install PYJQ dependencies on Macos
+      run: |
+        brew install autoconf automake libtool
+        brew install jq
+        pip install pyjq
       if: matrix.os == 'macos-latest'
     - name: Install dependencies
       run: |
