@@ -414,6 +414,7 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
                         is_ordered = traverse_raw_schema(self._schema, new_path).get(
                             "insertionOrder", True
                         )
+
                         self.compare_collection(
                             inputs[key], outputs[key], is_ordered, new_path
                         )

@@ -132,9 +132,18 @@ def traverse(document, path_parts):
     return document, tuple(path), parent
 
 
-def _resolve_ref(sub_schema, definitions):
+def _resolve_ref(sub_schema: dict, definitions: dict, last_step: bool = False):
     # resolve $ref
-    ref = nested_lookup(REF, sub_schema)
+    ref = nested_lookup(REF, sub_schema)  # should be safe (always single value)
+    # bc sub_schema is always per paranet property
+    # (taken from definitions)
+
+    if last_step and REF not in sub_schema:  # dont traverse deeper than requested
+        # check if $ref is used directly ->
+        # means that we need to check definition
+        # otherwise it's an array and return subschema
+        return sub_schema
+
     if ref:
         # [0] should be a single $ref in subschema on the top level
         # [-1] $ref must follow #/definitions/object
@@ -178,8 +187,15 @@ def traverse_raw_schema(schema: dict, path: tuple):
         properties = schema["properties"]
         definitions = schema.get("definitions", {})
         sub_properties = properties
+        last_step = (
+            len(path) - 1
+        )  # get amount of steps to prevent deeper traversal than requested
         for step in path:
-            sub_properties = _resolve_ref(sub_properties[step], definitions)
+            sub_properties = _resolve_ref(
+                sub_properties[step],
+                definitions,
+                last_step=path.index(step) == last_step,
+            )
         return sub_properties
     except KeyError as e:
         LOG.debug("Malformed Schema or incorrect path provided\n%s\n%s", path, e)
