@@ -25,7 +25,7 @@ jobs:
         python-version: ${{ matrix.python }}
     - name: Install PYJQ dependencies on Ubuntu
       run: |
-        yum install autoconf automake libtool
+        apt install autoconf automake libtool
         pip install pyjq
       if: matrix.os == 'ubuntu-latest'
     - name: Install PYJQ dependencies on Macos
