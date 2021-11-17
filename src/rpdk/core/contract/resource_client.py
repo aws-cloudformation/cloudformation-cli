@@ -7,6 +7,7 @@ import re
 import sys
 import time
 from time import sleep
+from typing import Any, Dict, Tuple
 from uuid import uuid4
 
 import docker
@@ -248,15 +249,23 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
 
         import pyjq
 
+        transformed_input_model = copy.deepcopy(input_model)
         for key in self.property_transform_keys:
             path = "/" + "/".join(key)
             expression = self.property_transform[path]
-            transformed_value = pyjq.first(expression, input_model)
-            input_model = self.update_property(input_model, transformed_value, key[1:])
+            transformed_value = pyjq.first(expression, transformed_input_model)
+            # key is a tuple like ("properties", "A", "B")
+            # input model is like: {"A": {"B": "valueB"}}
+            # use key[1:] here to remove "properties"
+            transformed_input_model = self.update_property(
+                transformed_input_model, transformed_value, key[1:]
+            )
 
-        return input_model
+        return transformed_input_model
 
-    def update_property(self, model, value, path):
+    def update_property(
+        self, model: Dict[str, Any], value: Any, path: Tuple[str, ...]
+    ) -> Dict[str, Any]:
         if len(path) > 1:
             model[path[0]] = self.update_property(model[path[0]], value, path[1:])
         elif len(path) == 1:
@@ -430,7 +439,7 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         try:
             self.compare_model(inputs, outputs)
         except AssertionError as exception:
-            transformed_inputs = self.transform_model(copy.deepcopy(inputs))
+            transformed_inputs = self.transform_model(inputs)
             if transformed_inputs:
                 self.compare_model(transformed_inputs, outputs)
             else:
