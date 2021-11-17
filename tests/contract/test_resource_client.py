@@ -750,34 +750,31 @@ def test_update_schema(resource_client):
 
 def test_transform_model(resource_client_inputs_property_transform):
     inputs = {"a": "ValueA", "b": {"c": {"d": "ValueD", "e": 1}}}
-    transformed_inputs = {"a": "ValueA", "b": {"c": {"d": "ValueDTest", "e": 1}}}
+    expected_inputs = {"a": "ValueA", "b": {"c": {"d": "ValueDTest", "e": 1}}}
 
-    resource_client_inputs_property_transform.transform_model(inputs)
+    transformed_inputs = resource_client_inputs_property_transform.transform_model(
+        inputs
+    )
 
-    assert inputs == transformed_inputs
+    assert transformed_inputs == expected_inputs
 
 
 def test_compare_with_transform_should_pass(resource_client_inputs_property_transform):
     inputs = {"a": "ValueA", "b": {"c": {"d": "ValueD", "e": 1}}}
-    transformed_inputs = {"a": "ValueA", "b": {"c": {"d": "ValueDTest", "e": 1}}}
+    # transformed_inputs = {"a": "ValueA", "b": {"c": {"d": "ValueDTest", "e": 1}}}
     outputs = {"a": "ValueA", "b": {"c": {"d": "ValueDTest", "e": 1}}}
 
-    resource_client_inputs_property_transform.compare(
-        inputs, outputs, transformed_inputs
-    )
+    resource_client_inputs_property_transform.compare(inputs, outputs)
 
 
 def test_compare_with_transform_should_throw_exception(
     resource_client_inputs_property_transform,
 ):
     inputs = {"a": "ValueA", "b": {"c": {"d": "ValueD", "e": 1}}}
-    transformed_inputs = {"a": "ValueA", "b": {"c": {"d": "ValueDTest", "e": 1}}}
     outputs = {"a": "ValueA", "b": {"c": {"d": "D", "e": 1}}}
 
     try:
-        resource_client_inputs_property_transform.compare(
-            inputs, outputs, transformed_inputs
-        )
+        resource_client_inputs_property_transform.compare(inputs, outputs)
     except AssertionError:
         logging.debug("This test expects Assertion Exception to be thrown")
 
@@ -1656,7 +1653,7 @@ def test_compare_should_pass(resource_client):
         "h": [{"d": 1, "e": 3}, {"d": 2}],
         "i": ["abc", "ghi"],
     }
-    resource_client.compare(inputs, outputs, None)
+    resource_client.compare(inputs, outputs)
 
 
 def test_compare_should_throw_exception(resource_client):
@@ -1669,7 +1666,7 @@ def test_compare_should_throw_exception(resource_client):
         "h": [{"d": 1}],
     }
     try:
-        resource_client.compare(inputs, outputs, None)
+        resource_client.compare(inputs, outputs)
     except AssertionError:
         logging.debug("This test expects Assertion Exception to be thrown")
 
@@ -1805,7 +1802,7 @@ def test_compare_should_throw_exception(resource_client):
 def test_compare_collection(resource_client, inputs, outputs, schema_fragment):
     resource_client._update_schema(schema_fragment)
 
-    resource_client.compare(inputs, outputs, None)
+    resource_client.compare(inputs, outputs)
 
 
 def test_compare_should_throw_key_error(resource_client):
@@ -1814,7 +1811,7 @@ def test_compare_should_throw_key_error(resource_client):
 
     outputs = {"b": {"d": 1, "e": 2}, "f": [{"d": 1, "e": 2}, {"d": 2, "e": 3}]}
     try:
-        resource_client.compare(inputs, outputs, None)
+        resource_client.compare(inputs, outputs)
     except AssertionError:
         logging.debug("This test expects Assertion Exception to be thrown")
 
@@ -1829,6 +1826,6 @@ def test_compare_ordered_list_throws_assertion_exception(resource_client):
         "i": ["abc", "ghi", "tt"],
     }
     try:
-        resource_client.compare(inputs, outputs, None)
+        resource_client.compare(inputs, outputs)
     except AssertionError:
         logging.debug("This test expects Assertion Exception to be thrown")

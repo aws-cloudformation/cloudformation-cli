@@ -1,5 +1,6 @@
 # pylint: disable=import-outside-toplevel
 # pylint: disable=R0904
+import copy
 import json
 import logging
 import re
@@ -236,21 +237,28 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         ]
 
     def transform_model(self, input_model):
-        if not self.property_transform or sys.platform.startswith("win"):
+        if not self.property_transform:
             return None
+        # When CT input and output not equal, and with property transform
+        # Need to check system as property transform for CT not supported on Windows
+        if sys.platform.startswith("win"):
+            raise EnvironmentError(
+                "Property transform not available with contract tests on Windows OS"
+            )
+
         import pyjq
 
         for key in self.property_transform_keys:
             path = "/" + "/".join(key)
             expression = self.property_transform[path]
-            tranformed_value = pyjq.first(expression, input_model)
-            input_model = self.update_property(input_model, tranformed_value, key[1:])
+            transformed_value = pyjq.first(expression, input_model)
+            input_model = self.update_property(input_model, transformed_value, key[1:])
 
         return input_model
 
     def update_property(self, model, value, path):
         if len(path) > 1:
-            model = self.update_property(model[path[0]], value, path[1:])
+            model[path[0]] = self.update_property(model[path[0]], value, path[1:])
         elif len(path) == 1:
             model[path[0]] = value
         return model
@@ -418,7 +426,17 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         example = override_properties(self.invalid_strategy.example(), overrides)
         return {**create_model, **example}
 
-    def compare(self, inputs, outputs, transformed_inputs, path=()):
+    def compare(self, inputs, outputs):
+        try:
+            self.compare_model(inputs, outputs)
+        except AssertionError as exception:
+            transformed_inputs = self.transform_model(copy.deepcopy(inputs))
+            if transformed_inputs:
+                self.compare_model(transformed_inputs, outputs)
+            else:
+                raise exception
+
+    def compare_model(self, inputs, outputs, path=()):
         assertion_error_message = (
             "All properties specified in the request MUST "
             "be present in the model returned, and they MUST"
@@ -430,10 +448,9 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
                 for key in inputs:
                     new_path = path + (key,)
                     if isinstance(inputs[key], dict):
-                        self.compare(
+                        self.compare_model(
                             inputs[key],
                             outputs[key],
-                            transformed_inputs[key] if transformed_inputs else None,
                             new_path,
                         )
                     elif isinstance(inputs[key], list):
@@ -447,27 +464,20 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
                             outputs[key],
                             is_ordered,
                             new_path,
-                            transformed_inputs[key] if transformed_inputs else None,
                         )
                     else:
                         assert inputs[key] == outputs[key], assertion_error_message
             else:
                 assert inputs == outputs, assertion_error_message
-        except Exception as exception:  # pylint: disable=broad-except
-            # When input model not equal to output model, and there is transformed model,
-            # need to compare transformed model with output model also
-            if transformed_inputs:
-                self.compare(transformed_inputs, outputs, None)
-            else:
-                raise AssertionError(assertion_error_message) from exception
+        except Exception as exception:
+            raise AssertionError(assertion_error_message) from exception
 
-    def compare_collection(self, inputs, outputs, is_ordered, path, transformed_inputs):
+    def compare_collection(self, inputs, outputs, is_ordered, path):
         if is_ordered:
             for index in range(len(inputs)):  # pylint: disable=C0200
-                self.compare(
+                self.compare_model(
                     inputs[index],
                     outputs[index],
-                    transformed_inputs[index] if transformed_inputs else None,
                     path,
                 )
             return

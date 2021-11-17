@@ -62,7 +62,7 @@ cfn test --log-group-name cw_log_group --log-role-arn log_delivery_role_arn # Ha
 Note:
 * To use your type configuration in contract tests, you will need to save your type configuration json file in `~/.cfn-cli/typeConfiguration.json`.
 
-* When the resource type with propertyTransform in schema, need to install PYJQ firstly(propertyTransform for contract tests is not available for Windows system)
+* To use `propertyTransform` in schema, you will need to install [PYJQ](https://pypi.org/project/pyjq/). This feature will not be available to use with contract tests on Windows OS
 
 Install PYJQ for Linux system
 

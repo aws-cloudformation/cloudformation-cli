@@ -165,10 +165,4 @@ def test_input_equals_output(resource_client, input_model, output_model):
         pruned_output_model, pruned_input_model, resource_client.create_only_paths
     )
 
-    transformed_input_model = resource_client.transform_model(
-        copy.deepcopy(pruned_input_model)
-    )
-
-    resource_client.compare(
-        pruned_input_model, pruned_output_model, transformed_input_model
-    )
+    resource_client.compare(pruned_input_model, pruned_output_model)
