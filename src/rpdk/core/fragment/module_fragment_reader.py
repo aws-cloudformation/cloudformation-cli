@@ -7,7 +7,7 @@ from cfn_tools import load_yaml
 from rpdk.core.exceptions import FragmentValidationError
 
 LOG = logging.getLogger(__name__)
-ALLOWED_EXTENSIONS = {".json", ".yaml", ".yml"}
+ALLOWED_EXTENSIONS = {".json", ".yaml", ".yml", ".template"}
 
 
 def read_raw_fragments(fragment_dir):
@@ -37,7 +37,7 @@ def _get_fragment_file(fragment_dir):
                 all_fragment_files.append(os.path.join(root, f))
     if len(all_fragment_files) == 0:
         raise FragmentValidationError(
-            f"No module fragment files found in the fragments folder ending on one of {ALLOWED_EXTENSIONS}"
+            f"No module fragment files found in the fragments folder ending in one of {ALLOWED_EXTENSIONS}"
         )
     if len(all_fragment_files) > 1:
         raise FragmentValidationError(
