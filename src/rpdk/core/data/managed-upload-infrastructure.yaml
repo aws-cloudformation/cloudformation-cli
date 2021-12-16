@@ -62,6 +62,7 @@ Resources:
   EncryptionKey:
     Type: AWS::KMS::Key
     DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
     Properties:
       Description: KMS key used to encrypt the resource type artifacts
       EnableKeyRotation: true
@@ -74,6 +75,9 @@ Resources:
             AWS: !Ref AWS::AccountId
           Action: kms:*
           Resource: "*"
+
+  DummyResource:
+    Type: AWS::CloudFormation::WaitConditionHandle
 
   LogAndMetricsDeliveryRole:
     Type: AWS::IAM::Role
