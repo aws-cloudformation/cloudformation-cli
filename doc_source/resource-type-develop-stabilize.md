@@ -1,6 +1,6 @@
-# Progress Chaining, Stabilization and Callback Pattern<a name="resource-type-develop-stabilize"></a>
+# Progress chaining, stabilization and callback pattern<a name="resource-type-develop-stabilize"></a>
 
-Often when you develop CloudFormation resources, when interacting with web service APIs you need to chain them in sequence to apply the desired state\. CloudFormation provides a framework to write these chain patterns\. The framework does a lot of the heavy lifting needed to handle error conditions, throttle when calling downstream API, and more\. The framework provides callbacks that the handler can use to inspect and change the behavior when making these service calls\.
+Often when you develop CloudFormation resource types, when interacting with web service APIs you need to chain them in sequence to apply the desired state\. CloudFormation provides a framework to write these chain patterns\. The framework does a lot of the heavy lifting needed to handle error conditions, throttle when calling downstream API, and more\. The framework provides callbacks that the handler can use to inspect and change the behavior when making these service calls\.
 
 Most web service API calls follows a typical pattern:
 
@@ -18,7 +18,7 @@ Most web service API calls follows a typical pattern:
 
 In writing the handler, you do not need to do anything special with replay/continuation semantics\. The framework ensures that the call chain is effectively resumed from where it was halted\. This is essentially useful when the wait time for resource stabilization runs into minutes or even hours\.
 
-## Sample: Kinesis Stream Integration<a name="resource-type-develop-stabilize-example"></a>
+## Sample: Kinesis Stream integration<a name="resource-type-develop-stabilize-example"></a>
 
 Here is an example integration against AWS service APIs for a Kinesis Stream\. A snippet of the Kinesis resource model is shown below:
 
@@ -187,7 +187,7 @@ public class CreateHandler extends BaseKinesisHandler {
 }
 ```
 
-## How to Make Other Calls<a name="resource-type-develop-stabilize-other-calls"></a>
+## How to make other calls<a name="resource-type-develop-stabilize-other-calls"></a>
 
 The same pattern shown here for CreateStreamRequest is followed with others as well\. Here is code for handleRetention:
 

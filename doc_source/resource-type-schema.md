@@ -1,24 +1,24 @@
-# Resource Provider Schema<a name="resource-type-schema"></a>
+# Resource type schema<a name="resource-type-schema"></a>
 
-In order to be considered valid, your resource provider's schema must adhere to the [Resource Provider Definition Schema](https://github.com/aws-cloudformation/aws-cloudformation-rpdk/blob/master/src/rpdk/core/data/schema/provider.definition.schema.v1.json)\. This meta\-schema provides a means of validating your resource schema during resource development\.
+In order to be considered valid, your resource type's schema must adhere to the [Resource Provider Definition Schema](https://github.com/aws-cloudformation/aws-cloudformation-rpdk/blob/master/src/rpdk/core/data/schema/provider.definition.schema.v1.json)\. This meta\-schema provides a means of validating your resource specification during resource development\.
 
 ## Syntax<a name="resource-type-schema-syntax"></a>
 
-Below is the structure for a typical resource provider schema\. For the complete meta\-schema definition, see the [Resource Provider Definition Schema](https://github.com/aws-cloudformation/aws-cloudformation-rpdk/blob/master/src/rpdk/core/data/schema/provider.definition.schema.v1.json) on [GitHub](https://github.com)\.
+Below is the structure for a typical resource type schema\. For the complete meta\-schema definition, see the [Resource Provider Definition Schema](https://github.com/aws-cloudformation/aws-cloudformation-rpdk/blob/master/src/rpdk/core/data/schema/provider.definition.schema.v1.json) on [GitHub](https://github.com)\.
 
 ```
 {
-    "[typeName](#schema-properties-typeName)": "string",
-    "[description](#schema-properties-description)": "string",
-    "[sourceUrl](#schema-properties-sourceUrl)": "string",
-    "[documentationUrl](#schema-properties-documentationurl)": "string",
-    "[definitions](#schema-properties-definitions)": {
+    "typeName": "string",
+    "description": "string",
+    "sourceUrl": "string",
+    "documentationUrl": "string",
+    "definitions": {
         "definitionName": {
           . . .
         }
     },
-    "[properties](#schema-properties-properties)": {
-         "[propertyName](#schema-properties-propertyname)": {
+    "properties": {
+         "propertyName": {
             "description": "string",
             "type": "string",
              . . .
@@ -29,49 +29,49 @@ Below is the structure for a typical resource provider schema\. For the complete
     "required": [
         "propertyName"
     ],
-    "[readOnlyProperties](#schema-properties-readonlyproperties)": [
+    "readOnlyProperties": [
         "/properties/propertyName"
     ],
-    "[writeOnlyProperties](#schema-properties-writeonlyproperties)": [
+    "writeOnlyProperties": [
         "/properties/propertyName"
     ],
-    "[primaryIdentifier](#schema-properties-primaryidentifier)": [
+    "primaryIdentifier": [
         "/properties/propertyName"
     ],
-    "[createOnlyProperties](#schema-properties-createonlyproperties)": [
+    "createOnlyProperties": [
         "/properties/propertyName"
     ],
-    "[deprecatedProperties](#schema-properties-deprecatedproperties)": [
+    "deprecatedProperties": [
         "/properties/propertyName"
     ],
-    "[additionalIdentifiers](#schema-properties-additionalidentifiers)": [
+    "additionalIdentifiers": [
         [
             "/properties/propertyName"
         ]
     ],
-    "[handlers](#schema-properties-handlers)": {
-        "[create](#schema-properties-handlers-create)": {
-            "[permissions](#schema-properties-handlers-create-permissions)": [
+    "handlers": {
+        "create": {
+            "permissions": [
                 "permission"
             ]
         },
-        "[read](#schema-properties-handlers-read)": {
-            "[permissions](#schema-properties-handlers-read-permissions)": [
+        "read": {
+            "permissions": [
                 "permission"
             ]
         },
-        "[update](#schema-properties-handlers-update)": {
-            "[permissions](#schema-properties-handlers-update-permissions)": [
+        "update": {
+            "permissions": [
                 "permission"
             ]
         },
-        "[delete](#schema-properties-handlers-delete)": {
-            "[permissions](#schema-properties-handlers-delete-permissions)": [
+        "delete": {
+            "permissions": [
                 "permission"
             ]
         },
-        "[list](#schema-properties-handlers-list)": {
-            "[permissions](#schema-properties-handlers-list-permissions)": [
+        "list": {
+            "permissions": [
                 "permission"
             ]
         }
@@ -107,7 +107,7 @@ While the resource schema itself should include complete and accurate property d
 
 `definitions`  <a name="schema-properties-definitions"></a>
 Use the `definitions` block to provide shared resource property schemas\.
-It is considered a best practice is to use the `definitions` section to define schema elements that may be used at multiple points in your resource provider schema\. You can then use a JSON pointer to reference that element at the appropriate places in your resource provider schema\.
+It is considered a best practice is to use the `definitions` section to define schema elements that may be used at multiple points in your resource type schema\. You can then use a JSON pointer to reference that element at the appropriate places in your resource type schema\.
 
 `properties`  <a name="schema-properties-properties"></a>
 The properties of the resource\.
@@ -117,7 +117,7 @@ Nested properties are not allowed\. Instead, define any nested properties in the
 propertyName  <a name="schema-properties-propertyname"></a>
 insertionOrder  <a name="schema-properties-properties-insertionorder"></a>
 For properties of type `array`, set to `true` to specify that the order in which array items are specified must be honored, and that changing the order of the array will indicate a change in the property\.
-The default is `false`\.
+The default is `true`\.
 readOnly  <a name="schema-properties-properties-readonly"></a>
 Reserved for CloudFormation use\.
 writeOnly  <a name="schema-properties-properties-writeonly"></a>
@@ -165,14 +165,12 @@ In addition, the following elements, defined in [draft\-07](https://json-schema.
 + exclusiveMaximum
 + minimum
 + exclusiveMinimum
-+ exclusiveMinimum
 + minLength
 + pattern
 + maxItems
 + minItems
 + uniqueItems
 + contains
-+ maxProperties
 + maxProperties
 + required
 + const
@@ -201,19 +199,19 @@ Resource properties that have been deprecated by the underlying service provider
 *Type*: List of JSON pointers
 
 primaryIdentifier  <a name="schema-properties-primaryidentifier"></a>
-The uniquely identifier for an instance of this resource provider\. An identifier is a non\-zero\-length list of JSON pointers to properties that form a single key\. An identifier can be a single or multiple properties to support composite\-key identifiers\.
+The uniquely identifier for an instance of this resource type\. An identifier is a non\-zero\-length list of JSON pointers to properties that form a single key\. An identifier can be a single or multiple properties to support composite\-key identifiers\.
 *Type*: List of JSON pointers
 *Required:* Yes
 
 additionalIdentifiers  <a name="schema-properties-additionalidentifiers"></a>
-An optional list of supplementary identifiers, each of which uniquely identifies an instance of this resource provider\. An identifier is a non\-zero\-length list of JSON pointers to properties that form a single key\. An identifier can be a single property, or multiple properties to construct composite\-key identifiers\.
+An optional list of supplementary identifiers, each of which uniquely identifies an instance of this resource type\. An identifier is a non\-zero\-length list of JSON pointers to properties that form a single key\. An identifier can be a single property, or multiple properties to construct composite\-key identifiers\.
 *Type*: List of JSON pointers
 *Minimum*: 1
 
 handlers  <a name="schema-properties-handlers"></a>
-Specifies the provisioning operations which can be performed on this resource provider\. The handlers specified determine what provisioning actions CloudFormation takes with respect to the resource during various stack operations\.
-+ If the resource provider does not contain `create`, `read`, and `delete` handlers, CloudFormation cannot actually provision the resource\.
-+ If the resource provider does not contain an `update` handler, CloudFormation cannot update the resource during stack update operations, and will instead replace it\.
+Specifies the provisioning operations which can be performed on this resource type\. The handlers specified determine what provisioning actions CloudFormation takes with respect to the resource during various stack operations\.
++ If the resource type does not contain `create`, `read`, and `delete` handlers, CloudFormation cannot actually provision the resource\.
++ If the resource type does not contain an `update` handler, CloudFormation cannot update the resource during stack update operations, and will instead replace it\.
 If your resource type calls AWS APIs in any of its handlers, you must create an *[IAM execution role](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles.html)* that includes the necessary permissions to call those AWS APIs, and provision that execution role in your account\. For more information, see [Accessing AWS APIs from a Resource Type](https://docs.aws.amazon.com/cloudformation-cli/latest/userguide/resource-type-develop.html#resource-type-develop-executionrole)\.
 create  <a name="schema-properties-handlers-create"></a>
 permissions  <a name="schema-properties-handlers-create-permissions"></a>
@@ -256,120 +254,3 @@ The resource must contain only one of the data structures define here\.
 
 In addition, the following element, defined in [draft\-07](https://json-schema.org/draft-07/json-schema-release-notes.html) of the [JSON Schema](https://json-schema.org/), is allowed:
 + required
-
-## How to Specify a Property as Dependent on Another<a name="resource-type-howto-dependencies"></a>
-
-Use the `dependencies` element to specify if a property is required in order for another property to be specified\. In the following example, if the user specifies a value for the `ResponseCode` property, they must also specify a value for `ResponsePagePath`, and vice versa\. \(Note that, as a best practice, this is also called out in the `description` of each property\.\)
-
-```
-"properties": {
-"CustomErrorResponse": {
-    "additionalProperties": false,
-    "dependencies": {
-        "ResponseCode": [
-            "ResponsePagePath"
-        ],
-        "ResponsePagePath": [
-            "ResponseCode"
-        ]
-    },
-    "properties": {
-        "ResponseCode": {
-            "description": "The HTTP status code that you want CloudFront to return to the viewer along with the custom error page. If you specify a value for ResponseCode, you must also specify a value for ResponsePagePath.",
-            "type": "integer"
-        },
-        "ResponsePagePath": {
-            "description": "The path to the custom error page that you want CloudFront to return to a viewer when your origin returns the HTTP status code specified by ErrorCode. If you specify a value for ResponsePagePath, you must also specify a value for ResponseCode.",
-            "type": "string"
-        }
-        . . .
-    },
-    "type": "object"
-},
-},
-. . .
-```
-
-## How to Define Nested Properties<a name="resource-type-howto-nested-properties"></a>
-
-It is considered a best practice is to use the `definitions` section to define schema elements that may be used at multiple points in your resource provider schema\. You can then use a JSON pointer to reference that element at the appropriate places in your resource provider schema\.
-
-For example, define the reused element in the `definitions` section:
-
-```
-"definitions": {
-    "AccountId": {
-        "pattern": "^[0-9]{12}$",
-        "type": "string"
-    },
-    . . .
-},
-. . .
-```
-
-And then reference that definition where appropriate:
-
-```
-"AwsAccountNumber": {
-    "description": "An AWS account that is included in the TrustedSigners complex type for this distribution.",
-    "$ref": "#/definitions/AccountId"
-},
-    . . .
-```
-
-## Advanced: How to Encapsulate Complex Logic<a name="resource-type-howto-logic"></a>
-
-Use the `allOf`, `oneOf`, or `anyOf` elements to encapsulate complex logic in your resource provider schema\.
-
-In the example below, if `whitelist` is specified for the Forward property in your resource, then the `WhitelistedNames` property must also be specified\.
-
-```
-"properties": {
-"Cookies": {
-    "oneOf": [
-        {
-            "additionalProperties": false,
-            "properties": {
-               "Forward": {
-                    "description": "Specifies which cookies to forward to the origin for this cache behavior.",
-                    "enum": [
-                        "all",
-                        "none"
-                    ],
-                    "type": "string"
-                }
-            },
-            "required": [
-                "Forward"
-            ]
-        },
-        {
-            "additionalProperties": false,
-            "properties": {
-                "Forward": {
-                    "description": "Specifies which cookies to forward to the origin for this cache behavior.",
-                    "enum": [
-                        "whitelist"
-                    ],
-                    "type": "string"
-                },
-                "WhitelistedNames": {
-                    "description": "Required if you specify whitelist for the value of Forward.",
-                    "items": {
-                       "type": "string"
-                    },
-                    "minItems": 1,
-                    "type": "array"
-                }
-            },
-            "required": [
-                "Forward",
-                "WhitelistedNames"
-            ]
-        }
-    ,
-    type": "object"
-},
-},
-. . .
-```
