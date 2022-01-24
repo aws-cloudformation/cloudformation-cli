@@ -1,4 +1,4 @@
-# Global Parameters<a name="resource-type-cli-global-parameters"></a>
+# Global parameters<a name="resource-type-cli-global-parameters"></a>
 
 The following parameters can be used with any CloudFormation CLI command\.
 

@@ -1,6 +1,6 @@
-# Progress Chaining, Stabilization and Callback Pattern<a name="resource-type-develop-stabilize"></a>
+# Progress chaining, stabilization and callback pattern<a name="resource-type-develop-stabilize"></a>
 
-Often when you develop CloudFormation resources, when interacting with web service APIs you need to chain them in sequence to apply the desired state\. CloudFormation provides a framework to write these chain patterns\. The framework does a lot of the heavy lifting needed to handle error conditions, throttle when calling downstream API, and more\. The framework provides callbacks that the handler can use to inspect and change the behavior when making these service calls\.
+Often when you develop CloudFormation resource types, when interacting with web service APIs you need to chain them in sequence to apply the desired state\. CloudFormation provides a framework to write these chain patterns\. The framework does a lot of the heavy lifting needed to handle error conditions, throttle when calling downstream API, and more\. The framework provides callbacks that the handler can use to inspect and change the behavior when making these service calls\.
 
 Most web service API calls follows a typical pattern:
 
@@ -18,7 +18,7 @@ Most web service API calls follows a typical pattern:
 
 In writing the handler, you do not need to do anything special with replay/continuation semantics\. The framework ensures that the call chain is effectively resumed from where it was halted\. This is essentially useful when the wait time for resource stabilization runs into minutes or even hours\.
 
-## Sample: Kinesis Stream Integration<a name="resource-type-develop-stabilize-example"></a>
+## Sample: Kinesis Stream integration<a name="resource-type-develop-stabilize-example"></a>
 
 Here is an example integration against AWS service APIs for a Kinesis Stream\. A snippet of the Kinesis resource model is shown below:
 
@@ -92,11 +92,11 @@ Here is the example of the using the progress\-chaining and callback pattern to 
 ```
 public class CreateHandler extends BaseKinesisHandler {
     //
-    // The handler is provide with a AmazonWebServicesClientProxy that provides
-    // the framework for making calls that returns a ProgressEvent,
+    // The handler is provide with a AmazonWebServicesClientProxy that provides 
+    // the framework for making calls that returns a ProgressEvent, 
     // which can then be chained to perform the next task.
     //
-    protected ProgressEvent<ResourceModel, CallbackContext>
+    protected ProgressEvent<ResourceModel, CallbackContext> 
         handleRequest(final AmazonWebServicesClientProxy proxy,
                       final ResourceHandlerRequest<ResourceModel> request,
                       final CallbackContext callbackContext,
@@ -110,43 +110,43 @@ public class CreateHandler extends BaseKinesisHandler {
                   "stream-", request.getClientRequestToken(), 128));
         }
         //
-        // 1) initiate the call context, we are making createStream API call
-        //
+        // 1) initiate the call context, we are making createStream API call 
+        // 
         return proxy.initiate(
             "kinesis:CreateStream", client, model, callbackContext)
-
+            
             //
             // 2) transform Resource model properties to CreateStreamRequest API
             //
             .request((m) ->
                 CreateStreamRequest.builder()
                     .streamName(m.getName()).shardCount(m.getShardCount()).build())
-
+                    
             //
-            // 3) Make a service call. Handler does not worry about credentials, they
+            // 3) Make a service call. Handler does not worry about credentials, they 
             //    are auto injected
             //
-            .call((r, c) ->
+            .call((r, c) -> 
                 c.injectCredentialsAndInvokeV2(r, c.client()::createStream))
 
             //
-            // provide stabilization callback. The callback is provided with
-            // the following parameters
+            // provide stabilization callback. The callback is provided with 
+            // the following parameters 
             //   a. CreateStreamRequest the we transformed in request()
             //   b. CreateStreamResponse that the service returned with successful call
-            //   c. ProxyClient<Kinesis>, we provided in initiate call
-            //   d. ResourceModel we provided in initiate call
+            //   c. ProxyClient<Kinesis>, we provided in initiate call 
+            //   d. ResourceModel we provided in initiate call 
             //   f. CallbackContext callback context.
+            // 
             //
-            //
-            .stabilize((_request, _response, _client, _model, _context) ->
+            .stabilize((_request, _response, _client, _model, _context) -> 
                  isStreamActive(client1, _model, context))
-
+                 
             //
             // Once ACTIVE return progress
-            //
+            //     
             .progress()
-
+            
             //
             // we then chain to next state, setting tags on the resource.
             // we receive ProgressEvent object from .progress().
@@ -158,7 +158,7 @@ public class CreateHandler extends BaseKinesisHandler {
                 }
                 return r;
             })
-
+            
             //
             // we then setRetention...
             //
@@ -169,14 +169,14 @@ public class CreateHandler extends BaseKinesisHandler {
                 }
                 return r;
             })
-
+            
             ... // other steps
-
+            
             //
             // finally we wait for Kinesis stream to be ACTIVE
             //
             .then((r) -> waitForActive(proxy, client, model, callbackContext))
-
+            
             //
             // we then delete to ReadHandler to read the live state and send
             // back successful response.
@@ -187,12 +187,12 @@ public class CreateHandler extends BaseKinesisHandler {
 }
 ```
 
-## How to Make Other Calls<a name="resource-type-develop-stabilize-other-calls"></a>
+## How to make other calls<a name="resource-type-develop-stabilize-other-calls"></a>
 
 The same pattern shown here for CreateStreamRequest is followed with others as well\. Here is code for handleRetention:
 
 ```
-protected ProgressEvent<ResourceModel, CallbackContext>
+protected ProgressEvent<ResourceModel, CallbackContext> 
     handleRetention(final AmazonWebServicesClientProxy proxy,
                     final ProxyClient<KinesisClient> client,
                     final ResourceModel model,
@@ -200,13 +200,13 @@ protected ProgressEvent<ResourceModel, CallbackContext>
                     final int current,
                     final CallbackContext callbackContext,
                     final Logger logger) {
-
+       
        if (current > previous) {
             //
-            // 1) initiate the call context, we are making IncreaseRetentionPeriod API call
-            //
+            // 1) initiate the call context, we are making IncreaseRetentionPeriod API call 
+            // 
             return proxy.initiate(
-                "kinesis:IncreaseRetentionPeriod:" + getClass().getSimpleName(),
+                "kinesis:IncreaseRetentionPeriod:" + getClass().getSimpleName(), 
                 client, model, callbackContext)
                 //
                 // 2) transform Resource model properties to IncreaseStreamRetentionPeriodRequest API
@@ -216,21 +216,21 @@ protected ProgressEvent<ResourceModel, CallbackContext>
                        .retentionPeriodHours(current)
                        .streamName(m.getName()).build())
                 //
-                // 3) Make a service call. Handler does not worry about credentials, they
+                // 3) Make a service call. Handler does not worry about credentials, they 
                 //    are auto injected
-
+            
                 // Add important comments like shown below
                 // https://docs.aws.amazon.com/kinesis/latest/APIReference/API_IncreaseStreamRetentionPeriod.html
                 // When applying change if stream is not ACTIVE, we get ResourceInUse.
                 // We filter this expection back off and then re-try to set this.
-
+               
                 //
                 // set new retention period
                 //
                 .call((r, c) -> c.injectCredentialsAndInvokeV2(r, c.client()::increaseStreamRetentionPeriod))
-
+                
                 //
-                // Filter ResoureceInUse or LimitExceeded.
+                // Filter ResoureceInUse or LimitExceeded. 
                 // Currently LimitExceeded is issued even for throttles
                 //
                 .exceptFilter(this::filterException).progress();
@@ -251,7 +251,7 @@ protected boolean filterException(AwsRequest request,
                                   ProxyClient<KinesisClient> client,
                                   ResourceModel model,
                                   CallbackContext context) {
-    return e instanceof ResourceInUseException ||
+    return e instanceof ResourceInUseException || 
            e instanceof LimitExceededException;
 }
 ```
