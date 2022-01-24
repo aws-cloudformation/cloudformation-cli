@@ -13,7 +13,7 @@ Registering includes:
 + Uploading the resource handlers as functions that CloudFormation calls at the appropriate times in a resource's lifecycle\.
 + Returning a *registration token* that you can use with the [DescribeTypeRegistration](https://docs.aws.amazon.com/AWSCloudFormation/latest/APIReference/API_DescribeTypeRegistration.html) action to track the status of the registration request\.
 
-**Note**  
+**Note**
 The user registering the extension must be able to access the schema handler package in the S3 bucket\. That is, the user needs to have [GetObject](https://docs.aws.amazon.com/AmazonS3/latest/API/API_GetObject.html) permissions for the schema handler package\. For more information, see [Actions, Resources, and Condition Keys for Amazon S3](https://docs.aws.amazon.com/IAM/latest/UserGuide/list_amazons3.html) in the *AWS Identity and Access Management User Guide*\.
 
 ## Synopsis<a name="resource-type-cli-submit-synopsis"></a>

@@ -29,7 +29,7 @@ Follow these basic steps to develop and register a module project\.
    The `validate` command regenerates the module schema, based on the template fragment you included in the `fragments` folder\. The module schema is located in the root folder, and named `schema.json`\.
 
 1. Use `[submit](https://docs.aws.amazon.com/cloudformation-cli/latest/userguide/resource-type-cli-submit.html)` to register the module with CloudFormation, in the specified region\. Registering a module makes it available for inclusion in CloudFormation templates\.
-**Note**  
+**Note**
 When you register your module using `submit`, CloudFormation re\-generates your module schema based on the template fragment in your project\. You can't specify a schema file directly\. To specify a module schema file when registering a module, use `[RegisterType](https://docs.aws.amazon.com/AWSCloudFormation/latest/APIReference/API_RegisterType.html)` in the CloudFormation API\.
 
 For information on using modules in CloudFormation templates, see [Using modules](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/modules.html) in the *CloudFormation Users Guide*\.

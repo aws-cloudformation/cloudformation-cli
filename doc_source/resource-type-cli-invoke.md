@@ -7,12 +7,12 @@ Performs contract tests on the specified handler of a resource type\.
 ## Synopsis<a name="resource-type-cli-invoke-synopsis"></a>
 
 ```
-  cfn invoke 
-[--endpoint <value>] 
+  cfn invoke
+[--endpoint <value>]
 [--function-name <value>]
 [--region <value>]
 [--max-reinvoke <value>]
-action 
+action
 request
 ```
 

@@ -4,12 +4,12 @@ Because CloudFormation is a regional service, you must repeat each required step
 
 For more information about AWS CloudFormation StackSets, see [Working with AWS CloudFormation StackSets](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/what-is-cfnstacksets.html) in the *AWS CloudFormation User Guide*\.
 
-**Important**  
+**Important**
 While AWS CloudFormation is available in many Regions worldwide, our public registry is not supported in China \(cn\-north\-1 and cn\-northwest\-1\) or GovCloud \(us\-gov\-east\-1 and us\-gov\-west\-1\) Regions\. Any stack instances created using StackSets should only target the supported Regions\.
 
 ## Prerequisites for using AWS CloudFormation StackSets<a name="publish-extension-stacksets-prereqs"></a>
 
-Before using StackSets, you must complete prerequisites depending on which management policy you want to use for your stack sets\. 
+Before using StackSets, you must complete prerequisites depending on which management policy you want to use for your stack sets\.
 + Stack sets with self\-managed permissions require that you create IAM roles in the necessary admin and target accounts\. If you intend to publish a type across multiple Regions from the same publisher account, you should create the roles in the same account\.
 + Stack sets with service\-managed permissions make use of AWS Organizations and thus require that you enable trusted access to AWS Organizations\.
 
@@ -25,7 +25,7 @@ The example templates in this section publish extensions for the first time to t
 
 For more details about each type, including settings you can modify, see the [AWS CloudFormation resource type reference](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/AWS_CloudFormation.html) in the *AWS CloudFormation User Guide*\.
 
-**Note**  
+**Note**
 The same publishing restrictions apply when you use StackSets to publish extensions globally, including agreeing to the [Terms and Conditions for AWS CloudFormation Registry Publishers](https://cloudformation-registry-documents.s3.amazonaws.com/Terms_and_Conditions_for_AWS_CloudFormation_Registry_Publishers.pdf) before registering as a publisher and ensuring your extension passes all test requirements before successfully publishing\.
 
 The following example template publishes a resource type across Regions with StackSets\.
@@ -35,15 +35,15 @@ AWSTemplateFormatVersion: "2010-09-09"
 Description: Registers and sets a new default resource version, registers the account as a publisher, and publishes the resource to the public registry.
 Parameters:
   SchemaPackageURL:
-    Description: URL to S3::Bucket that contains the resource project package 
+    Description: URL to S3::Bucket that contains the resource project package
     Type: String
 Resources:
-  PrivateResourceVersion: 
+  PrivateResourceVersion:
     Type: AWS::CloudFormation::ResourceVersion
     Properties:
-      SchemaHandlerPackage: !Ref SchemaPackageURL 
-      TypeName: MyOrg::MyService::MyType 
-  ResourceDefaultVersion:    
+      SchemaHandlerPackage: !Ref SchemaPackageURL
+      TypeName: MyOrg::MyService::MyType
+  ResourceDefaultVersion:
     Type: AWS::CloudFormation::ResourceDefaultVersion
     DependsOn: PrivateResourceVersion
     Properties:
@@ -53,7 +53,7 @@ Resources:
     DependsOn: ResourceDefaultVersion
     Properties:
       AcceptTermsAndConditions: true
-  PublishedResource:     
+  PublishedResource:
     Type: AWS::CloudFormation::PublicTypeVersion
     DependsOn: Publisher
     Properties:
@@ -72,26 +72,26 @@ Parameters:
     Type: String
     Default: AWS::NoValue
   FirstTimePublishing:
-    Description: Indicate if this is the first time publishing this extension in the targeted region. 
+    Description: Indicate if this is the first time publishing this extension in the targeted region.
     Type: String
     AllowedValues:
       - true
       - false
   SchemaPackageURL:
-    Description: URL to S3::Bucket that contains the resource project package 
+    Description: URL to S3::Bucket that contains the resource project package
     Type: String
 Conditions:
   IsFirstTimePublishing: !Equals
     - !Ref FirstTimePublishing
-    - true    
+    - true
 Resources:
   PrivateModuleVersion:
     Type: AWS::CloudFormation::ModuleVersion
     Properties:
-      ModulePackage: !Ref SchemaPackageURL 
-      ModuleName: MyOrg::MyService::MyType::MODULE 
-  ModuleDefaultVersion:    
-    Type: AWS::CloudFormation::ModuleDefaultVersion 
+      ModulePackage: !Ref SchemaPackageURL
+      ModuleName: MyOrg::MyService::MyType::MODULE
+  ModuleDefaultVersion:
+    Type: AWS::CloudFormation::ModuleDefaultVersion
     DependsOn: PrivateModuleVersion
     Properties:
       Arn: !Ref PrivateModuleVersion
@@ -100,13 +100,13 @@ Resources:
     DependsOn: ModuleDefaultVersion
     Properties:
       AcceptTermsAndConditions: true
-  PublishedModule:      
+  PublishedModule:
     Type: AWS::CloudFormation::PublicTypeVersion
     DependsOn: Publisher
     Properties:
-      Type: MODULE 
-      TypeName: MyOrg::MyService::MyType::MODULE      
-      PublicVersionNumber: 
+      Type: MODULE
+      TypeName: MyOrg::MyService::MyType::MODULE
+      PublicVersionNumber:
         Fn::If:
         - IsFirstTimePublishing
         - Ref: AWS::NoValue

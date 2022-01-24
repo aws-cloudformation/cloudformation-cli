@@ -184,7 +184,7 @@ You could then specify that export value as input data using the export value na
 ```
 {
    "SubnetId": "{{SubnetExport}}",
-   . . . 
+   . . .
 }
 ```
 

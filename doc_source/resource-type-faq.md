@@ -44,7 +44,7 @@ Below are some Frequently Asked Questions about resource type development\.
 ## Resource type development<a name="resource-type-faq-dev"></a>
 + **Q: Can I share functionality between resource by adding common functionality to the `BaseHandler`?**
 
-  **A:** Because the `BaseHandler` is code\-generated, it cannot be edited\. 
+  **A:** Because the `BaseHandler` is code\-generated, it cannot be edited\.
 + **Q: For Java development, is there a way to include multiple resources in a single maven project?**
 
   **A:** Not currently\. For security and manageability, the CloudFormation Registry registers each resource type as a separate, versioned, type\. You could still share code through a shared package\. Ideally, the wrapper layer does most of the boilerplate\. If you see a need for more boilerplate, we would like to know how we can improve for that use case rather than combine types in a package, so please reach out to the team\.

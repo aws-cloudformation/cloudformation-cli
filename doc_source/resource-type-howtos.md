@@ -27,9 +27,9 @@ Use the `dependencies` element to specify if a property is required in order for
             "description": "The path to the custom error page that you want CloudFront to return to a viewer when your origin returns the HTTP status code specified by ErrorCode. If you specify a value for ResponsePagePath, you must also specify a value for ResponseCode.",
             "type": "string"
         }
-        . . . 
+        . . .
     },
-    "type": "object" 
+    "type": "object"
 },
 },
 . . .
@@ -47,7 +47,7 @@ For example, define the reused element in the `definitions` section:
         "pattern": "^[0-9]{12}$",
         "type": "string"
     },
-    . . . 
+    . . .
 },
 . . .
 ```

@@ -24,9 +24,9 @@ There are three major steps in developing a resource types:
 
   Implement the resource provisioning actions that the CloudFormation CLI stubbed out when you initially generated your resource project\.
 
-  If you make changes to your resource schema, use the `generate` command to generate the language\-specific data model, contract test, and unit test stubs based on the current state of the resource schema\. \(If you use the Java add\-in for the CloudFormation CLI, this is done for you automatically\.\) 
+  If you make changes to your resource schema, use the `generate` command to generate the language\-specific data model, contract test, and unit test stubs based on the current state of the resource schema\. \(If you use the Java add\-in for the CloudFormation CLI, this is done for you automatically\.\)
 
-  When you're ready to test the resource behavior, the CloudFormation CLI provides two commands for testing: 
+  When you're ready to test the resource behavior, the CloudFormation CLI provides two commands for testing:
   + Use the `invoke` command to test a single handler\.
   + Use the `test` command to run the entire suite of resource contract tests locally, using the AWS SAM Command Line Interface \(SAM CLI\), to make sure the handlers you've written comply with expected handler behavior at each stage of the resource lifecycle\.
 + Register

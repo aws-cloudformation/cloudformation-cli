@@ -48,13 +48,13 @@ For example, the following template fragment creates an S3 bucket resource, and 
 
 You can author template fragments manually, or use any tool that generates CloudFormation templates\. For example, you can use the AWS Cloud Development Kit \(CDK\) to synthesize one or more CDK [constructs](https://docs.aws.amazon.com/cdk/latest/guide/constructs.html) to produce a CloudFormation template, and then use that template as the basis for a module\. For more information on the CDK, see the *[AWS Cloud Development Kit \(CDK\)](https://docs.aws.amazon.com/cdk/latest/guide/home.html)*\.
 
-**Note**  
+**Note**
 Be aware that regardless of the method you use to create a module's template fragment, it must adhere to the restrictions on what can be included in a template fragment for a module\.
 
 ### Considerations when authoring the template fragment<a name="modules-considerations"></a>
 
 Keep in mind the following considerations when developing modules:
-+ Modules are, by design, predictable, and transparent\. Because of this, you cannot include features which can potentially result in external information or resources being imported into the module\. These features include: 
++ Modules are, by design, predictable, and transparent\. Because of this, you cannot include features which can potentially result in external information or resources being imported into the module\. These features include:
   + [Importing](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-stack-imports.html) stack values, using [Fn::ImportValue](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/intrinsic-function-reference-importvalue.html) intrinsic function\.
   + [Exporting](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-stack-exports.html) stack values, using the `Export` field in the [Outputs](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/outputs-section-structure.html) template section\. \(Use of the `Outputs` section is supported\.\)
   + [Macros](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/template-macros.html), including use of the [Transform](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/transform-reference.html) template section or the [Fn::Transform](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/intrinsic-function-reference-transform.html) function\.

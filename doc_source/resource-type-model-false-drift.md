@@ -11,7 +11,7 @@ For more information about drift detection, see [Detecting unmanaged configurati
 Use the `propertyTransform` element to define a property transform for a given resource property\.
 
 ```
-"propertyTransform": { 
+"propertyTransform": {
   "property_path": "transform"
 }
 ```
@@ -25,7 +25,7 @@ Where:
 For example, consider the `[AWS::Route53::HostedZone](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-route53-hostedzone.html#cfn-route53-hostedzone-name) resource`\. For the `[Name](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-route53-hostedzone.html#cfn-route53-hostedzone-name)` property, users can specify a domain name with or without a trailing `.` in their templates\. However, assume the Route 53 service always returns the domain name with a trailing `.`\. This means that if a user specified a domain name without the trailing `.` in their template, created the stack, and then performed drift detection on the stack, CloudFormation would erroneously report the `AWS::Route53::HostedZone` resource as drifted\. To prevent this from happening, the resource developer would add a `propertyTransform` element to the resource schema to enable CloudFormation to determine if both property values were actually the same:
 
 ```
-"propertyTransform": { 
+"propertyTransform": {
   "/properties/Name": "$join([Name, \".\"])"
 }
 ```
@@ -39,7 +39,7 @@ For example, for the following property transform, CloudFormation would attempt 
 + Append the string `test` to the template property value, and determine if the updated value now matches the property value returned by the resource `read` handler\. If it does, CloudFormation reports the property as `IN_SYNC`\. If not, CloudFormation reports the property\-\-and the resource\-\-as `MODIFIED`\.
 
 ```
-"propertyTransform": { 
+"propertyTransform": {
   "/properties/Name": "$join([Name, \".\"]) $OR $join([Name, \"test\"])"
 }
 ```

@@ -27,7 +27,7 @@ Or, if you're using another language, you can install the CloudFormation CLI dir
 
   The [Walkthrough: Develop a resource type](resource-type-walkthrough.md) walkthrough uses the Community Edition of the [IntelliJ IDEA](https://www.jetbrains.com/idea/)\.
 + [AWS Serverless Application Model Command Line Interface](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-install.html) \(AWS SAM CLI\)\.
-**Note**  
+**Note**
 [Installing the AWS SAM CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-install-mac.html) requires Docker as a prerequisite for testing your resource type locally\.
 
 ##### Installing the CloudFormation CLI<a name="installing-cfn-cli-python"></a>
@@ -60,14 +60,14 @@ pip install cloudformation-cli cloudformation-cli-java-plugin cloudformation-cli
 Use the Python Package Index \(PyPI\) to install the development plugin for the language of your choice\. Installing any of the plugins listed below also installs the CloudFormation CLI\. For full installation instructions, refer to the appropriate plugin repository\.
 
 
-**Available Language Plugins**  
+**Available Language Plugins**
 
-|  Language  |  Plugin status  |  GitHub location  |  PyPI installation  | 
-| --- | --- | --- | --- | 
-|  Go  |  General availability  |  [cloudformation\-cli\-go\-plugin](https://github.com/aws-cloudformation/cloudformation-cli-go-plugin/)  |  `cloudformation-cli-go-plugin`  | 
-|  Java  |  General availability  |  [cloudformation\-cli\-java\-plugin](https://github.com/aws-cloudformation/cloudformation-cli-java-plugin/)  |  `cloudformation-cli-java-plugin`  | 
-|  Python  |  General availability  |  [cloudformation\-cli\-python\-plugin](https://github.com/aws-cloudformation/cloudformation-cli-python-plugin/)  |  `cloudformation-cli-python-plugin`  | 
-|  TypeScript  |  General availability  |  [cloudformation\-cli\-typescript\-plugin](https://github.com/aws-cloudformation/cloudformation-cli-typescript-plugin/)  |  `cloudformation-cli-typescript-plugin`  | 
+|  Language  |  Plugin status  |  GitHub location  |  PyPI installation  |
+| --- | --- | --- | --- |
+|  Go  |  General availability  |  [cloudformation\-cli\-go\-plugin](https://github.com/aws-cloudformation/cloudformation-cli-go-plugin/)  |  `cloudformation-cli-go-plugin`  |
+|  Java  |  General availability  |  [cloudformation\-cli\-java\-plugin](https://github.com/aws-cloudformation/cloudformation-cli-java-plugin/)  |  `cloudformation-cli-java-plugin`  |
+|  Python  |  General availability  |  [cloudformation\-cli\-python\-plugin](https://github.com/aws-cloudformation/cloudformation-cli-python-plugin/)  |  `cloudformation-cli-python-plugin`  |
+|  TypeScript  |  General availability  |  [cloudformation\-cli\-typescript\-plugin](https://github.com/aws-cloudformation/cloudformation-cli-typescript-plugin/)  |  `cloudformation-cli-typescript-plugin`  |
 
 ### Upgrading to CFN\-CLI 2\.0<a name="resource-type-setup-upgrade"></a>
 
@@ -89,7 +89,7 @@ Enhancements in CFN\-CLI 2\.0 include:
 1. Update the Go plugin in the `go.mod` file\.
 
    ```
-   go get -u github.com/aws-cloudformation/cloudformation-cli-go-plugin 
+   go get -u github.com/aws-cloudformation/cloudformation-cli-go-plugin
    ```
 
 1. To update a resource type to use the CFN\-CLI 2\.0, build and register a new version of the resource using the following command:

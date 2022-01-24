@@ -6,20 +6,20 @@ Public third\-party extensions enable you to offer CloudFormation users ways to 
 
 Extensions published to the registry are visible by all CloudFormation users in the Regions in which they're published\. Users can then *activate* your extension in their account, which makes it available for use in their templates\. For more information, see [Using public extensions in CloudFormation](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/registry-public.html) in the *CloudFormation User Guide*\.
 
-**Note**  
-If your public extension implements event handlers, users of the extension may incur charges to their account\. For example, suppose your public extension is a resource type with create, read, update, list, and delete handlers\. Users using your extension in their stacks would incur charges when your handler code executes during the various resource create, read, update, list, and delete stack operations\. This is in addition to any charges incurred for the resources themselves running\.  
+**Note**
+If your public extension implements event handlers, users of the extension may incur charges to their account\. For example, suppose your public extension is a resource type with create, read, update, list, and delete handlers\. Users using your extension in their stacks would incur charges when your handler code executes during the various resource create, read, update, list, and delete stack operations\. This is in addition to any charges incurred for the resources themselves running\.
 For more information, see [AWS CloudFormation pricing](https://aws.amazon.com/cloudformation/pricing/)\.
 
 ## Developing a public extension for CloudFormation<a name="publish-extension-overview"></a>
 
-To develop a public third\-party extension, develop your extension as a private extension\. Then, in each Region in which you want to make the extension publicly available: 
+To develop a public third\-party extension, develop your extension as a private extension\. Then, in each Region in which you want to make the extension publicly available:
 
 1. [Register your extension](https://docs.aws.amazon.com/cloudformation-cli/latest/userguide/resource-type-register.html) as a private extension in the CloudFormation registry\.
 
 1. [Test your extension](https://docs.aws.amazon.com/cloudformation-cli/latest/userguide/publish-extension.html#publish-extension-testing) to make sure it meets all necessary requirements for being published in the CloudFormation registry\.
 
 1. [Publish your extension](https://docs.aws.amazon.com/cloudformation-cli/latest/userguide/publish-extension.html#publish-extension-publishing) to the CloudFormation registry\.
-**Note**  
+**Note**
 Before you publish any extension in a given Region, you must first register as an extension publisher in that Region\.
 
    To do this in multiple Regions simultaneously, see [Publishing your extension in multiple Regions using StackSets](publish-extension-stacksets.md)\.
@@ -30,7 +30,7 @@ To publish third\-party extensions, register your extension publisher with Cloud
 + [AWS Marketplace](https://aws.amazon.com/marketplace/management/tour?ref_=header_modules_sell_in_aws)
 + [Bitbucket](https://bitbucket.org/)
 + [GitHub](https://github.com/)
-**Note**  
+**Note**
 CloudFormation doesn't currently support GitHub Enterprise Cloud or GitHub Enterprise Server accounts for identity verification\.
 
 If you use your Bitbucket or GitHub account, you must create a connection between that account and the AWS account which you want to register as a publisher\. For more information, see the following topics in the *Developer Tools Console User Guide*:

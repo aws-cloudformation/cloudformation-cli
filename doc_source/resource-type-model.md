@@ -2,7 +2,7 @@
 
 The first step in creating a resource type is *modeling* that resource, which involves crafting a schema that defines the resource, its properties, and their attributes\. When you initially create your resource type project using the CloudFormation CLI `init` command, one of the files created is an example resource schema\. Use this schema file as a starting point for defining the shape and semantics of your resource type\.
 
-**Note**  
+**Note**
 When naming your extension, we recommend that you don't use the following namespaces: `aws`, `amzn`, `alexa`, `amazon`, `awsquickstart`\. CloudFormation doesn't block private registration using `cfn submit` for types whose names include these namespaces, but you won't be able to publish these types\.
 
 In order to be considered valid, your resource type's schema must adhere to the [Resource type definition schema](https://github.com/aws-cloudformation/aws-cloudformation-rpdk/blob/master/src/rpdk/core/data/schema/provider.definition.schema.v1.json)\. This meta\-schema provides a means of validating your resource specification during resource development\.
@@ -11,7 +11,7 @@ The Resource Type Definition Schema is a *meta\-schema* that extends [draft\-07]
 
 Once you have defined your resource schema, you can use the CloudFormation CLI ` validate` command to verify that the resource schema is valid\.
 
-In terms of testing, the resource schema also determines: 
+In terms of testing, the resource schema also determines:
 + What unit test stubs are generated in your resource package, and what contract tests are appropriate to run for the resource\. When you run the CloudFormation CLI ` generate` command, the CloudFormation CLI generates empty unit tests based on the properties of the resource and their attributes\.
 + Which contract tests are appropriate for CloudFormation CLI to run for your resources\. When you run the ` test` command, the CloudFormation CLI runs the appropriate contract tests, based on which handlers are included in your resource schema\.
 
@@ -63,7 +63,7 @@ There might be cases where your extension includes properties that the user must
 
 When the user sets the configuration, CloudFormation validates it against the configuration definition, and then saves this information at the Region level\. From then on, CloudFormation can access that configuration during operations involving any instances of that extension in the Region\. Configurations are available to CloudFormation during all resource operations, including `read` and `list` events that don't explicitly involve a stack template\.
 
-**Note**  
+**Note**
 Configuration definitions are not compatible with [module](modules.md) extensions\.
 
 Your configuration definition must validate against the [provider configuration definition meta\-schema](https://github.com/aws-cloudformation/cloudformation-cli/blob/master/src/rpdk/core/data/schema/provider.configuration.definition.schema.v1.json)\.
@@ -72,7 +72,7 @@ The `CloudFormation` property name is reserved, and cannot be used to define any
 
 Use the `typeConfiguration` element of the [provider definition meta\-schema](https://github.com/aws-cloudformation/cloudformation-cli/blob/master/src/rpdk/core/data/schema/provider.definition.schema.v1.json) to include the configuration definition as part of your extension's schema\.
 
-**Important**  
+**Important**
 It is strongly recommended that you use dynamic references to restrict sensitive configuration definitions, such as third\-party credentials, as in the example below\. For more details on dynamic references, see [Using dynamic references to specify template values](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/dynamic-references.html) in the *AWS CloudFormation User Guide*\.
 
 ### Example: Defining a configuration definition to specify third\-party credentials<a name="resource-type-howto-configuration-example"></a>
