@@ -91,6 +91,10 @@ Resources:
             Service:
               - resources.cloudformation.amazonaws.com
           Action: sts:AssumeRole
+          Condition:
+            StringEquals:
+              aws:SourceAccount:
+                Ref: AWS::AccountId
       Path: "/"
       Policies:
       - PolicyName: LogAndMetricsDeliveryRolePolicy

@@ -161,6 +161,10 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
         return "-".join(self.type_info).lower()
 
     @property
+    def hyphenated_name_case_sensitive(self):
+        return "-".join(self.type_info)
+
+    @property
     def schema_filename(self):
         return f"{self.hypenated_name}.json"
 
@@ -428,7 +432,7 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
                 permission = "Deny"
 
             contents = template.render(
-                type_name=self.hypenated_name,
+                type_name=self.hyphenated_name_case_sensitive,
                 actions=sorted(actions),
                 permission=permission,
                 role_session_timeout=role_session_timeout,
