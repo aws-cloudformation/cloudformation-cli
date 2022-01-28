@@ -1093,7 +1093,9 @@ def test__upload_good_path_create_role_and_set_default(project):
     mock_exec_role_method.assert_called_once_with(
         project.root / "resource-role.yaml", project.hypenated_name
     )
-    mock_upload_method.assert_called_once_with(project.hypenated_name, fileobj)
+    mock_upload_method.assert_called_once_with(
+        project.hypenated_name, fileobj, project.hyphenated_name_case_sensitive
+    )
     mock_role_arn_method.assert_called_once_with()
     mock_uuid.assert_called_once_with()
     mock_cfn_client.register_type.assert_called_once_with(
@@ -1146,7 +1148,9 @@ def test__upload_good_path_skip_role_creation(
             )
 
     mock_sdk.assert_called_once_with(None)
-    mock_upload_method.assert_called_once_with(project.hypenated_name, fileobj)
+    mock_upload_method.assert_called_once_with(
+        project.hypenated_name, fileobj, project.hyphenated_name_case_sensitive
+    )
     mock_role_arn_method.assert_called_once_with()
     mock_uuid.assert_called_once_with()
     mock_wait.assert_called_once_with(mock_cfn_client, "foo", True)
@@ -1196,7 +1200,9 @@ def test__upload_clienterror(project):
             )
 
     mock_sdk.assert_called_once_with(None)
-    mock_upload_method.assert_called_once_with(project.hypenated_name, fileobj)
+    mock_upload_method.assert_called_once_with(
+        project.hypenated_name, fileobj, project.hyphenated_name_case_sensitive
+    )
     mock_role_arn_method.assert_called_once_with()
     mock_uuid.assert_called_once_with()
     mock_cfn_client.register_type.assert_called_once_with(
@@ -1243,7 +1249,9 @@ def test__upload_clienterror_module(project):
             )
 
     mock_sdk.assert_called_once_with(None)
-    mock_upload_method.assert_called_once_with(project.hypenated_name, fileobj)
+    mock_upload_method.assert_called_once_with(
+        project.hypenated_name, fileobj, project.hyphenated_name_case_sensitive
+    )
     mock_role_arn_method.assert_called_once_with()
     mock_uuid.assert_called_once_with()
     mock_cfn_client.register_type.assert_called_once_with(

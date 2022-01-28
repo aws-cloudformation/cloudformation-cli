@@ -161,6 +161,10 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
         return "-".join(self.type_info).lower()
 
     @property
+    def hyphenated_name_case_sensitive(self):
+        return "-".join(self.type_info)
+
+    @property
     def schema_filename(self):
         return f"{self.hypenated_name}.json"
 
@@ -428,7 +432,7 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
                 permission = "Deny"
 
             contents = template.render(
-                type_name=self.hypenated_name,
+                type_name=self.hyphenated_name_case_sensitive,
                 actions=sorted(actions),
                 permission=permission,
                 role_session_timeout=role_session_timeout,
@@ -854,7 +858,9 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
                 self.root / ROLE_TEMPLATE_FILENAME, self.hypenated_name
             )
 
-        s3_url = uploader.upload(self.hypenated_name, fileobj)
+        s3_url = uploader.upload(
+            self.hypenated_name, fileobj, self.hyphenated_name_case_sensitive
+        )
         LOG.debug("Got S3 URL: %s", s3_url)
         log_delivery_role = uploader.get_log_delivery_role_arn()
         LOG.debug("Got Log Role: %s", log_delivery_role)

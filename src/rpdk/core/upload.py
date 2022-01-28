@@ -2,6 +2,7 @@ import logging
 from datetime import datetime
 
 from botocore.exceptions import ClientError, WaiterError
+from jinja2 import Template
 
 from .data_loaders import resource_stream
 from .exceptions import DownstreamError, InternalError, InvalidProjectError, UploadError
@@ -22,9 +23,10 @@ class Uploader:
         self.log_delivery_role_arn = ""
 
     @staticmethod
-    def _get_template():
+    def _get_template(type_name):
         with resource_stream(__name__, "data/managed-upload-infrastructure.yaml") as f:
-            template = f.read()
+            # type_name is used to scope down LogAndMetricsDeliveryRole
+            template = Template(f.read()).render(type_name=type_name)
 
         # sanity test! it's super easy to rename one but not the other
         for output_name in [BUCKET_OUTPUT_NAME, LOG_DELIVERY_ROLE_ARN_OUTPUT_NAME]:
@@ -154,8 +156,8 @@ class Uploader:
         )
         return self._get_stack_output(stack_id, EXECUTION_ROLE_ARN_OUTPUT_NAME)
 
-    def upload(self, file_prefix, fileobj):
-        template = self._get_template()
+    def upload(self, file_prefix, fileobj, type_name):
+        template = self._get_template(type_name)
         stack_id = self._create_or_update_stack(template, INFRA_STACK_NAME)
         self.bucket_name = self._get_stack_output(stack_id, BUCKET_OUTPUT_NAME)
         self.log_delivery_role_arn = self._get_stack_output(
