@@ -33,7 +33,6 @@ STACK_ID = (
     + "/f2af5ac0-615a-11e9-b390-0e1ffe4de6a4"
 )
 BLANK_CLIENT_ERROR = {"Error": {"Code": "", "Message": ""}}
-TYPE_NAME = "AWS::Color::Red"
 
 
 def describe_stacks_result(outputs):
@@ -77,7 +76,7 @@ def test__get_template_output_name_mismatched(uploader):
         "rpdk.core.upload.resource_stream", return_value=StringIO("")
     ) as mock_stream:
         with pytest.raises(InternalError):
-            uploader._get_template(TYPE_NAME)
+            uploader._get_template()
 
     mock_stream.assert_called_once_with(
         "rpdk.core.upload", "data/managed-upload-infrastructure.yaml"
@@ -148,7 +147,7 @@ def test_upload_s3_clienterror(uploader):
 
     with patch_stack as mock_stack:
         with pytest.raises(DownstreamError):
-            uploader.upload("foo", fileobj, TYPE_NAME)
+            uploader.upload("foo", fileobj)
 
     mock_stack.assert_called_once_with(ANY, INFRA_STACK_NAME)
     uploader.s3_client.upload_fileobj.assert_called_once_with(
@@ -174,7 +173,7 @@ def test_upload_s3_success(uploader):
 
     with patch_stack as mock_stack, patch_time as mock_time:
         mock_time.utcnow.return_value = datetime(2004, 11, 17, 20, 54, 33)
-        s3_url = uploader.upload(CONTENTS_UTF8, fileobj, TYPE_NAME)
+        s3_url = uploader.upload(CONTENTS_UTF8, fileobj)
 
     mock_stack.assert_called_once_with(ANY, INFRA_STACK_NAME)
     mock_time.utcnow.assert_called_once_with()

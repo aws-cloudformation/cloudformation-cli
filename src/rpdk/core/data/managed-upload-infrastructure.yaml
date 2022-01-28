@@ -95,9 +95,6 @@ Resources:
             StringEquals:
               aws:SourceAccount:
                 Ref: AWS::AccountId
-            StringLike:
-              aws:SourceArn:
-                Fn::Sub: arn:${AWS::Partition}:cloudformation:${AWS::Region}:${AWS::AccountId}:type/resource/{{ type_name }}/*
       Path: "/"
       Policies:
       - PolicyName: LogAndMetricsDeliveryRolePolicy

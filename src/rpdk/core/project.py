@@ -858,9 +858,7 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
                 self.root / ROLE_TEMPLATE_FILENAME, self.hypenated_name
             )
 
-        s3_url = uploader.upload(
-            self.hypenated_name, fileobj, self.hyphenated_name_case_sensitive
-        )
+        s3_url = uploader.upload(self.hypenated_name, fileobj)
         LOG.debug("Got S3 URL: %s", s3_url)
         log_delivery_role = uploader.get_log_delivery_role_arn()
         LOG.debug("Got Log Role: %s", log_delivery_role)
