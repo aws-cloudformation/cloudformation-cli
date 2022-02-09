@@ -1,20 +1,9 @@
 import logging
 
 from rpdk.core.contract.hook_client import HookClient
-from rpdk.core.contract.interface import HandlerErrorCode, HookStatus
-from rpdk.core.contract.suite.contract_asserts_commons import failed_event
+from rpdk.core.contract.interface import HookStatus
 
 LOG = logging.getLogger(__name__)
-
-UNSUPPORTED_TARGET = "AWS::FakeService::Resource"
-
-
-def _prepare_target_model(invocation_point):
-    target_model = {"resourceProperties": {}}
-    if HookClient.is_update_invocation_point(invocation_point):
-        target_model["previousResourceProperties"] = {}
-
-    return target_model
 
 
 def test_hook_success(hook_client, invocation_point, target, target_model):
@@ -53,23 +42,6 @@ def test_hook_failed(hook_client, invocation_point, target, target_model=None):
     )
     assert response["message"]
     return response, error_code
-
-
-@failed_event(
-    error_code=HandlerErrorCode.InvalidRequest,
-    msg="A hook handler MUST return FAILED with a InvalidRequest error code if the target is not supported",
-)
-def test_hook_unsupported_target(hook_client, invocation_point):
-    target_model = _prepare_target_model(invocation_point)
-
-    _response, error_code = test_hook_failed(
-        hook_client,
-        invocation_point,
-        UNSUPPORTED_TARGET,
-        target_model,
-    )
-
-    return error_code
 
 
 def test_hook_handlers_success(hook_client, invocation_point):
