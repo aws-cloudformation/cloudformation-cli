@@ -1,8 +1,8 @@
 {
     "$schema": "http://json-schema.org/draft-07/schema#",
     "$id": "https://schema.cloudformation.us-east-1.amazonaws.com/provider.configuration.definition.schema.hooks.v1.json",
-    "title": "CloudFormation Type Provider Configuration Definition MetaSchema",
-    "description": "This schema validates a CloudFormation type provider configuration definition.",
+    "title": "CloudFormation Hook Provider Configuration Definition MetaSchema",
+    "description": "This schema validates a CloudFormation hook provider configuration definition.",
     "type": "object",
     "properties": {
         "additionalProperties": {
