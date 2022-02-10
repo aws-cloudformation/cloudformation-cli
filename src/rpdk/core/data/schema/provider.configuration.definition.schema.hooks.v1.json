@@ -26,7 +26,7 @@
             "$ref": "base.definition.schema.v1.json#/properties/required"
         },
         "description": {
-            "$comment": "A short description of the type configuration. This will be shown in the AWS CloudFormation console.",
+            "$comment": "A short description of the hook configuration. This will be shown in the AWS CloudFormation console.",
             "$ref": "base.definition.schema.v1.json#/properties/description"
         },
         "properties": {
