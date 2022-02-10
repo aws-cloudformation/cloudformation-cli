@@ -9,9 +9,10 @@ from functools import wraps
 from colorama import Fore, Style
 
 from .exceptions import WizardAbortError, WizardValidationError
+from .hook.init_hook import init_hook
 from .module.init_module import init_module
 from .plugin_registry import get_parsers, get_plugin_choices
-from .project import ARTIFACT_TYPE_MODULE, Project
+from .project import ARTIFACT_TYPE_HOOK, ARTIFACT_TYPE_MODULE, Project
 from .resource.init_resource import init_resource
 from .utils.init_utils import init_artifact_type, validate_yes
 
@@ -137,7 +138,9 @@ def init(args):
 
     if artifact_type == ARTIFACT_TYPE_MODULE:
         init_module(args, project)
-    # artifact type can only be module or resource at this point
+    elif artifact_type == ARTIFACT_TYPE_HOOK:
+        init_hook(args, project)
+    # artifact type can only be module, hook, or resource at this point
     else:
         init_resource(args, project)
 
@@ -183,5 +186,16 @@ def setup_subparser(subparsers, parents):
     parser.add_argument(
         "-a",
         "--artifact-type",
-        help="Select the type of artifact (RESOURCE or MODULE)",
+        help="Select the type of artifact (RESOURCE or MODULE or HOOK)",
+    )
+
+    parser.add_argument("--endpoint-url", help="CloudFormation endpoint to use.")
+
+    parser.add_argument("--region", help="AWS Region to submit the type.")
+
+    parser.add_argument(
+        "--target-schemas",
+        help="Path to target schemas.",
+        default=[],
+        type=lambda s: [i.strip() for i in s.split(",")],
     )

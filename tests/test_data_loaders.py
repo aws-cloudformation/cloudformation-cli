@@ -17,6 +17,7 @@ from rpdk.core.data_loaders import (
     STDIN_NAME,
     get_file_base_uri,
     get_schema_store,
+    load_hook_spec,
     load_resource_spec,
     resource_json,
     resource_stream,
@@ -37,6 +38,16 @@ BASIC_SCHEMA = {
     "properties": {"foo": {"type": "string"}},
     "primaryIdentifier": ["/properties/foo"],
     "readOnlyProperties": ["/properties/foo"],
+    "additionalProperties": False,
+}
+
+HOOK_BASIC_SCHEMA = {
+    "typeName": "AWS::FOO::BAR",
+    "description": "test schema",
+    "typeConfiguration": {
+        "properties": {"foo": {"type": "string"}},
+        "additionalProperties": False,
+    },
     "additionalProperties": False,
 }
 
@@ -76,6 +87,14 @@ def test_load_resource_spec_boolean_is_invalid():
 def test_load_resource_spec_empty_object_is_invalid():
     with pytest.raises(SpecValidationError):
         load_resource_spec(json_s({}))
+
+
+def test_load_hook_spec_invalid_json():
+    with pytest.raises(SpecValidationError) as excinfo:
+        load_hook_spec(StringIO('{"foo": "aaaaa}'))
+
+    assert "line 1" in str(excinfo.value)
+    assert "column 9" in str(excinfo.value)
 
 
 def json_files_params(path, glob="*.json"):
@@ -207,6 +226,47 @@ def test_load_resource_spec_remote_key_is_invalid():
     assert "remote" in str(excinfo.value)
 
 
+@pytest.mark.parametrize(
+    "permission", ("cloudformation:RegisterType", "cloudformation:*")
+)
+def test_load_hook_spec_hook_permissions_invalid(permission):
+    schema = {
+        "typeName": "AWS::FOO::BAR",
+        "description": "test schema",
+        "typeConfiguration": {
+            "properties": {"foo": {"type": "string"}},
+            "additionalProperties": False,
+        },
+        "handlers": {
+            "preCreate": {"targetNames": ["AWS::BAZ::ZAZ"], "permissions": [permission]}
+        },
+        "additionalProperties": False,
+    }
+    with pytest.raises(SpecValidationError) as excinfo:
+        load_hook_spec(json_s(schema))
+    assert "not allowed for hook handler permissions" in str(excinfo.value)
+
+
+def test_load_hook_spec_hook_permissions_valid():
+    schema = {
+        "typeName": "AWS::FOO::BAR",
+        "description": "test schema",
+        "typeConfiguration": {
+            "properties": {"foo": {"type": "string"}},
+            "additionalProperties": False,
+        },
+        "handlers": {
+            "preDelete": {
+                "targetNames": ["AWS::S3::Bucket"],
+                "permissions": ["s3:GetObject"],
+            }
+        },
+        "additionalProperties": False,
+    }
+    result = load_hook_spec(json_s(schema))
+    assert result == schema
+
+
 def test_argparse_stdin_name():
     """By default, pytest messes with stdin and stdout, which prevents me from
     writing a test to check we have the right magic name that argparse uses
@@ -297,6 +357,18 @@ def test_load_resource_spec_invalid_ref():
     assert "bar" in str(cause)
 
 
+def test_load_hook_spec_invalid_ref():
+    copy = json.loads(json.dumps(HOOK_BASIC_SCHEMA))
+    copy["typeConfiguration"]["properties"]["foo"] = {"$ref": "#/bar"}
+    with pytest.raises(SpecValidationError) as excinfo:
+        load_hook_spec(json_s(copy))
+
+    cause = excinfo.value.__cause__
+    assert cause
+    assert isinstance(cause, RefResolutionError)
+    assert "bar" in str(cause)
+
+
 @pytest.fixture
 def plugin():
     mock_plugin = create_autospec(LanguagePlugin)
@@ -367,7 +439,7 @@ def test_get_schema_store_schemas_with_id():
     schema_store = get_schema_store(
         BASEDIR.parent / "src" / "rpdk" / "core" / "data" / "schema"
     )
-    assert len(schema_store) == 5
+    assert len(schema_store) == 7
     assert "http://json-schema.org/draft-07/schema#" in schema_store
     assert (
         "https://schema.cloudformation.us-east-1.amazonaws.com/base.definition.schema.v1.json"
@@ -379,6 +451,14 @@ def test_get_schema_store_schemas_with_id():
     )
     assert (
         "https://schema.cloudformation.us-east-1.amazonaws.com/provider.definition.schema.v1.json"
+        in schema_store
+    )
+    assert (
+        "https://schema.cloudformation.us-east-1.amazonaws.com/provider.definition.schema.hooks.v1.json"
+        in schema_store
+    )
+    assert (
+        "https://schema.cloudformation.us-east-1.amazonaws.com/provider.configuration.definition.schema.hooks.v1.json"
         in schema_store
     )
 

@@ -1,3 +1,4 @@
+# pylint: disable=too-many-lines
 import json
 import logging
 import os
@@ -14,10 +15,16 @@ from jsonschema.exceptions import ValidationError
 
 from rpdk.core.fragment.generator import TemplateFragment
 from rpdk.core.jsonutils.flattener import JsonSchemaFlattener
+from rpdk.core.type_schema_loader import TypeSchemaLoader
 
 from . import __version__
 from .boto_helpers import create_sdk_session
-from .data_loaders import load_resource_spec, resource_json
+from .data_loaders import (
+    load_hook_spec,
+    load_resource_spec,
+    make_resource_validator,
+    resource_json,
+)
 from .exceptions import (
     DownstreamError,
     FragmentValidationError,
@@ -37,15 +44,20 @@ SETTINGS_FILENAME = ".rpdk-config"
 SCHEMA_UPLOAD_FILENAME = "schema.json"
 CONFIGURATION_SCHEMA_UPLOAD_FILENAME = "configuration-schema.json"
 OVERRIDES_FILENAME = "overrides.json"
+TARGET_INFO_FILENAME = "target-info.json"
 INPUTS_FOLDER = "inputs"
 EXAMPLE_INPUTS_FOLDER = "example_inputs"
-ROLE_TEMPLATE_FILENAME = "resource-role.yaml"
+TARGET_SCHEMAS_FOLDER = "target-schemas"
+HOOK_ROLE_TEMPLATE_FILENAME = "hook-role.yaml"
+RESOURCE_ROLE_TEMPLATE_FILENAME = "resource-role.yaml"
 TYPE_NAME_RESOURCE_REGEX = "^[a-zA-Z0-9]{2,64}::[a-zA-Z0-9]{2,64}::[a-zA-Z0-9]{2,64}$"
 TYPE_NAME_MODULE_REGEX = (
     "^[a-zA-Z0-9]{2,64}::[a-zA-Z0-9]{2,64}::[a-zA-Z0-9]{2,64}::MODULE$"
 )
+TYPE_NAME_HOOK_REGEX = "^[a-zA-Z0-9]{2,64}::[a-zA-Z0-9]{2,64}::[a-zA-Z0-9]{2,64}$"
 ARTIFACT_TYPE_RESOURCE = "RESOURCE"
 ARTIFACT_TYPE_MODULE = "MODULE"
+ARTIFACT_TYPE_HOOK = "HOOK"
 
 DEFAULT_ROLE_TIMEOUT_MINUTES = 120  # 2 hours
 # min and max are according to CreateRole API restrictions
@@ -96,6 +108,20 @@ MODULE_SETTINGS_VALIDATOR = Draft7Validator(
     }
 )
 
+HOOK_SETTINGS_VALIDATOR = Draft7Validator(
+    {
+        "properties": {
+            "artifact_type": {"type": "string"},
+            "language": {"type": "string"},
+            "typeName": {"type": "string", "pattern": TYPE_NAME_HOOK_REGEX},
+            "runtime": {"type": "string", "enum": list(LAMBDA_RUNTIMES)},
+            "entrypoint": {"type": ["string", "null"]},
+            "testEntrypoint": {"type": ["string", "null"]},
+            "settings": {"type": "object"},
+        },
+        "required": ["language", "typeName", "runtime", "entrypoint"],
+    }
+)
 
 BASIC_TYPE_MAPPINGS = {
     "string": "String",
@@ -135,6 +161,7 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
         self.test_entrypoint = None
         self.executable_entrypoint = None
         self.fragment_dir = None
+        self.target_info = {}
 
         self.env = Environment(
             trim_blocks=True,
@@ -188,6 +215,14 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
     def example_inputs_path(self):
         return self.root / EXAMPLE_INPUTS_FOLDER
 
+    @property
+    def target_schemas_path(self):
+        return self.root / TARGET_SCHEMAS_FOLDER
+
+    @property
+    def target_info_path(self):
+        return self.root / TARGET_INFO_FILENAME
+
     @staticmethod
     def _raise_invalid_project(msg, e):
         LOG.debug(msg, exc_info=e)
@@ -209,8 +244,27 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
 
         if raw_settings["artifact_type"] == ARTIFACT_TYPE_RESOURCE:
             self.validate_and_load_resource_settings(raw_settings)
+        elif raw_settings["artifact_type"] == ARTIFACT_TYPE_HOOK:
+            self.validate_and_load_hook_settings(raw_settings)
         else:
             self.validate_and_load_module_settings(raw_settings)
+
+    def validate_and_load_hook_settings(self, raw_settings):
+        try:
+            HOOK_SETTINGS_VALIDATOR.validate(raw_settings)
+        except ValidationError as e:
+            self._raise_invalid_project(
+                f"Project file '{self.settings_path}' is invalid", e
+            )
+        self.type_name = raw_settings["typeName"]
+        self.artifact_type = raw_settings["artifact_type"]
+        self.language = raw_settings["language"]
+        self.runtime = raw_settings["runtime"]
+        self.entrypoint = raw_settings["entrypoint"]
+        self.test_entrypoint = raw_settings["testEntrypoint"]
+        self.executable_entrypoint = raw_settings.get("executableEntrypoint")
+        self._plugin = load_plugin(raw_settings["language"])
+        self.settings = raw_settings.get("settings", {})
 
     def validate_and_load_module_settings(self, raw_settings):
         try:
@@ -243,6 +297,18 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
     def _write_example_schema(self):
         self.schema = resource_json(
             __name__, "data/examples/resource/initech.tps.report.v1.json"
+        )
+        self.schema["typeName"] = self.type_name
+
+        def _write(f):
+            json.dump(self.schema, f, indent=4)
+            f.write("\n")
+
+        self.safewrite(self.schema_path, _write)
+
+    def _write_example_hook_schema(self):
+        self.schema = resource_json(
+            __name__, "data/examples/hook/sse.verification.v1.json"
         )
         self.schema["typeName"] = self.type_name
 
@@ -313,8 +379,32 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
             )
             f.write("\n")
 
+        def _write_hook_settings(f):
+            executable_entrypoint_dict = (
+                {"executableEntrypoint": self.executable_entrypoint}
+                if self.executable_entrypoint
+                else {}
+            )
+            json.dump(
+                {
+                    "artifact_type": self.artifact_type,
+                    "typeName": self.type_name,
+                    "language": self.language,
+                    "runtime": self.runtime,
+                    "entrypoint": self.entrypoint,
+                    "testEntrypoint": self.test_entrypoint,
+                    "settings": self.settings,
+                    **executable_entrypoint_dict,
+                },
+                f,
+                indent=4,
+            )
+            f.write("\n")
+
         if self.artifact_type == ARTIFACT_TYPE_RESOURCE:
             self.overwrite(self.settings_path, _write_resource_settings)
+        elif self.artifact_type == ARTIFACT_TYPE_HOOK:
+            self.overwrite(self.settings_path, _write_hook_settings)
         else:
             self.overwrite(self.settings_path, _write_module_settings)
 
@@ -335,6 +425,25 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
         self.settings = {}
         self.write_settings()
 
+    def init_hook(self, type_name, language, settings=None):
+        self.artifact_type = ARTIFACT_TYPE_HOOK
+        self.type_name = type_name
+        self.language = language
+        self._plugin = load_plugin(language)
+        self.settings = settings or {}
+        self._write_example_hook_schema()
+        self._plugin.init(self)
+        self.write_settings()
+
+    def load_hook_schema(self):
+        if not self.type_info:
+            msg = "Internal error (Must load settings first)"
+            LOG.critical(msg)
+            raise InternalError(msg)
+
+        with self.schema_path.open("r", encoding="utf-8") as f:
+            self.schema = load_hook_spec(f)
+
     def load_schema(self):
         if not self.type_info:
             msg = "Internal error (Must load settings first)"
@@ -352,7 +461,7 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
 
         if "typeConfiguration" in self.schema:
             configuration_schema = self.schema["typeConfiguration"]
-            configuration_schema["definitions"] = self.schema["definitions"]
+            configuration_schema["definitions"] = self.schema.get("definitions", {})
             configuration_schema["typeName"] = self.type_name
             self.configuration_schema = configuration_schema
 
@@ -390,7 +499,7 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
             except FileExistsError:
                 LOG.info("File already exists, not overwriting '%s'", path)
 
-    def generate(self):
+    def generate(self, endpoint_url=None, region_name=None, target_schemas=None):
         if self.artifact_type == ARTIFACT_TYPE_MODULE:
             return  # for Modules, the schema is already generated in cfn validate
 
@@ -398,10 +507,14 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
         # to provision resources if schema has handlers defined
         if "handlers" in self.schema:
             handlers = self.schema["handlers"]
-            template = self.env.get_template("resource-role.yml")
             permission = "Allow"
-            path = self.root / ROLE_TEMPLATE_FILENAME
-            LOG.debug("Writing Resource Role CloudFormation template: %s", path)
+            if self.artifact_type == ARTIFACT_TYPE_HOOK:
+                template = self.env.get_template("hook-role.yml")
+                path = self.root / HOOK_ROLE_TEMPLATE_FILENAME
+            else:
+                template = self.env.get_template("resource-role.yml")
+                path = self.root / RESOURCE_ROLE_TEMPLATE_FILENAME
+            LOG.debug("Writing Execution Role CloudFormation template: %s", path)
             actions = {
                 action
                 for handler in handlers.values()
@@ -438,6 +551,9 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
                 role_session_timeout=role_session_timeout,
             )
             self.overwrite(path, contents)
+            self.target_info = self._load_target_info(
+                endpoint_url, region_name, target_schemas
+            )
 
         self._plugin.generate(self)
 
@@ -452,6 +568,8 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
 
         if self.artifact_type == ARTIFACT_TYPE_MODULE:
             self._load_modules_project()
+        elif self.artifact_type == ARTIFACT_TYPE_HOOK:
+            self._load_hooks_project()
         else:
             self._load_resources_project()
 
@@ -478,6 +596,17 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
             self._raise_invalid_project(msg, e)
         self.schema = template_fragment.generate_schema()
         self.fragment_dir = template_fragment.fragment_dir
+
+    def _load_hooks_project(self):
+        LOG.info("Validating your hook specification...")
+        try:
+            self.load_hook_schema()
+            self.load_configuration_schema()
+        except FileNotFoundError as e:
+            self._raise_invalid_project("Hook specification not found.", e)
+        except SpecValidationError as e:
+            msg = "Hook specification is invalid: " + str(e)
+            self._raise_invalid_project(msg, e)
 
     def _add_modules_content_to_zip(self, zip_file):
         if not os.path.exists(self.root / SCHEMA_UPLOAD_FILENAME):
@@ -515,6 +644,8 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
                 zip_file.write(self.settings_path, SETTINGS_FILENAME)
                 if self.artifact_type == ARTIFACT_TYPE_MODULE:
                     self._add_modules_content_to_zip(zip_file)
+                elif self.artifact_type == ARTIFACT_TYPE_HOOK:
+                    self._add_hooks_content_to_zip(zip_file, endpoint_url, region_name)
                 else:
                     self._add_resources_content_to_zip(zip_file)
 
@@ -555,6 +686,41 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
         cli_metadata["cli-version"] = __version__
         zip_file.writestr(CFN_METADATA_FILENAME, json.dumps(cli_metadata))
 
+    def _add_hooks_content_to_zip(self, zip_file, endpoint_url=None, region_name=None):
+        zip_file.write(self.schema_path, SCHEMA_UPLOAD_FILENAME)
+        if os.path.isdir(self.inputs_path):
+            for filename in os.listdir(self.inputs_path):
+                absolute_path = self.inputs_path / filename
+                zip_file.write(absolute_path, INPUTS_FOLDER + "/" + filename)
+                LOG.debug("%s found. Writing to package.", filename)
+        else:
+            LOG.debug("%s not found. Not writing to package.", INPUTS_FOLDER)
+
+        target_info = (
+            self.target_info
+            if self.target_info
+            else self._load_target_info(endpoint_url, region_name)
+        )
+        zip_file.writestr(TARGET_INFO_FILENAME, json.dumps(target_info, indent=4))
+        for target_name, info in target_info.items():
+            filename = "{}.json".format(
+                "-".join(s.lower() for s in target_name.split("::"))
+            )
+            content = json.dumps(info.get("Schema", {}), indent=4).encode("utf-8")
+            zip_file.writestr(TARGET_SCHEMAS_FOLDER + "/" + filename, content)
+            LOG.debug("%s found. Writing to package.", filename)
+
+        self._plugin.package(self, zip_file)
+        cli_metadata = {}
+        try:
+            cli_metadata = self._plugin.get_plugin_information(self)
+        except AttributeError:
+            LOG.debug(
+                "Version info is not available for plugins, not writing to metadata file"
+            )
+        cli_metadata["cli-version"] = __version__
+        zip_file.writestr(CFN_METADATA_FILENAME, json.dumps(cli_metadata))
+
     # pylint: disable=R1732
     def _create_context_manager(self, dry_run):
         # if it's a dry run, keep the file; otherwise can delete after upload
@@ -567,7 +733,10 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
         return Path(f"{self.hypenated_name}.zip")
 
     def generate_docs(self):
-        if self.artifact_type == ARTIFACT_TYPE_MODULE:
+        if (
+            self.artifact_type == ARTIFACT_TYPE_MODULE
+            or self.artifact_type == ARTIFACT_TYPE_HOOK
+        ):
             return
 
         # generate the docs folder that contains documentation based on the schema
@@ -781,7 +950,6 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
 
                 type_json = type_yaml = type_longform = "Map"
                 if object_properties:
-
                     subproperty_name = " ".join(proppath)
                     subproperty_filename = "-".join(proppath).lower() + ".md"
                     subproperty_path = docs_path / subproperty_filename
@@ -852,10 +1020,15 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
         cfn_client = session.client("cloudformation", endpoint_url=endpoint_url)
         s3_client = session.client("s3")
         uploader = Uploader(cfn_client, s3_client)
+
         if use_role and not role_arn and "handlers" in self.schema:
             LOG.debug("Creating execution role for provider to use")
+            if self.artifact_type == ARTIFACT_TYPE_HOOK:
+                role_template_file = HOOK_ROLE_TEMPLATE_FILENAME
+            else:
+                role_template_file = RESOURCE_ROLE_TEMPLATE_FILENAME
             role_arn = uploader.create_or_update_role(
-                self.root / ROLE_TEMPLATE_FILENAME, self.hypenated_name
+                self.root / role_template_file, self.hypenated_name
             )
 
         s3_url = uploader.upload(self.hypenated_name, fileobj)
@@ -933,3 +1106,106 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
                 )
                 raise DownstreamError("Error setting default version") from e
             LOG.warning("Set default version to '%s", arn)
+
+    # pylint: disable=R0912,R0914,R0915
+    # flake8: noqa: C901
+    def _load_target_info(self, endpoint_url, region_name, provided_schemas=None):
+        if self.artifact_type != ARTIFACT_TYPE_HOOK or not self.schema:
+            return {}
+
+        if provided_schemas is None:
+            provided_schemas = []
+
+        target_names = set()
+        for handler in self.schema.get("handlers", []).values():
+            for target_name in handler.get("targetNames", []):
+                target_names.add(target_name)
+
+        loader = TypeSchemaLoader.get_type_schema_loader(endpoint_url, region_name)
+
+        provided_target_info = {}
+
+        if os.path.isfile(self.target_info_path):
+            try:
+                with self.target_info_path.open("r", encoding="utf-8") as f:
+                    provided_target_info = json.load(f)
+            except json.JSONDecodeError as e:  # pragma: no cover
+                self._raise_invalid_project(
+                    f"Target info file '{self.target_info_path}' is invalid", e
+                )
+
+        if os.path.isdir(self.target_schemas_path):
+            for filename in os.listdir(self.target_schemas_path):
+                absolute_path = self.target_schemas_path / filename
+                if absolute_path.is_file() and absolute_path.match(
+                    "*.json"
+                ):  # pragma: no cover
+                    provided_schemas.append(str(absolute_path))
+
+        loaded_schemas = {}
+        for provided_schema in provided_schemas:
+            loaded_schema = loader.load_type_schema(provided_schema)
+            if not loaded_schema:
+                continue
+
+            if isinstance(loaded_schema, dict):
+                type_schemas = (loaded_schema,)
+            else:
+                type_schemas = loaded_schema
+
+            for type_schema in type_schemas:
+                try:
+                    type_name = type_schema["typeName"]
+                    if type_name in loaded_schemas:
+                        raise InvalidProjectError(
+                            "Duplicate schemas for '{}' target type.".format(type_name)
+                        )
+
+                    loaded_schemas[type_name] = type_schema
+                except (KeyError, TypeError) as e:
+                    LOG.warning(
+                        "Error while loading a provided schema: %s",
+                        provided_schema,
+                        exc_info=e,
+                    )
+
+        validator = make_resource_validator()
+
+        target_info = {}
+        for target_name in target_names:
+            if target_name in loaded_schemas:
+                target_schema = loaded_schemas[target_name]
+                target_type = "RESOURCE"
+                provisioning_type = provided_target_info.get(target_name, {}).get(
+                    "ProvisioningType",
+                    loader.get_provision_type(target_name, "RESOURCE"),
+                )
+            else:
+                (
+                    target_schema,
+                    target_type,
+                    provisioning_type,
+                ) = loader.load_schema_from_cfn_registry(target_name, "RESOURCE")
+
+            is_registry_type = bool(
+                provisioning_type and provisioning_type != "NON_PROVISIONABLE"
+            )
+
+            if is_registry_type:  # pragma: no cover
+                try:
+                    validator.validate(target_schema)
+                except (SpecValidationError, ValidationError) as e:
+                    self._raise_invalid_project(
+                        f"Target schema for '{target_name}' is invalid: " + str(e), e
+                    )
+
+            target_info[target_name] = {
+                "TargetName": target_name,
+                "TargetType": target_type,
+                "Schema": target_schema,
+                "ProvisioningType": provisioning_type,
+                "IsCfnRegistrySupportedType": is_registry_type,
+                "SchemaFileAvailable": bool(target_schema),
+            }
+
+        return target_info

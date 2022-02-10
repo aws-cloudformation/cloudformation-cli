@@ -2,7 +2,7 @@
 
 # AWS CloudFormation CLI
 
-The CloudFormation CLI (cfn) allows you to author your own resource providers and modules that can be used by CloudFormation.
+The CloudFormation CLI (cfn) allows you to author your own resource providers, hooks, and modules that can be used by CloudFormation.
 
 ## Usage
 
@@ -12,7 +12,7 @@ Primary documentation for the CloudFormation CLI can be found at the [AWS Docume
 
 ### Installation
 
-This tool can be installed using [pip](https://pypi.org/project/pip/) from the Python Package Index (PyPI). It requires Python 3. For resource types, the tool requires at least one language plugin. Language plugins are not needed to create a module type. The language plugins are also available on PyPI and as such can be installed all at once:
+This tool can be installed using [pip](https://pypi.org/project/pip/) from the Python Package Index (PyPI). It requires Python 3. For resource and hook types, the tool requires at least one language plugin. Language plugins are not needed to create a module type. The language plugins are also available on PyPI and as such can be installed all at once:
 
 ```bash
 pip install cloudformation-cli cloudformation-cli-java-plugin cloudformation-cli-go-plugin cloudformation-cli-python-plugin cloudformation-cli-typescript-plugin
@@ -38,7 +38,7 @@ cfn generate
 
 ### Command: submit
 
-To register a resource provider or module in your account, use the `submit` command.
+To register a resource provider, module, or hook in your account, use the `submit` command.
 
 ```bash
 cfn submit
@@ -65,7 +65,7 @@ Note: To use your type configuration in contract tests, you will need to save yo
 
 To validate the schema, use the `validate` command.
 
-This command is automatically run whenever one attempts to submit a resource or module. Errors will prevent you from submitting your resource/module. Module fragments will additionally be validated via [`cfn-lint`](https://github.com/aws-cloudformation/cfn-python-lint/) (but resulting warnings will not cause this step to fail).
+This command is automatically run whenever one attempts to submit a resource, module, or hook. Errors will prevent you from submitting your resource/module. Module fragments will additionally be validated via [`cfn-lint`](https://github.com/aws-cloudformation/cfn-python-lint/) (but resulting warnings will not cause this step to fail).
 
 ```bash
 cfn validate
@@ -99,7 +99,7 @@ pip install -e . -r requirements.txt
 pre-commit install
 ```
 
-If you're creating a resource type, you will also need to install a language plugin, such as [the Java language plugin](https://github.com/aws-cloudformation/cloudformation-cli-java-plugin), also via `pip install`. For example, assuming the plugin is checked out in the same parent directory as this repository:
+If you're creating a resource or hook type, you will also need to install a language plugin, such as [the Java language plugin](https://github.com/aws-cloudformation/cloudformation-cli-java-plugin), also via `pip install`. For example, assuming the plugin is checked out in the same parent directory as this repository:
 
 ```bash
 pip install -e ../cloudformation-cli-java-plugin
@@ -128,12 +128,19 @@ Plugins must provide the same interface as `LanguagePlugin` (in `plugin_base.py`
 
 ### Supported plugins
 
+#### Resource Types Supported Plugins
 | Language | Status            | Github                                                                                                      | PyPI                                                                                       |
 | -------- | ----------------- | ----------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
 | Java      | Available         | [cloudformation-cli-java-plugin](https://github.com/aws-cloudformation/cloudformation-cli-java-plugin/)     | [cloudformation-cli-java-plugin](https://pypi.org/project/cloudformation-cli-java-plugin/)     |
 | Go        | Available         | [cloudformation-cli-go-plugin](https://github.com/aws-cloudformation/cloudformation-cli-go-plugin/)         | [cloudformation-cli-go-plugin](https://pypi.org/project/cloudformation-cli-go-plugin/)         |
 | Python    | Available         | [cloudformation-cli-python-plugin](https://github.com/aws-cloudformation/cloudformation-cli-python-plugin/) | [cloudformation-cli-python-plugin](https://pypi.org/project/cloudformation-cli-python-plugin/) |
 | TypeScript| Available         | [cloudformation-cli-typescript-plugin](https://github.com/aws-cloudformation/cloudformation-cli-typescript-plugin/) | [cloudformation-cli-typescript-plugin](https://pypi.org/project/cloudformation-cli-typescript-plugin/) |
+
+#### Hook Types Supported Plugins
+| Language | Status            | Github                                                                                                      | PyPI                                                                                       |
+| -------- | ----------------- | ----------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| Java      | Available         | [cloudformation-cli-java-plugin](https://github.com/aws-cloudformation/cloudformation-cli-java-plugin/)     | [cloudformation-cli-java-plugin](https://pypi.org/project/cloudformation-cli-java-plugin/)     |
+| Python    | Available         | [cloudformation-cli-python-plugin](https://github.com/aws-cloudformation/cloudformation-cli-python-plugin/) | [cloudformation-cli-python-plugin](https://pypi.org/project/cloudformation-cli-python-plugin/) |
 
 ## License
 

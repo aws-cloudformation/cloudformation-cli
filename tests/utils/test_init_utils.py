@@ -70,11 +70,21 @@ def test_input_with_validation_valid_second_try(capsys):
     assert ERROR in out
 
 
+def test_input_artifact_type_hook():
+    artifact_type = "HOOK"
+    patch_input = patch("rpdk.core.utils.init_utils.input", return_value=artifact_type)
+    with patch_input as mock_input:
+        assert init_artifact_type() == artifact_type
+    mock_input.assert_called_once()
+
+
 def test_validate_artifact_type_valid():
     assert validate_artifact_type("m") == "MODULE"
     assert validate_artifact_type("module") == "MODULE"
     assert validate_artifact_type("r") == "RESOURCE"
     assert validate_artifact_type("resource") == "RESOURCE"
+    assert validate_artifact_type("h") == "HOOK"
+    assert validate_artifact_type("hook") == "HOOK"
 
 
 def test_validate_artifact_type_invalid():

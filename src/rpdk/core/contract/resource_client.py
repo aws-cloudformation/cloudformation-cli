@@ -384,6 +384,7 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
                 )
             )
             return {**create_model_with_read_only_properties, **update_example}
+
         overrides = self._overrides.get("UPDATE", self._overrides.get("CREATE", {}))
         example = override_properties(self.update_strategy.example(), overrides)
         return {**create_model, **example}

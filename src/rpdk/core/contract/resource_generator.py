@@ -28,7 +28,8 @@ LOG = logging.getLogger(__name__)
 
 # Arn is just a placeholder for testing
 STRING_FORMATS = {
-    "arn": "^arn:aws(-(cn|gov))?:[a-z-]+:(([a-z]+-)+[0-9])?:([0-9]{12})?:[^.]+$"
+    "arn": "^arn:aws(-(cn|gov))?:[a-z-]+:(([a-z]+-)+[0-9])?:([0-9]{12})?:[^.]+$",
+    "uri": "^(https?|ftp|file)://[0-9a-zA-Z]([-.\\w]*[0-9a-zA-Z])(:[0-9]*)*([?/#].*)?$",
 }
 
 NEG_INF = float("-inf")

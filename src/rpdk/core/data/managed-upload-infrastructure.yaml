@@ -90,6 +90,7 @@ Resources:
           Principal:
             Service:
               - resources.cloudformation.amazonaws.com
+              - hooks.cloudformation.amazonaws.com
           Action: sts:AssumeRole
           Condition:
             StringEquals:

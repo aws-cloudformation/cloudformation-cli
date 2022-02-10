@@ -42,7 +42,7 @@
               "Value"
             ],
             "additionalProperties": false
-          }
+        }
     },
     "properties": {
         "TPSCode": {
@@ -94,7 +94,7 @@
             "items": {
               "$ref": "#/definitions/Tag"
             }
-          }
+        }
     },
     "additionalProperties": false,
     "required": [
