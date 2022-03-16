@@ -42,6 +42,20 @@ SCHEMA_ = {
     "additionalProperties": False,
 }
 
+TARGET_SCHEMA = {
+    "properties": {
+        "a": {"type": "number", "const": 1},
+        "b": {"type": "number", "const": 2},
+        "c": {"type": "number", "const": 3},
+        "d": {"type": "number", "const": 4},
+    },
+    "readOnlyProperties": ["/properties/b"],
+    "createOnlyProperties": ["/properties/c"],
+    "primaryIdentifier": ["/properties/c"],
+    "writeOnlyProperties": ["/properties/d"],
+    "handlers": {"create": {}, "delete": {}, "read": {}},
+}
+
 HOOK_CONFIGURATION = '{"CloudFormationConfiguration": {"HookConfiguration": {"Properties": {"key": "value"}}}}'
 
 HOOK_TARGET_INFO = {
@@ -209,6 +223,26 @@ def test_generate_token():
     assert len(token) == 36
 
 
+def test_setup_target_info():
+    hook_target_info = {
+        "AWS::Example::Target": {
+            "TypeName": "AWS::Example::Target",
+            "Schema": TARGET_SCHEMA,
+        }
+    }
+
+    target_info = HookClient._setup_target_info(hook_target_info)
+
+    assert target_info["AWS::Example::Target"]["readOnlyProperties"] == {
+        ("properties", "b")
+    }
+    assert target_info["AWS::Example::Target"]["createOnlyProperties"] == {
+        ("properties", "c")
+    }
+    assert target_info["AWS::Example::Target"]["SchemaStrategy"]
+    assert target_info["AWS::Example::Target"]["UpdateSchemaStrategy"]
+
+
 @pytest.mark.parametrize("hook_type", [None, "Org::Srv::Type"])
 @pytest.mark.parametrize("log_group_name", [None, "random_name"])
 @pytest.mark.parametrize(
@@ -280,6 +314,46 @@ def test_get_handler_target_no_targets(hook_client):
     TestCase().assertFalse(
         hook_client.get_handler_targets(HookInvocationPoint.CREATE_PRE_PROVISION)
     )
+
+
+def test_generate_example(hook_client):
+    hook_target_info = {
+        "AWS::Example::Target": {
+            "TypeName": "AWS::Example::Target",
+            "Schema": {
+                "properties": {
+                    "a": {"type": "number", "const": 1},
+                    "b": {"type": "number", "const": 2},
+                },
+                "readOnlyProperties": ["/properties/b"],
+            },
+        }
+    }
+    hook_client._target_info = HookClient._setup_target_info(hook_target_info)
+    example = hook_client._generate_target_example("AWS::Example::Target")
+    assert example == {"a": 1}
+
+
+def test_generate_update_example(hook_client):
+    hook_target_info = {
+        "AWS::Example::Target": {
+            "TypeName": "AWS::Example::Target",
+            "Schema": {
+                "properties": {
+                    "a": {"type": "number", "const": 1},
+                    "b": {"type": "number", "const": 2},
+                    "c": {"type": "number", "const": 3},
+                },
+                "readOnlyProperties": ["/properties/b"],
+                "createOnlyProperties": ["/properties/c"],
+            },
+        }
+    }
+    hook_client._target_info = HookClient._setup_target_info(hook_target_info)
+    hook_client._overrides = {}
+    model = {"b": 2, "a": 4}
+    example = hook_client._generate_target_update_example("AWS::Example::Target", model)
+    assert example == {"a": 1, "b": 2}
 
 
 def test_make_payload(hook_client):

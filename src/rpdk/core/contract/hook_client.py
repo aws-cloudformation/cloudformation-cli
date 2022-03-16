@@ -24,10 +24,12 @@ from rpdk.core.contract.interface import (
     HookInvocationPoint,
     HookStatus,
 )
-from rpdk.core.contract.resource_client import override_properties
+from rpdk.core.contract.resource_client import override_properties, prune_properties
 from rpdk.core.contract.type_configuration import TypeConfiguration
 from rpdk.core.exceptions import InvalidProjectError
 from rpdk.core.utils.handler_utils import generate_handler_name
+
+from ..jsonutils.pointer import fragment_decode
 
 LOG = logging.getLogger(__name__)
 
@@ -98,6 +100,10 @@ class HookClient:  # pylint: disable=too-many-instance-attributes
         self._target_info = self._setup_target_info(target_info)
 
     @staticmethod
+    def _properties_to_paths(schema, key):
+        return {fragment_decode(prop, prefix="") for prop in schema.get(key, [])}
+
+    @staticmethod
     def _setup_target_info(hook_target_info):
         if not hook_target_info:
             return hook_target_info
@@ -110,9 +116,30 @@ class HookClient:  # pylint: disable=too-many-instance-attributes
 
             # make a copy so the original schema is never modified
             target_schema = json.loads(json.dumps(info["Schema"]))
+
+            info["readOnlyProperties"] = HookClient._properties_to_paths(
+                target_schema, "readOnlyProperties"
+            )
+            info["createOnlyProperties"] = HookClient._properties_to_paths(
+                target_schema, "createOnlyProperties"
+            )
+
+            prune_properties(target_schema, info["readOnlyProperties"])
+
             info["SchemaStrategy"] = ResourceGenerator(
                 target_schema
             ).generate_schema_strategy(target_schema)
+
+            # make a copy so the original schema is never modified
+            update_target_schema = json.loads(json.dumps(info["Schema"]))
+
+            prune_properties(update_target_schema, info["readOnlyProperties"])
+            prune_properties(update_target_schema, info["createOnlyProperties"])
+
+            info["UpdateSchemaStrategy"] = ResourceGenerator(
+                update_target_schema
+            ).generate_schema_strategy(update_target_schema)
+
         return target_info
 
     def _update_schema(self, schema):
@@ -139,39 +166,43 @@ class HookClient:  # pylint: disable=too-many-instance-attributes
             return set()
 
     @staticmethod
-    def assert_in_progress(status, response):
-        assert status == HookStatus.IN_PROGRESS, "status should be IN_PROGRESS"
+    def assert_in_progress(status, response, target=""):
+        assert (
+            status == HookStatus.IN_PROGRESS
+        ), f"status should be IN_PROGRESS ({target})"
         assert (
             response.get("errorCode", 0) == 0
-        ), "IN_PROGRESS events should have no error code set"
+        ), f"IN_PROGRESS events should have no error code set ({target})"
         assert (
             response.get("result") is None
-        ), "IN_PROGRESS events should have no result"
+        ), f"IN_PROGRESS events should have no result ({target})"
 
         return response.get("callbackDelaySeconds", 0)
 
     @staticmethod
-    def assert_success(status, response):
-        assert status == HookStatus.SUCCESS, "status should be SUCCESS"
+    def assert_success(status, response, target=""):
+        assert status == HookStatus.SUCCESS, f"status should be SUCCESS ({target})"
         assert (
             response.get("errorCode", 0) == 0
-        ), "SUCCESS events should have no error code set"
+        ), f"SUCCESS events should have no error code set ({target})"
         assert (
             response.get("callbackDelaySeconds", 0) == 0
-        ), "SUCCESS events should have no callback delay"
+        ), f"SUCCESS events should have no callback delay ({target})"
 
     @staticmethod
-    def assert_failed(status, response):
-        assert status == HookStatus.FAILED, "status should be FAILED"
-        assert "errorCode" in response, "FAILED events must have an error code set"
+    def assert_failed(status, response, target=""):
+        assert status == HookStatus.FAILED, f"status should be FAILED ({target})"
+        assert (
+            "errorCode" in response
+        ), f"FAILED events must have an error code set ({target})"
         # raises a KeyError if the error code is invalid
         error_code = HandlerErrorCode[response["errorCode"]]
         assert (
             response.get("callbackDelaySeconds", 0) == 0
-        ), "FAILED events should have no callback delay"
+        ), f"FAILED events should have no callback delay ({target})"
         assert (
             response.get("message") is not None
-        ), "FAILED events should have a message"
+        ), f"FAILED events should have a message ({target})"
 
         return error_code
 
@@ -226,6 +257,13 @@ class HookClient:  # pylint: disable=too-many-instance-attributes
 
         return self._target_info.get(target).get("SchemaStrategy").example()
 
+    def _generate_target_update_example(self, target, model):
+        if not self._target_info:
+            return {}
+
+        example = self._target_info.get(target).get("UpdateSchemaStrategy").example()
+        return {**model, **example}
+
     def _generate_target_model(self, target, invocation_point):
         if self._inputs:
             if "INVALID" in invocation_point:
@@ -235,25 +273,29 @@ class HookClient:  # pylint: disable=too-many-instance-attributes
                     return self._inputs["INVALID"][target]
             return self._inputs[invocation_point][target]
 
-        target_model = {"resourceProperties": self._generate_target_example(target)}
+        target_example = self._generate_target_example(target)
         if "UPDATE_PRE_PROVISION" in invocation_point:
-            target_model["previousResourceProperties"] = self._generate_target_example(
-                target
-            )
+            target_model = {
+                "resourceProperties": self._generate_target_update_example(
+                    target, target_example
+                ),
+                "previousResourceProperties": target_example,
+            }
+        else:
+            target_model = {"resourceProperties": target_example}
 
         if "INVALID" in invocation_point:
-            try:
-                return override_target_properties(
-                    target_model, self._overrides[invocation_point].get(target, {})
-                )
-            except KeyError:
-                return override_target_properties(
-                    target_model, self._overrides.get("INVALID", {}).get(target, {})
-                )
+            overrides = self._overrides.get(
+                invocation_point, self._overrides.get("INVALID", {})
+            ).get(target, {})
+        elif "UPDATE_PRE_PROVISION" in invocation_point:
+            overrides = self._overrides.get(
+                "UPDATE_PRE_PROVISION", self._overrides.get("CREATE_PRE_PROVISION", {})
+            ).get(target, {})
+        else:
+            overrides = self._overrides.get(invocation_point, {}).get(target, {})
 
-        return override_target_properties(
-            target_model, self._overrides.get(invocation_point, {}).get(target, {})
-        )
+        return override_target_properties(target_model, overrides)
 
     def generate_request(self, target, invocation_point):
         target_model = self._generate_target_model(target, invocation_point.name)
@@ -403,10 +445,10 @@ class HookClient:  # pylint: disable=too-many-instance-attributes
 
         status, response = self.call(invocation_point, target, target_model, **kwargs)
         if assert_status == HookStatus.SUCCESS:
-            self.assert_success(status, response)
+            self.assert_success(status, response, target)
             error_code = None
         else:
-            error_code = self.assert_failed(status, response)
+            error_code = self.assert_failed(status, response, target)
         return status, response, error_code
 
     def call(
@@ -431,7 +473,7 @@ class HookClient:  # pylint: disable=too-many-instance-attributes
         status = HookStatus[response["hookStatus"]]
 
         while status == HookStatus.IN_PROGRESS:
-            callback_delay_seconds = self.assert_in_progress(status, response)
+            callback_delay_seconds = self.assert_in_progress(status, response, target)
             time.sleep(callback_delay_seconds)
 
             request["requestContext"]["callbackContext"] = response.get(
