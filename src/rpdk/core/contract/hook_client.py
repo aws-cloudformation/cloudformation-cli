@@ -112,7 +112,8 @@ class HookClient:  # pylint: disable=too-many-instance-attributes
         from .resource_generator import ResourceGenerator
 
         target_info = dict(hook_target_info)
-        for _target, info in target_info.items():
+        for target, info in target_info.items():
+            LOG.debug("Setting up target info for '%s'", target)
 
             # make a copy so the original schema is never modified
             target_schema = json.loads(json.dumps(info["Schema"]))
