@@ -1173,13 +1173,13 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
 
         target_info = {}
         for target_name in target_names:
+            type_info = provided_target_info.get(target_name) or {}
             if target_name in loaded_schemas:
                 target_schema = loaded_schemas[target_name]
                 target_type = "RESOURCE"
-                provisioning_type = provided_target_info.get(target_name, {}).get(
-                    "ProvisioningType",
-                    loader.get_provision_type(target_name, "RESOURCE"),
-                )
+                provisioning_type = type_info.get(
+                    "ProvisioningType"
+                ) or loader.get_provision_type(target_name, "RESOURCE")
             else:
                 (
                     target_schema,
