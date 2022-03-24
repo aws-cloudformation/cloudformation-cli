@@ -108,9 +108,6 @@ class HookClient:  # pylint: disable=too-many-instance-attributes
         if not hook_target_info:
             return hook_target_info
 
-        # imported here to avoid hypothesis being loaded before pytest is loaded
-        from .resource_generator import ResourceGenerator
-
         target_info = dict(hook_target_info)
         for target, info in target_info.items():
             LOG.debug("Setting up target info for '%s'", target)
@@ -124,22 +121,6 @@ class HookClient:  # pylint: disable=too-many-instance-attributes
             info["createOnlyProperties"] = HookClient._properties_to_paths(
                 target_schema, "createOnlyProperties"
             )
-
-            prune_properties(target_schema, info["readOnlyProperties"])
-
-            info["SchemaStrategy"] = ResourceGenerator(
-                target_schema
-            ).generate_schema_strategy(target_schema)
-
-            # make a copy so the original schema is never modified
-            update_target_schema = json.loads(json.dumps(info["Schema"]))
-
-            prune_properties(update_target_schema, info["readOnlyProperties"])
-            prune_properties(update_target_schema, info["createOnlyProperties"])
-
-            info["UpdateSchemaStrategy"] = ResourceGenerator(
-                update_target_schema
-            ).generate_schema_strategy(update_target_schema)
 
         return target_info
 
@@ -253,16 +234,47 @@ class HookClient:  # pylint: disable=too-many-instance-attributes
         return request_body
 
     def _generate_target_example(self, target):
-        if not self._target_info:
+        LOG.debug("Generating example for target '%s'", target)
+        if not self._target_info or not self._target_info.get(target):
             return {}
 
-        return self._target_info.get(target).get("SchemaStrategy").example()
+        info = self._target_info.get(target)
+        if not info.get("SchemaStrategy"):
+            # imported here to avoid hypothesis being loaded before pytest is loaded
+            from .resource_generator import ResourceGenerator
+
+            # make a copy so the original schema is never modified
+            target_schema = json.loads(json.dumps(info["Schema"]))
+
+            prune_properties(target_schema, info["readOnlyProperties"])
+
+            info["SchemaStrategy"] = ResourceGenerator(
+                target_schema
+            ).generate_schema_strategy(target_schema)
+
+        return info.get("SchemaStrategy").example()
 
     def _generate_target_update_example(self, target, model):
-        if not self._target_info:
+        LOG.debug("Generating update example for target '%s'", target)
+        if not self._target_info or not self._target_info.get(target):
             return {}
 
-        example = self._target_info.get(target).get("UpdateSchemaStrategy").example()
+        info = self._target_info.get(target)
+        if not info.get("UpdateSchemaStrategy"):
+            # imported here to avoid hypothesis being loaded before pytest is loaded
+            from .resource_generator import ResourceGenerator
+
+            # make a copy so the original schema is never modified
+            target_schema = json.loads(json.dumps(info["Schema"]))
+
+            prune_properties(target_schema, info["readOnlyProperties"])
+            prune_properties(target_schema, info["createOnlyProperties"])
+
+            info["UpdateSchemaStrategy"] = ResourceGenerator(
+                target_schema
+            ).generate_schema_strategy(target_schema)
+
+        example = info.get("UpdateSchemaStrategy").example()
         return {**model, **example}
 
     def _generate_target_model(self, target, invocation_point):

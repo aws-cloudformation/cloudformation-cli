@@ -239,8 +239,6 @@ def test_setup_target_info():
     assert target_info["AWS::Example::Target"]["createOnlyProperties"] == {
         ("properties", "c")
     }
-    assert target_info["AWS::Example::Target"]["SchemaStrategy"]
-    assert target_info["AWS::Example::Target"]["UpdateSchemaStrategy"]
 
 
 @pytest.mark.parametrize("hook_type", [None, "Org::Srv::Type"])
@@ -330,8 +328,11 @@ def test_generate_example(hook_client):
         }
     }
     hook_client._target_info = HookClient._setup_target_info(hook_target_info)
+    assert not hook_client._target_info["AWS::Example::Target"].get("SchemaStrategy")
+
     example = hook_client._generate_target_example("AWS::Example::Target")
     assert example == {"a": 1}
+    assert hook_client._target_info["AWS::Example::Target"]["SchemaStrategy"]
 
 
 def test_generate_update_example(hook_client):
@@ -351,9 +352,14 @@ def test_generate_update_example(hook_client):
     }
     hook_client._target_info = HookClient._setup_target_info(hook_target_info)
     hook_client._overrides = {}
+    assert not hook_client._target_info["AWS::Example::Target"].get(
+        "UpdateSchemaStrategy"
+    )
+
     model = {"b": 2, "a": 4}
     example = hook_client._generate_target_update_example("AWS::Example::Target", model)
     assert example == {"a": 1, "b": 2}
+    assert hook_client._target_info["AWS::Example::Target"]["UpdateSchemaStrategy"]
 
 
 def test_make_payload(hook_client):
