@@ -58,6 +58,7 @@ def get_contract_client(args, project):
             {},
             executable_entrypoint=project.executable_entrypoint,
             docker_image=args.docker_image,
+            profile=args.profile,
         )
 
     return ResourceClient(
@@ -68,6 +69,7 @@ def get_contract_client(args, project):
         {},
         executable_entrypoint=project.executable_entrypoint,
         docker_image=args.docker_image,
+        profile=args.profile,
     )
 
 

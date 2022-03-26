@@ -60,6 +60,7 @@ def test_init_resource_method_interactive():
             "endpoint_url": None,
             "region": None,
             "target_schemas": [],
+            "profile": None,
         },
     )
     mock_project.generate.assert_called_once_with()
@@ -123,6 +124,7 @@ def test_init_hook_method_interactive():
             "endpoint_url": None,
             "region": None,
             "target_schemas": [],
+            "profile": None,
         },
     )
     mock_project.generate.assert_called_once_with(None, None, [])
@@ -169,6 +171,7 @@ def test_init_resource_method_noninteractive():
             "endpoint_url": None,
             "region": None,
             "target_schemas": [],
+            "profile": None,
         },
     )
     mock_project.generate.assert_called_once_with()
@@ -215,6 +218,7 @@ def test_init_hook_method_noninteractive():
             "endpoint_url": None,
             "region": None,
             "target_schemas": [],
+            "profile": None,
         },
     )
     mock_project.generate.assert_called_once_with(None, None, [])
@@ -268,6 +272,7 @@ def test_init_resource_method_noninteractive_invalid_type_name():
             "endpoint_url": None,
             "region": None,
             "target_schemas": [],
+            "profile": None,
         },
     )
     mock_project.generate.assert_called_once_with()
@@ -319,6 +324,7 @@ def test_init_hook_method_noninteractive_invalid_type_name():
             "endpoint_url": None,
             "region": None,
             "target_schemas": [],
+            "profile": None,
         },
     )
     mock_project.generate.assert_called_once_with(None, None, [])
@@ -370,6 +376,7 @@ def test_init_hook_method_noninteractive_target_schemas():
                 "/files/target-schema.json",
                 "/files/other-target-schema.json",
             ],
+            "profile": None,
         },
     )
     mock_project.generate.assert_called_once_with(

@@ -34,11 +34,11 @@ class TypeSchemaLoader:
     """
 
     @staticmethod
-    def get_type_schema_loader(endpoint_url=None, region_name=None):
+    def get_type_schema_loader(endpoint_url=None, region_name=None, profile_name=None):
         cfn_client = None
         s3_client = None
         try:
-            session = create_sdk_session(region_name)
+            session = create_sdk_session(region_name, profile_name)
             cfn_client = session.client("cloudformation", endpoint_url=endpoint_url)
             s3_client = session.client("s3", endpoint_url=endpoint_url)
         except RPDKBaseException as err:  # pragma: no cover

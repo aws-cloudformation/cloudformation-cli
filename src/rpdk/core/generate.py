@@ -28,3 +28,4 @@ def setup_subparser(subparsers, parents):
     parser.add_argument(
         "--target-schemas", help="Path to target schemas.", nargs="*", default=[]
     )
+    parser.add_argument("--profile", help="AWS profile to use.")
