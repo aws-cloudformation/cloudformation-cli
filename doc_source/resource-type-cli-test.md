@@ -10,6 +10,7 @@ Performs contract tests on the handlers of a resource type\.
   cfn test
 [--endpoint <value>]
 [--function-name <value>]
+[--profile <value>]
 [--region <value>]
 [--role-arn <value>]
 ```
@@ -27,6 +28,10 @@ Default: `http://127.0.0.1.3001`
 The logical Lambda function name in the SAM template\. Alternately, you can also specify an actual Lambda endpoint and function name in your AWS account\.
 
 Default: `TestEntrypoint`
+
+`--profile <value>`
+
+The AWS profile to use\. If no profile is specified, the extension follows the [Boto3 credential search process](https://boto3.amazonaws.com/v1/documentation/api/latest/guide/credentials.html#configuring-credentials) starting from environment variables\.
 
 `--region <value>`
 
