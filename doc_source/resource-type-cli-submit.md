@@ -22,9 +22,9 @@ The user registering the extension must be able to access the schema handler pac
   cfn submit
 [--dry-run]
 [--endpoint-url <value>]
-[--profile <value>
+[--profile <value>]
 [--region <value>]
-[--role-arn <value>]]
+[--role-arn <value>]
 [--no-role]
 [--set-default]
 ```
