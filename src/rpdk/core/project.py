@@ -499,7 +499,13 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
             except FileExistsError:
                 LOG.info("File already exists, not overwriting '%s'", path)
 
-    def generate(self, endpoint_url=None, region_name=None, target_schemas=None):
+    def generate(
+        self,
+        endpoint_url=None,
+        region_name=None,
+        target_schemas=None,
+        profile_name=None,
+    ):
         if self.artifact_type == ARTIFACT_TYPE_MODULE:
             return  # for Modules, the schema is already generated in cfn validate
 
@@ -552,7 +558,7 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
             )
             self.overwrite(path, contents)
             self.target_info = self._load_target_info(
-                endpoint_url, region_name, target_schemas
+                endpoint_url, region_name, target_schemas, profile_name
             )
 
         self._plugin.generate(self)
@@ -652,7 +658,9 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
                 if self.artifact_type == ARTIFACT_TYPE_MODULE:
                     self._add_modules_content_to_zip(zip_file)
                 elif self.artifact_type == ARTIFACT_TYPE_HOOK:
-                    self._add_hooks_content_to_zip(zip_file, endpoint_url, region_name)
+                    self._add_hooks_content_to_zip(
+                        zip_file, endpoint_url, region_name, profile_name
+                    )
                 else:
                     self._add_resources_content_to_zip(zip_file)
 
@@ -699,7 +707,9 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
         cli_metadata["cli-version"] = __version__
         zip_file.writestr(CFN_METADATA_FILENAME, json.dumps(cli_metadata))
 
-    def _add_hooks_content_to_zip(self, zip_file, endpoint_url=None, region_name=None):
+    def _add_hooks_content_to_zip(
+        self, zip_file, endpoint_url=None, region_name=None, profile_name=None
+    ):
         zip_file.write(self.schema_path, SCHEMA_UPLOAD_FILENAME)
         if os.path.isdir(self.inputs_path):
             for filename in os.listdir(self.inputs_path):
@@ -712,7 +722,9 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
         target_info = (
             self.target_info
             if self.target_info
-            else self._load_target_info(endpoint_url, region_name)
+            else self._load_target_info(
+                endpoint_url, region_name, profile_name=profile_name
+            )
         )
         zip_file.writestr(TARGET_INFO_FILENAME, json.dumps(target_info, indent=4))
         for target_name, info in target_info.items():
@@ -1129,7 +1141,9 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
 
     # pylint: disable=R0912,R0914,R0915
     # flake8: noqa: C901
-    def _load_target_info(self, endpoint_url, region_name, provided_schemas=None):
+    def _load_target_info(
+        self, endpoint_url, region_name, provided_schemas=None, profile_name=None
+    ):
         if self.artifact_type != ARTIFACT_TYPE_HOOK or not self.schema:
             return {}
 
@@ -1141,7 +1155,9 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
             for target_name in handler.get("targetNames", []):
                 target_names.add(target_name)
 
-        loader = TypeSchemaLoader.get_type_schema_loader(endpoint_url, region_name)
+        loader = TypeSchemaLoader.get_type_schema_loader(
+            endpoint_url, region_name, profile_name
+        )
 
         provided_target_info = {}
 

@@ -33,7 +33,7 @@ Default: `TypeFunction`
 
 `--profile <value>`
 
-The AWS profile to use\. If no profile is specified, the extension follows the [Boto3 credential search process](https://boto3.amazonaws.com/v1/documentation/api/latest/guide/credentials.html#configuring-credentials) starting from environment variables\.
+The AWS profile to use\. If no profile is specified, the client applies credentials specified in the [Boto3 credentials chain](https://boto3.amazonaws.com/v1/documentation/api/latest/guide/configuration.html)\.
 
 `--region <value>`
 

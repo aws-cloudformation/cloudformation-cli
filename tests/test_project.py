@@ -1402,12 +1402,14 @@ def test_submit_dry_run_hooks_with_target_info(project):
     patch_upload = patch.object(project, "_upload", autospec=True)
     patch_path = patch("rpdk.core.project.Path", return_value=zip_path)
     patch_temp = patch("rpdk.core.project.TemporaryFile", autospec=True)
+    patch_sdk = patch("rpdk.core.type_schema_loader.create_sdk_session", autospec=True)
 
     # fmt: off
     # these context managers can't be wrapped by black, but it removes the \
-    with patch_plugin as mock_plugin, patch_path as mock_path, \
+    with patch_sdk as mock_sdk, patch_plugin as mock_plugin, patch_path as mock_path, \
             patch_temp as mock_temp, patch_upload as mock_upload:
         mock_plugin.get_plugin_information = MagicMock(return_value=PLUGIN_INFORMATION)
+        mock_sdk.return_value.client.side_effect = [MagicMock(), MagicMock()]
 
         project.submit(
             True,
@@ -1420,6 +1422,7 @@ def test_submit_dry_run_hooks_with_target_info(project):
         )
     # fmt: on
 
+    mock_sdk.assert_called_once_with(region_name=REGION, profile_name=PROFILE)
     mock_temp.assert_not_called()
     mock_path.assert_called_with("{}.zip".format(project.hypenated_name))
     mock_plugin.package.assert_called_once_with(project, ANY)
@@ -2203,7 +2206,9 @@ def test__load_target_info_for_resource(project):
     project.artifact_type = ARTIFACT_TYPE_RESOURCE
     project.schema = {"handlers": {}}
 
-    target_info = project._load_target_info(endpoint_url=None, region_name=None)
+    target_info = project._load_target_info(
+        endpoint_url=None, region_name=None, profile_name=None
+    )
 
     assert not target_info
 
@@ -2312,6 +2317,7 @@ def test__load_target_info_for_hooks(project):
                 "/files/list-of-target-schemas.json",
                 "/files/file-of-valid-json-array-with-a-target-schema.json",
             ],
+            profile_name=None,
         )
 
     assert target_info == {
@@ -2462,6 +2468,7 @@ def test__load_target_info_for_hooks_invalid_target_schema(project):
             endpoint_url=None,
             region_name=None,
             provided_schemas=["/files/target-schema.json"],
+            profile_name=None,
         )
 
     mock_sdk.assert_called_once_with(region_name=None, profile_name=None)
@@ -2501,6 +2508,7 @@ def test__load_target_info_for_hooks_duplicate_schemas(project):
                     "/files/target-schema.json",
                     "/files/target-schema-not-for-this-project.json",
                 ],
+                profile_name=None,
             )
 
     mock_sdk.assert_called_once_with(region_name=None, profile_name=None)

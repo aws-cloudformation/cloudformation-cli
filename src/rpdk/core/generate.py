@@ -12,7 +12,7 @@ LOG = logging.getLogger(__name__)
 def generate(args):
     project = Project()
     project.load()
-    project.generate(args.endpoint_url, args.region, args.target_schemas)
+    project.generate(args.endpoint_url, args.region, args.target_schemas, args.profile)
     project.generate_docs()
 
     LOG.warning("Generated files for %s", project.type_name)
