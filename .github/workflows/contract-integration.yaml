@@ -12,6 +12,7 @@ jobs:
         with:
           repository: aws-cloudformation/aws-cloudformation-resource-providers-lookoutvision
           path: lookoutvision
+          projectName: cloudformation
       - uses: actions/setup-java@v1
         with:
           java-version: 8
