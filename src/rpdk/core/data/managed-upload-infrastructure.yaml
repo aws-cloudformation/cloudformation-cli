@@ -6,6 +6,8 @@ Description: >
 Resources:
   ArtifactBucket:
     Type: AWS::S3::Bucket
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
     Properties:
       AccessControl: BucketOwnerFullControl
       BucketEncryption:
@@ -27,6 +29,8 @@ Resources:
 
   AccessLogsBucket:
     Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
     Properties:
       AccessControl: LogDeliveryWrite
       BucketEncryption:
