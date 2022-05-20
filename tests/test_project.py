@@ -433,6 +433,33 @@ def test_generate_with_docs(project, tmp_path_factory, schema_path, path):
     assert project.type_name in readme_contents
 
 
+def test_generate_docs_for_hook(project, tmp_path_factory):
+    project.schema = resource_json(
+        __name__, "data/schema/valid/hook/valid_hook_configuration.json"
+    )
+    project.type_name = "AWS::CFN::HOOK"
+    project.artifact_type = ARTIFACT_TYPE_HOOK
+    project.load_configuration_schema()
+    # tmpdir conflicts with other tests, make a unique one
+    project.root = tmp_path_factory.mktemp("generate_with_docs_for_hook")
+
+    mock_plugin = MagicMock(spec=["generate"])
+    with patch.object(project, "_plugin", mock_plugin):
+        project.generate()
+        project.generate_docs()
+    mock_plugin.generate.assert_called_once_with(project)
+
+    docs_dir = project.root / "docs"
+    readme_file = project.root / "docs" / "README.md"
+
+    assert docs_dir.is_dir()
+    assert readme_file.is_file()
+    with patch.object(project, "_plugin", mock_plugin):
+        project.generate()
+    readme_contents = readme_file.read_text(encoding="utf-8")
+    assert project.type_name in readme_contents
+
+
 def test_generate_docs_with_multityped_property(project, tmp_path_factory):
     project.schema = resource_json(
         __name__, "data/schema/valid/valid_multityped_property.json"
