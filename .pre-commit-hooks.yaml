@@ -1,5 +1,5 @@
 -   id: cfn-module-generate
-    name: CloudFormation Module generate
+    name: AWS CloudFormation module generate command
     entry: cfn generate
     language: python
     files: ^fragments\/.*\.(json|yaml|yml)$
