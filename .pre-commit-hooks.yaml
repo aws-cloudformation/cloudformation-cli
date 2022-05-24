@@ -2,5 +2,5 @@
     name: AWS CloudFormation module generate command
     entry: cfn generate
     language: python
-    files: ^fragments\/.*\.(json|yaml|yml)$
+    files: ^.*fragments\/.*\.(json|yaml|yml)$
     pass_filenames: false
