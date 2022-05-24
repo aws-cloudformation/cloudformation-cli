@@ -1,0 +1,42 @@
+{
+    "typeName": "AWS::FooBar::Hook",
+    "description": "Example resource SSE (Server Side Encryption) verification hook",
+    "sourceUrl": "https://github.com/aws-cloudformation/example-sse-hook",
+    "documentationUrl": "https://github.com/aws-cloudformation/example-sse-hook/blob/master/README.md",
+    "typeConfiguration": {
+        "properties": {
+            "property1": {
+                "type": "object",
+                "properties": {
+                    "property1": {
+                        "type": "integer"
+                    }
+                },
+                "additionalProperties": false
+            }
+        },
+        "additionalProperties": false
+    },
+    "required": [],
+    "handlers": {
+        "preCreate": {
+            "targetNames": [
+                "My::Example::Resource"
+            ],
+            "permissions": []
+        },
+        "preUpdate": {
+            "targetNames": [
+                "My::Example::Resource"
+            ],
+            "permissions": []
+        },
+        "preDelete": {
+            "targetNames": [
+                "Other::Example::Resource"
+            ],
+            "permissions": []
+        }
+    },
+    "additionalProperties": false
+}

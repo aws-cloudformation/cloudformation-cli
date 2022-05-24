@@ -433,15 +433,42 @@ def test_generate_with_docs(project, tmp_path_factory, schema_path, path):
     assert project.type_name in readme_contents
 
 
-def test_generate_docs_for_hook(project, tmp_path_factory):
-    project.schema = resource_json(
-        __name__, "data/schema/valid/hook/valid_hook_configuration.json"
-    )
+@pytest.mark.parametrize(
+    "schema_path,path",
+    [
+        (
+            "data/schema/hook/valid/valid_hook_configuration.json",
+            "generate_docs_with_one_property",
+        ),
+        (
+            "data/schema/hook/valid/valid_hook_configuration_multiple_properties.json",
+            "generate_docs_with_multiple_properties",
+        ),
+        (
+            "data/schema/hook/valid/valid_hook_configuration_no_properties.json",
+            "generate_docs_with_no_properties",
+        ),
+        (
+            "data/schema/hook/valid/valid_hook_configuration_with_object_property.json",
+            "generate_docs_with_object_property",
+        ),
+        (
+            "data/schema/hook/valid/valid_hook_configuration_with_nested_property.json",
+            "generate_docs_with_nested_property",
+        ),
+        (
+            "data/schema/hook/valid/valid_hook_configuration_with_complex_properties.json",
+            "generate_docs_with_complex_properties",
+        ),
+    ],
+)
+def test_generate_docs_for_hook(project, tmp_path_factory, schema_path, path):
+    project.schema = resource_json(__name__, schema_path)
     project.type_name = "AWS::CFN::HOOK"
     project.artifact_type = ARTIFACT_TYPE_HOOK
     project.load_configuration_schema()
     # tmpdir conflicts with other tests, make a unique one
-    project.root = tmp_path_factory.mktemp("generate_with_docs_for_hook")
+    project.root = tmp_path_factory.mktemp(path)
 
     mock_plugin = MagicMock(spec=["generate"])
     with patch.object(project, "_plugin", mock_plugin):
