@@ -733,16 +733,22 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
         return Path(f"{self.hypenated_name}.zip")
 
     def generate_docs(self):
-        if (
-            self.artifact_type == ARTIFACT_TYPE_MODULE
-            or self.artifact_type == ARTIFACT_TYPE_HOOK
-        ):
+        if self.artifact_type == ARTIFACT_TYPE_MODULE:
             return
 
         # generate the docs folder that contains documentation based on the schema
         docs_path = self.root / "docs"
 
-        if not self.type_info or not self.schema or "properties" not in self.schema:
+        docs_attribute = (
+            self.configuration_schema
+            if self.artifact_type == ARTIFACT_TYPE_HOOK
+            else self.schema
+        )
+        if (
+            not self.type_info
+            or not docs_attribute
+            or "properties" not in docs_attribute
+        ):
             LOG.warning(
                 "Could not generate schema docs due to missing type info or schema"
             )
@@ -755,9 +761,9 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
         LOG.debug("Writing generated docs")
 
         # take care not to modify the master schema
-        docs_schema = json.loads(json.dumps(self.schema))
+        docs_schema = json.loads(json.dumps(docs_attribute))
         self._flattened_schema = JsonSchemaFlattener(
-            json.loads(json.dumps(self.schema))
+            json.loads(json.dumps(docs_attribute))
         ).flatten_schema()
 
         docs_schema["properties"] = {
@@ -772,7 +778,12 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
 
         readme_path = docs_path / "README.md"
         LOG.debug("Writing docs README: %s", readme_path)
-        template = self.env.get_template("docs-readme.md")
+        readme_template = (
+            "hook-docs-readme.md"
+            if self.artifact_type == ARTIFACT_TYPE_HOOK
+            else "docs-readme.md"
+        )
+        template = self.env.get_template(readme_template)
         contents = template.render(
             type_name=self.type_name, schema=docs_schema, ref=ref, getatt=getatt
         )
