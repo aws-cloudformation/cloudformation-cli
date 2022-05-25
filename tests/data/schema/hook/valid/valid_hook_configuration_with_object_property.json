@@ -16,19 +16,19 @@
     "handlers": {
         "preCreate": {
             "targetNames": [
-                "My::Example::Resource"
+                "AWS::S3::Bucket"
             ],
             "permissions": []
         },
         "preUpdate": {
             "targetNames": [
-                "My::Example::Resource"
+                "AWS::S3::Bucket"
             ],
             "permissions": []
         },
         "preDelete": {
             "targetNames": [
-                "Other::Example::Resource"
+                "AWS::DynamoDB::Table"
             ],
             "permissions": []
         }

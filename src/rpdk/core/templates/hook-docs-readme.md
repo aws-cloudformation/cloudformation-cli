@@ -45,6 +45,7 @@ To activate a hook in your account, use the following JSON as the `Configuration
 
 _Required_: {% if propname in schema.required %}Yes{% else %}No{% endif %}
 
+
 _Type_: {{ prop.longformtype }}
 {% if prop.allowedvalues %}
 
