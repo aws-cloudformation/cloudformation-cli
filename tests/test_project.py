@@ -464,7 +464,7 @@ def test_generate_with_docs(project, tmp_path_factory, schema_path, path):
 )
 def test_generate_docs_for_hook(project, tmp_path_factory, schema_path, path):
     project.schema = resource_json(__name__, schema_path)
-    project.type_name = "AWS::CFN::HOOK"
+    project.type_name = "AWS::FooBar::Hook"
     project.artifact_type = ARTIFACT_TYPE_HOOK
     project.load_configuration_schema()
     # tmpdir conflicts with other tests, make a unique one
