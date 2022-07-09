@@ -390,7 +390,7 @@ def verify_top_level_properties_are_defined(resource_spec, schema_key):
 
     properties = get_properties_from_schema_key(resource_spec, schema_key)
 
-    nested_properties = filter(lambda property: "/" in property, properties)
+    nested_properties = set(filter(lambda property: "/" in property, properties))
     top_level_properties = properties - nested_properties
 
     if len(top_level_properties):
