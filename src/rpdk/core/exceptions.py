@@ -60,3 +60,7 @@ class ModelResolverError(RPDKBaseException):
 
 class InvalidFragmentFileError(RPDKBaseException):
     pass
+
+
+class InvalidTypeSchemaError(RPDKBaseException):
+    pass

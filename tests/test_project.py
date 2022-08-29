@@ -12,7 +12,6 @@ from contextlib import contextmanager
 from io import StringIO
 from pathlib import Path
 from shutil import copyfile
-from unittest import TestCase
 from unittest.mock import ANY, MagicMock, Mock, call, patch
 
 import pytest
@@ -493,10 +492,19 @@ def test_generate_docs_for_hook(project, tmp_path_factory, session, schema_path,
     mock_plugin = MagicMock(spec=["generate"])
     patch_session = patch("rpdk.core.boto_helpers.Boto3Session")
 
+    def get_test_schema():
+        return {
+            "typeName": "AWS::S3::Bucket",
+            "description": "test schema",
+            "properties": {"foo": {"type": "string"}},
+            "primaryIdentifier": ["/properties/foo"],
+            "additionalProperties": False,
+        }
+
     mock_cfn_client = MagicMock(spec=["describe_type"])
     with patch.object(project, "_plugin", mock_plugin), patch_session as mock_session:
         mock_cfn_client.describe_type.return_value = {
-            "Schema": {},
+            "Schema": json.dumps(get_test_schema()),
             "Type": "",
             "ProvisioningType": "",
         }
@@ -1403,7 +1411,6 @@ def test_submit_dry_run_hooks(project):
         UPDATE_INPUTS_FILE,
         CFN_METADATA_FILENAME,
         CONFIGURATION_SCHEMA_UPLOAD_FILENAME,
-        TARGET_INFO_FILENAME,
     }
     with zipfile.ZipFile(zip_path, mode="r") as zip_file:
         assert set(zip_file.namelist()) == file_set
@@ -1450,6 +1457,7 @@ def test_submit_dry_run_hooks_with_target_info(project, session):
     target_info = {
         TYPE_NAME: {
             "TargetName": TYPE_NAME,
+            "TypeName": TYPE_NAME,
             "TargetType": "RESOURCE",
             "Schema": {
                 "typeName": TYPE_NAME,
@@ -1461,7 +1469,7 @@ def test_submit_dry_run_hooks_with_target_info(project, session):
                 "required": [],
                 "primaryIdentifier": ["/properties/Id"],
             },
-            "ProvisioningType": "FULLY_MUTTABLE",
+            "ProvisioningType": "FULLY_MUTABLE",
             "IsCfnRegistrySupportedType": True,
             "SchemaFileAvailable": True,
         },
@@ -1485,7 +1493,7 @@ def test_submit_dry_run_hooks_with_target_info(project, session):
         f.write(json.dumps(empty_hook_override()))
 
     with project.target_info_path.open("w", encoding="utf-8") as f:
-        f.write(json.dumps({TYPE_NAME: {"ProvisioningType": "FULLY_MUTTABLE"}}))
+        f.write(json.dumps({TYPE_NAME: {"ProvisioningType": "FULLY_MUTABLE"}}))
 
     create_hook_input_file(project.root)
 
@@ -2303,86 +2311,45 @@ def test__load_target_info_for_hooks(project):
         }
     }
 
-    patch_sdk = patch("rpdk.core.type_schema_loader.create_sdk_session", autospec=True)
-    patch_loader_method = patch.object(
-        TypeSchemaLoader,
-        "load_type_schema",
-        side_effect=[
-            {
-                "typeName": "AWS::TestHook::Target",
-                "description": "descript",
-                "properties": {"Name": {"type": "string"}},
-                "primaryIdentifier": ["/properties/Name"],
-                "additionalProperties": False,
-            },
-            {
-                "typeName": "AWS::AnotherDiffHook::Target",
-                "description": "descript",
-                "properties": {"Name": {"type": "string"}},
-                "primaryIdentifier": ["/properties/Name"],
-                "additionalProperties": False,
-            },
-            [
-                {
-                    "typeName": "AWS::TestHookOne::Target",
-                    "description": "descript",
-                    "properties": {"Name": {"type": "string"}},
-                    "primaryIdentifier": ["/properties/Name"],
-                    "additionalProperties": False,
-                },
-                {
-                    "typeName": "AWS::TestHookTwo::Target",
-                    "description": "descript",
-                    "properties": {"Name": {"type": "string"}},
-                    "primaryIdentifier": ["/properties/Name"],
-                    "additionalProperties": False,
-                },
-            ],
-            [
-                {
-                    "typeName": "AWS::ArrayHook::Target",
-                    "description": "descript",
-                    "properties": {"Name": {"type": "string"}},
-                    "primaryIdentifier": ["/properties/Name"],
-                    "additionalProperties": False,
-                }
-            ],
-        ],
-    )
-    patch_loader_cfn = patch.object(
-        TypeSchemaLoader,
-        "load_schema_from_cfn_registry",
-        return_value=(
-            {
-                "typeName": "AWS::TestHook::OtherTarget",
-                "description": "descript",
-                "properties": {"Name": {"type": "string"}},
-                "primaryIdentifier": ["/properties/Name"],
-                "additionalProperties": False,
-            },
-            "RESOURCE",
-            "FULLY_MUTTABLE",
-        ),
-    )
+    test_type_info = {
+        "AWS::TestHook::Target": {"ProvisioningType": "FULLY_MUTABLE"},
+        "AWS::TestHook::OtherTarget": {"ProvisioningType": "FULLY_MUTABLE"},
+        "AWS::TestHookOne::Target": {"ProvisioningType": "IMMUTABLE"},
+        "AWS::TestHookTwo::Target": {"ProvisioningType": "IMMUTABLE"},
+        "AWS::ArrayHook::Target": {"ProvisioningType": "FULLY_MUTABLE"},
+    }
 
-    patch_is_registry_checker = patch.object(
+    patch_sdk = patch("rpdk.core.project.create_sdk_session", autospec=True)
+    patch_loader = patch.object(
         TypeSchemaLoader,
-        "get_provision_type",
-        side_effect={
-            "AWS::TestHook::Target": "FULLY_MUTABLE",
-            "AWS::TestHookOne::Target": "IMMUTABLE",
-            "AWS::TestHookTwo::Target": "IMMUTABLE",
-            "AWS::ArrayHook::Target": "FULLY_MUTTABLE",
-        }.get,
+        "load_type_info",
+        return_value={
+            target_name: {
+                "TargetName": target_name,
+                "TargetType": "RESOURCE",
+                "Schema": {
+                    "typeName": target_name,
+                    "description": "descript",
+                    "properties": {"Name": {"type": "string"}},
+                    "primaryIdentifier": ["/properties/Name"],
+                    "additionalProperties": False,
+                },
+                "ProvisioningType": test_type_info[target_name]["ProvisioningType"],
+                "IsCfnRegistrySupportedType": True,
+                "SchemaFileAvailable": True,
+            }
+            for target_name in test_type_info
+        },
     )
 
     # pylint: disable=line-too-long
-    with patch_sdk as mock_sdk, patch_loader_method as mock_loader_method, patch_loader_cfn as mock_loader_cfn, patch_is_registry_checker as mock_is_registry_checker:
+    with patch_sdk as mock_sdk, patch_loader as mock_loader:
+        mock_sdk.return_value.region_name = "us-east-1"
         mock_sdk.return_value.client.side_effect = [MagicMock(), MagicMock()]
         target_info = project._load_target_info(
             endpoint_url=None,
             region_name=None,
-            provided_schemas=[
+            type_schemas=[
                 "/files/target-schema.json",
                 "/files/target-schema-not-for-this-project.json",
                 "/files/list-of-target-schemas.json",
@@ -2415,7 +2382,7 @@ def test__load_target_info_for_hooks(project):
                 "primaryIdentifier": ["/properties/Name"],
                 "additionalProperties": False,
             },
-            "ProvisioningType": "FULLY_MUTTABLE",
+            "ProvisioningType": "FULLY_MUTABLE",
             "IsCfnRegistrySupportedType": True,
             "SchemaFileAvailable": True,
         },
@@ -2457,32 +2424,25 @@ def test__load_target_info_for_hooks(project):
                 "primaryIdentifier": ["/properties/Name"],
                 "additionalProperties": False,
             },
-            "ProvisioningType": "FULLY_MUTTABLE",
+            "ProvisioningType": "FULLY_MUTABLE",
             "IsCfnRegistrySupportedType": True,
             "SchemaFileAvailable": True,
         },
     }
 
-    mock_sdk.assert_called_once_with(None)
-    assert mock_loader_method.call_args_list == [
-        call("/files/target-schema.json"),
-        call("/files/target-schema-not-for-this-project.json"),
-        call("/files/list-of-target-schemas.json"),
-        call("/files/file-of-valid-json-array-with-a-target-schema.json"),
-    ]
-    TestCase().assertCountEqual(
-        mock_is_registry_checker.call_args_list,
-        [
-            call("AWS::TestHook::Target", "RESOURCE"),
-            call("AWS::TestHookOne::Target", "RESOURCE"),
-            call("AWS::TestHookTwo::Target", "RESOURCE"),
-            call("AWS::ArrayHook::Target", "RESOURCE"),
+    mock_loader.assert_called_once_with(
+        set(test_type_info.keys()),
+        local_schemas=[
+            "/files/target-schema.json",
+            "/files/target-schema-not-for-this-project.json",
+            "/files/list-of-target-schemas.json",
+            "/files/file-of-valid-json-array-with-a-target-schema.json",
         ],
+        local_info={},
     )
-    mock_loader_cfn.assert_called_once_with("AWS::TestHook::OtherTarget", "RESOURCE")
 
 
-def test__load_target_info_for_hooks_invalid_target_schema(project):
+def test__load_target_info_for_hooks_local_only(project):
     project.type_name = HOOK_TYPE_NAME
     project.artifact_type = ARTIFACT_TYPE_HOOK
     project.schema = {
@@ -2500,87 +2460,139 @@ def test__load_target_info_for_hooks_invalid_target_schema(project):
             "preDelete": {"targetNames": ["AWS::TestHook::Target"]},
         }
     }
+    project.root = MagicMock(spec=Path)
 
-    patch_sdk = patch("rpdk.core.type_schema_loader.create_sdk_session", autospec=True)
-    patch_loader_method = patch.object(
+    test_type_info = {
+        "AWS::TestHook::Target": {"ProvisioningType": "FULLY_MUTABLE"},
+        "AWS::TestHook::OtherTarget": {"ProvisioningType": "FULLY_MUTABLE"},
+        "AWS::TestHookOne::Target": {"ProvisioningType": "IMMUTABLE"},
+        "AWS::TestHookTwo::Target": {"ProvisioningType": "IMMUTABLE"},
+        "AWS::ArrayHook::Target": {"ProvisioningType": "FULLY_MUTABLE"},
+    }
+
+    patch_sdk = patch("rpdk.core.project.create_sdk_session", autospec=True)
+    patch_loader = patch.object(
         TypeSchemaLoader,
-        "load_type_schema",
-        side_effect=[
-            {
+        "load_type_info",
+        return_value={
+            target_name: {
+                "TargetName": target_name,
+                "TargetType": "RESOURCE",
+                "Schema": {
+                    "typeName": target_name,
+                    "description": "descript",
+                    "properties": {"Name": {"type": "string"}},
+                    "primaryIdentifier": ["/properties/Name"],
+                    "additionalProperties": False,
+                },
+                "ProvisioningType": test_type_info[target_name]["ProvisioningType"],
+                "IsCfnRegistrySupportedType": True,
+                "SchemaFileAvailable": True,
+            }
+            for target_name in test_type_info
+        },
+    )
+
+    patch_is_dir = patch("os.path.isdir", return_value=True)
+    patch_list_dir = patch(
+        "os.listdir",
+        return_value=[
+            "target-schema.json",
+            "target-schema-not-for-this-project.json",
+            "list-of-target-schemas.json",
+            "file-of-valid-json-array-with-a-target-schema.json",
+        ],
+    )
+    patch_path_is_file = patch.object(Path, "is_file", return_value=True)
+
+    patch_is_file = patch("os.path.isfile", return_value=True)
+
+    # pylint: disable=line-too-long,confusing-with-statement
+    with patch_sdk as mock_sdk, patch_loader as mock_loader, patch_is_dir, patch_list_dir, patch_path_is_file, patch_is_file:
+        mock_sdk.return_value.region_name = "us-east-1"
+        mock_sdk.return_value.client.side_effect = [MagicMock(), MagicMock()]
+        project.target_info_path.open.return_value.__enter__.return_value = StringIO(
+            json.dumps(test_type_info)
+        )
+
+        target_info = project._load_target_info(
+            endpoint_url=None, region_name=None, local_only=True
+        )
+
+    assert target_info == {
+        "AWS::TestHook::Target": {
+            "TargetName": "AWS::TestHook::Target",
+            "TargetType": "RESOURCE",
+            "Schema": {
                 "typeName": "AWS::TestHook::Target",
+                "description": "descript",
                 "properties": {"Name": {"type": "string"}},
                 "primaryIdentifier": ["/properties/Name"],
                 "additionalProperties": False,
             },
-        ],
-    )
-    patch_loader_cfn = patch.object(
-        TypeSchemaLoader,
-        "load_schema_from_cfn_registry",
-        return_value=(
-            {
+            "ProvisioningType": "FULLY_MUTABLE",
+            "IsCfnRegistrySupportedType": True,
+            "SchemaFileAvailable": True,
+        },
+        "AWS::TestHook::OtherTarget": {
+            "TargetName": "AWS::TestHook::OtherTarget",
+            "TargetType": "RESOURCE",
+            "Schema": {
                 "typeName": "AWS::TestHook::OtherTarget",
                 "description": "descript",
                 "properties": {"Name": {"type": "string"}},
                 "primaryIdentifier": ["/properties/Name"],
                 "additionalProperties": False,
             },
-            "RESOURCE",
-            "FULLY_MUTTABLE",
-        ),
-    )
-
-    with patch_loader_cfn, pytest.raises(
-        InvalidProjectError
-    ), patch_sdk as mock_sdk, patch_loader_method as mock_loader_method:
-        mock_sdk.return_value.client.side_effect = [MagicMock(), MagicMock()]
-        project._load_target_info(
-            endpoint_url=None,
-            region_name=None,
-            provided_schemas=["/files/target-schema.json"],
-        )
-
-    mock_sdk.assert_called_once_with(None)
-    assert mock_loader_method.call_args_list == [
-        call("/files/target-schema.json"),
-    ]
-
-
-def test__load_target_info_for_hooks_duplicate_schemas(project):
-    project.type_name = HOOK_TYPE_NAME
-    project.artifact_type = ARTIFACT_TYPE_HOOK
-    project.schema = {
-        "handlers": {
-            "preCreate": {
-                "targetNames": ["AWS::TestHook::Target", "AWS::TestHook::OtherTarget"]
-            }
-        }
+            "ProvisioningType": "FULLY_MUTABLE",
+            "IsCfnRegistrySupportedType": True,
+            "SchemaFileAvailable": True,
+        },
+        "AWS::TestHookOne::Target": {
+            "TargetName": "AWS::TestHookOne::Target",
+            "TargetType": "RESOURCE",
+            "Schema": {
+                "typeName": "AWS::TestHookOne::Target",
+                "description": "descript",
+                "properties": {"Name": {"type": "string"}},
+                "primaryIdentifier": ["/properties/Name"],
+                "additionalProperties": False,
+            },
+            "ProvisioningType": "IMMUTABLE",
+            "IsCfnRegistrySupportedType": True,
+            "SchemaFileAvailable": True,
+        },
+        "AWS::TestHookTwo::Target": {
+            "TargetName": "AWS::TestHookTwo::Target",
+            "TargetType": "RESOURCE",
+            "Schema": {
+                "typeName": "AWS::TestHookTwo::Target",
+                "description": "descript",
+                "properties": {"Name": {"type": "string"}},
+                "primaryIdentifier": ["/properties/Name"],
+                "additionalProperties": False,
+            },
+            "ProvisioningType": "IMMUTABLE",
+            "IsCfnRegistrySupportedType": True,
+            "SchemaFileAvailable": True,
+        },
+        "AWS::ArrayHook::Target": {
+            "TargetName": "AWS::ArrayHook::Target",
+            "TargetType": "RESOURCE",
+            "Schema": {
+                "typeName": "AWS::ArrayHook::Target",
+                "description": "descript",
+                "properties": {"Name": {"type": "string"}},
+                "primaryIdentifier": ["/properties/Name"],
+                "additionalProperties": False,
+            },
+            "ProvisioningType": "FULLY_MUTABLE",
+            "IsCfnRegistrySupportedType": True,
+            "SchemaFileAvailable": True,
+        },
     }
 
-    patch_sdk = patch("rpdk.core.type_schema_loader.create_sdk_session", autospec=True)
-    patch_loader_method = patch.object(
-        TypeSchemaLoader,
-        "load_type_schema",
-        side_effect=[
-            {"typeName": "AWS::TestHook::Target"},
-            {"typeName": "AWS::TestHook::Target"},
-        ],
+    mock_loader.assert_called_once_with(
+        sorted(test_type_info.keys()), local_schemas=ANY, local_info=test_type_info
     )
-
-    with patch_sdk as mock_sdk, patch_loader_method as mock_loader_method:
-        mock_sdk.return_value.client.side_effect = [MagicMock(), MagicMock()]
-        with pytest.raises(InvalidProjectError):
-            project._load_target_info(
-                endpoint_url=None,
-                region_name=None,
-                provided_schemas=[
-                    "/files/target-schema.json",
-                    "/files/target-schema-not-for-this-project.json",
-                ],
-            )
-
-    mock_sdk.assert_called_once_with(None)
-    assert mock_loader_method.call_args_list == [
-        call("/files/target-schema.json"),
-        call("/files/target-schema-not-for-this-project.json"),
-    ]
+    assert len(mock_loader.call_args[1]["local_schemas"]) == 4
