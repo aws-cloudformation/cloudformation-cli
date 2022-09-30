@@ -179,6 +179,10 @@ def load_resource_spec(resource_spec_file):  # pylint: disable=R # noqa: C901
                             "Explicitly specify value for insertionOrder for array: %s",
                             property_name,
                         )
+                    if property_type != "array" and "arrayType" in property_keywords:
+                        raise SpecValidationError(
+                            "arrayType is only applicable for properties of type array"
+                        )
                     keyword_mappings = [
                         (
                             {"integer", "number"},
