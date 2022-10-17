@@ -67,27 +67,13 @@ MAX_ROLE_TIMEOUT_SECONDS = 43200  # 12 hours
 
 CFN_METADATA_FILENAME = ".cfn_metadata.json"
 
-LAMBDA_RUNTIMES = {
-    "noexec",  # cannot be executed, schema only
-    "java8",
-    "java11",
-    "go1.x",
-    "python3.6",
-    "python3.7",
-    "python3.8",
-    "dotnetcore2.1",
-    "nodejs10.x",
-    "nodejs12.x",
-    "nodejs14.x",
-}
-
 SETTINGS_VALIDATOR = Draft7Validator(
     {
         "properties": {
             "artifact_type": {"type": "string"},
             "language": {"type": "string"},
             "typeName": {"type": "string", "pattern": TYPE_NAME_RESOURCE_REGEX},
-            "runtime": {"type": "string", "enum": list(LAMBDA_RUNTIMES)},
+            "runtime": {"type": "string"},
             "entrypoint": {"type": ["string", "null"]},
             "testEntrypoint": {"type": ["string", "null"]},
             "executableEntrypoint": {"type": ["string", "null"]},
@@ -114,7 +100,7 @@ HOOK_SETTINGS_VALIDATOR = Draft7Validator(
             "artifact_type": {"type": "string"},
             "language": {"type": "string"},
             "typeName": {"type": "string", "pattern": TYPE_NAME_HOOK_REGEX},
-            "runtime": {"type": "string", "enum": list(LAMBDA_RUNTIMES)},
+            "runtime": {"type": "string"},
             "entrypoint": {"type": ["string", "null"]},
             "testEntrypoint": {"type": ["string", "null"]},
             "settings": {"type": "object"},
@@ -339,12 +325,6 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
             )
 
     def write_settings(self):
-        if self.runtime not in LAMBDA_RUNTIMES:
-            LOG.critical(
-                "Plugin returned invalid runtime: %s (%s)", self.runtime, self.language
-            )
-            raise InternalError("Internal error (Plugin returned invalid runtime)")
-
         def _write_resource_settings(f):
             executable_entrypoint_dict = (
                 {"executableEntrypoint": self.executable_entrypoint}
