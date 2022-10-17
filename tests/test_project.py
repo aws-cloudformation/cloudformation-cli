@@ -30,7 +30,6 @@ from rpdk.core.plugin_base import LanguagePlugin
 from rpdk.core.project import (
     CFN_METADATA_FILENAME,
     CONFIGURATION_SCHEMA_UPLOAD_FILENAME,
-    LAMBDA_RUNTIMES,
     OVERRIDES_FILENAME,
     SCHEMA_UPLOAD_FILENAME,
     SETTINGS_FILENAME,
@@ -53,7 +52,22 @@ MODULE_TYPE_NAME = "AWS::Color::Red::MODULE"
 HOOK_TYPE_NAME = "AWS::CFN::HOOK"
 REGION = "us-east-1"
 ENDPOINT = "cloudformation.beta.com"
-RUNTIME = random.choice(list(LAMBDA_RUNTIMES))
+RUNTIME = random.choice(
+    [
+        "noexec",  # cannot be executed, schema only
+        "java8",
+        "java11",
+        "go1.x",
+        "python3.7",
+        "python3.8",
+        "python3.9",
+        "dotnetcore2.1",
+        "nodejs10.x",
+        "nodejs12.x",
+        "nodejs14.x",
+        "nodejs16.x",
+    ]
+)
 BLANK_CLIENT_ERROR = {"Error": {"Code": "", "Message": ""}}
 LOG = logging.getLogger(__name__)
 REGISTRATION_TOKEN = "foo"
@@ -2130,14 +2144,6 @@ def test__wait_for_registration_waiter_fails_describe_fails(project):
     )
     mock_cfn_client.set_type_default_version.assert_not_called()
     mock_waiter.wait.assert_called_once_with(RegistrationToken=REGISTRATION_TOKEN)
-
-
-def test__write_settings_invalid_runtime(project):
-    project.runtime = "foo"
-    project.language = LANGUAGE
-
-    with pytest.raises(InternalError):
-        project.write_settings()
 
 
 @pytest.mark.parametrize(
