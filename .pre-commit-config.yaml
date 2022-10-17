@@ -55,6 +55,8 @@ repos:
     # have to skip B101, contract tests use it and there's no way to skip for specific files
     # have to skip B322, as there is no way to indicate the codebase is Python 3 only (input only vulnerable in Py2)
     args: ["--skip", "B101,B322"]
+    additional_dependencies:
+      - "importlib-metadata<5"  # https://github.com/PyCQA/bandit/issues/956
 - repo: local
   hooks:
   - id: pylint-local
