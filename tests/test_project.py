@@ -12,7 +12,7 @@ from io import StringIO
 from pathlib import Path
 from shutil import copyfile
 from unittest import TestCase
-from unittest.mock import ANY, MagicMock, call, patch
+from unittest.mock import ANY, Mock, MagicMock, call, patch
 
 import pytest
 import yaml
@@ -41,6 +41,7 @@ from rpdk.core.project import (
 from rpdk.core.test import empty_hook_override, empty_override
 from rpdk.core.type_schema_loader import TypeSchemaLoader
 from rpdk.core.upload import Uploader
+from rpdk.core import boto_helpers
 
 from .utils import CONTENTS_UTF8, UnclosingBytesIO
 
@@ -105,6 +106,9 @@ def project(tmpdir):
     unique_dir = "".join(random.choices(string.ascii_uppercase, k=12))
     return Project(root=tmpdir.mkdir(unique_dir))
 
+@pytest.fixture
+def mock_create_sdk_session():
+    return (Mock(), Mock())
 
 @contextmanager
 def patch_settings(project, data):
@@ -776,7 +780,9 @@ def test_generate_hook_handlers(project, tmpdir):
     }
     project.root = tmpdir
     mock_plugin = MagicMock(spec=["generate"])
-    with patch.object(project, "_plugin", mock_plugin):
+    patch_sdk = patch("rpdk.core.boto_helpers.create_sdk_session", autospec=True)
+    with patch.object(project, "_plugin", mock_plugin), patch_sdk as mock_sdk:
+        mock_sdk.return_value = MagicMock()
         project.generate()
 
     role_path = project.root / "hook-role.yaml"
