@@ -7,7 +7,7 @@ A module consists of two main pieces:
 ## Creating the module template fragment<a name="modules-template-fragment"></a>
 
 The starting point for developing a module is the template fragment\. The template fragment is a file that contains the information that defines the resources for CloudFormation to provision during stack operations, including:
-+ A `[Resources](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/resources-section-structure.html)` section that defines the resources to be provisioned\.
++ A [Resources](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/resources-section-structure.html) section that defines the resources to be provisioned\.
 
   The `Resources` section is required\.
 + Additional other template sections related for the provisioning of the resources as necessary, such as [Outputs](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/outputs-section-structure.html) and [Conditions](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/conditions-section-structure.html)\.
@@ -126,7 +126,7 @@ For more information on resource policies, see [Resource attribute reference](ht
 
 The module schema is generated from the template fragment, and defines the contract to which the module adheres, including defining the input it accepts and the possible resources it resolves to when included in a template\.
 
-To generate the module schema, use the `[validate](https://docs.aws.amazon.com/cloudformation-cli/latest/userguide/resource-type-cli-validate.html)` command once you've authored your template fragment\.
+To generate the module schema, use the [validate](https://docs.aws.amazon.com/cloudformation-cli/latest/userguide/resource-type-cli-validate.html) command once you've authored your template fragment\.
 
 For example, suppose you created a module package and used the template fragment above\. The `validate` command would result in the following module schema:
 
