@@ -135,7 +135,7 @@ def test_load_type_schema_from_file(loader):
         type_schema = loader.load_type_schema(TEST_TARGET_SCHEMA_FILE_PATH)
 
     assert_dict_equals(TEST_TARGET_SCHEMA, type_schema)
-    mock_path_is_file.assert_called_with(TEST_TARGET_SCHEMA_FILE_PATH)
+    mock_path_is_file.assert_any_call(TEST_TARGET_SCHEMA_FILE_PATH)
     mock_load_file.assert_called_with(TEST_TARGET_SCHEMA_FILE_PATH, None)
     mock_file.assert_called_with(TEST_TARGET_SCHEMA_FILE_PATH, "r")
 
@@ -154,7 +154,7 @@ def test_load_type_schema_from_file_file_not_found(loader):
         type_schema = loader.load_type_schema(TEST_TARGET_SCHEMA_FILE_PATH)
 
     assert not type_schema
-    mock_path_is_file.assert_called_with(TEST_TARGET_SCHEMA_FILE_PATH)
+    mock_path_is_file.assert_any_call(TEST_TARGET_SCHEMA_FILE_PATH)
     mock_load_file.assert_called_with(TEST_TARGET_SCHEMA_FILE_PATH, None)
     mock_file.assert_called_with(TEST_TARGET_SCHEMA_FILE_PATH, "r")
 
@@ -175,7 +175,7 @@ def test_load_type_schema_from_file_error_fallback_to_default(loader):
         )
 
     assert_dict_equals(OTHER_TEST_TARGET_FALLBACK_SCHEMA, type_schema)
-    mock_path_is_file.assert_called_with(TEST_TARGET_SCHEMA_FILE_PATH)
+    mock_path_is_file.assert_any_call(TEST_TARGET_SCHEMA_FILE_PATH)
     mock_load_file.assert_called_with(
         TEST_TARGET_SCHEMA_FILE_PATH, OTHER_TEST_TARGET_FALLBACK_SCHEMA
     )
