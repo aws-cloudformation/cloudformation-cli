@@ -63,6 +63,24 @@ Resources:
                 "aws:SecureTransport": "false"
             Principal: "*"
 
+  AccessLogsBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref AccessLogsBucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: Require Secure Transport
+            Action: "s3:*"
+            Effect: Deny
+            Resource:
+              - !Sub "arn:${AWS::Partition}:s3:::${AccessLogsBucket}"
+              - !Sub "arn:${AWS::Partition}:s3:::${AccessLogsBucket}/*"
+            Condition:
+              Bool:
+                "aws:SecureTransport": "false"
+            Principal: "*"
+
   EncryptionKey:
     Type: AWS::KMS::Key
     DeletionPolicy: Retain
