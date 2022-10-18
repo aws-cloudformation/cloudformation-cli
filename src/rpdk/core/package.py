@@ -1,4 +1,4 @@
-"""This sub command uploads the resource type to CloudFormation.
+"""This is the same as cfn submit --dryrun, it will create a local package without uploading.
 
 Projects can be created via the 'init' sub command.
 """
