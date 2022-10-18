@@ -58,11 +58,11 @@ _Allowed Values_: {% for allowedvalue in prop.allowedvalues %}<code>{{ allowedva
 {% endif %}
 {% if prop.minLength %}
 
-_Minimum Length_: <code>{{ prop.minLength }}</code>
+_Minimum_: <code>{{ prop.minLength }}</code>
 {% endif %}
 {% if prop.maxLength %}
 
-_Maximum Length_: <code>{{ prop.maxLength }}</code>
+_Maximum_: <code>{{ prop.maxLength }}</code>
 {% endif %}
 {% if prop.pattern %}
 
