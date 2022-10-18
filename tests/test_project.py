@@ -12,7 +12,7 @@ from io import StringIO
 from pathlib import Path
 from shutil import copyfile
 from unittest import TestCase
-from unittest.mock import ANY, MagicMock, call, patch
+from unittest.mock import ANY, MagicMock, Mock, call, patch
 
 import pytest
 import yaml
@@ -112,6 +112,11 @@ def test_escape_markdown_with_empty_string():
 @pytest.mark.parametrize("string", ["Hello", "SomeProperty"])
 def test_escape_markdown(string):
     assert escape_markdown(string) == string
+
+
+@pytest.fixture
+def session():
+    return Mock(spec_set=["client", "region_name", "get_credentials"])
 
 
 @pytest.fixture
@@ -476,7 +481,7 @@ def test_generate_with_docs(project, tmp_path_factory, schema_path, path):
         ),
     ],
 )
-def test_generate_docs_for_hook(project, tmp_path_factory, schema_path, path):
+def test_generate_docs_for_hook(project, tmp_path_factory, session, schema_path, path):
     project.schema = resource_json(__name__, schema_path)
     project.type_name = "AWS::FooBar::Hook"
     project.artifact_type = ARTIFACT_TYPE_HOOK
@@ -485,7 +490,17 @@ def test_generate_docs_for_hook(project, tmp_path_factory, schema_path, path):
     project.root = tmp_path_factory.mktemp(path)
 
     mock_plugin = MagicMock(spec=["generate"])
-    with patch.object(project, "_plugin", mock_plugin):
+    patch_session = patch("rpdk.core.boto_helpers.Boto3Session")
+
+    mock_cfn_client = MagicMock(spec=["describe_type"])
+    with patch.object(project, "_plugin", mock_plugin), patch_session as mock_session:
+        mock_cfn_client.describe_type.return_value = {
+            "Schema": {},
+            "Type": "",
+            "ProvisioningType": "",
+        }
+        session.client.side_effect = [mock_cfn_client, MagicMock()]
+        mock_session.return_value = session
         project.generate()
         project.generate_docs()
     mock_plugin.generate.assert_called_once_with(project)
@@ -495,13 +510,15 @@ def test_generate_docs_for_hook(project, tmp_path_factory, schema_path, path):
 
     assert docs_dir.is_dir()
     assert readme_file.is_file()
-    with patch.object(project, "_plugin", mock_plugin):
+    with patch.object(project, "_plugin", mock_plugin), patch_session as mock_session:
+        session.client.side_effect = [mock_cfn_client, MagicMock()]
+        mock_session.return_value = session
         project.generate()
     readme_contents = readme_file.read_text(encoding="utf-8")
     assert project.type_name in readme_contents
 
 
-def test_generate_docs_with_multityped_property(project, tmp_path_factory):
+def test_generate_docs_with_multityped_property(project, tmp_path_factory, session):
     project.schema = resource_json(
         __name__, "data/schema/valid/valid_multityped_property.json"
     )
@@ -510,7 +527,9 @@ def test_generate_docs_with_multityped_property(project, tmp_path_factory):
     # tmpdir conflicts with other tests, make a unique one
     project.root = tmp_path_factory.mktemp("generate_with_docs_type_complex")
     mock_plugin = MagicMock(spec=["generate"])
-    with patch.object(project, "_plugin", mock_plugin):
+    patch_session = patch("rpdk.core.boto_helpers.Boto3Session")
+    with patch.object(project, "_plugin", mock_plugin), patch_session as mock_session:
+        mock_session.return_value = session
         project.generate()
         project.generate_docs()
     mock_plugin.generate.assert_called_once_with(project)
@@ -778,7 +797,7 @@ def test_init_resource(project):
         assert f.read() == b"\n"
 
 
-def test_generate_hook_handlers(project, tmpdir):
+def test_generate_hook_handlers(project, tmpdir, session):
     project.type_name = "Test::Handler::Test"
     project.artifact_type = ARTIFACT_TYPE_HOOK
     expected_actions = {"preCreateAction", "preDeleteAction"}
@@ -790,7 +809,9 @@ def test_generate_hook_handlers(project, tmpdir):
     }
     project.root = tmpdir
     mock_plugin = MagicMock(spec=["generate"])
-    with patch.object(project, "_plugin", mock_plugin):
+    patch_session = patch_session = patch("rpdk.core.boto_helpers.Boto3Session")
+    with patch.object(project, "_plugin", mock_plugin), patch_session as mock_session:
+        mock_session.return_value = session
         project.generate()
 
     role_path = project.root / "hook-role.yaml"
@@ -820,7 +841,10 @@ def test_generate_hook_handlers_deny_all(project, tmpdir, schema):
     project.schema = schema
     project.root = tmpdir
     mock_plugin = MagicMock(spec=["generate"])
-    with patch.object(project, "_plugin", mock_plugin):
+    with patch.object(project, "_plugin", mock_plugin), patch(
+        "rpdk.core.boto_helpers.Boto3Session"
+    ) as session:
+        session.return_value = session()
         project.generate()
 
     role_path = project.root / "hook-role.yaml"
@@ -854,13 +878,17 @@ def test_generate_hook_handlers_deny_all(project, tmpdir, schema):
         ({"handlers": {"preCreate": {"timeoutInMinutes": 90}, "preDelete": {}}}, 8400),
     ),
 )
-def test_generate__hook_handlers_role_session_timeout(project, tmpdir, schema, result):
+def test_generate__hook_handlers_role_session_timeout(
+    project, tmpdir, schema, result, session
+):
     project.type_name = "Test::Handler::Test"
     project.artifact_type = ARTIFACT_TYPE_HOOK
     project.schema = schema
     project.root = tmpdir
     mock_plugin = MagicMock(spec=["generate"])
-    with patch.object(project, "_plugin", mock_plugin):
+    patch_session = patch("rpdk.core.boto_helpers.Boto3Session")
+    with patch.object(project, "_plugin", mock_plugin), patch_session as mock_session:
+        mock_session.return_value = session
         project.generate()
 
     role_path = project.root / "hook-role.yaml"
@@ -1400,7 +1428,7 @@ def test_submit_dry_run_hooks(project):
 
 
 # pylint: disable=too-many-arguments, too-many-locals, too-many-statements
-def test_submit_dry_run_hooks_with_target_info(project):
+def test_submit_dry_run_hooks_with_target_info(project, session):
     schema = {
         "typeName": "AWS::FOO::BAR",
         "description": "test schema",
@@ -1466,13 +1494,13 @@ def test_submit_dry_run_hooks_with_target_info(project):
     patch_upload = patch.object(project, "_upload", autospec=True)
     patch_path = patch("rpdk.core.project.Path", return_value=zip_path)
     patch_temp = patch("rpdk.core.project.TemporaryFile", autospec=True)
-
+    patch_session = patch("rpdk.core.boto_helpers.Boto3Session")
     # fmt: off
     # these context managers can't be wrapped by black, but it removes the \
     with patch_plugin as mock_plugin, patch_path as mock_path, \
-            patch_temp as mock_temp, patch_upload as mock_upload:
+            patch_temp as mock_temp, patch_upload as mock_upload, patch_session as mock_session:
         mock_plugin.get_plugin_information = MagicMock(return_value=PLUGIN_INFORMATION)
-
+        mock_session.return_value = session
         project.submit(
             True,
             endpoint_url=None,
@@ -2196,10 +2224,12 @@ def test__get_docs_gettable_atts_good_path():
     assert getatt == [{"name": "Id2", "description": "foo"}]
 
 
-def test_generate_image_build_config(project):
+def test_generate_image_build_config(project, session):
     project.schema = {}
     mock_plugin = MagicMock(spec=["generate_image_build_config"])
-    with patch.object(project, "_plugin", mock_plugin):
+    patch_session = patch("rpdk.core.boto_helpers.Boto3Session")
+    with patch.object(project, "_plugin", mock_plugin), patch_session as mock_session:
+        mock_session.return_value = session
         project.generate_image_build_config()
     mock_plugin.generate_image_build_config.assert_called_once()
 
