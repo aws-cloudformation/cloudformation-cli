@@ -42,12 +42,19 @@ class TypeConfiguration:
     @staticmethod
     def get_hook_configuration():
         type_configuration = TypeConfiguration.get_type_configuration()
+        print(type_configuration)
         if type_configuration:
             try:
                 return type_configuration.get("CloudFormationConfiguration", {})[
                     "HookConfiguration"
                 ]["Properties"]
             except KeyError as e:
+                print(e)
                 LOG.warning("Hook configuration is invalid")
+                LOG.warning("Got hook configuration %s", type_configuration)
                 raise InvalidProjectError("Hook configuration is invalid") from e
+            except Exception as e:
+                print(e)
+                LOG.warning("Got error, %s", e)
+                raise e
         return type_configuration
