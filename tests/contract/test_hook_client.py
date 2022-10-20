@@ -714,7 +714,7 @@ def test_call_docker():
         '{"hookStatus": "SUCCESS"}__CFN_HOOK_END_RESPONSE__'
     )
     mock_client.containers.run.return_value = str.encode(response_str)
-    with patch_creds:
+    with patch_creds, patch_config:
         status, response = hook_client.call(
             "CREATE_PRE_PROVISION", HOOK_TARGET_TYPE_NAME, {"foo": "bar"}
         )
