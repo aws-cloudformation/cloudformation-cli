@@ -76,15 +76,17 @@ def empty_override():
 def empty_hook_override():
     return {"CREATE_PRE_PROVISION": {}}
 
+
 # As per Python docs NamedTemporaryFile does NOT work the same in Windows.  Setting delete=False as workaround.
 #
 # Temporary file must be explicitly cleaned up after temporary_ini_file() is called!
-# 
+#
 # "Whether the name can be used to open the file a second time, while the named temporary file is still open,
 # varies across platforms (it can be so used on Unix; it cannot on Windows)."
 # https://docs.python.org/3.9/library/tempfile.html#tempfile.NamedTemporaryFile
-# 
+#
 # Fix being tracked here https://github.com/python/cpython/issues/58451
+
 
 @contextmanager
 def temporary_ini_file():
@@ -404,9 +406,16 @@ def invoke_test(args, project, overrides, inputs):
         LOG.debug("pytest args: %s", pytest_args)
         ret = pytest.main(pytest_args, plugins=[plugin])
         # Manually clean up temporary file before exiting - issue with NamedTemporaryFile method on Windows
-        os.unlink(path)
         if ret:
+            try:
+                os.unlink(path)
+            except FileNotFoundError:
+                pass
             raise SysExitRecommendedError("One or more contract tests failed")
+    try:
+        os.unlink(path)
+    except FileNotFoundError:
+        pass
 
 
 def setup_subparser(subparsers, parents):
