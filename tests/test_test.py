@@ -337,11 +337,11 @@ def test_temporary_ini_file():
 
         with path.open("r", encoding="utf-8") as f:
             assert "[pytest]" in f.read()
-    # Manually clean up temporary file before exiting - issue with NamedTemporaryFile method on Windows
-    try:
-        os.unlink(path_str)
-    except FileNotFoundError:
-        pass
+        # Manually clean up temporary file before exiting - issue with NamedTemporaryFile method on Windows
+        try:
+            os.unlink(path_str)
+        except FileNotFoundError:
+            pass
 
 
 def test_get_overrides_no_root():

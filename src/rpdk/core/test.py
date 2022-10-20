@@ -96,6 +96,8 @@ def temporary_ini_file():
         LOG.debug("temporary pytest.ini path: %s", temp.name)
         path = Path(temp.name).resolve(strict=True)
         copy_resource(__name__, "data/pytest-contract.ini", path)
+        # Close temporary file for other processes to use, needed on Windows
+        temp.close()
         yield str(path)
 
 
@@ -406,16 +408,12 @@ def invoke_test(args, project, overrides, inputs):
         LOG.debug("pytest args: %s", pytest_args)
         ret = pytest.main(pytest_args, plugins=[plugin])
         # Manually clean up temporary file before exiting - issue with NamedTemporaryFile method on Windows
+        try:
+            os.unlink(path)
+        except FileNotFoundError:
+            pass
         if ret:
-            try:
-                os.unlink(path)
-            except FileNotFoundError:
-                pass
             raise SysExitRecommendedError("One or more contract tests failed")
-    try:
-        os.unlink(path)
-    except FileNotFoundError:
-        pass
 
 
 def setup_subparser(subparsers, parents):
