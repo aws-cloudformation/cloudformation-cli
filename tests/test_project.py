@@ -6,6 +6,7 @@ import logging
 import os
 import random
 import string
+import sys
 import zipfile
 from contextlib import contextmanager
 from io import StringIO
@@ -1189,6 +1190,8 @@ def test_submit_dry_run(project, is_type_configuration_available):
 
     with project.schema_path.open("w", encoding="utf-8") as f:
         f.write(CONTENTS_UTF8)
+    if sys.version_info >= (3, 8):
+        os.utime(project.schema_path, (1602179630, 10000))
 
     if is_type_configuration_available:
         project.configuration_schema = {"properties": {}}

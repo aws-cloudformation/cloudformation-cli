@@ -3,6 +3,7 @@ import json
 import logging
 import os
 import shutil
+import sys
 import zipfile
 from pathlib import Path
 from tempfile import TemporaryFile
@@ -611,7 +612,10 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
         with context_mgr as f:
             # the default compression is ZIP_STORED, which helps with the
             # file-size check on upload
-            with zipfile.ZipFile(f, mode="w") as zip_file:
+            args = {}
+            if sys.version_info >= (3, 8):
+                args = {"strict_timestamps": False}
+            with zipfile.ZipFile(f, mode="w", **args) as zip_file:
                 if self.configuration_schema:
                     with zip_file.open(
                         CONFIGURATION_SCHEMA_UPLOAD_FILENAME, "w"
