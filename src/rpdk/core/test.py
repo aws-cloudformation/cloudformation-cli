@@ -33,7 +33,7 @@ LOG = logging.getLogger(__name__)
 DEFAULT_ENDPOINT = "http://127.0.0.1:3001"
 DEFAULT_FUNCTION = "TypeFunction"
 DEFAULT_REGION = "us-east-1"
-DEFAULT_TIMEOUT = "30"
+DEFAULT_TIMEOUT = "240"
 INPUTS = "inputs"
 
 RESOURCE_OVERRIDES_VALIDATOR = Draft6Validator(
