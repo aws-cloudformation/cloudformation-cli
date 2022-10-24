@@ -48,8 +48,6 @@ jobs:
         cfn generate -vvv
     - name: Run Verbose CLI init for python3.6
       run: |
-        mkdir test
-        cd test
         cfn init -t CLI::TEST::INIT -f --artifact-type resource -vvv python36 --use-docker
     - name: Run Verbose CLI Validate
       run: |
