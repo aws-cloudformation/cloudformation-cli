@@ -42,7 +42,7 @@ jobs:
         cfn init -t CLI::TEST::INIT -f --artifact-type resource -vvv python37 --use-docker
         cfn validate -vvv
         cfn generate -vvv
-    - name: Run Verbose CLI init for python3.6
+    - name: Run Verbose CLI commands for python3.6
       run: |
         mkdir test-python36
         cd test-python36
