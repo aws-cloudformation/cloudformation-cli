@@ -35,23 +35,17 @@ jobs:
         pre-commit run --all-files
         python setup.py sdist bdist_wheel
         twine check ./dist/*
-    - name: Run Verbose CLI init for python3.7
+    - name: Run Verbose CLI commands for python3.7
       run: |
-        mkdir test
-        cd test
+        mkdir test-python37
+        cd test-python37
         cfn init -t CLI::TEST::INIT -f --artifact-type resource -vvv python37 --use-docker
-    - name: Run Verbose CLI Validate
-      run: |
         cfn validate -vvv
-    - name: Run Verbose CLI Generage
-      run: |
         cfn generate -vvv
     - name: Run Verbose CLI init for python3.6
       run: |
+        mkdir test-python36
+        cd test-python36
         cfn init -t CLI::TEST::INIT -f --artifact-type resource -vvv python36 --use-docker
-    - name: Run Verbose CLI Validate
-      run: |
         cfn validate -vvv
-    - name: Run Verbose CLI Generage
-      run: |
         cfn generate -vvv
