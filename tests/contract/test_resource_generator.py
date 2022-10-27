@@ -73,6 +73,22 @@ def test_generate_string_strategy_format():
     strategy = ResourceGenerator(schema).generate_schema_strategy(schema)
     assert re.fullmatch(STRING_FORMATS["arn"], strategy.example())
 
+    schema = {"type": "string", "format": "date-time"}
+    strategy = ResourceGenerator(schema).generate_schema_strategy(schema)
+    assert re.fullmatch(STRING_FORMATS["date-time"], strategy.example())
+
+    schema = {"type": "string", "format": "time"}
+    strategy = ResourceGenerator(schema).generate_schema_strategy(schema)
+    assert re.fullmatch(STRING_FORMATS["time"], strategy.example())
+
+    schema = {"type": "string", "format": "date"}
+    strategy = ResourceGenerator(schema).generate_schema_strategy(schema)
+    assert re.fullmatch(STRING_FORMATS["date"], strategy.example())
+
+    schema = {"type": "string", "format": "email"}
+    strategy = ResourceGenerator(schema).generate_schema_strategy(schema)
+    assert re.fullmatch(STRING_FORMATS["email"], strategy.example())
+
 
 def test_generate_string_strategy_length():
     schema = {"type": "string", "minLength": 5, "maxLength": 10}
