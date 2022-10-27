@@ -1,6 +1,5 @@
 import logging
 import re
-
 from collections.abc import Sequence
 
 from hypothesis.strategies import (
@@ -39,7 +38,7 @@ STRING_FORMATS = {
     "date-time": r"^(\d{4})-(0[1-9]|1[0-2])-(\d{2})T(?:[01]\d|2[0123]):(?:[0-5]\d):(?:[0-5]\d)(?:\.\d+)?(?:Z|[+-](?:[01]\d|2[0123]):[0-5]\d)$",
     "date": r"^(\d{4})-(0[1-9]|1[0-2])-(\d{2})$",
     "time": r"^(?:[01]\d|2[0123]):(?:[0-5]\d):(?:[0-5]\d)(?:\.\d+)?(?:Z|[+-](?:[01]\d|2[0123]):[0-5]\d)$",
-    "email": r'^[a-zA-Z0-9+_-]+@[a-zA-Z0-9_-]+\.[a-zA-Z]{2,}$',
+    "email": r"^[a-zA-Z0-9+_-]+@[a-zA-Z0-9_-]+\.[a-zA-Z]{2,}$",
 }
 
 NEG_INF = float("-inf")
@@ -257,7 +256,9 @@ class ResourceGenerator:
             if "maxLength" in schema:  # pragma: no cover
                 LOG.warning("found maxLength used with pattern")
 
-            return from_regex(re.compile(terminate_regex(regex), re.ASCII), fullmatch=True)
+            return from_regex(
+                re.compile(terminate_regex(regex), re.ASCII), fullmatch=True
+            )
 
         if "pattern" in schema:  # pragma: no cover
             LOG.warning("found pattern used with format")
