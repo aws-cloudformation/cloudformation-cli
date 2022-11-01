@@ -42,6 +42,17 @@ jobs:
         cfn init -t CLI::TEST::INIT -f --artifact-type resource -vvv python37 --use-docker
         cfn validate -vvv
         cfn generate -vvv
+        mkdir ../test-python37-module
+        cd ../test-python37-module
+        cfn init -t CLI::TEST::INIT::MODULE -f --artifact-type module -vvv python37 --use-docker
+        cfn validate -vvv
+        cfn generate -vvv
+        # Hook init requires CLI credentials
+        # mkdir ../test-python37-hook
+        # cd ../test-python37-hook
+        # cfn init -t CLI::TEST::INIT -f --artifact-type hook -vvv python37 --use-docker
+        # cfn validate -vvv
+        # cfn generate -vvv
     - name: Run Verbose CLI commands for python3.6
       run: |
         mkdir test-python36
@@ -49,3 +60,14 @@ jobs:
         cfn init -t CLI::TEST::INIT -f --artifact-type resource -vvv python36 --use-docker
         cfn validate -vvv
         cfn generate -vvv
+        mkdir ../test-python36-module
+        cd ../test-python36-module
+        cfn init -t CLI::TEST::INIT::MODULE -f --artifact-type module -vvv python36 --use-docker
+        cfn validate -vvv
+        cfn generate -vvv
+        # Hook init requires CLI credentials
+        # mkdir ../test-python36-hook
+        # cd ../test-python36-hook
+        # cfn init -t CLI::TEST::INIT -f --artifact-type hook -vvv python36 --use-docker
+        # cfn validate -vvv
+        # cfn generate -vvv
