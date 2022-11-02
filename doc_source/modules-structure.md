@@ -7,7 +7,7 @@ A module consists of two main pieces:
 ## Creating the module template fragment<a name="modules-template-fragment"></a>
 
 The starting point for developing a module is the template fragment\. The template fragment is a file that contains the information that defines the resources for CloudFormation to provision during stack operations, including:
-+ A `[Resources](https://docs.aws.amazon.com/)` section that defines the resources to be provisioned\.
++ A [Resources](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/resources-section-structure.html) section that defines the resources to be provisioned\.
 
   The `Resources` section is required\.
 + Additional other template sections related for the provisioning of the resources as necessary, such as [Outputs](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/outputs-section-structure.html) and [Conditions](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/conditions-section-structure.html)\.
@@ -74,11 +74,11 @@ Keep in mind the following considerations when developing modules:
   Each output will be assigned a logical ID that's a concatenation of the module logical name and the output name as defined in the module\. For more information on outputs, see [Outputs](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/outputs-section-structure.html) in the *CloudFormation User Guide*\.
 + Parameters specified in the module Aren't propagated to parameters at the template level\.
 
-  However, you can create template\-level parameters that reference module\-level parameters\. For more information, see [Using parameters to specify module values](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/module-using-params.html) in the *CloudFormation User Guide*\.
+  However, you can create template\-level parameters that reference module\-level parameters\. For more information, see [Using parameters to specify module values](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/modules.html#module-using-params) in the *CloudFormation User Guide*\.
 
 ### Nesting modules<a name="modules-nesting"></a>
 
-Modules can contain other modules\. You can nest modules up to three levels deep\. To include a module in your module, reference it in the `Resources` section of your template fragment, as you would any other resource\. For an example, see [Specifying properties on resources in a child module from the parent module](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/module-using-params-example-2) in the *CloudFormation User Guide*\.
+Modules can contain other modules\. You can nest modules up to three levels deep\. To include a module in your module, reference it in the `Resources` section of your template fragment, as you would any other resource\. For an example, see [Specifying properties on resources in a child module from the parent module](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/modules.html#module-using-params-example-2) in the *CloudFormation User Guide*\.
 
 ### Macros and modules<a name="modules-macros"></a>
 
@@ -126,7 +126,7 @@ For more information on resource policies, see [Resource attribute reference](ht
 
 The module schema is generated from the template fragment, and defines the contract to which the module adheres, including defining the input it accepts and the possible resources it resolves to when included in a template\.
 
-To generate the module schema, use the `[validate](https://docs.aws.amazon.com/cloudformation-cli/latest/userguide/resource-type-cli-validate.html)` command once you've authored your template fragment\.
+To generate the module schema, use the [validate](https://docs.aws.amazon.com/cloudformation-cli/latest/userguide/resource-type-cli-validate.html) command once you've authored your template fragment\.
 
 For example, suppose you created a module package and used the template fragment above\. The `validate` command would result in the following module schema:
 
@@ -162,10 +162,10 @@ For more information on publishing public extensions, see [Publishing extensions
 + Public modules cannot include circular dependencies on child modules, or vice versa\.
 + [Custom resources](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/template-custom-resources.html) are not supported in public modules\.
 + Only public resources are supported in public modules\. The public resources can be published by Amazon or third\-parties\.
-+ Any third\-party public resources included in the module must include the necessary publisher information, as detailed in [Specifying publisher metadata for pubic third\-party resources](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/modules-structure-publishing-3p-info.htm)\.
++ Any third\-party public resources included in the module must include the necessary publisher information, as detailed in [Specifying publisher metadata for public third\-party resources](https://docs.aws.amazon.com/cloudformation-cli/latest/userguide/modules-structure.html#modules-structure-publishing-3p-info)\.
 + The supported major versions listed in the module for a resource type must be subset of the supported major versions specified for the resource type in any child modules\.
 
-### Specifying publisher metadata for pubic third\-party resources<a name="modules-structure-publishing-3p-info"></a>
+### Specifying publisher metadata for public third\-party resources<a name="modules-structure-publishing-3p-info"></a>
 
 For any third\-party public resources you include in your public module, you must specify additional publisher information\. This enables CloudFormation to determine the resource type specified, and which versions of that resource the module supports\. Specify the following properties in a [Metadata](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/metadata-section-structure.html) element in your resource definition:
 + `PublisherId`

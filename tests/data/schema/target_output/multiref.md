@@ -57,7 +57,7 @@ _Required_: No
 
 _Type_: String
 
-_Minimum_: <code>13</code>
+_Minimum Length_: <code>13</code>
 
 _Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
 
@@ -67,7 +67,7 @@ _Required_: No
 
 _Type_: String, Map, Integer, Boolean
 
-_Minimum_: <code>13</code>
+_Minimum Length_: <code>13</code>
 
 _Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
 
