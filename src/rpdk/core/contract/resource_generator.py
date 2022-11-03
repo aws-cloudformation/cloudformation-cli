@@ -33,7 +33,7 @@ LOG = logging.getLogger(__name__)
 # date is extraction from date-time
 # time is extraction from date-time
 STRING_FORMATS = {
-    "arn": r"^arn:aws(-(cn|us-gov))?:[a-z-]+:([a-z]{2}-([a-z]+-)+[0-9])?:([0-9]{12}){1}:[^.]+$",
+    "arn": "^arn:aws(-(cn|gov))?:[a-z-]+:(([a-z]+-)+[0-9])?:([0-9]{12})?:[^.]+$",
     "uri": r"^(https?|ftp|file)://[0-9a-zA-Z]([-.\w]*[0-9a-zA-Z])(:[0-9]*)*([?/#].*)?$",
     "date-time": r"^(\d{4})-(0[1-9]|1[0-2])-(\d{2})T(?:[01]\d|2[0123]):(?:[0-5]\d):(?:[0-5]\d)(?:\.\d+)?(?:Z|[+-](?:[01]\d|2[0123]):[0-5]\d)$",
     "date": r"^(\d{4})-(0[1-9]|1[0-2])-(\d{2})$",
@@ -257,7 +257,7 @@ class ResourceGenerator:
                 LOG.warning("found maxLength used with pattern")
 
             return from_regex(
-                re.compile(terminate_regex(regex), re.ASCII), fullmatch=True
+                re.compile(terminate_regex(regex), re.ASCII)
             )
 
         if "pattern" in schema:  # pragma: no cover
@@ -268,4 +268,4 @@ class ResourceGenerator:
             LOG.warning("found maxLength used with format")
 
         regex = STRING_FORMATS[string_format]
-        return from_regex(re.compile(regex, re.ASCII), fullmatch=True)
+        return from_regex(re.compile(regex, re.ASCII))
