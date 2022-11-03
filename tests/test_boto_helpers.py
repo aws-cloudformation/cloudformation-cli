@@ -14,6 +14,8 @@ from rpdk.core.boto_helpers import (
 from rpdk.core.exceptions import CLIMisconfiguredError, DownstreamError
 
 EXPECTED_ROLE = "someroleArn"
+SOURCE_ACCOUNT = "123456789"
+SOURCE_ARN = "someSourceArn"
 
 
 def test_create_sdk_session_region():
@@ -191,6 +193,43 @@ def test_get_temporary_credentials_assume_role():
         endpoint_url="https://sts.cn-north-1.amazonaws.com.cn",
         region_name="cn-north-1",
     )
+    client.assume_role.assert_called_once_with(
+        RoleArn=EXPECTED_ROLE, RoleSessionName=ANY, DurationSeconds=900
+    )
+
+    assert len(creds) == 3
+    assert tuple(creds.keys()) == LOWER_CAMEL_CRED_KEYS
+    assert tuple(creds.values()) == (access_key, secret_key, token)
+
+
+def test_get_temporary_credentials_assume_role_with_headers():
+    session = create_autospec(spec=Session, spec_set=True)
+
+    access_key = object()
+    secret_key = object()
+    token = object()
+
+    client = session.client.return_value
+    client.assume_role.return_value = {
+        "Credentials": {
+            "AccessKeyId": access_key,
+            "SecretAccessKey": secret_key,
+            "SessionToken": token,
+        }
+    }
+    session.region_name = "cn-north-1"
+
+    creds = get_temporary_credentials(
+        session, LOWER_CAMEL_CRED_KEYS, EXPECTED_ROLE, (SOURCE_ACCOUNT, SOURCE_ARN)
+    )
+
+    session.client.assert_called_once_with(
+        "sts",
+        endpoint_url="https://sts.cn-north-1.amazonaws.com.cn",
+        region_name="cn-north-1",
+    )
+
+    client.meta.events.register.assert_called_once_with("before-call", ANY)
     client.assume_role.assert_called_once_with(
         RoleArn=EXPECTED_ROLE, RoleSessionName=ANY, DurationSeconds=900
     )

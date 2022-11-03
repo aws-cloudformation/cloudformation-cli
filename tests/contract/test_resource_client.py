@@ -158,7 +158,7 @@ def resource_client():
             )
 
     mock_sesh.client.assert_called_once_with("lambda", endpoint_url=endpoint)
-    mock_creds.assert_called_once_with(mock_sesh, LOWER_CAMEL_CRED_KEYS, None)
+    mock_creds.assert_called_once_with(mock_sesh, LOWER_CAMEL_CRED_KEYS, None, None)
     mock_account.assert_called_once_with(mock_sesh, {})
     assert client._function_name == DEFAULT_FUNCTION
     assert client._schema == EMPTY_SCHEMA
@@ -193,7 +193,7 @@ def resource_client_no_handler():
             )
 
     mock_sesh.client.assert_called_once_with("lambda", endpoint_url=endpoint)
-    mock_creds.assert_called_once_with(mock_sesh, LOWER_CAMEL_CRED_KEYS, None)
+    mock_creds.assert_called_once_with(mock_sesh, LOWER_CAMEL_CRED_KEYS, None, None)
     mock_account.assert_called_once_with(mock_sesh, {})
     assert client._function_name == DEFAULT_FUNCTION
     assert client._schema == {}
@@ -233,7 +233,7 @@ def resource_client_inputs():
             )
 
     mock_sesh.client.assert_called_once_with("lambda", endpoint_url=endpoint)
-    mock_creds.assert_called_once_with(mock_sesh, LOWER_CAMEL_CRED_KEYS, None)
+    mock_creds.assert_called_once_with(mock_sesh, LOWER_CAMEL_CRED_KEYS, None, None)
     mock_account.assert_called_once_with(mock_sesh, {})
 
     assert client._function_name == DEFAULT_FUNCTION
@@ -278,7 +278,7 @@ def resource_client_inputs_schema(request):
             )
 
     mock_sesh.client.assert_called_once_with("lambda", endpoint_url=endpoint)
-    mock_creds.assert_called_once_with(mock_sesh, LOWER_CAMEL_CRED_KEYS, None)
+    mock_creds.assert_called_once_with(mock_sesh, LOWER_CAMEL_CRED_KEYS, None, None)
     mock_account.assert_called_once_with(mock_sesh, {})
 
     assert client._function_name == DEFAULT_FUNCTION
@@ -323,7 +323,7 @@ def resource_client_inputs_composite_key():
             )
 
     mock_sesh.client.assert_called_once_with("lambda", endpoint_url=endpoint)
-    mock_creds.assert_called_once_with(mock_sesh, LOWER_CAMEL_CRED_KEYS, None)
+    mock_creds.assert_called_once_with(mock_sesh, LOWER_CAMEL_CRED_KEYS, None, None)
     mock_account.assert_called_once_with(mock_sesh, {})
 
     assert client._function_name == DEFAULT_FUNCTION
@@ -597,7 +597,7 @@ def test_init_sam_cli_client():
     mock_sesh.client.assert_called_once_with(
         "lambda", endpoint_url=DEFAULT_ENDPOINT, use_ssl=False, verify=False, config=ANY
     )
-    mock_creds.assert_called_once_with(mock_sesh, LOWER_CAMEL_CRED_KEYS, None)
+    mock_creds.assert_called_once_with(mock_sesh, LOWER_CAMEL_CRED_KEYS, None, None)
     mock_account.assert_called_once_with(mock_sesh, {})
     assert client.account == ACCOUNT
 

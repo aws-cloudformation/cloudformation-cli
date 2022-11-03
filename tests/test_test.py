@@ -201,6 +201,7 @@ def test_test_command_happy_path_resource(
         mock_project.type_name,
         None,
         None,
+        (None, None),
         None,
         None,
     )
@@ -282,6 +283,7 @@ def test_test_command_happy_path_hook(
         mock_project.type_name,
         None,
         None,
+        (None, None),
         None,
         None,
         HOOK_TARGET_INFO,

@@ -167,6 +167,7 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         type_name=None,
         log_group_name=None,
         log_role_arn=None,
+        headers=None,
         docker_image=None,
         executable_entrypoint=None,
     ):  # pylint: disable=too-many-arguments
@@ -178,7 +179,9 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         self.region = region
         self.account = get_account(
             self._session,
-            get_temporary_credentials(self._session, LOWER_CAMEL_CRED_KEYS, role_arn),
+            get_temporary_credentials(
+                self._session, LOWER_CAMEL_CRED_KEYS, role_arn, headers
+            ),
         )
         self._function_name = function_name
         if endpoint.startswith("http://"):
