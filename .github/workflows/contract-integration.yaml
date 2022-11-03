@@ -22,8 +22,6 @@ jobs:
           python-version: 3
           cache: 'pip'
       - run: |
-          set +e
-          set -o pipefail
           pip install -e .
           cd lookoutvision/*project
           curl -s -L https://github.com/aws/aws-sam-cli/releases/latest/download/aws-sam-cli-linux-x86_64.zip -o sam.zip
@@ -51,8 +49,6 @@ jobs:
           python-version: 3
           cache: 'pip'
       - run: |
-          set +e
-          set -o pipefail
           pip install -e .
           cd frauddetector/*outcome
           curl -s -L https://github.com/aws/aws-sam-cli/releases/latest/download/aws-sam-cli-linux-x86_64.zip -o sam.zip
