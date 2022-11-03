@@ -256,9 +256,7 @@ class ResourceGenerator:
             if "maxLength" in schema:  # pragma: no cover
                 LOG.warning("found maxLength used with pattern")
 
-            return from_regex(
-                re.compile(terminate_regex(regex), re.ASCII)
-            )
+            return from_regex(re.compile(terminate_regex(regex), re.ASCII))
 
         if "pattern" in schema:  # pragma: no cover
             LOG.warning("found pattern used with format")
