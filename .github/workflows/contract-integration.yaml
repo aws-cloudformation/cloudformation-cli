@@ -12,8 +12,9 @@ jobs:
         with:
           repository: aws-cloudformation/aws-cloudformation-resource-providers-lookoutvision
           path: lookoutvision
-      - uses: actions/setup-java@v1
+      - uses: actions/setup-java@v3
         with:
+          distribution: 'zulu'  # match distribution for v1
           java-version: 8
       - uses: actions/setup-python@v4
         with:
