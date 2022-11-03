@@ -3,6 +3,7 @@ on:
     branches: [ master ]
   pull_request:
     branches: [ master ]
+  workflow_dispatch: # Enables on-demand/manual triggering: https://docs.github.com/en/free-pro-team@latest/actions/managing-workflow-runs/manually-running-a-workflow
 jobs:
   contract-integration-java:
     runs-on: ubuntu-latest
@@ -19,6 +20,7 @@ jobs:
       - uses: actions/setup-python@v4
         with:
           python-version: 3
+          cache: 'pip'
       - run: |
           pip install -e .
           cd lookoutvision/*project
@@ -45,6 +47,7 @@ jobs:
       - uses: actions/setup-python@v4
         with:
           python-version: 3
+          cache: 'pip'
       - run: |
           pip install -e .
           cd frauddetector/*outcome

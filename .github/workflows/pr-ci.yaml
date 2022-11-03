@@ -19,12 +19,17 @@ jobs:
       uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python }}
+        cache: 'pip'
     - name: Install dependencies
       run: |
         pip install --upgrade 'attrs==19.2.0' wheel -r requirements.txt
     - name: Install cli
       run: |
         pip install .
+    - uses: actions/cache@v3
+      with:
+        path: ~/.cache/pre-commit/
+        key: ${{ matrix.os }}-${{ hashFiles('.pre-commit-config.yaml') }}
     - name: pre-commit, twine checks
       run: |
         pre-commit run --all-files
