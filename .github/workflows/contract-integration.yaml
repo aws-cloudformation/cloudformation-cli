@@ -7,15 +7,15 @@ jobs:
   contract-integration-java:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
+      - uses: actions/checkout@v3
         with:
           repository: aws-cloudformation/aws-cloudformation-resource-providers-lookoutvision
           path: lookoutvision
       - uses: actions/setup-java@v1
         with:
           java-version: 8
-      - uses: actions/setup-python@v2
+      - uses: actions/setup-python@v4
         with:
           python-version: 3
       - run: |
@@ -36,12 +36,12 @@ jobs:
   contract-integration-python:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
+      - uses: actions/checkout@v3
         with:
           repository: aws-cloudformation/aws-cloudformation-resource-providers-frauddetector
           path: frauddetector
-      - uses: actions/setup-python@v2
+      - uses: actions/setup-python@v4
         with:
           python-version: 3
       - run: |
