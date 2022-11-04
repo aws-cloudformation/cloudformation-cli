@@ -22,9 +22,28 @@ def test_terminate_regex_end_of_line_like_a_normal_person():
     assert re.match(modified_regex, "dfqh3eqefhq")
 
 
-def test_terminate_regex_no_termination_needed():
+def test_terminate_regex_line_start_change():
     original_regex = r"^[a-zA-Z0-9]{1,219}\Z"
-    assert terminate_regex(original_regex) == original_regex
+    terminated_regex = r"\A[a-zA-Z0-9]{1,219}\Z"
+    assert terminate_regex(original_regex) == terminated_regex
+
+
+def test_terminate_regex_line_end_change():
+    original_regex = r"\A[a-zA-Z0-9]{1,219}$"
+    terminated_regex = r"\A[a-zA-Z0-9]{1,219}\Z"
+    assert terminate_regex(original_regex) == terminated_regex
+
+
+def test_terminate_regex_line_start_and_end_change():
+    original_regex = r"^[a-zA-Z0-9]{1,219}$"
+    terminated_regex = r"\A[a-zA-Z0-9]{1,219}\Z"
+    assert terminate_regex(original_regex) == terminated_regex
+
+
+def test_terminate_regex_no_termination_needed():
+    original_regex = r"\A[a-zA-Z0-9]{1,219}\Z"
+    terminated_regex = r"\A[a-zA-Z0-9]{1,219}\Z"
+    assert terminate_regex(original_regex) == terminated_regex
 
 
 @pytest.mark.parametrize("schema_type", ["integer", "number"])

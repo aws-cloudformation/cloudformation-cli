@@ -46,8 +46,10 @@ POS_INF = float("inf")
 
 
 def terminate_regex(regex):
+    if regex.startswith("^"):
+        regex = r"\A" + regex[1:]
     if regex.endswith("$"):
-        return regex[:-1] + r"\Z"
+        regex = regex[:-1] + r"\Z"
     return regex
 
 
