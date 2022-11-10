@@ -68,6 +68,13 @@ def test_generate_string_strategy_regex():
     assert re.fullmatch(schema["pattern"], regex_strategy.example())
 
 
+def test_generate_string_strategy_ascii():
+    schema = {"type": "string", "pattern": "^\\w{1,6}$"}
+    strategy = ResourceGenerator(schema).generate_schema_strategy(schema)
+    for _ in range(100):
+        assert re.match("^[A-Za-z0-9_]{1,6}$", strategy.example())
+
+
 def test_generate_string_strategy_format():
     schema = {"type": "string", "format": "arn"}
     strategy = ResourceGenerator(schema).generate_schema_strategy(schema)

@@ -1,4 +1,5 @@
 import logging
+import re
 from collections.abc import Sequence
 
 from hypothesis.strategies import (
@@ -247,7 +248,7 @@ class ResourceGenerator:
             if "maxLength" in schema:  # pragma: no cover
                 LOG.warning("found maxLength used with pattern")
 
-            return from_regex(terminate_regex(regex))
+            return from_regex(re.compile(terminate_regex(regex), re.ASCII))
 
         if "pattern" in schema:  # pragma: no cover
             LOG.warning("found pattern used with format")
@@ -257,4 +258,4 @@ class ResourceGenerator:
             LOG.warning("found maxLength used with format")
 
         regex = STRING_FORMATS[string_format]
-        return from_regex(regex)
+        return from_regex(re.compile(regex, re.ASCII))

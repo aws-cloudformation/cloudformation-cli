@@ -249,7 +249,10 @@ def load_resource_spec(resource_spec_file):  # pylint: disable=R # noqa: C901
                 pattern,
             )
         try:
-            re.compile(pattern)
+            # http://json-schema.org/understanding-json-schema/reference/regular_expressions.html
+            # ECMA-262 has \w, \W, \b, \B, \d, \D, \s and \S perform ASCII-only matching
+            # instead of full Unicode matching. Unicode matching is the default in Python
+            re.compile(pattern, re.ASCII)
         except re.error:
             LOG.warning("Could not validate regular expression: %s", pattern)
 
