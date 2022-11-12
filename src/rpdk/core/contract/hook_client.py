@@ -130,7 +130,8 @@ class HookClient:  # pylint: disable=too-many-instance-attributes
             trim_blocks=True,
             lstrip_blocks=True,
             keep_trailing_newline=True,
-            loader=PackageLoader(__name__, "templates/"),
+            # Unable to use __name__ anymore after Jinja2 3.x change
+            loader=PackageLoader("rpdk.core", "templates/"),
             autoescape=select_autoescape(["html", "htm", "xml", "md"]),
         )
         self._schema = schema
