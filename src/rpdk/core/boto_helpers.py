@@ -50,7 +50,7 @@ def get_temporary_credentials(
         region_name=session.region_name,
     )
 
-    if headers:
+    if headers and headers.get("source_account") and headers.get("source_arn"):
         # Inject headers through the event system.
         def inject_header(params):
             params["headers"]["x-amz-source-account"] = headers.get("source_account")

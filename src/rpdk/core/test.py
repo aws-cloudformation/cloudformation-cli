@@ -354,6 +354,7 @@ def get_contract_plugin_client(args, project, overrides, inputs):
 
 
 def test(args):
+    _validate_test_args(args)
     _validate_sam_args(args)
     project = Project()
     project.load()
@@ -481,6 +482,13 @@ def _sam_arguments(parser):
             "The region used for temporary credentials " f"(Default: {DEFAULT_REGION})"
         ),
     )
+
+
+def _validate_test_args(args):
+    if (args.source_account is None) != (args.source_arn is None):
+        raise SysExitRecommendedError(
+            "Must specify both --source-account and --source-arn"
+        )
 
 
 def _validate_sam_args(args):
