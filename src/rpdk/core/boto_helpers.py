@@ -52,6 +52,8 @@ def get_temporary_credentials(
 
     if headers and headers.get("source_account") and headers.get("source_arn"):
         # Inject headers through the event system.
+        # https://docs.aws.amazon.com/IAM/latest/UserGuide/confused-deputy.html
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/registry.html#cross-service-confused-deputy-prevention
         def inject_header(params):
             params["headers"]["x-amz-source-account"] = headers.get("source_account")
             params["headers"]["x-amz-source-arn"] = headers.get("source_arn")
