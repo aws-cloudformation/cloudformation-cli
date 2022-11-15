@@ -283,7 +283,7 @@ def test_test_command_happy_path_hook(
         mock_project.type_name,
         None,
         None,
-        (None, None),
+        {"source_account": None, "source_arn": None},
         None,
         None,
         HOOK_TARGET_INFO,

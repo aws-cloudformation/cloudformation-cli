@@ -320,7 +320,10 @@ def get_contract_plugin_client(args, project, overrides, inputs):
             project.type_name,
             args.log_group_name,
             args.log_role_arn,
-            headers=(args.source_account, args.source_arn),
+            headers={
+                "source_account": args.source_account,
+                "source_arn": args.source_arn,
+            },
             executable_entrypoint=project.executable_entrypoint,
             docker_image=args.docker_image,
             target_info=project._load_target_info(  # pylint: disable=protected-access

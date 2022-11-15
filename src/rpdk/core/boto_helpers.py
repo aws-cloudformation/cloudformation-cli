@@ -1,5 +1,6 @@
 import logging
 from datetime import datetime
+from typing import TypedDict, Union
 
 import botocore.loaders
 import botocore.regions
@@ -12,6 +13,11 @@ LOG = logging.getLogger(__name__)
 
 BOTO_CRED_KEYS = ("aws_access_key_id", "aws_secret_access_key", "aws_session_token")
 LOWER_CAMEL_CRED_KEYS = ("accessKeyId", "secretAccessKey", "sessionToken")
+
+
+class Headers(TypedDict):
+    source_account: str
+    source_arn: str
 
 
 def create_sdk_session(region_name=None):
@@ -33,7 +39,10 @@ def create_sdk_session(region_name=None):
 
 
 def get_temporary_credentials(
-    session, key_names=BOTO_CRED_KEYS, role_arn=None, headers=None
+    session,
+    key_names=BOTO_CRED_KEYS,
+    role_arn=None,
+    headers: Union[None, Headers] = None,
 ):
     sts_client = session.client(
         "sts",
@@ -41,11 +50,11 @@ def get_temporary_credentials(
         region_name=session.region_name,
     )
 
-    if headers and len(headers) == 2:
+    if headers:
         # Inject headers through the event system.
         def inject_header(params):
-            params["headers"]["x-amz-source-account"] = headers[0]
-            params["headers"]["x-amz-source-arn"] = headers[1]
+            params["headers"]["x-amz-source-account"] = headers.get("source_account")
+            params["headers"]["x-amz-source-arn"] = headers.get("source_arn")
 
         sts_client.meta.events.register("before-call", inject_header)
 
