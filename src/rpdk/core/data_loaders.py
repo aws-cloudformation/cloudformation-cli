@@ -399,16 +399,21 @@ def load_hook_spec(hook_spec_file):  # pylint: disable=R # noqa: C901
         raise SpecValidationError(str(e)) from e
 
     blocked_handler_permissions = {"cloudformation:RegisterType"}
-    for handler in hook_spec.get("handlers", []):
-        for permission in hook_spec.get("handlers", [])[handler]["permissions"]:
+    for handler in hook_spec.get("handlers", {}).values():
+        for permission in handler["permissions"]:
             if "cloudformation:*" in permission:
                 raise SpecValidationError(
                     f"Wildcards for cloudformation are not allowed for hook handler permissions: '{permission}'"
                 )
-
             if permission in blocked_handler_permissions:
                 raise SpecValidationError(
                     f"Permission is not allowed for hook handler permissions: '{permission}'"
+                )
+
+        for target_name in handler["targetNames"]:
+            if "*?" in target_name:
+                raise SpecValidationError(
+                    f"Wildcard pattern '*?' is not allowed in target name: '{target_name}'"
                 )
 
     try:

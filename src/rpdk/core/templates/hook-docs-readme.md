@@ -66,6 +66,15 @@ _Maximum Length_: <code>{{ prop.maxLength }}</code>
 {% endif %}
 
 ---
+
+## Targets
+
+{% for target_name in target_names %}
+* `{{ target_name }}`
+{% endfor %}
+
+---
+
 <p id="footnote-1"><i> Please note that the enum values for <a href="https://docs.aws.amazon.com/cloudformation-cli/latest/userguide/hooks-structure.html#hooks-targetstacks" title="TargetStacks">
 TargetStacks</a> and <a href="https://docs.aws.amazon.com/cloudformation-cli/latest/userguide/hooks-structure.html#hooks-failuremode" title="FailureMode">FailureMode</a>
 might go out of date, please refer to their official documentation page for up-to-date values. </i></p>
