@@ -572,7 +572,7 @@ def test_load_type_schema_from_file_file_not_found(loader):
         with pytest.raises(InvalidTypeSchemaError) as excinfo:
             loader.load_type_schema(TEST_TARGET_SCHEMA_FILE_PATH)
 
-    mock_path_is_file.assert_called_with(TEST_TARGET_SCHEMA_FILE_PATH)
+    mock_path_is_file.assert_has_calls(calls=[call(TEST_TARGET_SCHEMA_FILE_PATH)])
     mock_load_file.assert_called_with(TEST_TARGET_SCHEMA_FILE_PATH)
     mock_file.assert_called_with(TEST_TARGET_SCHEMA_FILE_PATH, "r")
     assert excinfo.value.__cause__ is e
