@@ -52,8 +52,11 @@ Properties:
 {{ prop.description }}
 {% endif %}
 
-_Required_: {% if propname in schema.required %}Yes{% else %}No{% endif %}
-
+{% if schema.required is defined and propname in schema.required %}
+_Required_: Yes
+{% else %}
+_Required_: No
+{% endif %}
 
 _Type_: {{ prop.longformtype }}
 {% if prop.allowedvalues %}
