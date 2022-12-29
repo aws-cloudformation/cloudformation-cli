@@ -56,6 +56,7 @@ class HookClient:  # pylint: disable=too-many-instance-attributes
         log_group_name=None,
         log_role_arn=None,
         docker_image=None,
+        typeconfig=None,
         executable_entrypoint=None,
         target_info=None,
     ):  # pylint: disable=too-many-arguments
@@ -98,6 +99,7 @@ class HookClient:  # pylint: disable=too-many-instance-attributes
         self._docker_client = docker.from_env() if self._docker_image else None
         self._executable_entrypoint = executable_entrypoint
         self._target_info = self._setup_target_info(target_info)
+        self._typeconfig = typeconfig
 
     @staticmethod
     def _properties_to_paths(schema, key):
@@ -475,7 +477,7 @@ class HookClient:  # pylint: disable=too-many-instance-attributes
             invocation_point,
             target,
             target_model,
-            TypeConfiguration.get_hook_configuration(),
+            TypeConfiguration.get_hook_configuration(self._typeconfig),
             **kwargs,
         )
         start_time = time.time()

@@ -203,6 +203,7 @@ def test_test_command_happy_path_resource(
         None,
         None,
         None,
+        None,
     )
     mock_plugin.assert_called_once_with(
         {"resource_client": mock_resource_client.return_value}
@@ -280,6 +281,7 @@ def test_test_command_happy_path_hook(
         None,
         enforce_timeout,
         mock_project.type_name,
+        None,
         None,
         None,
         None,

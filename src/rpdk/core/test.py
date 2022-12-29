@@ -335,6 +335,7 @@ def get_contract_plugin_client(args, project, overrides, inputs):
             args.log_role_arn,
             executable_entrypoint=project.executable_entrypoint,
             docker_image=args.docker_image,
+            typeconfig=args.typeconfig,
             target_info=project._load_target_info(  # pylint: disable=protected-access
                 args.cloudformation_endpoint_url, args.region
             ),
@@ -354,6 +355,7 @@ def get_contract_plugin_client(args, project, overrides, inputs):
         project.type_name,
         args.log_group_name,
         args.log_role_arn,
+        typeconfig=args.typeconfig,
         executable_entrypoint=project.executable_entrypoint,
         docker_image=args.docker_image,
     )
@@ -457,6 +459,11 @@ def setup_subparser(subparsers, parents):
         "--docker-image",
         help="Docker image name to run. If specified, invoke will use docker instead "
         "of SAM",
+    )
+
+    parser.add_argument(
+        "--typeconfig",
+        help="typeConfiguration file to use. Default: '~/.cfn-cli/typeConfiguration.json.'",
     )
 
 

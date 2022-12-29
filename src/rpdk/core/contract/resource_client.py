@@ -168,6 +168,7 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         log_group_name=None,
         log_role_arn=None,
         docker_image=None,
+        typeconfig=None,
         executable_entrypoint=None,
     ):  # pylint: disable=too-many-arguments
         self._session = create_sdk_session(region)
@@ -209,6 +210,7 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         self._docker_image = docker_image
         self._docker_client = docker.from_env() if self._docker_image else None
         self._executable_entrypoint = executable_entrypoint
+        self._typeconfig = typeconfig
 
     def _properties_to_paths(self, key):
         return {fragment_decode(prop, prefix="") for prop in self._schema.get(key, [])}
@@ -674,7 +676,7 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
             action,
             current_model,
             previous_model,
-            TypeConfiguration.get_type_configuration(),
+            TypeConfiguration.get_type_configuration(self._typeconfig),
             **kwargs,
         )
         start_time = time.time()
