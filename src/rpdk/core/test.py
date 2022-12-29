@@ -425,7 +425,8 @@ def setup_subparser(subparsers, parents):
 
     _sam_arguments(parser)
     # this parameter can be used to pass additional arguments to pytest after `--`
-    # for example,
+    # for example, cfn test -- -k contract_delete_update # to have pytest run a single test
+
 
     parser.add_argument(
         "--role-arn", help="Role used when performing handler operations."
