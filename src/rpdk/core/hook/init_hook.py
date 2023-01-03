@@ -32,6 +32,9 @@ def init_hook(args, project):
 
     project.init_hook(type_name, language, settings)
     project.generate(args.endpoint_url, args.region, args.target_schemas)
+    # Reload the generated example schema
+    project.load_configuration_schema()
+    # generate the docs based on the example schema loaded
     project.generate_docs()
 
 
