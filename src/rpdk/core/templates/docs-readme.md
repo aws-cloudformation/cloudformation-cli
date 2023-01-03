@@ -52,8 +52,11 @@ Properties:
 {{ prop.description }}
 {% endif %}
 
-_Required_: {% if propname in schema.required %}Yes{% else %}No{% endif %}
-
+{% if schema.required is defined and propname in schema.required %}
+_Required_: Yes
+{% else %}
+_Required_: No
+{% endif %}
 
 _Type_: {{ prop.longformtype }}
 {% if prop.allowedvalues %}
@@ -76,6 +79,9 @@ _Pattern_: <code>{{ prop.pattern }}</code>
 {% if prop.createonly %}
 
 _Update requires_: [Replacement](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-replacement)
+{% elif prop.conditionalCreateOnly %}
+
+_Update requires_: [Some interruptions](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-some-interrupt)
 {% else %}
 
 _Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)

@@ -12,7 +12,7 @@ def test_generate_command_generate(capsys):
         main(args_in=["generate"])
 
     mock_project.load.assert_called_once_with()
-    mock_project.generate.assert_called_once_with(None, None, [])
+    mock_project.generate.assert_called_once_with(None, None, False, [])
     mock_project.generate_docs.assert_called_once_with()
 
     out, err = capsys.readouterr()
@@ -42,6 +42,7 @@ def test_generate_command_generate_with_args(capsys):
     mock_project.generate.assert_called_once_with(
         "http://localhost/3001",
         "us-east-1",
+        False,
         ["/files/target-schema.json", "/files/other-target-schema"],
     )
     mock_project.generate_docs.assert_called_once_with()

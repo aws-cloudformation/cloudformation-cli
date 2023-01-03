@@ -139,8 +139,8 @@ def create_invalid_input_file(base):
 @pytest.mark.parametrize(
     "args_in,pytest_args,plugin_args",
     [
-        ([], [], [DEFAULT_FUNCTION, DEFAULT_ENDPOINT, DEFAULT_REGION, "30"]),
-        (["--endpoint", "foo"], [], [DEFAULT_FUNCTION, "foo", DEFAULT_REGION, "30"]),
+        ([], [], [DEFAULT_FUNCTION, DEFAULT_ENDPOINT, DEFAULT_REGION, "240"]),
+        (["--endpoint", "foo"], [], [DEFAULT_FUNCTION, "foo", DEFAULT_REGION, "240"]),
         (
             ["--function-name", "bar", "--enforce-timeout", "60"],
             [],
@@ -149,12 +149,12 @@ def create_invalid_input_file(base):
         (
             ["--", "-k", "create"],
             ["-k", "create"],
-            [DEFAULT_FUNCTION, DEFAULT_ENDPOINT, DEFAULT_REGION, "30"],
+            [DEFAULT_FUNCTION, DEFAULT_ENDPOINT, DEFAULT_REGION, "240"],
         ),
         (
             ["--region", "us-west-2", "--", "--collect-only"],
             ["--collect-only"],
-            [DEFAULT_FUNCTION, DEFAULT_ENDPOINT, "us-west-2", "30"],
+            [DEFAULT_FUNCTION, DEFAULT_ENDPOINT, "us-west-2", "240"],
         ),
     ],
 )
@@ -220,8 +220,8 @@ def test_test_command_happy_path_resource(
 @pytest.mark.parametrize(
     "args_in,pytest_args,plugin_args",
     [
-        ([], [], [DEFAULT_FUNCTION, DEFAULT_ENDPOINT, DEFAULT_REGION, "30"]),
-        (["--endpoint", "foo"], [], [DEFAULT_FUNCTION, "foo", DEFAULT_REGION, "30"]),
+        ([], [], [DEFAULT_FUNCTION, DEFAULT_ENDPOINT, DEFAULT_REGION, "240"]),
+        (["--endpoint", "foo"], [], [DEFAULT_FUNCTION, "foo", DEFAULT_REGION, "240"]),
         (
             ["--function-name", "bar", "--enforce-timeout", "60"],
             [],
@@ -230,12 +230,12 @@ def test_test_command_happy_path_resource(
         (
             ["--", "-k", "create"],
             ["-k", "create"],
-            [DEFAULT_FUNCTION, DEFAULT_ENDPOINT, DEFAULT_REGION, "30"],
+            [DEFAULT_FUNCTION, DEFAULT_ENDPOINT, DEFAULT_REGION, "240"],
         ),
         (
             ["--region", "us-west-2", "--", "--collect-only"],
             ["--collect-only"],
-            [DEFAULT_FUNCTION, DEFAULT_ENDPOINT, "us-west-2", "30"],
+            [DEFAULT_FUNCTION, DEFAULT_ENDPOINT, "us-west-2", "240"],
         ),
     ],
 )
@@ -337,6 +337,11 @@ def test_temporary_ini_file():
 
         with path.open("r", encoding="utf-8") as f:
             assert "[pytest]" in f.read()
+        # Manually clean up temporary file before exiting - issue with NamedTemporaryFile method on Windows
+        try:
+            os.unlink(path_str)
+        except FileNotFoundError:
+            pass
 
 
 def test_get_overrides_no_root():

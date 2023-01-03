@@ -12,7 +12,9 @@ LOG = logging.getLogger(__name__)
 def generate(args):
     project = Project()
     project.load()
-    project.generate(args.endpoint_url, args.region, args.target_schemas)
+    project.generate(
+        args.endpoint_url, args.region, args.local_only, args.target_schemas
+    )
     project.generate_docs()
 
     LOG.warning("Generated files for %s", project.type_name)
@@ -25,6 +27,9 @@ def setup_subparser(subparsers, parents):
 
     parser.add_argument("--endpoint-url", help="CloudFormation endpoint to use.")
     parser.add_argument("--region", help="AWS Region to submit the type.")
+    parser.add_argument(
+        "--local-only", action="store_true", help="Only load local target info"
+    )
     parser.add_argument(
         "--target-schemas", help="Path to target schemas.", nargs="*", default=[]
     )
