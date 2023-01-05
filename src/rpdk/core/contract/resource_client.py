@@ -5,6 +5,7 @@ import logging
 import re
 import time
 from time import sleep
+from typing import Union
 from uuid import uuid4
 
 import docker
@@ -17,6 +18,7 @@ from rpdk.core.exceptions import InvalidProjectError
 
 from ..boto_helpers import (
     LOWER_CAMEL_CRED_KEYS,
+    Headers,
     create_sdk_session,
     get_account,
     get_temporary_credentials,
@@ -167,7 +169,7 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         type_name=None,
         log_group_name=None,
         log_role_arn=None,
-        headers=None,
+        headers: Union[None, Headers] = None,
         docker_image=None,
         executable_entrypoint=None,
     ):  # pylint: disable=too-many-arguments

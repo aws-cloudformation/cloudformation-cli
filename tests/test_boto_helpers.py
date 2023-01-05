@@ -220,7 +220,10 @@ def test_get_temporary_credentials_assume_role_with_headers():
     session.region_name = "cn-north-1"
 
     creds = get_temporary_credentials(
-        session, LOWER_CAMEL_CRED_KEYS, EXPECTED_ROLE, (SOURCE_ACCOUNT, SOURCE_ARN)
+        session,
+        LOWER_CAMEL_CRED_KEYS,
+        EXPECTED_ROLE,
+        {"source_account": SOURCE_ACCOUNT, "source_arn": SOURCE_ARN},
     )
 
     session.client.assert_called_once_with(

@@ -22,6 +22,7 @@ from rpdk.core.test import (
     DEFAULT_FUNCTION,
     DEFAULT_REGION,
     _validate_sam_args,
+    _validate_test_args,
     empty_hook_override,
     empty_override,
     get_hook_overrides,
@@ -283,7 +284,7 @@ def test_test_command_happy_path_hook(
         mock_project.type_name,
         None,
         None,
-        (None, None),
+        {"source_account": None, "source_arn": None},
         None,
         None,
         HOOK_TARGET_INFO,
@@ -595,3 +596,27 @@ def test_use_both_sam_and_docker_arguments():
             "Cannot specify both --docker-image and --endpoint or --function-name"
             in str(e)
         )
+
+
+@pytest.mark.parametrize(
+    "source_account,source_arn", [(None, "Arn"), ("Account", None)]
+)
+def test_use_account_arn_arguments_raises(source_account, source_arn):
+    args = Mock(spec_set=["source_account", "source_arn"])
+    args.source_account = source_account
+    args.source_arn = source_arn
+    with pytest.raises(SysExitRecommendedError) as err:
+        _validate_test_args(args)
+
+    assert "Must specify both --source-account and --source-arn" in str(err)
+
+
+@pytest.mark.parametrize(
+    "source_account,source_arn", [("Account", "Arn"), (None, None)]
+)
+def test_use_account_arn_arguments(source_account, source_arn):
+    args = Mock(spec_set=["source_account", "source_arn"])
+    args.source_account = source_account
+    args.source_arn = source_arn
+    # No failure should be raised
+    _validate_test_args(args)
