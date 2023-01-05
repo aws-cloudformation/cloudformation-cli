@@ -21,13 +21,15 @@ def setup_function():
     TypeConfiguration.TYPE_CONFIGURATION = None
 
 
+def teardown_function():
+    # Rest after to clean TypeConfiguration before the next test
+    TypeConfiguration.TYPE_CONFIGURATION = None
+
+
 def test_get_type_configuration_with_not_exist_file():
     with patch("builtins.open", mock_open()) as f:
         f.side_effect = FileNotFoundError()
-        try:
-            TypeConfiguration.get_type_configuration()
-        except FileNotFoundError:
-            pass
+        assert TypeConfiguration.get_type_configuration() is None
 
 
 @patch("builtins.open", mock_open(read_data=TYPE_CONFIGURATION_TEST_SETTING))
@@ -73,7 +75,4 @@ def test_get_hook_configuration_with_invalid_json():
 def test_get_hook_configuration_with_not_exist_file():
     with patch("builtins.open", mock_open()) as f:
         f.side_effect = FileNotFoundError()
-        try:
-            TypeConfiguration.get_hook_configuration()
-        except FileNotFoundError:
-            pass
+        assert TypeConfiguration.get_hook_configuration() is None

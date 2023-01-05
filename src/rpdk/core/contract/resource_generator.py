@@ -1,4 +1,5 @@
 import logging
+import re
 from collections.abc import Sequence
 
 from hypothesis.strategies import (
@@ -27,9 +28,17 @@ LOG = logging.getLogger(__name__)
 # https://github.com/aws-cloudformation/aws-cloudformation-rpdk/issues/118
 
 # Arn is just a placeholder for testing
+# format list taken from https://python-jsonschema.readthedocs.io/en/stable/validate/#jsonschema.FormatChecker.checkers
+# date-time regex from https://github.com/naimetti/rfc3339-validator
+# date is extraction from date-time
+# time is extraction from date-time
 STRING_FORMATS = {
     "arn": "^arn:aws(-(cn|gov))?:[a-z-]+:(([a-z]+-)+[0-9])?:([0-9]{12})?:[^.]+$",
-    "uri": "^(https?|ftp|file)://[0-9a-zA-Z]([-.\\w]*[0-9a-zA-Z])(:[0-9]*)*([?/#].*)?$",
+    "uri": r"^(https?|ftp|file)://[0-9a-zA-Z]([-.\w]*[0-9a-zA-Z])(:[0-9]*)*([?/#].*)?$",
+    "date-time": r"^(\d{4})-(0[1-9]|1[0-2])-(\d{2})T(?:[01]\d|2[0123]):(?:[0-5]\d):(?:[0-5]\d)(?:\.\d+)?(?:Z|[+-](?:[01]\d|2[0123]):[0-5]\d)$",
+    "date": r"^(\d{4})-(0[1-9]|1[0-2])-(\d{2})$",
+    "time": r"^(?:[01]\d|2[0123]):(?:[0-5]\d):(?:[0-5]\d)(?:\.\d+)?(?:Z|[+-](?:[01]\d|2[0123]):[0-5]\d)$",
+    "email": r"^.+@[^\.].*\.[a-z]{2,}$",
 }
 
 NEG_INF = float("-inf")
@@ -37,8 +46,10 @@ POS_INF = float("inf")
 
 
 def terminate_regex(regex):
+    if regex.startswith("^"):
+        regex = r"\A" + regex[1:]
     if regex.endswith("$"):
-        return regex[:-1] + r"\Z"
+        regex = regex[:-1] + r"\Z"
     return regex
 
 
@@ -247,7 +258,7 @@ class ResourceGenerator:
             if "maxLength" in schema:  # pragma: no cover
                 LOG.warning("found maxLength used with pattern")
 
-            return from_regex(terminate_regex(regex))
+            return from_regex(re.compile(terminate_regex(regex), re.ASCII))
 
         if "pattern" in schema:  # pragma: no cover
             LOG.warning("found pattern used with format")
@@ -257,4 +268,4 @@ class ResourceGenerator:
             LOG.warning("found maxLength used with format")
 
         regex = STRING_FORMATS[string_format]
-        return from_regex(regex)
+        return from_regex(re.compile(regex, re.ASCII))

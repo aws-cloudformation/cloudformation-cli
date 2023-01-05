@@ -6,6 +6,8 @@ Description: >
 Resources:
   ArtifactBucket:
     Type: AWS::S3::Bucket
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
     Properties:
       AccessControl: BucketOwnerFullControl
       BucketEncryption:
@@ -27,6 +29,8 @@ Resources:
 
   AccessLogsBucket:
     Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
     Properties:
       AccessControl: LogDeliveryWrite
       BucketEncryption:
@@ -54,6 +58,24 @@ Resources:
             Resource:
               - !Sub "arn:${AWS::Partition}:s3:::${ArtifactBucket}"
               - !Sub "arn:${AWS::Partition}:s3:::${ArtifactBucket}/*"
+            Condition:
+              Bool:
+                "aws:SecureTransport": "false"
+            Principal: "*"
+
+  AccessLogsBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref AccessLogsBucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: Require Secure Transport
+            Action: "s3:*"
+            Effect: Deny
+            Resource:
+              - !Sub "arn:${AWS::Partition}:s3:::${AccessLogsBucket}"
+              - !Sub "arn:${AWS::Partition}:s3:::${AccessLogsBucket}/*"
             Condition:
               Bool:
                 "aws:SecureTransport": "false"

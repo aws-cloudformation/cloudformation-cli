@@ -143,12 +143,18 @@ def create_invalid_input_file(base):
         (
             [],
             [],
-            [DEFAULT_FUNCTION, DEFAULT_ENDPOINT, DEFAULT_REGION, "30", DEFAULT_PROFILE],
+            [
+                DEFAULT_FUNCTION,
+                DEFAULT_ENDPOINT,
+                DEFAULT_REGION,
+                "240",
+                DEFAULT_PROFILE,
+            ],
         ),
         (
             ["--endpoint", "foo"],
             [],
-            [DEFAULT_FUNCTION, "foo", DEFAULT_REGION, "30", DEFAULT_PROFILE],
+            [DEFAULT_FUNCTION, "foo", DEFAULT_REGION, "240", DEFAULT_PROFILE],
         ),
         (
             ["--function-name", "bar", "--enforce-timeout", "60"],
@@ -158,17 +164,23 @@ def create_invalid_input_file(base):
         (
             ["--", "-k", "create"],
             ["-k", "create"],
-            [DEFAULT_FUNCTION, DEFAULT_ENDPOINT, DEFAULT_REGION, "30", DEFAULT_PROFILE],
+            [
+                DEFAULT_FUNCTION,
+                DEFAULT_ENDPOINT,
+                DEFAULT_REGION,
+                "240",
+                DEFAULT_PROFILE,
+            ],
         ),
         (
             ["--region", "us-west-2", "--", "--collect-only"],
             ["--collect-only"],
-            [DEFAULT_FUNCTION, DEFAULT_ENDPOINT, "us-west-2", "30", DEFAULT_PROFILE],
+            [DEFAULT_FUNCTION, DEFAULT_ENDPOINT, "us-west-2", "240", DEFAULT_PROFILE],
         ),
         (
             ["--profile", "sandbox"],
             [],
-            [DEFAULT_FUNCTION, DEFAULT_ENDPOINT, DEFAULT_REGION, "30", "sandbox"],
+            [DEFAULT_FUNCTION, DEFAULT_ENDPOINT, DEFAULT_REGION, "240", "sandbox"],
         ),
     ],
 )
@@ -215,9 +227,9 @@ def test_test_command_happy_path_resource(
         mock_project.type_name,
         None,
         None,
-        None,
-        None,
-        profile,
+        executable_entrypoint=None,
+        docker_image=None,
+        profile=profile,
     )
     mock_plugin.assert_called_once_with(
         {"resource_client": mock_resource_client.return_value}
@@ -238,12 +250,18 @@ def test_test_command_happy_path_resource(
         (
             [],
             [],
-            [DEFAULT_FUNCTION, DEFAULT_ENDPOINT, DEFAULT_REGION, "30", DEFAULT_PROFILE],
+            [
+                DEFAULT_FUNCTION,
+                DEFAULT_ENDPOINT,
+                DEFAULT_REGION,
+                "240",
+                DEFAULT_PROFILE,
+            ],
         ),
         (
             ["--endpoint", "foo"],
             [],
-            [DEFAULT_FUNCTION, "foo", DEFAULT_REGION, "30", DEFAULT_PROFILE],
+            [DEFAULT_FUNCTION, "foo", DEFAULT_REGION, "240", DEFAULT_PROFILE],
         ),
         (
             ["--function-name", "bar", "--enforce-timeout", "60"],
@@ -253,17 +271,23 @@ def test_test_command_happy_path_resource(
         (
             ["--", "-k", "create"],
             ["-k", "create"],
-            [DEFAULT_FUNCTION, DEFAULT_ENDPOINT, DEFAULT_REGION, "30", DEFAULT_PROFILE],
+            [
+                DEFAULT_FUNCTION,
+                DEFAULT_ENDPOINT,
+                DEFAULT_REGION,
+                "240",
+                DEFAULT_PROFILE,
+            ],
         ),
         (
             ["--region", "us-west-2", "--", "--collect-only"],
             ["--collect-only"],
-            [DEFAULT_FUNCTION, DEFAULT_ENDPOINT, "us-west-2", "30", DEFAULT_PROFILE],
+            [DEFAULT_FUNCTION, DEFAULT_ENDPOINT, "us-west-2", "240", DEFAULT_PROFILE],
         ),
         (
             ["--profile", "sandbox"],
             [],
-            [DEFAULT_FUNCTION, DEFAULT_ENDPOINT, DEFAULT_REGION, "30", "sandbox"],
+            [DEFAULT_FUNCTION, DEFAULT_ENDPOINT, DEFAULT_REGION, "240", "sandbox"],
         ),
     ],
 )
@@ -310,10 +334,10 @@ def test_test_command_happy_path_hook(
         mock_project.type_name,
         None,
         None,
-        None,
-        None,
-        HOOK_TARGET_INFO,
-        profile,
+        executable_entrypoint=None,
+        docker_image=None,
+        target_info=HOOK_TARGET_INFO,
+        profile=profile,
     )
     mock_plugin.assert_called_once_with({"hook_client": mock_hook_client.return_value})
     mock_ini.assert_called_once_with()
@@ -366,6 +390,11 @@ def test_temporary_ini_file():
 
         with path.open("r", encoding="utf-8") as f:
             assert "[pytest]" in f.read()
+        # Manually clean up temporary file before exiting - issue with NamedTemporaryFile method on Windows
+        try:
+            os.unlink(path_str)
+        except FileNotFoundError:
+            pass
 
 
 def test_get_overrides_no_root():

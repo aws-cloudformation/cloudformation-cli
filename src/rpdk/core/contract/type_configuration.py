@@ -41,12 +41,13 @@ class TypeConfiguration:
 
     @staticmethod
     def get_hook_configuration():
+        # pylint: disable=unsubscriptable-object
         type_configuration = TypeConfiguration.get_type_configuration()
         if type_configuration:
             try:
-                return type_configuration.get("CloudFormationConfiguration", {})[
+                return type_configuration["CloudFormationConfiguration"][
                     "HookConfiguration"
-                ]["Properties"]
+                ].get("Properties")
             except KeyError as e:
                 LOG.warning("Hook configuration is invalid")
                 raise InvalidProjectError("Hook configuration is invalid") from e

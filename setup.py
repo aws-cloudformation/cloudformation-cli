@@ -39,8 +39,8 @@ setup(
     python_requires=">=3.6",
     install_requires=[
         "boto3>=1.10.20",
-        "Jinja2==2.11.3",
-        "markupsafe==2.0.1",
+        "Jinja2>=2.11.3",
+        "markupsafe>=2.0.1",
         "jsonschema>=3.0.1,<4.0",
         "pytest>=4.5.0",
         "pytest-random-order>=1.0.4",
@@ -73,6 +73,8 @@ setup(
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
     ],
     keywords="Amazon Web Services AWS CloudFormation",
 )

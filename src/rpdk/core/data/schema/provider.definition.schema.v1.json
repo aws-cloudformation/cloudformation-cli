@@ -30,7 +30,7 @@
         },
         "replacementStrategy": {
             "type": "string",
-            "description": "The valid replacement strategies are create_then_delete and delete_then_create. All other inputs are invalid.",
+            "description": "The valid replacement strategies are [create_then_delete] and [delete_then_create]. All other inputs are invalid.",
             "default": "create_then_delete",
             "enum": [
                 "create_then_delete",
@@ -113,12 +113,8 @@
             ],
             "$ref": "base.definition.schema.v1.json#/definitions/httpsUrl"
         },
-        "replacementStrategy": {
-            "$comment": "The order of replacement for an immutable resource update.",
-            "$ref": "#/definitions/replacementStrategy"
-        },
         "taggable": {
-            "$comment": "(Deprecated, please use new metadata attribute tagging) A boolean flag indicating whether this resource type supports tagging.",
+            "description": "(Deprecated, please use new metadata attribute tagging) A boolean flag indicating whether this resource type supports tagging.",
             "type": "boolean",
             "default": true
         },
@@ -156,6 +152,10 @@
             ],
             "additionalProperties": false
         },
+        "replacementStrategy": {
+            "$comment": "The order of replacement for an immutable resource update.",
+            "$ref": "#/definitions/replacementStrategy"
+        },
         "additionalProperties": {
             "$comment": "All properties of a resource must be expressed in the schema - arbitrary inputs are not allowed",
             "$ref": "base.definition.schema.v1.json#/properties/additionalProperties"
@@ -165,9 +165,6 @@
         },
         "definitions": {
             "$ref": "base.definition.schema.v1.json#/properties/definitions"
-        },
-        "propertyTransform": {
-            "$ref": "base.definition.schema.v1.json#/properties/propertyTransform"
         },
         "handlers": {
             "description": "Defines the provisioning operations which can be performed on this resource type",
@@ -250,6 +247,15 @@
         "resourceLink": {
             "description": "A template-able link to a resource instance. AWS-internal service links must be relative to the AWS console domain. External service links must be absolute, HTTPS URIs.",
             "$ref": "#/definitions/resourceLink"
+        },
+        "propertyTransform": {
+            "description": "A map which allows resource owners to define a function for a property with possible transformation. This property helps ensure the input to the model is equal to output",
+            "type": "object",
+            "patternProperties": {
+                "^[A-Za-z0-9]{1,64}$": {
+                    "type": "string"
+                }
+            }
         },
         "typeConfiguration": {
             "description": "TypeConfiguration to set the configuration data for registry types. This configuration data is not passed through the resource properties in template. One of the possible use cases is configuring auth keys for 3P resource providers.",
