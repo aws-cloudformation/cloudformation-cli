@@ -71,5 +71,8 @@
     "createOnlyProperties": [
         "/properties/str2"
     ],
+    "conditionalCreateOnlyProperties": [
+        "/properties/obj1"
+    ],
     "additionalProperties": false
 }

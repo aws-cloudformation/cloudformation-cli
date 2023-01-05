@@ -6,12 +6,13 @@ import logging
 import os
 import random
 import string
+import sys
 import zipfile
 from contextlib import contextmanager
 from io import StringIO
 from pathlib import Path
 from shutil import copyfile
-from unittest.mock import ANY, MagicMock, call, patch
+from unittest.mock import ANY, MagicMock, Mock, call, patch
 
 import pytest
 import yaml
@@ -29,26 +30,45 @@ from rpdk.core.plugin_base import LanguagePlugin
 from rpdk.core.project import (
     CFN_METADATA_FILENAME,
     CONFIGURATION_SCHEMA_UPLOAD_FILENAME,
-    LAMBDA_RUNTIMES,
     OVERRIDES_FILENAME,
     SCHEMA_UPLOAD_FILENAME,
     SETTINGS_FILENAME,
+    TARGET_INFO_FILENAME,
     Project,
     escape_markdown,
 )
-from rpdk.core.test import empty_override
+from rpdk.core.test import empty_hook_override, empty_override
+from rpdk.core.type_schema_loader import TypeSchemaLoader
 from rpdk.core.upload import Uploader
 
 from .utils import CONTENTS_UTF8, UnclosingBytesIO
 
 ARTIFACT_TYPE_RESOURCE = "RESOURCE"
 ARTIFACT_TYPE_MODULE = "MODULE"
+ARTIFACT_TYPE_HOOK = "HOOK"
 LANGUAGE = "BQHDBC"
 TYPE_NAME = "AWS::Color::Red"
 MODULE_TYPE_NAME = "AWS::Color::Red::MODULE"
+HOOK_TYPE_NAME = "AWS::CFN::HOOK"
 REGION = "us-east-1"
+PROFILE = "sandbox"
 ENDPOINT = "cloudformation.beta.com"
-RUNTIME = random.choice(list(LAMBDA_RUNTIMES))
+RUNTIME = random.choice(
+    [
+        "noexec",  # cannot be executed, schema only
+        "java8",
+        "java11",
+        "go1.x",
+        "python3.7",
+        "python3.8",
+        "python3.9",
+        "dotnetcore2.1",
+        "nodejs10.x",
+        "nodejs12.x",
+        "nodejs14.x",
+        "nodejs16.x",
+    ]
+)
 BLANK_CLIENT_ERROR = {"Error": {"Code": "", "Message": ""}}
 LOG = logging.getLogger(__name__)
 REGISTRATION_TOKEN = "foo"
@@ -69,6 +89,9 @@ DESCRIBE_TYPE_FAILED_RETURN = {
 CREATE_INPUTS_FILE = "inputs/inputs_1_create.json"
 UPDATE_INPUTS_FILE = "inputs/inputs_1_update.json"
 INVALID_INPUTS_FILE = "inputs/inputs_1_invalid.json"
+PRE_CREATE_INPUTS_FILE = "inputs/inputs_1_pre_create.json"
+PRE_UPDATE_INPUTS_FILE = "inputs/inputs_1_pre_update.json"
+INVALID_PRE_DELETE_INPUTS_FILE = "inputs/inputs_1_invalid_pre_delete.json"
 
 PLUGIN_INFORMATION = {
     "plugin-version": "2.1.3",
@@ -90,6 +113,11 @@ def test_escape_markdown_with_empty_string():
 @pytest.mark.parametrize("string", ["Hello", "SomeProperty"])
 def test_escape_markdown(string):
     assert escape_markdown(string) == string
+
+
+@pytest.fixture
+def session():
+    return Mock(spec_set=["client", "region_name", "get_credentials"])
 
 
 @pytest.fixture
@@ -121,6 +149,13 @@ def test_load_settings_invalid_settings(project):
 
 def test_load_settings_invalid_modules_settings(project):
     with patch_settings(project, '{"artifact_type": "MODULE"}') as mock_open:
+        with pytest.raises(InvalidProjectError):
+            project.load_settings()
+    mock_open.assert_called_once_with("r", encoding="utf-8")
+
+
+def test_load_settings_invalid_hooks_settings(project):
+    with patch_settings(project, '{"artifact_type": "HOOK"}') as mock_open:
         with pytest.raises(InvalidProjectError):
             project.load_settings()
     mock_open.assert_called_once_with("r", encoding="utf-8")
@@ -216,9 +251,43 @@ def test_generate_for_modules_succeeds(project):
     project.generate_docs()
 
 
+def test_load_settings_valid_json_for_hook(project):
+    plugin = object()
+    data = json.dumps(
+        {
+            "artifact_type": "HOOK",
+            "typeName": HOOK_TYPE_NAME,
+            "language": LANGUAGE,
+            "runtime": RUNTIME,
+            "entrypoint": None,
+            "testEntrypoint": None,
+        }
+    )
+    patch_load = patch(
+        "rpdk.core.project.load_plugin", autospec=True, return_value=plugin
+    )
+
+    with patch_settings(project, data) as mock_open, patch_load as mock_load:
+        project.load_settings()
+
+    mock_open.assert_called_once_with("r", encoding="utf-8")
+    mock_load.assert_called_once_with(LANGUAGE)
+    assert project.type_info == ("AWS", "CFN", "HOOK")
+    assert project.type_name == HOOK_TYPE_NAME
+    assert project.language == LANGUAGE
+    assert project.artifact_type == ARTIFACT_TYPE_HOOK
+    assert project._plugin is plugin
+    assert project.settings == {}
+
+
 def test_load_schema_settings_not_loaded(project):
     with pytest.raises(InternalError):
         project.load_schema()
+
+
+def test_load_hook_schema_settings_not_loaded(project):
+    with pytest.raises(InternalError):
+        project.load_hook_schema()
 
 
 def test_load_schema_example(project):
@@ -384,7 +453,82 @@ def test_generate_with_docs(project, tmp_path_factory, schema_path, path):
     assert project.type_name in readme_contents
 
 
-def test_generate_docs_with_multityped_property(project, tmp_path_factory):
+@pytest.mark.parametrize(
+    "schema_path,path",
+    [
+        (
+            "data/schema/hook/valid/valid_hook_configuration.json",
+            "generate_docs_with_one_property",
+        ),
+        (
+            "data/schema/hook/valid/valid_hook_configuration_multiple_properties.json",
+            "generate_docs_with_multiple_properties",
+        ),
+        (
+            "data/schema/hook/valid/valid_hook_configuration_no_properties.json",
+            "generate_docs_with_no_properties",
+        ),
+        (
+            "data/schema/hook/valid/valid_hook_configuration_with_object_property.json",
+            "generate_docs_with_object_property",
+        ),
+        (
+            "data/schema/hook/valid/valid_hook_configuration_with_nested_property.json",
+            "generate_docs_with_nested_property",
+        ),
+        (
+            "data/schema/hook/valid/valid_hook_configuration_with_complex_properties.json",
+            "generate_docs_with_complex_properties",
+        ),
+    ],
+)
+def test_generate_docs_for_hook(project, tmp_path_factory, session, schema_path, path):
+    project.schema = resource_json(__name__, schema_path)
+    project.type_name = "AWS::FooBar::Hook"
+    project.artifact_type = ARTIFACT_TYPE_HOOK
+    project.load_configuration_schema()
+    # tmpdir conflicts with other tests, make a unique one
+    project.root = tmp_path_factory.mktemp(path)
+
+    mock_plugin = MagicMock(spec=["generate"])
+    patch_session = patch("rpdk.core.boto_helpers.Boto3Session")
+
+    def get_test_schema():
+        return {
+            "typeName": "AWS::S3::Bucket",
+            "description": "test schema",
+            "properties": {"foo": {"type": "string"}},
+            "primaryIdentifier": ["/properties/foo"],
+            "additionalProperties": False,
+        }
+
+    mock_cfn_client = MagicMock(spec=["describe_type"])
+    with patch.object(project, "_plugin", mock_plugin), patch_session as mock_session:
+        mock_cfn_client.describe_type.return_value = {
+            "Schema": json.dumps(get_test_schema()),
+            "Type": "",
+            "ProvisioningType": "",
+        }
+        session.client.side_effect = [mock_cfn_client, MagicMock()]
+        mock_session.return_value = session
+        project.generate()
+        project.generate_docs()
+    mock_plugin.generate.assert_called_once_with(project)
+
+    docs_dir = project.root / "docs"
+    readme_file = project.root / "docs" / "README.md"
+
+    assert docs_dir.is_dir()
+    assert readme_file.is_file()
+    with patch.object(project, "_plugin", mock_plugin), patch_session as mock_session:
+        session.client.side_effect = [mock_cfn_client, MagicMock()]
+        mock_session.return_value = session
+        project.generate()
+    readme_contents = readme_file.read_text(encoding="utf-8")
+    assert project.type_name in readme_contents
+
+
+def test_generate_docs_with_multityped_property(project, tmp_path_factory, session):
     project.schema = resource_json(
         __name__, "data/schema/valid/valid_multityped_property.json"
     )
@@ -393,7 +537,9 @@ def test_generate_docs_with_multityped_property(project, tmp_path_factory):
     # tmpdir conflicts with other tests, make a unique one
     project.root = tmp_path_factory.mktemp("generate_with_docs_type_complex")
     mock_plugin = MagicMock(spec=["generate"])
-    with patch.object(project, "_plugin", mock_plugin):
+    patch_session = patch("rpdk.core.boto_helpers.Boto3Session")
+    with patch.object(project, "_plugin", mock_plugin), patch_session as mock_session:
+        mock_session.return_value = session
         project.generate()
         project.generate_docs()
     mock_plugin.generate.assert_called_once_with(project)
@@ -661,6 +807,150 @@ def test_init_resource(project):
         assert f.read() == b"\n"
 
 
+def test_generate_hook_handlers(project, tmpdir, session):
+    project.type_name = "Test::Handler::Test"
+    project.artifact_type = ARTIFACT_TYPE_HOOK
+    expected_actions = {"preCreateAction", "preDeleteAction"}
+    project.schema = {
+        "handlers": {
+            "preCreate": {"permissions": ["preCreateAction", "preDeleteAction"]},
+            "preDelete": {"permissions": ["preDeleteAction", ""]},
+        }
+    }
+    project.root = tmpdir
+    mock_plugin = MagicMock(spec=["generate"])
+    patch_session = patch_session = patch("rpdk.core.boto_helpers.Boto3Session")
+    with patch.object(project, "_plugin", mock_plugin), patch_session as mock_session:
+        mock_session.return_value = session
+        project.generate()
+
+    role_path = project.root / "hook-role.yaml"
+    with role_path.open("r", encoding="utf-8") as f:
+        template = yaml.safe_load(f.read())
+
+    action_list = template["Resources"]["ExecutionRole"]["Properties"]["Policies"][0][
+        "PolicyDocument"
+    ]["Statement"][0]["Action"]
+
+    assert all(action in expected_actions for action in action_list)
+    assert len(action_list) == len(expected_actions)
+    assert template["Outputs"]["ExecutionRoleArn"]
+    mock_plugin.generate.assert_called_once_with(project)
+
+
+@pytest.mark.parametrize(
+    "schema",
+    (
+        {"handlers": {"preCreate": {"permissions": [""]}}},
+        {"handlers": {"preCreate": {}}},
+    ),
+)
+def test_generate_hook_handlers_deny_all(project, tmpdir, schema):
+    project.type_name = "Test::Handler::Test"
+    project.artifact_type = ARTIFACT_TYPE_HOOK
+    project.schema = schema
+    project.root = tmpdir
+    mock_plugin = MagicMock(spec=["generate"])
+    with patch.object(project, "_plugin", mock_plugin), patch(
+        "rpdk.core.boto_helpers.Boto3Session"
+    ) as session:
+        session.return_value = session()
+        project.generate()
+
+    role_path = project.root / "hook-role.yaml"
+    with role_path.open("r", encoding="utf-8") as f:
+        template = yaml.safe_load(f.read())
+
+    statement = template["Resources"]["ExecutionRole"]["Properties"]["Policies"][0][
+        "PolicyDocument"
+    ]["Statement"][0]
+    assert statement["Effect"] == "Deny"
+    assert statement["Action"][0] == "*"
+    mock_plugin.generate.assert_called_once_with(project)
+
+
+@pytest.mark.parametrize(
+    "schema,result",
+    (
+        ({"handlers": {"preCreate": {"timeoutInMinutes": 720}}}, 43200),
+        ({"handlers": {"preCreate": {"timeoutInMinutes": 2}}}, 3600),
+        ({"handlers": {"preCreate": {"timeoutInMinutes": 90}}}, 6300),
+        (
+            {
+                "handlers": {
+                    "preCreate": {"timeoutInMinutes": 70},
+                    "preUpdate": {"timeoutInMinutes": 90},
+                }
+            },
+            6300,
+        ),
+        ({"handlers": {"preCreate": {}}}, 8400),
+        ({"handlers": {"preCreate": {"timeoutInMinutes": 90}, "preDelete": {}}}, 8400),
+    ),
+)
+def test_generate__hook_handlers_role_session_timeout(
+    project, tmpdir, schema, result, session
+):
+    project.type_name = "Test::Handler::Test"
+    project.artifact_type = ARTIFACT_TYPE_HOOK
+    project.schema = schema
+    project.root = tmpdir
+    mock_plugin = MagicMock(spec=["generate"])
+    patch_session = patch("rpdk.core.boto_helpers.Boto3Session")
+    with patch.object(project, "_plugin", mock_plugin), patch_session as mock_session:
+        mock_session.return_value = session
+        project.generate()
+
+    role_path = project.root / "hook-role.yaml"
+    with role_path.open("r", encoding="utf-8") as f:
+        template = yaml.safe_load(f.read())
+
+    max_session_timeout = template["Resources"]["ExecutionRole"]["Properties"][
+        "MaxSessionDuration"
+    ]
+    assert max_session_timeout == result
+
+    mock_plugin.generate.assert_called_once_with(project)
+
+
+def test_init_hook(project):
+    type_name = "AWS::CFN::HOOK"
+
+    mock_plugin = MagicMock(spec=["init"])
+    patch_load_plugin = patch(
+        "rpdk.core.project.load_plugin", autospec=True, return_value=mock_plugin
+    )
+
+    with patch_load_plugin as mock_load_plugin:
+        project.init_hook(type_name, LANGUAGE)
+
+    mock_load_plugin.assert_called_once_with(LANGUAGE)
+    mock_plugin.init.assert_called_once_with(project)
+
+    assert project.type_info == ("AWS", "CFN", "HOOK")
+    assert project.type_name == type_name
+    assert project.language == LANGUAGE
+    assert project.artifact_type == ARTIFACT_TYPE_HOOK
+    assert project._plugin is mock_plugin
+    assert project.settings == {}
+
+    with project.settings_path.open("r", encoding="utf-8") as f:
+        assert json.load(f)
+
+    # ends with newline
+    with project.settings_path.open("rb") as f:
+        f.seek(-1, os.SEEK_END)
+        assert f.read() == b"\n"
+
+    with project.schema_path.open("r", encoding="utf-8") as f:
+        assert json.load(f)
+
+    # ends with newline
+    with project.schema_path.open("rb") as f:
+        f.seek(-1, os.SEEK_END)
+        assert f.read() == b"\n"
+
+
 def test_init_module(project):
     type_name = "AWS::Color::Red"
 
@@ -707,6 +997,26 @@ def test_load_invalid_schema(project):
     assert "invalid" in str(excinfo.value)
 
 
+def test_load_invalid_hook_schema(project):
+    project.artifact_type = "HOOK"
+    project.type_name = "AWS::CFN::HOOK"
+    patch_settings = patch.object(
+        project, "load_settings", return_value={"artifact_type": "HOOK"}
+    )
+    patch_schema = patch.object(
+        project, "load_hook_schema", side_effect=SpecValidationError("")
+    )
+    with patch_settings as mock_settings, patch_schema as mock_schema, pytest.raises(
+        InvalidProjectError
+    ) as excinfo:
+        project.load()
+
+    mock_settings.assert_called_once_with()
+    mock_schema.assert_called_once_with()
+
+    assert "invalid" in str(excinfo.value)
+
+
 def test_load_module_project_succeeds(project, tmp_path_factory):
     project.artifact_type = "MODULE"
     project.type_name = "Unit::Test::Malik::MODULE"
@@ -740,6 +1050,17 @@ def test_load_resource_succeeds(project):
         project.load()
 
 
+def test_load_hook_succeeds(project):
+    project.artifact_type = "HOOK"
+    project.type_name = "AWS::CFN::HOOK"
+    patch_load_settings = patch.object(
+        project, "load_settings", return_values={"artifact_type": "HOOK"}
+    )
+    project._write_example_hook_schema()
+    with patch_load_settings:
+        project.load()
+
+
 def test_load_module_project_with_invalid_fragments(project):
     project.artifact_type = "MODULE"
     project.type_name = "Unit::Test::Malik::MODULE"
@@ -756,6 +1077,26 @@ def test_load_module_project_with_invalid_fragments(project):
 def test_schema_not_found(project):
     patch_settings = patch.object(project, "load_settings")
     patch_schema = patch.object(project, "load_schema", side_effect=FileNotFoundError)
+    with patch_settings as mock_settings, patch_schema as mock_schema, pytest.raises(
+        InvalidProjectError
+    ) as excinfo:
+        project.load()
+
+    mock_settings.assert_called_once_with()
+    mock_schema.assert_called_once_with()
+
+    assert "not found" in str(excinfo.value)
+
+
+def test_hook_schema_not_found(project):
+    project.artifact_type = "HOOK"
+    project.type_name = "AWS::CFN::HOOK"
+    patch_settings = patch.object(
+        project, "load_settings", return_value={"artifact_type": "HOOK"}
+    )
+    patch_schema = patch.object(
+        project, "load_hook_schema", side_effect=FileNotFoundError
+    )
     with patch_settings as mock_settings, patch_schema as mock_schema, pytest.raises(
         InvalidProjectError
     ) as excinfo:
@@ -802,6 +1143,51 @@ def create_input_file(base):
         f.write("{}")
 
 
+def create_hook_input_file(base):
+    path = base / "inputs"
+    os.mkdir(path, mode=0o777)
+
+    path_pre_create = base / PRE_CREATE_INPUTS_FILE
+    with path_pre_create.open("w", encoding="utf-8") as f:
+        f.write(json.dumps({TYPE_NAME: {"resourceProperties": {}}}))
+
+    path_pre_update = base / PRE_UPDATE_INPUTS_FILE
+    with path_pre_update.open("w", encoding="utf-8") as f:
+        f.write(
+            json.dumps(
+                {
+                    TYPE_NAME: {
+                        "resourceProperties": {},
+                        "previousResourceProperties": {},
+                    }
+                }
+            )
+        )
+
+    path_invalid_pre_delete = base / INVALID_PRE_DELETE_INPUTS_FILE
+    with path_invalid_pre_delete.open("w", encoding="utf-8") as f:
+        f.write(json.dumps({TYPE_NAME: {"resourceProperties": {}}}))
+
+    path_invalid = base / INVALID_INPUTS_FILE
+    with path_invalid.open("w", encoding="utf-8") as f:
+        f.write(json.dumps({TYPE_NAME: {"resourceProperties": {}}}))
+
+
+def _get_target_schema_filename(target_name):
+    return "{}.json".format("-".join(s.lower() for s in target_name.split("::")))
+
+
+def create_target_schema_file(base, target_schema):
+    path = base / "target-schemas"
+    os.mkdir(path, mode=0o777)
+
+    schema_filename = _get_target_schema_filename(target_schema["typeName"])
+
+    path_target_schema = base / "target-schemas" / schema_filename
+    with path_target_schema.open("w", encoding="utf-8") as f:
+        f.write(json.dumps(target_schema, indent=4))
+
+
 # pylint: disable=too-many-arguments, too-many-locals, too-many-statements
 @pytest.mark.parametrize("is_type_configuration_available", (False, True))
 def test_submit_dry_run(project, is_type_configuration_available):
@@ -813,6 +1199,8 @@ def test_submit_dry_run(project, is_type_configuration_available):
 
     with project.schema_path.open("w", encoding="utf-8") as f:
         f.write(CONTENTS_UTF8)
+    if sys.version_info >= (3, 8):
+        os.utime(project.schema_path, (1602179630, 10000))
 
     if is_type_configuration_available:
         project.configuration_schema = {"properties": {}}
@@ -841,7 +1229,8 @@ def test_submit_dry_run(project, is_type_configuration_available):
             region_name=REGION,
             role_arn=None,
             use_role=True,
-            set_default=False
+            set_default=False,
+            profile_name=PROFILE
         )
     # fmt: on
 
@@ -941,7 +1330,8 @@ def test_submit_dry_run_modules(project):
             region_name=REGION,
             role_arn=None,
             use_role=True,
-            set_default=False
+            set_default=False,
+            profile_name=PROFILE
         )
     # fmt: on
 
@@ -965,6 +1355,222 @@ def test_submit_dry_run_modules(project):
         assert "CREATE" in overrides
         # https://docs.python.org/3/library/zipfile.html#zipfile.ZipFile.testzip
         assert zip_file.testzip() is None
+
+
+# pylint: disable=too-many-arguments, too-many-locals, too-many-statements
+def test_submit_dry_run_hooks(project):
+    project.type_name = TYPE_NAME
+    project.runtime = RUNTIME
+    project.language = LANGUAGE
+    project.artifact_type = ARTIFACT_TYPE_HOOK
+    zip_path = project.root / "test.zip"
+
+    with project.schema_path.open("w", encoding="utf-8") as f:
+        f.write(CONTENTS_UTF8)
+
+    project.configuration_schema = {
+        "CloudFormationConfiguration": {"HookConfiguration": {"Properties": {}}}
+    }
+
+    with project.overrides_path.open("w", encoding="utf-8") as f:
+        f.write(json.dumps(empty_hook_override()))
+
+    create_input_file(project.root)
+
+    project.write_settings()
+
+    patch_plugin = patch.object(project, "_plugin", spec=LanguagePlugin)
+    patch_upload = patch.object(project, "_upload", autospec=True)
+    patch_path = patch("rpdk.core.project.Path", return_value=zip_path)
+    patch_temp = patch("rpdk.core.project.TemporaryFile", autospec=True)
+
+    # fmt: off
+    # these context managers can't be wrapped by black, but it removes the \
+    with patch_plugin as mock_plugin, patch_path as mock_path, \
+            patch_temp as mock_temp, patch_upload as mock_upload:
+        mock_plugin.get_plugin_information = MagicMock(return_value=PLUGIN_INFORMATION)
+
+        project.submit(
+            True,
+            endpoint_url=ENDPOINT,
+            region_name=REGION,
+            role_arn=None,
+            use_role=True,
+            set_default=False,
+            profile_name=PROFILE
+        )
+    # fmt: on
+
+    mock_temp.assert_not_called()
+    mock_path.assert_called_with("{}.zip".format(project.hypenated_name))
+    mock_plugin.package.assert_called_once_with(project, ANY)
+    mock_upload.assert_not_called()
+
+    file_set = {
+        SCHEMA_UPLOAD_FILENAME,
+        SETTINGS_FILENAME,
+        OVERRIDES_FILENAME,
+        CREATE_INPUTS_FILE,
+        INVALID_INPUTS_FILE,
+        UPDATE_INPUTS_FILE,
+        CFN_METADATA_FILENAME,
+        CONFIGURATION_SCHEMA_UPLOAD_FILENAME,
+    }
+    with zipfile.ZipFile(zip_path, mode="r") as zip_file:
+        assert set(zip_file.namelist()) == file_set
+
+        schema_contents = zip_file.read(SCHEMA_UPLOAD_FILENAME).decode("utf-8")
+        assert schema_contents == CONTENTS_UTF8
+
+        configuration_schema_contents = zip_file.read(
+            CONFIGURATION_SCHEMA_UPLOAD_FILENAME
+        ).decode("utf-8")
+        assert configuration_schema_contents == json.dumps(
+            project.configuration_schema, indent=4
+        )
+
+        settings = json.loads(zip_file.read(SETTINGS_FILENAME).decode("utf-8"))
+        assert settings["runtime"] == RUNTIME
+        overrides = json.loads(zip_file.read(OVERRIDES_FILENAME).decode("utf-8"))
+        assert "CREATE_PRE_PROVISION" in overrides
+        # https://docs.python.org/3/library/zipfile.html#zipfile.ZipFile.testzip
+        assert zip_file.testzip() is None
+        metadata_info = json.loads(zip_file.read(CFN_METADATA_FILENAME).decode("utf-8"))
+        assert "cli-version" in metadata_info
+        assert "plugin-version" in metadata_info
+        assert "plugin-tool-version" in metadata_info
+
+
+# pylint: disable=too-many-arguments, too-many-locals, too-many-statements
+def test_submit_dry_run_hooks_with_target_info(project, session):
+    schema = {
+        "typeName": "AWS::FOO::BAR",
+        "description": "test schema",
+        "typeConfiguration": {
+            "properties": {"foo": {"type": "string"}},
+            "additionalProperties": False,
+        },
+        "handlers": {
+            "preCreate": {
+                "targetNames": [TYPE_NAME],
+            }
+        },
+        "additionalProperties": False,
+    }
+
+    target_info = {
+        TYPE_NAME: {
+            "TargetName": TYPE_NAME,
+            "TypeName": TYPE_NAME,
+            "TargetType": "RESOURCE",
+            "Schema": {
+                "typeName": TYPE_NAME,
+                "description": "test description",
+                "additionalProperties": False,
+                "properties": {
+                    "Id": {"type": "string"},
+                },
+                "required": [],
+                "primaryIdentifier": ["/properties/Id"],
+            },
+            "ProvisioningType": "FULLY_MUTABLE",
+            "IsCfnRegistrySupportedType": True,
+            "SchemaFileAvailable": True,
+        },
+    }
+
+    project.type_name = TYPE_NAME
+    project.runtime = RUNTIME
+    project.language = LANGUAGE
+    project.artifact_type = ARTIFACT_TYPE_HOOK
+    project.schema = schema
+    zip_path = project.root / "test.zip"
+
+    with project.schema_path.open("w", encoding="utf-8") as f:
+        f.write(json.dumps(schema, indent=4))
+
+    project.configuration_schema = {
+        "CloudFormationConfiguration": {"HookConfiguration": {"Properties": {}}}
+    }
+
+    with project.overrides_path.open("w", encoding="utf-8") as f:
+        f.write(json.dumps(empty_hook_override()))
+
+    with project.target_info_path.open("w", encoding="utf-8") as f:
+        f.write(json.dumps({TYPE_NAME: {"ProvisioningType": "FULLY_MUTABLE"}}))
+
+    create_hook_input_file(project.root)
+
+    create_target_schema_file(project.root, target_info[TYPE_NAME]["Schema"])
+
+    project.write_settings()
+
+    patch_plugin = patch.object(project, "_plugin", spec=LanguagePlugin)
+    patch_upload = patch.object(project, "_upload", autospec=True)
+    patch_path = patch("rpdk.core.project.Path", return_value=zip_path)
+    patch_temp = patch("rpdk.core.project.TemporaryFile", autospec=True)
+    patch_session = patch("rpdk.core.boto_helpers.Boto3Session")
+    # fmt: off
+    # these context managers can't be wrapped by black, but it removes the \
+    with patch_plugin as mock_plugin, patch_path as mock_path, \
+            patch_temp as mock_temp, patch_upload as mock_upload, patch_session as mock_session:
+        mock_plugin.get_plugin_information = MagicMock(return_value=PLUGIN_INFORMATION)
+        mock_session.return_value = session
+        project.submit(
+            True,
+            endpoint_url=None,
+            region_name=REGION,
+            role_arn=None,
+            use_role=True,
+            set_default=False,
+            profile_name=PROFILE
+        )
+    # fmt: on
+
+    mock_temp.assert_not_called()
+    mock_path.assert_called_with("{}.zip".format(project.hypenated_name))
+    mock_plugin.package.assert_called_once_with(project, ANY)
+    mock_upload.assert_not_called()
+
+    file_set = {
+        SCHEMA_UPLOAD_FILENAME,
+        SETTINGS_FILENAME,
+        OVERRIDES_FILENAME,
+        PRE_CREATE_INPUTS_FILE,
+        PRE_UPDATE_INPUTS_FILE,
+        INVALID_PRE_DELETE_INPUTS_FILE,
+        INVALID_INPUTS_FILE,
+        CFN_METADATA_FILENAME,
+        CONFIGURATION_SCHEMA_UPLOAD_FILENAME,
+        TARGET_INFO_FILENAME,
+        "target-schemas/aws-color-red.json",
+    }
+    with zipfile.ZipFile(zip_path, mode="r") as zip_file:
+        assert set(zip_file.namelist()) == file_set
+
+        schema_contents = zip_file.read(SCHEMA_UPLOAD_FILENAME).decode("utf-8")
+        assert json.loads(schema_contents) == schema
+
+        configuration_schema_contents = zip_file.read(
+            CONFIGURATION_SCHEMA_UPLOAD_FILENAME
+        ).decode("utf-8")
+        assert configuration_schema_contents == json.dumps(
+            project.configuration_schema, indent=4
+        )
+        zip_file.printdir()
+        settings = json.loads(zip_file.read(SETTINGS_FILENAME).decode("utf-8"))
+        assert settings["runtime"] == RUNTIME
+        overrides = json.loads(zip_file.read(OVERRIDES_FILENAME).decode("utf-8"))
+        assert "CREATE_PRE_PROVISION" in overrides
+        assert target_info == json.loads(
+            zip_file.read(TARGET_INFO_FILENAME).decode("utf-8")
+        )
+        # https://docs.python.org/3/library/zipfile.html#zipfile.ZipFile.testzip
+        assert zip_file.testzip() is None
+        metadata_info = json.loads(zip_file.read(CFN_METADATA_FILENAME).decode("utf-8"))
+        assert "cli-version" in metadata_info
+        assert "plugin-version" in metadata_info
+        assert "plugin-tool-version" in metadata_info
 
 
 def test_submit_live_run(project):
@@ -995,7 +1601,8 @@ def test_submit_live_run(project):
             region_name=REGION,
             role_arn=None,
             use_role=True,
-            set_default=True
+            set_default=True,
+            profile_name=PROFILE
         )
     # fmt: on
 
@@ -1013,6 +1620,7 @@ def test_submit_live_run(project):
         role_arn=None,
         use_role=True,
         set_default=True,
+        profile_name=PROFILE,
     )
 
     assert temp_file._was_closed
@@ -1047,13 +1655,72 @@ def test_submit_live_run_for_module(project):
             region_name=REGION,
             role_arn=None,
             use_role=True,
-            set_default=True
+            set_default=True,
+            profile_name=PROFILE
         )
     # fmt: on
 
     mock_path.assert_not_called()
     mock_temp.assert_called_once_with("w+b")
     mock_plugin.package.assert_not_called()
+    temp_file._close()
+
+
+def test_submit_live_run_for_hooks(project):
+    project.type_name = TYPE_NAME
+    project.runtime = RUNTIME
+    project.language = LANGUAGE
+    project.artifact_type = ARTIFACT_TYPE_HOOK
+
+    with project.schema_path.open("w", encoding="utf-8") as f:
+        f.write(CONTENTS_UTF8)
+
+    project.configuration_schema = {
+        "CloudFormationConfiguration": {"HookConfiguration": {"Properties": {}}}
+    }
+
+    project.write_settings()
+
+    temp_file = UnclosingBytesIO()
+
+    patch_plugin = patch.object(project, "_plugin", spec=LanguagePlugin)
+    patch_upload = patch.object(project, "_upload", autospec=True)
+    patch_path = patch("rpdk.core.project.Path", autospec=True)
+    patch_temp = patch("rpdk.core.project.TemporaryFile", return_value=temp_file)
+
+    # fmt: off
+    # these context managers can't be wrapped by black, but it removes the \
+    with patch_plugin as mock_plugin, patch_path as mock_path, \
+            patch_temp as mock_temp, patch_upload as mock_upload:
+        project.submit(
+            False,
+            endpoint_url=ENDPOINT,
+            region_name=REGION,
+            role_arn=None,
+            use_role=True,
+            set_default=True,
+            profile_name=PROFILE
+        )
+    # fmt: on
+
+    mock_path.assert_not_called()
+    mock_temp.assert_called_once_with("w+b")
+    mock_plugin.package.assert_called_once_with(project, ANY)
+
+    # zip file construction is tested by the dry-run test
+
+    assert temp_file.tell() == 0  # file was rewound before upload
+    mock_upload.assert_called_once_with(
+        temp_file,
+        region_name=REGION,
+        endpoint_url=ENDPOINT,
+        role_arn=None,
+        use_role=True,
+        set_default=True,
+        profile_name=PROFILE,
+    )
+
+    assert temp_file._was_closed
     temp_file._close()
 
 
@@ -1087,9 +1754,10 @@ def test__upload_good_path_create_role_and_set_default(project):
                 role_arn=None,
                 use_role=True,
                 set_default=True,
+                profile_name=None,
             )
 
-    mock_sdk.assert_called_once_with(None)
+    mock_sdk.assert_called_once_with(region_name=None, profile_name=None)
     mock_exec_role_method.assert_called_once_with(
         project.root / "resource-role.yaml", project.hypenated_name
     )
@@ -1098,6 +1766,60 @@ def test__upload_good_path_create_role_and_set_default(project):
     mock_uuid.assert_called_once_with()
     mock_cfn_client.register_type.assert_called_once_with(
         Type="RESOURCE",
+        TypeName=project.type_name,
+        SchemaHandlerPackage="url",
+        ClientRequestToken=mock_uuid.return_value,
+        LoggingConfig={
+            "LogRoleArn": "some-log-role-arn",
+            "LogGroupName": "aws-color-red-logs",
+        },
+        ExecutionRoleArn="some-execution-role-arn",
+    )
+    mock_wait.assert_called_once_with(mock_cfn_client, "foo", True)
+
+
+def test__upload_good_path_create_role_and_set_default_hook(project):
+    project.type_name = TYPE_NAME
+    project.artifact_type = ARTIFACT_TYPE_HOOK
+    project.schema = {"handlers": {}}
+
+    mock_cfn_client = MagicMock(spec=["register_type"])
+    mock_cfn_client.register_type.return_value = {"RegistrationToken": "foo"}
+    fileobj = object()
+
+    patch_sdk = patch("rpdk.core.project.create_sdk_session", autospec=True)
+    patch_uploader = patch.object(Uploader, "upload", return_value="url")
+    patch_exec_role_arn = patch.object(
+        Uploader, "create_or_update_role", return_value="some-execution-role-arn"
+    )
+    patch_logging_role_arn = patch.object(
+        Uploader, "get_log_delivery_role_arn", return_value="some-log-role-arn"
+    )
+    patch_uuid = patch("rpdk.core.project.uuid4", autospec=True, return_value="foo")
+    patch_wait = patch.object(project, "_wait_for_registration", autospec=True)
+
+    with patch_sdk as mock_sdk, patch_uploader as mock_upload_method, patch_logging_role_arn as mock_role_arn_method, patch_exec_role_arn as mock_exec_role_method:  # noqa: B950 as it conflicts with formatting rules # pylint: disable=C0301
+        mock_sdk.return_value.client.side_effect = [mock_cfn_client, MagicMock()]
+        with patch_uuid as mock_uuid, patch_wait as mock_wait:
+            project._upload(
+                fileobj,
+                endpoint_url=None,
+                region_name=None,
+                role_arn=None,
+                use_role=True,
+                set_default=True,
+                profile_name=None,
+            )
+
+    mock_sdk.assert_called_once_with(region_name=None, profile_name=None)
+    mock_exec_role_method.assert_called_once_with(
+        project.root / "hook-role.yaml", project.hypenated_name
+    )
+    mock_upload_method.assert_called_once_with(project.hypenated_name, fileobj)
+    mock_role_arn_method.assert_called_once_with()
+    mock_uuid.assert_called_once_with()
+    mock_cfn_client.register_type.assert_called_once_with(
+        Type="HOOK",
         TypeName=project.type_name,
         SchemaHandlerPackage="url",
         ClientRequestToken=mock_uuid.return_value,
@@ -1143,9 +1865,10 @@ def test__upload_good_path_skip_role_creation(
                 role_arn="someArn",
                 use_role=use_role,
                 set_default=True,
+                profile_name=None,
             )
 
-    mock_sdk.assert_called_once_with(None)
+    mock_sdk.assert_called_once_with(region_name=None, profile_name=None)
     mock_upload_method.assert_called_once_with(project.hypenated_name, fileobj)
     mock_role_arn_method.assert_called_once_with()
     mock_uuid.assert_called_once_with()
@@ -1153,6 +1876,61 @@ def test__upload_good_path_skip_role_creation(
 
     mock_cfn_client.register_type.assert_called_once_with(
         Type="RESOURCE",
+        TypeName=project.type_name,
+        SchemaHandlerPackage="url",
+        ClientRequestToken=mock_uuid.return_value,
+        LoggingConfig={
+            "LogRoleArn": "some-log-role-arn",
+            "LogGroupName": "aws-color-red-logs",
+        },
+        **expected_additional_args,
+    )
+
+
+@pytest.mark.parametrize(
+    ("use_role,expected_additional_args"),
+    [(True, {"ExecutionRoleArn": "someArn"}), (False, {})],
+)
+def test__upload_good_path_skip_role_creation_hook(
+    project, use_role, expected_additional_args
+):
+    project.type_name = TYPE_NAME
+    project.artifact_type = ARTIFACT_TYPE_HOOK
+    project.schema = {"handlers": {}}
+
+    mock_cfn_client = MagicMock(spec=["register_type"])
+    fileobj = object()
+    mock_cfn_client.register_type.return_value = {"RegistrationToken": "foo"}
+
+    patch_sdk = patch("rpdk.core.project.create_sdk_session", autospec=True)
+    patch_uploader = patch.object(Uploader, "upload", return_value="url")
+    patch_logging_role_arn = patch.object(
+        Uploader, "get_log_delivery_role_arn", return_value="some-log-role-arn"
+    )
+    patch_uuid = patch("rpdk.core.project.uuid4", autospec=True, return_value="foo")
+    patch_wait = patch.object(project, "_wait_for_registration", autospec=True)
+
+    with patch_sdk as mock_sdk, patch_uploader as mock_upload_method, patch_logging_role_arn as mock_role_arn_method:  # noqa: B950 as it conflicts with formatting rules # pylint: disable=C0301
+        mock_sdk.return_value.client.side_effect = [mock_cfn_client, MagicMock()]
+        with patch_uuid as mock_uuid, patch_wait as mock_wait:
+            project._upload(
+                fileobj,
+                endpoint_url=None,
+                region_name=None,
+                role_arn="someArn",
+                use_role=use_role,
+                set_default=True,
+                profile_name=None,
+            )
+
+    mock_sdk.assert_called_once_with(region_name=None, profile_name=None)
+    mock_upload_method.assert_called_once_with(project.hypenated_name, fileobj)
+    mock_role_arn_method.assert_called_once_with()
+    mock_uuid.assert_called_once_with()
+    mock_wait.assert_called_once_with(mock_cfn_client, "foo", True)
+
+    mock_cfn_client.register_type.assert_called_once_with(
+        Type="HOOK",
         TypeName=project.type_name,
         SchemaHandlerPackage="url",
         ClientRequestToken=mock_uuid.return_value,
@@ -1193,9 +1971,10 @@ def test__upload_clienterror(project):
                 role_arn=None,
                 use_role=False,
                 set_default=True,
+                profile_name=None,
             )
 
-    mock_sdk.assert_called_once_with(None)
+    mock_sdk.assert_called_once_with(region_name=None, profile_name=None)
     mock_upload_method.assert_called_once_with(project.hypenated_name, fileobj)
     mock_role_arn_method.assert_called_once_with()
     mock_uuid.assert_called_once_with()
@@ -1240,9 +2019,10 @@ def test__upload_clienterror_module(project):
                 role_arn=None,
                 use_role=False,
                 set_default=True,
+                profile_name=None,
             )
 
-    mock_sdk.assert_called_once_with(None)
+    mock_sdk.assert_called_once_with(region_name=None, profile_name=None)
     mock_upload_method.assert_called_once_with(project.hypenated_name, fileobj)
     mock_role_arn_method.assert_called_once_with()
     mock_uuid.assert_called_once_with()
@@ -1254,6 +2034,54 @@ def test__upload_clienterror_module(project):
         LoggingConfig={
             "LogRoleArn": "some-log-role-arn",
             "LogGroupName": "aws-color-red-module-logs",
+        },
+    )
+
+
+def test__upload_clienterror_hook(project):
+    project.type_name = TYPE_NAME
+    project.artifact_type = ARTIFACT_TYPE_HOOK
+    project.schema = {}
+
+    mock_cfn_client = MagicMock(spec=["register_type"])
+    mock_cfn_client.register_type.side_effect = ClientError(
+        BLANK_CLIENT_ERROR, "RegisterType"
+    )
+    fileobj = object()
+
+    patch_sdk = patch("rpdk.core.project.create_sdk_session", autospec=True)
+    patch_uploader = patch.object(Uploader, "upload", return_value="url")
+    patch_role_arn = patch.object(
+        Uploader, "get_log_delivery_role_arn", return_value="some-log-role-arn"
+    )
+    patch_uuid = patch("rpdk.core.project.uuid4", autospec=True, return_value="foo")
+
+    with patch_sdk as mock_sdk, patch_uploader as mock_upload_method, patch_role_arn as mock_role_arn_method:  # noqa: B950 as it conflicts with formatting rules # pylint: disable=C0301
+        mock_session = mock_sdk.return_value
+        mock_session.client.side_effect = [mock_cfn_client, MagicMock()]
+        with patch_uuid as mock_uuid, pytest.raises(DownstreamError):
+            project._upload(
+                fileobj,
+                endpoint_url=None,
+                region_name=None,
+                role_arn=None,
+                use_role=False,
+                set_default=True,
+                profile_name=None,
+            )
+
+    mock_sdk.assert_called_once_with(region_name=None, profile_name=None)
+    mock_upload_method.assert_called_once_with(project.hypenated_name, fileobj)
+    mock_role_arn_method.assert_called_once_with()
+    mock_uuid.assert_called_once_with()
+    mock_cfn_client.register_type.assert_called_once_with(
+        Type="HOOK",
+        TypeName=project.type_name,
+        SchemaHandlerPackage="url",
+        ClientRequestToken=mock_uuid.return_value,
+        LoggingConfig={
+            "LogRoleArn": "some-log-role-arn",
+            "LogGroupName": "aws-color-red-logs",
         },
     )
 
@@ -1374,14 +2202,6 @@ def test__wait_for_registration_waiter_fails_describe_fails(project):
     mock_waiter.wait.assert_called_once_with(RegistrationToken=REGISTRATION_TOKEN)
 
 
-def test__write_settings_invalid_runtime(project):
-    project.runtime = "foo"
-    project.language = LANGUAGE
-
-    with pytest.raises(InternalError):
-        project.write_settings()
-
-
 @pytest.mark.parametrize(
     "docs_schema",
     (
@@ -1432,10 +2252,12 @@ def test__get_docs_gettable_atts_good_path():
     assert getatt == [{"name": "Id2", "description": "foo"}]
 
 
-def test_generate_image_build_config(project):
+def test_generate_image_build_config(project, session):
     project.schema = {}
     mock_plugin = MagicMock(spec=["generate_image_build_config"])
-    with patch.object(project, "_plugin", mock_plugin):
+    patch_session = patch("rpdk.core.boto_helpers.Boto3Session")
+    with patch.object(project, "_plugin", mock_plugin), patch_session as mock_session:
+        mock_session.return_value = session
         project.generate_image_build_config()
     mock_plugin.generate_image_build_config.assert_called_once()
 
@@ -1475,3 +2297,322 @@ def test__write_settings_nonnull_executable_entrypoint(project):
         settings = json.load(f)
         assert "executableEntrypoint" in settings
         assert settings["executableEntrypoint"] == "executable_entrypoint"
+
+
+def test__load_target_info_for_resource(project):
+    project.type_name = TYPE_NAME
+    project.artifact_type = ARTIFACT_TYPE_RESOURCE
+    project.schema = {"handlers": {}}
+
+    target_info = project._load_target_info(
+        endpoint_url=None, region_name=None, profile_name=None
+    )
+
+    assert not target_info
+
+
+def test__load_target_info_for_hooks(project):
+    project.type_name = HOOK_TYPE_NAME
+    project.artifact_type = ARTIFACT_TYPE_HOOK
+    project.schema = {
+        "handlers": {
+            "preCreate": {
+                "targetNames": ["AWS::TestHook::Target", "AWS::TestHook::OtherTarget"]
+            },
+            "preUpdate": {
+                "targetNames": [
+                    "AWS::TestHookOne::Target",
+                    "AWS::TestHookTwo::Target",
+                    "AWS::ArrayHook::Target",
+                ]
+            },
+            "preDelete": {"targetNames": ["AWS::TestHook::Target"]},
+        }
+    }
+
+    test_type_info = {
+        "AWS::TestHook::Target": {"ProvisioningType": "FULLY_MUTABLE"},
+        "AWS::TestHook::OtherTarget": {"ProvisioningType": "FULLY_MUTABLE"},
+        "AWS::TestHookOne::Target": {"ProvisioningType": "IMMUTABLE"},
+        "AWS::TestHookTwo::Target": {"ProvisioningType": "IMMUTABLE"},
+        "AWS::ArrayHook::Target": {"ProvisioningType": "FULLY_MUTABLE"},
+    }
+
+    patch_sdk = patch("rpdk.core.project.create_sdk_session", autospec=True)
+    patch_loader = patch.object(
+        TypeSchemaLoader,
+        "load_type_info",
+        return_value={
+            target_name: {
+                "TargetName": target_name,
+                "TargetType": "RESOURCE",
+                "Schema": {
+                    "typeName": target_name,
+                    "description": "descript",
+                    "properties": {"Name": {"type": "string"}},
+                    "primaryIdentifier": ["/properties/Name"],
+                    "additionalProperties": False,
+                },
+                "ProvisioningType": test_type_info[target_name]["ProvisioningType"],
+                "IsCfnRegistrySupportedType": True,
+                "SchemaFileAvailable": True,
+            }
+            for target_name in test_type_info
+        },
+    )
+
+    # pylint: disable=line-too-long
+    with patch_sdk as mock_sdk, patch_loader as mock_loader:
+        mock_sdk.return_value.region_name = "us-east-1"
+        mock_sdk.return_value.client.side_effect = [MagicMock(), MagicMock()]
+        target_info = project._load_target_info(
+            endpoint_url=None,
+            region_name=None,
+            type_schemas=[
+                "/files/target-schema.json",
+                "/files/target-schema-not-for-this-project.json",
+                "/files/list-of-target-schemas.json",
+                "/files/file-of-valid-json-array-with-a-target-schema.json",
+            ],
+            profile_name=None,
+        )
+
+    assert target_info == {
+        "AWS::TestHook::Target": {
+            "TargetName": "AWS::TestHook::Target",
+            "TargetType": "RESOURCE",
+            "Schema": {
+                "typeName": "AWS::TestHook::Target",
+                "description": "descript",
+                "properties": {"Name": {"type": "string"}},
+                "primaryIdentifier": ["/properties/Name"],
+                "additionalProperties": False,
+            },
+            "ProvisioningType": "FULLY_MUTABLE",
+            "IsCfnRegistrySupportedType": True,
+            "SchemaFileAvailable": True,
+        },
+        "AWS::TestHook::OtherTarget": {
+            "TargetName": "AWS::TestHook::OtherTarget",
+            "TargetType": "RESOURCE",
+            "Schema": {
+                "typeName": "AWS::TestHook::OtherTarget",
+                "description": "descript",
+                "properties": {"Name": {"type": "string"}},
+                "primaryIdentifier": ["/properties/Name"],
+                "additionalProperties": False,
+            },
+            "ProvisioningType": "FULLY_MUTABLE",
+            "IsCfnRegistrySupportedType": True,
+            "SchemaFileAvailable": True,
+        },
+        "AWS::TestHookOne::Target": {
+            "TargetName": "AWS::TestHookOne::Target",
+            "TargetType": "RESOURCE",
+            "Schema": {
+                "typeName": "AWS::TestHookOne::Target",
+                "description": "descript",
+                "properties": {"Name": {"type": "string"}},
+                "primaryIdentifier": ["/properties/Name"],
+                "additionalProperties": False,
+            },
+            "ProvisioningType": "IMMUTABLE",
+            "IsCfnRegistrySupportedType": True,
+            "SchemaFileAvailable": True,
+        },
+        "AWS::TestHookTwo::Target": {
+            "TargetName": "AWS::TestHookTwo::Target",
+            "TargetType": "RESOURCE",
+            "Schema": {
+                "typeName": "AWS::TestHookTwo::Target",
+                "description": "descript",
+                "properties": {"Name": {"type": "string"}},
+                "primaryIdentifier": ["/properties/Name"],
+                "additionalProperties": False,
+            },
+            "ProvisioningType": "IMMUTABLE",
+            "IsCfnRegistrySupportedType": True,
+            "SchemaFileAvailable": True,
+        },
+        "AWS::ArrayHook::Target": {
+            "TargetName": "AWS::ArrayHook::Target",
+            "TargetType": "RESOURCE",
+            "Schema": {
+                "typeName": "AWS::ArrayHook::Target",
+                "description": "descript",
+                "properties": {"Name": {"type": "string"}},
+                "primaryIdentifier": ["/properties/Name"],
+                "additionalProperties": False,
+            },
+            "ProvisioningType": "FULLY_MUTABLE",
+            "IsCfnRegistrySupportedType": True,
+            "SchemaFileAvailable": True,
+        },
+    }
+
+    mock_loader.assert_called_once_with(
+        set(test_type_info.keys()),
+        local_schemas=[
+            "/files/target-schema.json",
+            "/files/target-schema-not-for-this-project.json",
+            "/files/list-of-target-schemas.json",
+            "/files/file-of-valid-json-array-with-a-target-schema.json",
+        ],
+        local_info={},
+    )
+
+
+def test__load_target_info_for_hooks_local_only(project):
+    project.type_name = HOOK_TYPE_NAME
+    project.artifact_type = ARTIFACT_TYPE_HOOK
+    project.schema = {
+        "handlers": {
+            "preCreate": {
+                "targetNames": ["AWS::TestHook::Target", "AWS::TestHook::OtherTarget"]
+            },
+            "preUpdate": {
+                "targetNames": [
+                    "AWS::TestHookOne::Target",
+                    "AWS::TestHookTwo::Target",
+                    "AWS::ArrayHook::Target",
+                ]
+            },
+            "preDelete": {"targetNames": ["AWS::TestHook::Target"]},
+        }
+    }
+    project.root = MagicMock(spec=Path)
+
+    test_type_info = {
+        "AWS::TestHook::Target": {"ProvisioningType": "FULLY_MUTABLE"},
+        "AWS::TestHook::OtherTarget": {"ProvisioningType": "FULLY_MUTABLE"},
+        "AWS::TestHookOne::Target": {"ProvisioningType": "IMMUTABLE"},
+        "AWS::TestHookTwo::Target": {"ProvisioningType": "IMMUTABLE"},
+        "AWS::ArrayHook::Target": {"ProvisioningType": "FULLY_MUTABLE"},
+    }
+
+    patch_sdk = patch("rpdk.core.project.create_sdk_session", autospec=True)
+    patch_loader = patch.object(
+        TypeSchemaLoader,
+        "load_type_info",
+        return_value={
+            target_name: {
+                "TargetName": target_name,
+                "TargetType": "RESOURCE",
+                "Schema": {
+                    "typeName": target_name,
+                    "description": "descript",
+                    "properties": {"Name": {"type": "string"}},
+                    "primaryIdentifier": ["/properties/Name"],
+                    "additionalProperties": False,
+                },
+                "ProvisioningType": test_type_info[target_name]["ProvisioningType"],
+                "IsCfnRegistrySupportedType": True,
+                "SchemaFileAvailable": True,
+            }
+            for target_name in test_type_info
+        },
+    )
+
+    patch_is_dir = patch("os.path.isdir", return_value=True)
+    patch_list_dir = patch(
+        "os.listdir",
+        return_value=[
+            "target-schema.json",
+            "target-schema-not-for-this-project.json",
+            "list-of-target-schemas.json",
+            "file-of-valid-json-array-with-a-target-schema.json",
+        ],
+    )
+    patch_path_is_file = patch.object(Path, "is_file", return_value=True)
+
+    patch_is_file = patch("os.path.isfile", return_value=True)
+
+    # pylint: disable=line-too-long,confusing-with-statement
+    with patch_sdk as mock_sdk, patch_loader as mock_loader, patch_is_dir, patch_list_dir, patch_path_is_file, patch_is_file:
+        mock_sdk.return_value.region_name = "us-east-1"
+        mock_sdk.return_value.client.side_effect = [MagicMock(), MagicMock()]
+        project.target_info_path.open.return_value.__enter__.return_value = StringIO(
+            json.dumps(test_type_info)
+        )
+
+        target_info = project._load_target_info(
+            endpoint_url=None, region_name=None, local_only=True
+        )
+
+    assert target_info == {
+        "AWS::TestHook::Target": {
+            "TargetName": "AWS::TestHook::Target",
+            "TargetType": "RESOURCE",
+            "Schema": {
+                "typeName": "AWS::TestHook::Target",
+                "description": "descript",
+                "properties": {"Name": {"type": "string"}},
+                "primaryIdentifier": ["/properties/Name"],
+                "additionalProperties": False,
+            },
+            "ProvisioningType": "FULLY_MUTABLE",
+            "IsCfnRegistrySupportedType": True,
+            "SchemaFileAvailable": True,
+        },
+        "AWS::TestHook::OtherTarget": {
+            "TargetName": "AWS::TestHook::OtherTarget",
+            "TargetType": "RESOURCE",
+            "Schema": {
+                "typeName": "AWS::TestHook::OtherTarget",
+                "description": "descript",
+                "properties": {"Name": {"type": "string"}},
+                "primaryIdentifier": ["/properties/Name"],
+                "additionalProperties": False,
+            },
+            "ProvisioningType": "FULLY_MUTABLE",
+            "IsCfnRegistrySupportedType": True,
+            "SchemaFileAvailable": True,
+        },
+        "AWS::TestHookOne::Target": {
+            "TargetName": "AWS::TestHookOne::Target",
+            "TargetType": "RESOURCE",
+            "Schema": {
+                "typeName": "AWS::TestHookOne::Target",
+                "description": "descript",
+                "properties": {"Name": {"type": "string"}},
+                "primaryIdentifier": ["/properties/Name"],
+                "additionalProperties": False,
+            },
+            "ProvisioningType": "IMMUTABLE",
+            "IsCfnRegistrySupportedType": True,
+            "SchemaFileAvailable": True,
+        },
+        "AWS::TestHookTwo::Target": {
+            "TargetName": "AWS::TestHookTwo::Target",
+            "TargetType": "RESOURCE",
+            "Schema": {
+                "typeName": "AWS::TestHookTwo::Target",
+                "description": "descript",
+                "properties": {"Name": {"type": "string"}},
+                "primaryIdentifier": ["/properties/Name"],
+                "additionalProperties": False,
+            },
+            "ProvisioningType": "IMMUTABLE",
+            "IsCfnRegistrySupportedType": True,
+            "SchemaFileAvailable": True,
+        },
+        "AWS::ArrayHook::Target": {
+            "TargetName": "AWS::ArrayHook::Target",
+            "TargetType": "RESOURCE",
+            "Schema": {
+                "typeName": "AWS::ArrayHook::Target",
+                "description": "descript",
+                "properties": {"Name": {"type": "string"}},
+                "primaryIdentifier": ["/properties/Name"],
+                "additionalProperties": False,
+            },
+            "ProvisioningType": "FULLY_MUTABLE",
+            "IsCfnRegistrySupportedType": True,
+            "SchemaFileAvailable": True,
+        },
+    }
+
+    mock_loader.assert_called_once_with(
+        sorted(test_type_info.keys()), local_schemas=ANY, local_info=test_type_info
+    )
+    assert len(mock_loader.call_args[1]["local_schemas"]) == 4

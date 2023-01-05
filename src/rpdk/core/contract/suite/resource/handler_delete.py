@@ -7,7 +7,7 @@ import pytest
 # WARNING: contract tests should use fully qualified imports to avoid issues
 # when being loaded by pytest
 from rpdk.core.contract.interface import Action, HandlerErrorCode, OperationStatus
-from rpdk.core.contract.suite.handler_commons import (
+from rpdk.core.contract.suite.resource.handler_commons import (
     test_create_success,
     test_delete_failure_not_found,
     test_input_equals_output,

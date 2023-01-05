@@ -6,6 +6,8 @@ Description: >
 Resources:
   ArtifactBucket:
     Type: AWS::S3::Bucket
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
     Properties:
       AccessControl: BucketOwnerFullControl
       BucketEncryption:
@@ -27,6 +29,8 @@ Resources:
 
   AccessLogsBucket:
     Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
     Properties:
       AccessControl: LogDeliveryWrite
       BucketEncryption:
@@ -59,9 +63,28 @@ Resources:
                 "aws:SecureTransport": "false"
             Principal: "*"
 
+  AccessLogsBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref AccessLogsBucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: Require Secure Transport
+            Action: "s3:*"
+            Effect: Deny
+            Resource:
+              - !Sub "arn:${AWS::Partition}:s3:::${AccessLogsBucket}"
+              - !Sub "arn:${AWS::Partition}:s3:::${AccessLogsBucket}/*"
+            Condition:
+              Bool:
+                "aws:SecureTransport": "false"
+            Principal: "*"
+
   EncryptionKey:
     Type: AWS::KMS::Key
     DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
     Properties:
       Description: KMS key used to encrypt the resource type artifacts
       EnableKeyRotation: true
@@ -75,6 +98,9 @@ Resources:
           Action: kms:*
           Resource: "*"
 
+  DummyResource:
+    Type: AWS::CloudFormation::WaitConditionHandle
+
   LogAndMetricsDeliveryRole:
     Type: AWS::IAM::Role
     Properties:
@@ -86,7 +112,12 @@ Resources:
           Principal:
             Service:
               - resources.cloudformation.amazonaws.com
+              - hooks.cloudformation.amazonaws.com
           Action: sts:AssumeRole
+          Condition:
+            StringEquals:
+              aws:SourceAccount:
+                Ref: AWS::AccountId
       Path: "/"
       Policies:
       - PolicyName: LogAndMetricsDeliveryRolePolicy

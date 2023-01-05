@@ -142,10 +142,11 @@ class Uploader:
                 template = f.read()
         except FileNotFoundError:
             LOG.critical(
-                "CloudFormation template 'resource-role.yaml' "
+                "CloudFormation template '%s' "
                 "for execution role not found. "
                 "Please run `generate` or "
-                "provide an execution role via the --role-arn parameter."
+                "provide an execution role via the --role-arn parameter.",
+                template_path.name,
             )
             # pylint: disable=W0707
             raise InvalidProjectError()

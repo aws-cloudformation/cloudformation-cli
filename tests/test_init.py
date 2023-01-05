@@ -6,6 +6,7 @@ import pytest
 
 from rpdk.core.cli import main
 from rpdk.core.exceptions import WizardAbortError, WizardValidationError
+from rpdk.core.hook.init_hook import input_typename as input_typename_hook
 from rpdk.core.init import (
     ValidatePluginChoice,
     check_for_existing_project,
@@ -18,6 +19,7 @@ from rpdk.core.init import (
 from rpdk.core.module.init_module import input_typename as input_typename_module
 from rpdk.core.project import Project
 from rpdk.core.resource.init_resource import input_typename as input_typename_resource
+from rpdk.core.test import DEFAULT_PROFILE
 
 from .utils import add_dummy_language_plugin, dummy_parser, get_args, get_mock_project
 
@@ -56,6 +58,10 @@ def test_init_resource_method_interactive():
             "force": False,
             "type_name": None,
             "artifact_type": None,
+            "endpoint_url": None,
+            "region": None,
+            "target_schemas": [],
+            "profile": DEFAULT_PROFILE,
         },
     )
     mock_project.generate.assert_called_once_with()
@@ -87,6 +93,42 @@ def test_init_module_method_interactive():
     mock_project.load_settings.assert_called_once_with()
     mock_project.init_module.assert_called_once_with(type_name)
     mock_project.generate.assert_not_called()
+
+
+def test_init_hook_method_interactive():
+    type_name = object()
+    language = object()
+
+    mock_project, patch_project = get_mock_project()
+    patch_tn = patch("rpdk.core.hook.init_hook.input_typename", return_value=type_name)
+    patch_l = patch("rpdk.core.hook.init_hook.input_language", return_value=language)
+    patch_at = patch("rpdk.core.init.init_artifact_type", return_value="HOOK")
+
+    with patch_project, patch_at as mock_t, patch_tn as mock_tn, patch_l as mock_l:
+        main(args_in=["init"])
+
+    mock_tn.assert_called_once_with()
+    mock_l.assert_called_once_with()
+    mock_t.assert_called_once()
+
+    mock_project.load_settings.assert_called_once_with()
+    mock_project.init_hook.assert_called_once_with(
+        type_name,
+        language,
+        {
+            "version": False,
+            "subparser_name": None,
+            "verbose": 0,
+            "force": False,
+            "type_name": None,
+            "artifact_type": None,
+            "endpoint_url": None,
+            "region": None,
+            "target_schemas": [],
+            "profile": DEFAULT_PROFILE,
+        },
+    )
+    mock_project.generate.assert_called_once_with(None, None, [], DEFAULT_PROFILE)
 
 
 def test_init_resource_method_noninteractive():
@@ -127,9 +169,60 @@ def test_init_resource_method_noninteractive():
             "language": args.language,
             "dummy": True,
             "artifact_type": artifact_type,
+            "endpoint_url": None,
+            "region": None,
+            "target_schemas": [],
+            "profile": DEFAULT_PROFILE,
         },
     )
     mock_project.generate.assert_called_once_with()
+
+
+def test_init_hook_method_noninteractive():
+    add_dummy_language_plugin()
+    artifact_type = "HOOK"
+    args = get_args("dummy", "Test::Test::Test", artifact_type)
+    mock_project, patch_project = get_mock_project()
+
+    patch_get_parser = patch(
+        "rpdk.core.init.get_parsers", return_value={"dummy": dummy_parser}
+    )
+
+    with patch_project, patch_get_parser as mock_parser:
+        main(
+            args_in=[
+                "init",
+                "--type-name",
+                args.type_name,
+                "--artifact-type",
+                args.artifact_type,
+                args.language,
+                "--dummy",
+            ]
+        )
+
+    mock_parser.assert_called_once()
+
+    mock_project.load_settings.assert_called_once_with()
+    mock_project.init_hook.assert_called_once_with(
+        args.type_name,
+        args.language,
+        {
+            "version": False,
+            "subparser_name": args.language,
+            "verbose": 0,
+            "force": False,
+            "type_name": args.type_name,
+            "language": args.language,
+            "dummy": True,
+            "artifact_type": artifact_type,
+            "endpoint_url": None,
+            "region": None,
+            "target_schemas": [],
+            "profile": DEFAULT_PROFILE,
+        },
+    )
+    mock_project.generate.assert_called_once_with(None, None, [], DEFAULT_PROFILE)
 
 
 def test_init_resource_method_noninteractive_invalid_type_name():
@@ -177,9 +270,122 @@ def test_init_resource_method_noninteractive_invalid_type_name():
             "artifact_type": artifact_type,
             "dummy": True,
             "language": args.language,
+            "endpoint_url": None,
+            "region": None,
+            "target_schemas": [],
+            "profile": DEFAULT_PROFILE,
         },
     )
     mock_project.generate.assert_called_once_with()
+
+
+def test_init_hook_method_noninteractive_invalid_type_name():
+    add_dummy_language_plugin()
+    type_name = object()
+    artifact_type = "HOOK"
+
+    args = get_args("dummy", "invalid_type_name", "HOOK")
+    mock_project, patch_project = get_mock_project()
+
+    patch_tn = patch("rpdk.core.hook.init_hook.input_typename", return_value=type_name)
+    patch_t = patch("rpdk.core.init.init_artifact_type", return_value=artifact_type)
+    patch_get_parser = patch(
+        "rpdk.core.init.get_parsers", return_value={"dummy": dummy_parser}
+    )
+
+    with patch_project, patch_t, patch_tn as mock_tn, patch_get_parser as mock_parser:
+        main(
+            args_in=[
+                "init",
+                "-t",
+                args.type_name,
+                "-a",
+                args.artifact_type,
+                args.language,
+                "--dummy",
+            ]
+        )
+
+    mock_tn.assert_called_once_with()
+    mock_parser.assert_called_once()
+
+    mock_project.load_settings.assert_called_once_with()
+    mock_project.init_hook.assert_called_once_with(
+        type_name,
+        args.language,
+        {
+            "version": False,
+            "subparser_name": args.language,
+            "verbose": 0,
+            "force": False,
+            "type_name": args.type_name,
+            "artifact_type": artifact_type,
+            "dummy": True,
+            "language": args.language,
+            "endpoint_url": None,
+            "region": None,
+            "target_schemas": [],
+            "profile": DEFAULT_PROFILE,
+        },
+    )
+    mock_project.generate.assert_called_once_with(None, None, [], DEFAULT_PROFILE)
+
+
+def test_init_hook_method_noninteractive_target_schemas():
+    add_dummy_language_plugin()
+    artifact_type = "HOOK"
+    args = get_args("dummy", "Test::Test::Test", artifact_type)
+    mock_project, patch_project = get_mock_project()
+
+    patch_get_parser = patch(
+        "rpdk.core.init.get_parsers", return_value={"dummy": dummy_parser}
+    )
+
+    with patch_project, patch_get_parser as mock_parser:
+        main(
+            args_in=[
+                "init",
+                "--type-name",
+                args.type_name,
+                "--artifact-type",
+                args.artifact_type,
+                "--target-schemas",
+                "/files/target-schema.json,/files/other-target-schema.json",
+                args.language,
+                "--dummy",
+            ]
+        )
+
+    mock_parser.assert_called_once()
+
+    mock_project.load_settings.assert_called_once_with()
+    mock_project.init_hook.assert_called_once_with(
+        args.type_name,
+        args.language,
+        {
+            "version": False,
+            "subparser_name": args.language,
+            "verbose": 0,
+            "force": False,
+            "type_name": args.type_name,
+            "language": args.language,
+            "dummy": True,
+            "artifact_type": artifact_type,
+            "endpoint_url": None,
+            "region": None,
+            "target_schemas": [
+                "/files/target-schema.json",
+                "/files/other-target-schema.json",
+            ],
+            "profile": DEFAULT_PROFILE,
+        },
+    )
+    mock_project.generate.assert_called_once_with(
+        None,
+        None,
+        ["/files/target-schema.json", "/files/other-target-schema.json"],
+        DEFAULT_PROFILE,
+    )
 
 
 def test_input_with_validation_valid_first_try(capsys):
@@ -395,6 +601,14 @@ def test_input_typename_module():
     patch_input = patch("rpdk.core.utils.init_utils.input", return_value=type_name)
     with patch_input as mock_input:
         assert input_typename_module() == type_name
+    mock_input.assert_called_once()
+
+
+def test_input_typename_hook():
+    type_name = "AWS::CFN::HOOK"
+    patch_input = patch("rpdk.core.utils.init_utils.input", return_value=type_name)
+    with patch_input as mock_input:
+        assert input_typename_hook() == type_name
     mock_input.assert_called_once()
 
 

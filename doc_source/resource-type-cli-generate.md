@@ -2,7 +2,7 @@
 
 ## Description<a name="resource-type-cli-generate-description"></a>
 
-Generates code based on the project and resource provider schema\.
+Generates code based on the project and resource type schema\.
 
 ## Synopsis<a name="resource-type-cli-generate-synopsis"></a>
 
@@ -13,5 +13,5 @@ Generates code based on the project and resource provider schema\.
 ## Output<a name="resource-type-cli-generate-output"></a>
 
 ```
-Generated files for <resource_name>
+Generated files for <type_name>
 ```

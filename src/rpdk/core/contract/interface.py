@@ -22,6 +22,18 @@ class OperationStatus(AutoName):
     FAILED = auto()
 
 
+class HookInvocationPoint(str, AutoName):
+    CREATE_PRE_PROVISION = auto()
+    UPDATE_PRE_PROVISION = auto()
+    DELETE_PRE_PROVISION = auto()
+
+
+class HookStatus(AutoName):
+    IN_PROGRESS = auto()
+    SUCCESS = auto()
+    FAILED = auto()
+
+
 # pylint: disable=invalid-name
 class HandlerErrorCode(AutoName):
     NotUpdatable = auto()
@@ -39,3 +51,7 @@ class HandlerErrorCode(AutoName):
     NetworkFailure = auto()
     InternalFailure = auto()
     InvalidTypeConfiguration = auto()
+    HandlerInternalFailure = auto()
+    NonCompliant = auto()
+    UnsupportedTarget = auto()
+    Unknown = auto()

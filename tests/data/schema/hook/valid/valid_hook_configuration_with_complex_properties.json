@@ -1,0 +1,55 @@
+{
+    "typeName": "AWS::FooBar::Hook",
+    "description": "Example resource SSE (Server Side Encryption) verification hook",
+    "sourceUrl": "https://github.com/aws-cloudformation/example-sse-hook",
+    "documentationUrl": "https://github.com/aws-cloudformation/example-sse-hook/blob/master/README.md",
+    "typeConfiguration": {
+        "properties": {
+            "enum1": {
+                "type": "string",
+                "enum": [
+                    "test",
+                    "test2"
+                ]
+            },
+            "str2": {
+                "anyOf": [
+                    {
+                        "type": "string"
+                    },
+                    {
+                        "type": "integer"
+                    }
+                ],
+                "description": "some description"
+            },
+            "str3": {
+                "type": "string",
+                "description": ""
+            }
+        },
+        "additionalProperties": false
+    },
+    "required": [],
+    "handlers": {
+        "preCreate": {
+            "targetNames": [
+                "AWS::S3::Bucket"
+            ],
+            "permissions": []
+        },
+        "preUpdate": {
+            "targetNames": [
+                "AWS::S3::Bucket"
+            ],
+            "permissions": []
+        },
+        "preDelete": {
+            "targetNames": [
+                "AWS::DynamoDB::Table"
+            ],
+            "permissions": []
+        }
+    },
+    "additionalProperties": false
+}

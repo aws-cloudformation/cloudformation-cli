@@ -118,6 +118,13 @@ and has patternProperties defined in it.",
     return make_validator(schema)
 
 
+def make_hook_validator():
+    schema = resource_json(
+        __name__, "data/schema/provider.definition.schema.hooks.v1.json"
+    )
+    return make_validator(schema)
+
+
 def get_file_base_uri(file):
     try:
         name = file.name
@@ -171,6 +178,10 @@ def load_resource_spec(resource_spec_file):  # pylint: disable=R # noqa: C901
                         LOG.warning(
                             "Explicitly specify value for insertionOrder for array: %s",
                             property_name,
+                        )
+                    if property_type != "array" and "arrayType" in property_keywords:
+                        raise SpecValidationError(
+                            "arrayType is only applicable for properties of type array"
                         )
                     keyword_mappings = [
                         (
@@ -238,7 +249,10 @@ def load_resource_spec(resource_spec_file):  # pylint: disable=R # noqa: C901
                 pattern,
             )
         try:
-            re.compile(pattern)
+            # http://json-schema.org/understanding-json-schema/reference/regular_expressions.html
+            # ECMA-262 has \w, \W, \b, \B, \d, \D, \s and \S perform ASCII-only matching
+            # instead of full Unicode matching. Unicode matching is the default in Python
+            re.compile(pattern, re.ASCII)
         except re.error:
             LOG.warning("Could not validate regular expression: %s", pattern)
 
@@ -358,5 +372,60 @@ as either readOnly or createOnly",
     except ValidationError as e:
         LOG.debug("Inlined schema is no longer valid", exc_info=True)
         raise InternalError() from e
+
+    return inlined
+
+
+def load_hook_spec(hook_spec_file):  # pylint: disable=R # noqa: C901
+    """Load a hook definition from a file, and validate it."""
+    try:
+        hook_spec = json.load(hook_spec_file)
+    except ValueError as e:
+        LOG.debug("Hook spec decode failed", exc_info=True)
+        raise SpecValidationError(str(e)) from e
+
+    # TODO: Add schema validation after we have hook schema finalized
+
+    if hook_spec.get("properties"):
+        raise SpecValidationError(
+            "Hook types do not support 'properties' directly. Properties must be specified in the 'typeConfiguration' section."
+        )
+
+    validator = make_hook_validator()
+    try:
+        validator.validate(hook_spec)
+    except ValidationError as e:
+        LOG.debug("Hook spec validation failed", exc_info=True)
+        raise SpecValidationError(str(e)) from e
+
+    blocked_handler_permissions = {"cloudformation:RegisterType"}
+    for handler in hook_spec.get("handlers", {}).values():
+        for permission in handler["permissions"]:
+            if "cloudformation:*" in permission:
+                raise SpecValidationError(
+                    f"Wildcards for cloudformation are not allowed for hook handler permissions: '{permission}'"
+                )
+            if permission in blocked_handler_permissions:
+                raise SpecValidationError(
+                    f"Permission is not allowed for hook handler permissions: '{permission}'"
+                )
+
+        for target_name in handler["targetNames"]:
+            if "*?" in target_name:
+                raise SpecValidationError(
+                    f"Wildcard pattern '*?' is not allowed in target name: '{target_name}'"
+                )
+
+    try:
+        base_uri = hook_spec["$id"]
+    except KeyError:
+        base_uri = get_file_base_uri(hook_spec_file)
+
+    inliner = RefInliner(base_uri, hook_spec)
+    try:
+        inlined = inliner.inline()
+    except RefResolutionError as e:
+        LOG.debug("Hook spec validation failed", exc_info=True)
+        raise SpecValidationError(str(e)) from e
 
     return inlined

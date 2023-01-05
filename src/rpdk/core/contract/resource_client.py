@@ -172,8 +172,9 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         log_role_arn=None,
         docker_image=None,
         executable_entrypoint=None,
+        profile=None,
     ):  # pylint: disable=too-many-arguments
-        self._session = create_sdk_session(region)
+        self._session = create_sdk_session(region, profile)
         self._role_arn = role_arn
         self._type_name = type_name
         self._log_group_name = log_group_name
@@ -370,12 +371,8 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
             for k, v in create_model.items()
             if self.is_property_in_path(k, self.primary_identifier_paths)
             or any(
-                map(
-                    lambda additional_identifier_paths, key=k: self.is_property_in_path(
-                        key, additional_identifier_paths
-                    ),
-                    self._additional_identifiers_paths,
-                )
+                self.is_property_in_path(k, additional_identifier_paths)
+                for additional_identifier_paths in self._additional_identifiers_paths
             )
         }
 
@@ -424,6 +421,7 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
                 )
             )
             return {**create_model_with_read_only_properties, **update_example}
+
         overrides = self._overrides.get("UPDATE", self._overrides.get("CREATE", {}))
         example = override_properties(self.update_strategy.example(), overrides)
         return {**create_model, **example}
@@ -468,6 +466,7 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
                         is_ordered = traverse_raw_schema(self._schema, new_path).get(
                             "insertionOrder", True
                         )
+
                         self.compare_collection(
                             inputs[key],
                             outputs[key],

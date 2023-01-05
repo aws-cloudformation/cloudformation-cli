@@ -6,11 +6,11 @@ import pytest
 # WARNING: contract tests should use fully qualified imports to avoid issues
 # when being loaded by pytest
 from rpdk.core.contract.interface import Action, OperationStatus
-from rpdk.core.contract.suite.contract_asserts import (
+from rpdk.core.contract.suite.resource.contract_asserts import (
     skip_no_tagging,
     skip_not_tag_updatable,
 )
-from rpdk.core.contract.suite.handler_commons import (
+from rpdk.core.contract.suite.resource.handler_commons import (
     test_input_equals_output,
     test_model_in_list,
     test_read_success,

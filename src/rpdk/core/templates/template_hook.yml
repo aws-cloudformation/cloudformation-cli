@@ -1,0 +1,25 @@
+{% macro function(name, params) %}
+  {{ name }}:
+    Type: AWS::Serverless::Function
+    Properties:
+      {% for key, value in params.items() %}
+      {{ key }}: {{ value }}
+      {% endfor %}
+{% endmacro %}
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: AWS SAM template for the {{ resource_type }} resource type
+
+Globals:
+  Function:
+    Timeout: 180  # docker start-up times can be long for SAM CLI
+    MemorySize: 256
+
+Resources:
+{% if functions %}
+{% for name, params in functions.items() %}
+{{ function(name, params) }}
+{% endfor %}
+{% else %}
+{{ function("TypeFunction", handler_params) }}
+{% endif %}

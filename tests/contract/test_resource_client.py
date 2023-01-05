@@ -1797,6 +1797,57 @@ def test_compare_should_throw_exception(resource_client):
                 },
             },
         ),
+        (
+            {
+                "OptionConfigurations": [
+                    {
+                        "OptionSettings": [
+                            {"Name": "BACKLOG_QUEUE_LIMIT", "Value": "1024"},
+                            {"Name": "CHUNK_SIZE", "Value": "32"},
+                        ]
+                    }
+                ]
+            },
+            {
+                "OptionConfigurations": [
+                    {
+                        "OptionSettings": [
+                            {"Name": "CHUNK_SIZE", "Value": "32"},
+                            {"Name": "BACKLOG_QUEUE_LIMIT", "Value": "1024"},
+                        ]
+                    }
+                ]
+            },
+            {
+                "definitions": {
+                    "OptionConfiguration": {
+                        "type": "object",
+                        "properties": {
+                            "OptionSettings": {
+                                "type": "array",
+                                "insertionOrder": False,
+                                "items": {"$ref": "#/definitions/OptionSetting"},
+                            }
+                        },
+                    },
+                    "OptionSetting": {
+                        "type": "object",
+                        "properties": {
+                            "Name": {"type": "string"},
+                            "Value": {"type": "string"},
+                        },
+                        "additionalProperties": False,
+                    },
+                },
+                "properties": {
+                    "OptionConfigurations": {
+                        "type": "array",
+                        "insertionOrder": False,
+                        "items": {"$ref": "#/definitions/OptionConfiguration"},
+                    },
+                },
+            },
+        ),
     ],
 )
 def test_compare_collection(resource_client, inputs, outputs, schema_fragment):

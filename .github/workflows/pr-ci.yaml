@@ -2,11 +2,7 @@
 # This workflow will install Python dependencies, run tests and lint with a multiple versions of Python
 name: CloudFormation CLI Pull Request CI
 
-on:
-  push:
-    branches: [ master ]
-  pull_request:
-    branches: [ master ]
+on: [push, pull_request]
 
 jobs:
   build:
@@ -14,31 +10,31 @@ jobs:
       AWS_DEFAULT_REGION: us-east-1
     strategy:
       matrix:
-        python: [3.6, 3.7, 3.8]
+        python: [ 3.7, 3.8, 3.9, "3.10" ]
         os: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Set up Python ${{ matrix.python }}
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python }}
-    - name: Install PYJQ dependencies on Ubuntu
-      run: |
-        pip install pyjq
-      if: matrix.os == 'ubuntu-latest'
+        cache: 'pip'
     - name: Install PYJQ dependencies on Macos
       run: |
         brew install autoconf automake libtool
         brew install jq
-        pip install pyjq
       if: matrix.os == 'macos-latest'
     - name: Install dependencies
       run: |
-        pip install --upgrade 'attrs==19.2.0' wheel -r requirements.txt
+        pip install --upgrade 'attrs==19.2.0' wheel pyjq -r requirements.txt
     - name: Install cli
       run: |
         pip install .
+    - uses: actions/cache@v3
+      with:
+        path: ~/.cache/pre-commit/
+        key: ${{ matrix.os }}-${{ env.pythonLocation }}${{ hashFiles('.pre-commit-config.yaml') }}
     - name: pre-commit, twine checks
       run: |
         pre-commit run --all-files
