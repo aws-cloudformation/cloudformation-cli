@@ -19,6 +19,7 @@ def submit(args):
         args.role_arn,
         args.use_role,
         args.set_default,
+        args.profile,
     )
 
 
@@ -37,6 +38,7 @@ def setup_subparser(subparsers, parents):
         action="store_true",
         help="If registration is successful, set submitted version to the default.",
     )
+    parser.add_argument("--profile", help="AWS profile to use.")
     role_group = parser.add_mutually_exclusive_group()
     role_group.add_argument(
         "--role-arn",

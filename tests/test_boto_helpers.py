@@ -25,7 +25,7 @@ def test_create_sdk_session_region():
 
     assert boto3_session is mock_boto3.return_value
 
-    mock_boto3.assert_called_once_with(region_name=None)
+    mock_boto3.assert_called_once_with(profile_name=None, region_name=None)
     mock_boto3.return_value.get_credentials.assert_called_once_with()
 
 
@@ -37,7 +37,7 @@ def test_create_sdk_session_no_region():
         with pytest.raises(CLIMisconfiguredError):
             create_sdk_session()
 
-    mock_boto3.assert_called_once_with(region_name=None)
+    mock_boto3.assert_called_once_with(profile_name=None, region_name=None)
 
 
 def test_create_sdk_session_no_creds():
@@ -49,7 +49,7 @@ def test_create_sdk_session_no_creds():
         with pytest.raises(CLIMisconfiguredError):
             create_sdk_session()
 
-    mock_boto3.assert_called_once_with(region_name=None)
+    mock_boto3.assert_called_once_with(profile_name=None, region_name=None)
 
 
 def test_get_temporary_credentials_has_token():
