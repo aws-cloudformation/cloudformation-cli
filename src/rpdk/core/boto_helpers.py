@@ -14,14 +14,14 @@ BOTO_CRED_KEYS = ("aws_access_key_id", "aws_secret_access_key", "aws_session_tok
 LOWER_CAMEL_CRED_KEYS = ("accessKeyId", "secretAccessKey", "sessionToken")
 
 
-def create_sdk_session(region_name=None):
+def create_sdk_session(region_name=None, profile_name=None):
     def _known_error(msg):
         raise CLIMisconfiguredError(
             msg + ". Please ensure your AWS CLI is configured correctly: "
             "https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-configure.html"
         )
 
-    session = Boto3Session(region_name=region_name)
+    session = Boto3Session(profile_name=profile_name, region_name=region_name)
 
     if session.region_name is None:
         _known_error("No region specified")

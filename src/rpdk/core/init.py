@@ -199,3 +199,5 @@ def setup_subparser(subparsers, parents):
         default=[],
         type=lambda s: [i.strip() for i in s.split(",")],
     )
+
+    parser.add_argument("--profile", help="AWS profile to use.")

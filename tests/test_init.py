@@ -19,6 +19,7 @@ from rpdk.core.init import (
 from rpdk.core.module.init_module import input_typename as input_typename_module
 from rpdk.core.project import Project
 from rpdk.core.resource.init_resource import input_typename as input_typename_resource
+from rpdk.core.test import DEFAULT_PROFILE
 
 from .utils import add_dummy_language_plugin, dummy_parser, get_args, get_mock_project
 
@@ -60,6 +61,7 @@ def test_init_resource_method_interactive():
             "endpoint_url": None,
             "region": None,
             "target_schemas": [],
+            "profile": DEFAULT_PROFILE,
         },
     )
     mock_project.generate.assert_called_once_with()
@@ -123,9 +125,10 @@ def test_init_hook_method_interactive():
             "endpoint_url": None,
             "region": None,
             "target_schemas": [],
+            "profile": DEFAULT_PROFILE,
         },
     )
-    mock_project.generate.assert_called_once_with(None, None, [])
+    mock_project.generate.assert_called_once_with(None, None, [], DEFAULT_PROFILE)
 
 
 def test_init_resource_method_noninteractive():
@@ -169,6 +172,7 @@ def test_init_resource_method_noninteractive():
             "endpoint_url": None,
             "region": None,
             "target_schemas": [],
+            "profile": DEFAULT_PROFILE,
         },
     )
     mock_project.generate.assert_called_once_with()
@@ -215,9 +219,10 @@ def test_init_hook_method_noninteractive():
             "endpoint_url": None,
             "region": None,
             "target_schemas": [],
+            "profile": DEFAULT_PROFILE,
         },
     )
-    mock_project.generate.assert_called_once_with(None, None, [])
+    mock_project.generate.assert_called_once_with(None, None, [], DEFAULT_PROFILE)
 
 
 def test_init_resource_method_noninteractive_invalid_type_name():
@@ -268,6 +273,7 @@ def test_init_resource_method_noninteractive_invalid_type_name():
             "endpoint_url": None,
             "region": None,
             "target_schemas": [],
+            "profile": DEFAULT_PROFILE,
         },
     )
     mock_project.generate.assert_called_once_with()
@@ -319,9 +325,10 @@ def test_init_hook_method_noninteractive_invalid_type_name():
             "endpoint_url": None,
             "region": None,
             "target_schemas": [],
+            "profile": DEFAULT_PROFILE,
         },
     )
-    mock_project.generate.assert_called_once_with(None, None, [])
+    mock_project.generate.assert_called_once_with(None, None, [], DEFAULT_PROFILE)
 
 
 def test_init_hook_method_noninteractive_target_schemas():
@@ -370,10 +377,14 @@ def test_init_hook_method_noninteractive_target_schemas():
                 "/files/target-schema.json",
                 "/files/other-target-schema.json",
             ],
+            "profile": DEFAULT_PROFILE,
         },
     )
     mock_project.generate.assert_called_once_with(
-        None, None, ["/files/target-schema.json", "/files/other-target-schema.json"]
+        None,
+        None,
+        ["/files/target-schema.json", "/files/other-target-schema.json"],
+        DEFAULT_PROFILE,
     )
 
 
