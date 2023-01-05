@@ -13,7 +13,11 @@ def generate(args):
     project = Project()
     project.load()
     project.generate(
-        args.endpoint_url, args.region, args.local_only, args.target_schemas
+        args.endpoint_url,
+        args.region,
+        args.local_only,
+        args.target_schemas,
+        args.profile,
     )
     project.generate_docs()
 
@@ -33,3 +37,4 @@ def setup_subparser(subparsers, parents):
     parser.add_argument(
         "--target-schemas", help="Path to target schemas.", nargs="*", default=[]
     )
+    parser.add_argument("--profile", help="AWS profile to use.")

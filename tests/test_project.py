@@ -51,6 +51,7 @@ TYPE_NAME = "AWS::Color::Red"
 MODULE_TYPE_NAME = "AWS::Color::Red::MODULE"
 HOOK_TYPE_NAME = "AWS::CFN::HOOK"
 REGION = "us-east-1"
+PROFILE = "sandbox"
 ENDPOINT = "cloudformation.beta.com"
 RUNTIME = random.choice(
     [
@@ -1228,7 +1229,8 @@ def test_submit_dry_run(project, is_type_configuration_available):
             region_name=REGION,
             role_arn=None,
             use_role=True,
-            set_default=False
+            set_default=False,
+            profile_name=PROFILE
         )
     # fmt: on
 
@@ -1328,7 +1330,8 @@ def test_submit_dry_run_modules(project):
             region_name=REGION,
             role_arn=None,
             use_role=True,
-            set_default=False
+            set_default=False,
+            profile_name=PROFILE
         )
     # fmt: on
 
@@ -1393,7 +1396,8 @@ def test_submit_dry_run_hooks(project):
             region_name=REGION,
             role_arn=None,
             use_role=True,
-            set_default=False
+            set_default=False,
+            profile_name=PROFILE
         )
     # fmt: on
 
@@ -1518,7 +1522,8 @@ def test_submit_dry_run_hooks_with_target_info(project, session):
             region_name=REGION,
             role_arn=None,
             use_role=True,
-            set_default=False
+            set_default=False,
+            profile_name=PROFILE
         )
     # fmt: on
 
@@ -1596,7 +1601,8 @@ def test_submit_live_run(project):
             region_name=REGION,
             role_arn=None,
             use_role=True,
-            set_default=True
+            set_default=True,
+            profile_name=PROFILE
         )
     # fmt: on
 
@@ -1614,6 +1620,7 @@ def test_submit_live_run(project):
         role_arn=None,
         use_role=True,
         set_default=True,
+        profile_name=PROFILE,
     )
 
     assert temp_file._was_closed
@@ -1648,7 +1655,8 @@ def test_submit_live_run_for_module(project):
             region_name=REGION,
             role_arn=None,
             use_role=True,
-            set_default=True
+            set_default=True,
+            profile_name=PROFILE
         )
     # fmt: on
 
@@ -1690,7 +1698,8 @@ def test_submit_live_run_for_hooks(project):
             region_name=REGION,
             role_arn=None,
             use_role=True,
-            set_default=True
+            set_default=True,
+            profile_name=PROFILE
         )
     # fmt: on
 
@@ -1708,6 +1717,7 @@ def test_submit_live_run_for_hooks(project):
         role_arn=None,
         use_role=True,
         set_default=True,
+        profile_name=PROFILE,
     )
 
     assert temp_file._was_closed
@@ -1744,9 +1754,10 @@ def test__upload_good_path_create_role_and_set_default(project):
                 role_arn=None,
                 use_role=True,
                 set_default=True,
+                profile_name=None,
             )
 
-    mock_sdk.assert_called_once_with(None)
+    mock_sdk.assert_called_once_with(region_name=None, profile_name=None)
     mock_exec_role_method.assert_called_once_with(
         project.root / "resource-role.yaml", project.hypenated_name
     )
@@ -1797,9 +1808,10 @@ def test__upload_good_path_create_role_and_set_default_hook(project):
                 role_arn=None,
                 use_role=True,
                 set_default=True,
+                profile_name=None,
             )
 
-    mock_sdk.assert_called_once_with(None)
+    mock_sdk.assert_called_once_with(region_name=None, profile_name=None)
     mock_exec_role_method.assert_called_once_with(
         project.root / "hook-role.yaml", project.hypenated_name
     )
@@ -1853,9 +1865,10 @@ def test__upload_good_path_skip_role_creation(
                 role_arn="someArn",
                 use_role=use_role,
                 set_default=True,
+                profile_name=None,
             )
 
-    mock_sdk.assert_called_once_with(None)
+    mock_sdk.assert_called_once_with(region_name=None, profile_name=None)
     mock_upload_method.assert_called_once_with(project.hypenated_name, fileobj)
     mock_role_arn_method.assert_called_once_with()
     mock_uuid.assert_called_once_with()
@@ -1907,9 +1920,10 @@ def test__upload_good_path_skip_role_creation_hook(
                 role_arn="someArn",
                 use_role=use_role,
                 set_default=True,
+                profile_name=None,
             )
 
-    mock_sdk.assert_called_once_with(None)
+    mock_sdk.assert_called_once_with(region_name=None, profile_name=None)
     mock_upload_method.assert_called_once_with(project.hypenated_name, fileobj)
     mock_role_arn_method.assert_called_once_with()
     mock_uuid.assert_called_once_with()
@@ -1957,9 +1971,10 @@ def test__upload_clienterror(project):
                 role_arn=None,
                 use_role=False,
                 set_default=True,
+                profile_name=None,
             )
 
-    mock_sdk.assert_called_once_with(None)
+    mock_sdk.assert_called_once_with(region_name=None, profile_name=None)
     mock_upload_method.assert_called_once_with(project.hypenated_name, fileobj)
     mock_role_arn_method.assert_called_once_with()
     mock_uuid.assert_called_once_with()
@@ -2004,9 +2019,10 @@ def test__upload_clienterror_module(project):
                 role_arn=None,
                 use_role=False,
                 set_default=True,
+                profile_name=None,
             )
 
-    mock_sdk.assert_called_once_with(None)
+    mock_sdk.assert_called_once_with(region_name=None, profile_name=None)
     mock_upload_method.assert_called_once_with(project.hypenated_name, fileobj)
     mock_role_arn_method.assert_called_once_with()
     mock_uuid.assert_called_once_with()
@@ -2051,9 +2067,10 @@ def test__upload_clienterror_hook(project):
                 role_arn=None,
                 use_role=False,
                 set_default=True,
+                profile_name=None,
             )
 
-    mock_sdk.assert_called_once_with(None)
+    mock_sdk.assert_called_once_with(region_name=None, profile_name=None)
     mock_upload_method.assert_called_once_with(project.hypenated_name, fileobj)
     mock_role_arn_method.assert_called_once_with()
     mock_uuid.assert_called_once_with()
@@ -2287,7 +2304,9 @@ def test__load_target_info_for_resource(project):
     project.artifact_type = ARTIFACT_TYPE_RESOURCE
     project.schema = {"handlers": {}}
 
-    target_info = project._load_target_info(endpoint_url=None, region_name=None)
+    target_info = project._load_target_info(
+        endpoint_url=None, region_name=None, profile_name=None
+    )
 
     assert not target_info
 
@@ -2355,6 +2374,7 @@ def test__load_target_info_for_hooks(project):
                 "/files/list-of-target-schemas.json",
                 "/files/file-of-valid-json-array-with-a-target-schema.json",
             ],
+            profile_name=None,
         )
 
     assert target_info == {

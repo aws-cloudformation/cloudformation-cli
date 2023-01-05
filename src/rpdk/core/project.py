@@ -478,8 +478,13 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
                 LOG.info("File already exists, not overwriting '%s'", path)
 
     def generate(
-        self, endpoint_url=None, region_name=None, local_only=False, target_schemas=None
-    ):
+        self,
+        endpoint_url=None,
+        region_name=None,
+        local_only=False,
+        target_schemas=None,
+        profile_name=None,
+    ):  # pylint: disable=too-many-arguments
         if self.artifact_type == ARTIFACT_TYPE_MODULE:
             return  # for Modules, the schema is already generated in cfn validate
 
@@ -536,6 +541,7 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
                 region_name,
                 type_schemas=target_schemas,
                 local_only=local_only,
+                profile_name=profile_name,
             )
 
         self._plugin.generate(self)
@@ -607,7 +613,14 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
         template_fragment.validate_fragments()
 
     def submit(
-        self, dry_run, endpoint_url, region_name, role_arn, use_role, set_default
+        self,
+        dry_run,
+        endpoint_url,
+        region_name,
+        role_arn,
+        use_role,
+        set_default,
+        profile_name,
     ):  # pylint: disable=too-many-arguments
         context_mgr = self._create_context_manager(dry_run)
 
@@ -631,7 +644,9 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
                 if self.artifact_type == ARTIFACT_TYPE_MODULE:
                     self._add_modules_content_to_zip(zip_file)
                 elif self.artifact_type == ARTIFACT_TYPE_HOOK:
-                    self._add_hooks_content_to_zip(zip_file, endpoint_url, region_name)
+                    self._add_hooks_content_to_zip(
+                        zip_file, endpoint_url, region_name, profile_name
+                    )
                 else:
                     self._add_resources_content_to_zip(zip_file)
 
@@ -642,7 +657,13 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
             else:
                 f.seek(0)
                 self._upload(
-                    f, endpoint_url, region_name, role_arn, use_role, set_default
+                    f,
+                    endpoint_url,
+                    region_name,
+                    role_arn,
+                    use_role,
+                    set_default,
+                    profile_name,
                 )
 
     def _add_overrides_file_to_zip(self, zip_file):
@@ -672,7 +693,9 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
         cli_metadata["cli-version"] = __version__
         zip_file.writestr(CFN_METADATA_FILENAME, json.dumps(cli_metadata))
 
-    def _add_hooks_content_to_zip(self, zip_file, endpoint_url=None, region_name=None):
+    def _add_hooks_content_to_zip(
+        self, zip_file, endpoint_url=None, region_name=None, profile_name=None
+    ):
         zip_file.write(self.schema_path, SCHEMA_UPLOAD_FILENAME)
         if os.path.isdir(self.inputs_path):
             for filename in os.listdir(self.inputs_path):
@@ -687,7 +710,9 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
             target_info = (
                 self.target_info
                 if self.target_info
-                else self._load_target_info(endpoint_url, region_name)
+                else self._load_target_info(
+                    endpoint_url, region_name, profile_name=profile_name
+                )
             )
         except RPDKBaseException as e:
             LOG.warning("Failed to load target info, attempting local...", exc_info=e)
@@ -1039,10 +1064,17 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
         return prop
 
     def _upload(
-        self, fileobj, endpoint_url, region_name, role_arn, use_role, set_default
+        self,
+        fileobj,
+        endpoint_url,
+        region_name,
+        role_arn,
+        use_role,
+        set_default,
+        profile_name,
     ):  # pylint: disable=too-many-arguments, too-many-locals
         LOG.debug("Packaging complete, uploading...")
-        session = create_sdk_session(region_name)
+        session = create_sdk_session(region_name, profile_name)
         LOG.debug("Uploading to region '%s'", session.region_name)
         cfn_client = session.client("cloudformation", endpoint_url=endpoint_url)
         s3_client = session.client("s3")
@@ -1137,8 +1169,13 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
     # flake8: noqa: C901
     # pylint: disable=R0914
     def _load_target_info(
-        self, endpoint_url, region_name, type_schemas=None, local_only=False
-    ):
+        self,
+        endpoint_url,
+        region_name,
+        type_schemas=None,
+        local_only=False,
+        profile_name=None,
+    ):  # pylint: disable=too-many-arguments
         if self.artifact_type != ARTIFACT_TYPE_HOOK or not self.schema:
             return {}
 
@@ -1175,7 +1212,7 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
             )
             loader = TypeSchemaLoader(None, None, local_only=local_only)
         else:
-            session = create_sdk_session(region_name)
+            session = create_sdk_session(region_name, profile_name)
             cfn_client = session.client("cloudformation", endpoint_url=endpoint_url)
             s3_client = session.client("s3")
 

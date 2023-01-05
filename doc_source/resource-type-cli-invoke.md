@@ -10,6 +10,7 @@ Performs contract tests on the specified handler of a resource type\.
   cfn invoke
 [--endpoint <value>]
 [--function-name <value>]
+[--profile <value>]
 [--region <value>]
 [--max-reinvoke <value>]
 action
@@ -29,6 +30,10 @@ Default: `http://127.0.0.1.3001`
 The logical Lambda function name in the SAM template\. Alternately, you can also specify an actual Lambda endpoint and function name in your AWS account\.
 
 Default: `TypeFunction`
+
+`--profile <value>`
+
+The AWS profile to use\. If no profile is specified, the client applies credentials specified in the [Boto3 credentials chain](https://boto3.amazonaws.com/v1/documentation/api/latest/guide/configuration.html)\.
 
 `--region <value>`
 

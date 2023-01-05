@@ -22,6 +22,7 @@ The user registering the extension must be able to access the schema handler pac
   cfn submit
 [--dry-run]
 [--endpoint-url <value>]
+[--profile <value>]
 [--region <value>]
 [--role-arn <value>]
 [--no-role]
@@ -41,6 +42,10 @@ The CloudFormation endpoint to use\.
 `--region <value>`
 
 The AWS Region in which to register the extension\. If no Region is specified, the extension is registered in the default region\.
+
+`--profile <value>`
+
+The AWS profile to use\. If no profile is specified, the CloudFormation CLI applies credentials specified in the [Boto3 credentials chain](https://boto3.amazonaws.com/v1/documentation/api/latest/guide/configuration.html)\.
 
 `--role-arn <value>`
 

@@ -31,7 +31,7 @@ def init_hook(args, project):
     }
 
     project.init_hook(type_name, language, settings)
-    project.generate(args.endpoint_url, args.region, args.target_schemas)
+    project.generate(args.endpoint_url, args.region, args.target_schemas, args.profile)
     project.generate_docs()
 
 
