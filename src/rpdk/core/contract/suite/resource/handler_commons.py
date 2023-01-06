@@ -164,7 +164,5 @@ def test_input_equals_output(resource_client, input_model, output_model):
     pruned_output_model = prune_properties_if_not_exist_in_path(
         pruned_output_model, pruned_input_model, resource_client.create_only_paths
     )
-    resource_client.compare(
-        pruned_input_model,
-        pruned_output_model,
-    )
+
+    resource_client.compare(pruned_input_model, pruned_output_model)

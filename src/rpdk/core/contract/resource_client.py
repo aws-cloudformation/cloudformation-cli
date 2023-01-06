@@ -1,10 +1,13 @@
 # pylint: disable=import-outside-toplevel
 # pylint: disable=R0904
+import copy
 import json
 import logging
 import re
+import sys
 import time
 from time import sleep
+from typing import Any, Dict, Tuple
 from uuid import uuid4
 
 import docker
@@ -226,12 +229,49 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         self.write_only_paths = self._properties_to_paths("writeOnlyProperties")
         self.create_only_paths = self._properties_to_paths("createOnlyProperties")
         self.properties_without_insertion_order = self.get_metadata()
+        self.property_transform_keys = self._properties_to_paths("propertyTransform")
+        self.property_transform = self._schema.get("propertyTransform")
 
         additional_identifiers = self._schema.get("additionalIdentifiers", [])
         self._additional_identifiers_paths = [
             {fragment_decode(prop, prefix="") for prop in identifier}
             for identifier in additional_identifiers
         ]
+
+    def transform_model(self, input_model):
+        if not self.property_transform:
+            return None
+        # When CT input and output not equal, and with property transform
+        # Need to check system as property transform for CT not supported on Windows
+        if sys.platform.startswith("win"):
+            raise EnvironmentError(
+                "Property transform not available with contract tests on Windows OS"
+            )
+
+        import pyjq
+
+        transformed_input_model = copy.deepcopy(input_model)
+        for key in self.property_transform_keys:
+            path = "/" + "/".join(key)
+            expression = self.property_transform[path]
+            transformed_value = pyjq.first(expression, transformed_input_model)
+            # key is a tuple like ("properties", "A", "B")
+            # input model is like: {"A": {"B": "valueB"}}
+            # use key[1:] here to remove "properties"
+            transformed_input_model = self.update_property(
+                transformed_input_model, transformed_value, key[1:]
+            )
+
+        return transformed_input_model
+
+    def update_property(
+        self, model: Dict[str, Any], value: Any, path: Tuple[str, ...]
+    ) -> Dict[str, Any]:
+        if len(path) > 1:
+            model[path[0]] = self.update_property(model[path[0]], value, path[1:])
+        elif len(path) == 1:
+            model[path[0]] = value
+        return model
 
     def has_only_writable_identifiers(self):
         return all(
@@ -393,7 +433,17 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         example = override_properties(self.invalid_strategy.example(), overrides)
         return {**create_model, **example}
 
-    def compare(self, inputs, outputs, path=()):
+    def compare(self, inputs, outputs):
+        try:
+            self.compare_model(inputs, outputs)
+        except AssertionError as exception:
+            transformed_inputs = self.transform_model(inputs)
+            if transformed_inputs:
+                self.compare_model(transformed_inputs, outputs)
+            else:
+                raise exception
+
+    def compare_model(self, inputs, outputs, path=()):
         assertion_error_message = (
             "All properties specified in the request MUST "
             "be present in the model returned, and they MUST"
@@ -405,7 +455,11 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
                 for key in inputs:
                     new_path = path + (key,)
                     if isinstance(inputs[key], dict):
-                        self.compare(inputs[key], outputs[key], new_path)
+                        self.compare_model(
+                            inputs[key],
+                            outputs[key],
+                            new_path,
+                        )
                     elif isinstance(inputs[key], list):
                         assert len(inputs[key]) == len(outputs[key])
 
@@ -414,7 +468,10 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
                         )
 
                         self.compare_collection(
-                            inputs[key], outputs[key], is_ordered, new_path
+                            inputs[key],
+                            outputs[key],
+                            is_ordered,
+                            new_path,
                         )
                     else:
                         assert inputs[key] == outputs[key], assertion_error_message
@@ -426,7 +483,11 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
     def compare_collection(self, inputs, outputs, is_ordered, path):
         if is_ordered:
             for index in range(len(inputs)):  # pylint: disable=C0200
-                self.compare(inputs[index], outputs[index], path)
+                self.compare_model(
+                    inputs[index],
+                    outputs[index],
+                    path,
+                )
             return
 
         assert {item_hash(item) for item in inputs} == {
