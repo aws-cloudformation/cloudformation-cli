@@ -1,7 +1,7 @@
 import logging
 from collections.abc import Iterable, Mapping
 
-from jsonschema import RefResolver
+from jsonschema import RefResolver, RefResolutionError
 
 from .renamer import RefRenamer
 from .utils import BASE, rewrite_ref, traverse
@@ -11,6 +11,8 @@ LOG = logging.getLogger(__name__)
 
 class RefInliner(RefResolver):
     """Mutates the schema."""
+    
+    META_SCHEMA = "resource-schema.json"
 
     def __init__(self, base_uri, schema):
         self.schema = schema
@@ -43,7 +45,10 @@ class RefInliner(RefResolver):
                     if old_path in self.ref_graph:
                         LOG.debug("Already visited '%s' (%s)", old_path, value)
                         return
-                    url, resolved = self.resolve(value)
+                    try:
+                        url, resolved = self.resolve(value)
+                    except RefResolutionError:
+                        url, resolved = self.resolve(value[len(self.META_SCHEMA):])
                     LOG.debug("Resolved '%s' to '%s'", value, url)
                     # parse the URL into
                     new_path = self.renamer.parse_ref_url(url)
