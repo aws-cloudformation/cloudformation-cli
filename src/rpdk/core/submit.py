@@ -60,13 +60,13 @@ def setup_subparser(subparsers, parents):
     nodocker_group.add_argument(
         "--use-docker",
         action="store_true",
-        help="""Use docker for TypeScript platform-independent packaging.
+        help="""Use docker for platform-independent packaging.
             This is highly recommended unless you are experienced
-            with cross-platform TypeScript packaging.""",
+            with cross-platform packaging.""",
     )
     nodocker_group.add_argument(
         "--no-docker",
         action="store_true",
         help="""Generally not recommended unless you are experienced
-            with cross-platform Typescript packaging.""",
+            with cross-platform packaging.""",
     )
