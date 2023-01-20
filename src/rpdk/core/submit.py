@@ -12,7 +12,7 @@ LOG = logging.getLogger(__name__)
 def submit(args):
     project = Project()
     project.load()
-    # Update config file if use-docker or no-docker used in submit call
+    # Use CLI override opposed to config file if use-docker or no-docker switch used
     if args.use_docker or args.no_docker:
         project.settings["use_docker"] = args.use_docker
         project.settings["no_docker"] = args.no_docker
