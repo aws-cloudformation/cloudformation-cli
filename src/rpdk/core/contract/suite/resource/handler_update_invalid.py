@@ -25,4 +25,3 @@ def contract_update_without_create(resource_client):
         "message"
     ], "The progress event MUST return an error message\
          when the status is failed"
-    return _error
