@@ -23,10 +23,10 @@ def test_update_without_create(resource_client):
     create_request = resource_client.generate_create_example()
     update_request = resource_client.generate_update_example(create_request)
     _status, response, _error = resource_client.call_and_assert(
-      Action.UPDATE, OperationStatus.FAILED, update_request, create_request
+        Action.UPDATE, OperationStatus.FAILED, update_request, create_request
     )
     assert response[
-      "message"
+        "message"
     ], "The progress event MUST return an error message\
          when the status is failed"
 
