@@ -68,7 +68,8 @@ def _prune_properties_for_all_sequence_members(document: dict, path: list) -> di
         _prop, resolved_paths = traverse_path_for_sequence_members(document, path)
     except LookupError:
         # not found means nothing to delete
-        LOG.info(LOOKUP_ERROR_MESSAGE_FORMAT, document, path)
+        #LOG.info(LOOKUP_ERROR_MESSAGE_FORMAT, document, path)
+        pass
     else:
         # paths with indices are gathered in increasing order, but we need to prune in reverse order
         resolved_paths = resolved_paths[::-1]
