@@ -39,8 +39,8 @@ setup(
     python_requires=">=3.6",
     install_requires=[
         "boto3>=1.10.20",
-        "Jinja2>=2.11.3",
-        "markupsafe>=2.0.1",
+        "Jinja2>=3.1.2",
+        "markupsafe>=2.1.0",
         "jsonschema>=3.0.1,<4.0",
         "pytest>=4.5.0",
         "pytest-random-order>=1.0.4",
