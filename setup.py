@@ -45,7 +45,7 @@ setup(
         "pytest>=4.5.0",
         "pytest-random-order>=1.0.4",
         "pytest-localserver>=0.5.0",
-        "Werkzeug>=0.15",
+        "Werkzeug>=2.2.0",
         "PyYAML>=5.1,<6.0",
         "requests>=2.22",
         "hypothesis>=4.32",
