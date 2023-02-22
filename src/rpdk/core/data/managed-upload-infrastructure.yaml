@@ -26,6 +26,11 @@ Resources:
       LoggingConfiguration:
         DestinationBucketName: !Ref AccessLogsBucket
         LogFilePrefix: ArtifactBucket
+      PublicAccessBlockConfiguration: 
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
 
   AccessLogsBucket:
     Type: AWS::S3::Bucket
@@ -44,6 +49,11 @@ Resources:
             ExpirationInDays: 3653
       VersioningConfiguration:
         Status: Enabled
+      PublicAccessBlockConfiguration: 
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
 
   ArtifactCopyPolicy:
     Type: AWS::S3::BucketPolicy
