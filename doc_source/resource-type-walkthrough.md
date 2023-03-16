@@ -1598,6 +1598,24 @@ Use [DescribeTypeRegistration](https://docs.aws.amazon.com/AWSCloudFormation/lat
                    "Name": "MyWebsite"
                }
            }
+       },
+       "Outputs": {
+           "InstanceId": {
+               "Value": {
+                   "Fn::GetAtt": [
+                       "MyWordPressSite",
+                       "InstanceId"
+                   ]
+               }
+           },
+           "PublicIp": {
+               "Value": {
+                   "Fn::GetAtt": [
+                       "MyWordPressSite",
+                       "PublicIp"
+                   ]
+               }
+           }
        }
    }
    ```
