@@ -4,9 +4,9 @@ In this walkthrough, we'll use the CloudFormation CLI to create a sample resourc
 
 ## Prerequisites<a name="resource-type-walkthrough-prereqs"></a>
 
-For purposes of this walkthrough, it's assumed you have already set up the CloudFormation CLI and associated tooling for your Java development environment:
-
-[Setting up your environment for developing extensions](what-is-cloudformation-cli.md#resource-type-setup)
+- Java 8
+- For purposes of this walkthrough, it's assumed you have already set up the CloudFormation CLI and associated tooling for your Java development environment: [Setting up your environment for developing extensions](what-is-cloudformation-cli.md#resource-type-setup)
+- This walkthrough uses an AMI that requires [a subscription](https://aws.amazon.com/marketplace/server/procurement?productId=7d426cb7-9522-4dd7-a56b-55dd8cc1c8d0) before you can use it with your account\.
 
 ## Create the resource type development project<a name="resource-type-walkthrough-model"></a>
 
@@ -24,10 +24,19 @@ This walkthrough uses the Community Edition of the [IntelliJ IDEA](https://www.j
    Initializing new project
    ```
 
-1. The `init` command launches a wizard that walks you through setting up the project, including specifying the resource name\. For this walkthrough, specify `Example::Testing::WordPress`\.
+1. The `init` command launches a wizard that walks you through setting up the project, including specifying the resource name\.  Start by specifying that you want to create a resource\.
 
    ```
-   Enter resource type identifier (Organization::Service::Resource): Example::Testing::WordPress
+   Do you want to develop a new resource(r) or a module(m) or a hook(h)?.
+   >> r
+   ```
+
+1. For this walkthrough, specify `Example::Testing::WordPress`\.
+
+   ```
+   What's the name of your resource type?
+   (Organization::Service::Resource)
+   >> Example::Testing::WordPress
    ```
 
    The wizard then enables you to select the appropriate language plugin\. Currently, the only language plugin available is for Java:
@@ -36,10 +45,21 @@ This walkthrough uses the Community Edition of the [IntelliJ IDEA](https://www.j
    One language plugin found, defaulting to java
    ```
 
-1. Specify the package name\. For this walkthrough, use `com.example.testing.wordpress`
+1. Specify the package name\. For this walkthrough, use `com.example.testing.wordpress`\.
 
    ```
-   Enter a package name (empty for default 'com.example.testing.wordpress'): com.example.testing.wordpress
+   Enter a package name (empty for default 'com.example.testing.wordpress'):
+   >> com.example.testing.wordpress
+   Initialized a new project in /workplace/tobflem/example-testing-wordpress
+   ```
+   
+1. Select the default codegen model\.
+
+   ```
+   Choose codegen model - 1 (default) or 2 (guided-aws):
+   >> 1
+   Could not find specified format 'date-time' for type 'string'. Defaulting to 'String'
+   Could not find specified format 'date-time' for type 'string'. Defaulting to 'String'
    Initialized a new project in /workplace/tobflem/example-testing-wordpress
    ```
 
@@ -48,9 +68,12 @@ Initiating the project includes generating the files needed to develop the resou
 ```
 $ ls -1
 README.md
+docs
 example-testing-wordpress.json
+example_inputs
 lombok.config
 pom.xml
+resource-role.yaml
 rpdk.log
 src
 target
@@ -86,7 +109,7 @@ When you initiate the resource type project, an example resource type schema fil
    ```
    {
      "typeName": "Example::Testing::WordPress",
-     "description": "An example resource that creates a website based on WordPress 5.2.2.",
+     "description": "An example resource that creates a website based on WordPress 6.1.1.",
      "sourceUrl": "https://docs.aws.amazon.com/cloudformation-cli/latest/userguide/resource-type-walkthrough.html",
      "properties": {
        "Name": {
@@ -141,7 +164,6 @@ When you initiate the resource type project, an example resource type schema fil
      },
      "additionalProperties": false,
      "primaryIdentifier": [
-       "/properties/PublicIp",
        "/properties/InstanceId"
      ],
      "readOnlyProperties": [
@@ -193,6 +215,14 @@ For more information on how to add dependencies, see the [Maven documentation](h
 Depending on your IDE, you may have to take additional steps for your IDE to include the new dependency\.
 In IntelliJ IDEA, a dialog should appear to enable you to import these changes\. we recommend allowing automatic importing\.
 
+### Increase the memory size<a name="resource-type-walkthrough-increase-memory-size"></a>
+
+The request handler is limited to 256 MB of memory by default\. This needs to be increased\.
+
+1. Open the project's `template.yml` file in the project's root directory\.
+
+1. Find the `MemorySize` setting and change the value to `512`\.
+
 ### Implement the Create Handler<a name="resource-type-walkthrough-implement-create-handler"></a>
 
 With the necessary dependency specified, we can now start writing the handlers that actually implement the resource's functionality\. For our example resource, we'll implement just the `create` and `delete` operation handlers\.
@@ -237,45 +267,60 @@ The CallbackContext is modeled as a POJO so you can define what information you 
    }
    ```
 
+#### Code the Base Handler<a name="resource-type-walkthrough-implement-base-handler-code"></a>
+
+We'll create a base class for the handlers. This simply provides a place to put code that would otherwise be duplicated by the various handlers\.
+
+1. In your IDE, create a file named `CustomBaseHandler.java` in the `src/main/java/com/example/testing/wordpress` folder\.  Paste the following code into the file, replacing any default code created by your IDE\.
+
+   ```
+   package com.example.testing.wordpress;
+
+   import com.amazonaws.services.ec2.AmazonEC2;
+   import com.amazonaws.services.ec2.model.DescribeInstancesRequest;
+   import com.amazonaws.services.ec2.model.DescribeInstancesResult;
+   import com.amazonaws.services.ec2.model.Instance;
+   import com.amazonaws.services.ec2.model.Reservation;
+   import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
+
+   import java.util.List;
+
+   public abstract class CustomBaseHandler extends BaseHandler<CallbackContext> {
+
+       protected static final String SUPPORTED_REGION = "us-west-2";
+
+       protected static final Instance retrieveCurrentInstanceState(AmazonWebServicesClientProxy clientProxy, AmazonEC2 ec2Client, String instanceId) {
+           DescribeInstancesRequest describeInstancesRequest = new DescribeInstancesRequest().withInstanceIds(instanceId);
+           DescribeInstancesResult describeInstancesResult =
+                   clientProxy.injectCredentialsAndInvoke(describeInstancesRequest, (DescribeInstancesRequest r) -> ec2Client.describeInstances(r));
+           return describeInstancesResult.getReservations()
+                   .stream()
+                   .map(Reservation::getInstances)
+                   .flatMap(List::stream)
+                   .findFirst()
+                   .orElse(new Instance());
+       }
+   }
+   ```
+
 #### Code the Create Handler<a name="resource-type-walkthrough-implement-create-handler-code"></a>
 
-1. In your IDE, open the `CreateHandler.java` file, located in the `src/main/java/com/example/testing/wordpress/CreateHandler.java` folder\.
+1. In your IDE, open the `CreateHandler.java` file, located in the `src/main/java/com/example/testing/wordpress` folder\.
 
 1. Replace the entire contents of the `CreateHandler.java` file with the following code\.
 
    ```
    package com.example.testing.wordpress;
 
-   import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
-   import software.amazon.cloudformation.proxy.Logger;
-   import software.amazon.cloudformation.proxy.OperationStatus;
-   import software.amazon.cloudformation.proxy.ProgressEvent;
-   import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
    import com.amazonaws.services.ec2.AmazonEC2;
    import com.amazonaws.services.ec2.AmazonEC2ClientBuilder;
-   import com.amazonaws.services.ec2.model.AuthorizeSecurityGroupIngressRequest;
-   import com.amazonaws.services.ec2.model.CreateSecurityGroupRequest;
-   import com.amazonaws.services.ec2.model.DeleteSecurityGroupRequest;
-   import com.amazonaws.services.ec2.model.DescribeInstancesRequest;
-   import com.amazonaws.services.ec2.model.DescribeInstancesResult;
-   import com.amazonaws.services.ec2.model.DescribeSubnetsRequest;
-   import com.amazonaws.services.ec2.model.DescribeSubnetsResult;
-   import com.amazonaws.services.ec2.model.Instance;
-   import com.amazonaws.services.ec2.model.InstanceNetworkInterfaceSpecification;
-   import com.amazonaws.services.ec2.model.IpPermission;
-   import com.amazonaws.services.ec2.model.IpRange;
-   import com.amazonaws.services.ec2.model.Reservation;
-   import com.amazonaws.services.ec2.model.RunInstancesRequest;
-   import com.amazonaws.services.ec2.model.Subnet;
-   import com.amazonaws.services.ec2.model.Tag;
-   import com.amazonaws.services.ec2.model.TagSpecification;
-
-   import java.util.List;
+   import com.amazonaws.services.ec2.model.*;
+   import software.amazon.cloudformation.proxy.*;
+   
    import java.util.UUID;
-
-   public class CreateHandler extends BaseHandler<CallbackContext> {
-       private static final String SUPPORTED_REGION = "us-west-2";
-       private static final String WORDPRESS_AMI_ID = "ami-04fb0368671b6f138";
+   
+   public class CreateHandler extends CustomBaseHandler {
+       private static final String WORDPRESS_AMI_ID = "ami-0039c114b5e564742";
        private static final String INSTANCE_TYPE = "m4.large";
        private static final String SITE_NAME_TAG_KEY = "Name";
        private static final String AVAILABLE_INSTANCE_STATE = "running";
@@ -314,11 +359,14 @@ The CallbackContext is modeled as a POJO so you can define what information you 
            }
 
            if (instanceStateSoFar == null) {
+               Instance instance = createEC2Instance(model);
+               model.setInstanceId(instance.getInstanceId());
+               model.setPublicIp(instance.getPublicIpAddress());
                return ProgressEvent.<ResourceModel, CallbackContext>builder()
                    .resourceModel(model)
                    .status(OperationStatus.IN_PROGRESS)
                    .callbackContext(CallbackContext.builder()
-                                                   .instance(createEC2Instance(model))
+                                                   .instance(instance)
                                                    .stabilizationRetriesRemaining(NUMBER_OF_STATE_POLL_RETRIES)
                                                    .build())
                    .build();
@@ -336,11 +384,13 @@ The CallbackContext is modeled as a POJO so you can define what information you 
                } catch (InterruptedException e) {
                    throw new RuntimeException(e);
                }
+               model.setInstanceId(instanceStateSoFar.getInstanceId());
+               model.setPublicIp(instanceStateSoFar.getPublicIpAddress());
                return ProgressEvent.<ResourceModel, CallbackContext>builder()
                    .resourceModel(model)
                    .status(OperationStatus.IN_PROGRESS)
                    .callbackContext(CallbackContext.builder()
-                                                   .instance(updatedInstanceProgress(instanceStateSoFar.getInstanceId()))
+                                                   .instance(retrieveCurrentInstanceState(clientProxy, ec2Client, instanceStateSoFar.getInstanceId()))
                                                    .stabilizationRetriesRemaining(callbackContext.getStabilizationRetriesRemaining() - 1)
                                                    .build())
                    .build();
@@ -407,7 +457,7 @@ The CallbackContext is modeled as a POJO so you can define what information you 
                .withSubnetIds(subnetId);
 
            final DescribeSubnetsResult describeSubnetsResult =
-               clientProxy.injectCredentialsAndInvoke(describeSubnetsRequest, ec2Client::describeSubnets);
+               clientProxy.injectCredentialsAndInvoke(describeSubnetsRequest, (DescribeSubnetsRequest r) -> ec2Client.describeSubnets(r));
 
            return describeSubnetsResult.getSubnets()
                                        .stream()
@@ -438,20 +488,6 @@ The CallbackContext is modeled as a POJO so you can define what information you 
                .withTags(new Tag().withKey(SITE_NAME_TAG_KEY).withValue(siteName));
        }
 
-       private Instance updatedInstanceProgress(String instanceId) {
-           DescribeInstancesRequest describeInstancesRequest;
-           DescribeInstancesResult describeInstancesResult;
-
-           describeInstancesRequest = new DescribeInstancesRequest().withInstanceIds(instanceId);
-           describeInstancesResult = clientProxy.injectCredentialsAndInvoke(describeInstancesRequest, ec2Client::describeInstances);
-           return describeInstancesResult.getReservations()
-                                         .stream()
-                                         .map(Reservation::getInstances)
-                                         .flatMap(List::stream)
-                                         .findFirst()
-                                         .orElse(new Instance());
-       }
-
        private void attemptToCleanUpSecurityGroup(String securityGroupId) {
            final DeleteSecurityGroupRequest deleteSecurityGroupRequest = new DeleteSecurityGroupRequest().withGroupId(securityGroupId);
            clientProxy.injectCredentialsAndInvoke(deleteSecurityGroupRequest, ec2Client::deleteSecurityGroup);
@@ -470,33 +506,16 @@ Because our resource type is a high\-level abstraction, a lot of implementation 
    ```
    package com.example.testing.wordpress;
 
-   import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
-   import software.amazon.cloudformation.proxy.Logger;
-   import software.amazon.cloudformation.proxy.OperationStatus;
-   import software.amazon.cloudformation.proxy.ProgressEvent;
-   import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
-   import com.amazonaws.services.ec2.model.AuthorizeSecurityGroupIngressRequest;
-   import com.amazonaws.services.ec2.model.AuthorizeSecurityGroupIngressResult;
-   import com.amazonaws.services.ec2.model.CreateSecurityGroupRequest;
-   import com.amazonaws.services.ec2.model.CreateSecurityGroupResult;
-   import com.amazonaws.services.ec2.model.DescribeInstancesRequest;
-   import com.amazonaws.services.ec2.model.DescribeInstancesResult;
-   import com.amazonaws.services.ec2.model.DescribeSubnetsRequest;
-   import com.amazonaws.services.ec2.model.DescribeSubnetsResult;
-   import com.amazonaws.services.ec2.model.GroupIdentifier;
-   import com.amazonaws.services.ec2.model.Instance;
-   import com.amazonaws.services.ec2.model.InstanceState;
-   import com.amazonaws.services.ec2.model.Reservation;
-   import com.amazonaws.services.ec2.model.RunInstancesRequest;
-   import com.amazonaws.services.ec2.model.RunInstancesResult;
-   import com.amazonaws.services.ec2.model.Subnet;
-
+   import com.amazonaws.services.ec2.model.*;
    import org.junit.jupiter.api.BeforeEach;
    import org.junit.jupiter.api.Test;
    import org.junit.jupiter.api.extension.ExtendWith;
+   import org.mockito.ArgumentMatchers;
    import org.mockito.Mock;
    import org.mockito.junit.jupiter.MockitoExtension;
+   import software.amazon.cloudformation.proxy.*;
 
+   import java.util.function.Function;
 
    import static org.assertj.core.api.Assertions.assertThat;
    import static org.mockito.ArgumentMatchers.any;
@@ -566,10 +585,10 @@ Because our resource type is a high\-level abstraction, a lot of implementation 
            final InstanceState inProgressState = new InstanceState().withName("in-progress");
            final GroupIdentifier group = new GroupIdentifier().withGroupId("sg-1234");
            final Instance instance = new Instance().withState(inProgressState).withPublicIpAddress("54.0.0.0").withSecurityGroups(group);
-           doReturn(new DescribeSubnetsResult().withSubnets(new Subnet().withVpcId("vpc-1234"))).when(proxy).injectCredentialsAndInvoke(any(DescribeSubnetsRequest.class), any());
-           doReturn(new RunInstancesResult().withReservation(new Reservation().withInstances(instance))).when(proxy).injectCredentialsAndInvoke(any(RunInstancesRequest.class), any());
-           doReturn(new CreateSecurityGroupResult().withGroupId("sg-1234")).when(proxy).injectCredentialsAndInvoke(any(CreateSecurityGroupRequest.class), any());
-           doReturn(new AuthorizeSecurityGroupIngressResult()).when(proxy).injectCredentialsAndInvoke(any(AuthorizeSecurityGroupIngressRequest.class), any());
+           doReturn(new DescribeSubnetsResult().withSubnets(new Subnet().withVpcId("vpc-1234"))).when(proxy).injectCredentialsAndInvoke(any(DescribeSubnetsRequest.class), ArgumentMatchers.<Function<DescribeSubnetsRequest, DescribeSubnetsResult>>any());
+           doReturn(new RunInstancesResult().withReservation(new Reservation().withInstances(instance))).when(proxy).injectCredentialsAndInvoke(any(RunInstancesRequest.class), ArgumentMatchers.<Function<RunInstancesRequest, RunInstancesResult>>any());
+           doReturn(new CreateSecurityGroupResult().withGroupId("sg-1234")).when(proxy).injectCredentialsAndInvoke(any(CreateSecurityGroupRequest.class), ArgumentMatchers.<Function<CreateSecurityGroupRequest, CreateSecurityGroupResult>>any());
+           doReturn(new AuthorizeSecurityGroupIngressResult()).when(proxy).injectCredentialsAndInvoke(any(AuthorizeSecurityGroupIngressRequest.class), ArgumentMatchers.<Function<AuthorizeSecurityGroupIngressRequest, AuthorizeSecurityGroupIngressResult>>any());
 
            final CreateHandler handler = new CreateHandler();
 
@@ -604,7 +623,7 @@ Because our resource type is a high\-level abstraction, a lot of implementation 
            final DescribeInstancesResult describeInstancesResult =
                new DescribeInstancesResult().withReservations(new Reservation().withInstances(instance));
 
-           doReturn(describeInstancesResult).when(proxy).injectCredentialsAndInvoke(any(DescribeInstancesRequest.class), any());
+           doReturn(describeInstancesResult).when(proxy).injectCredentialsAndInvoke(any(DescribeInstancesRequest.class), ArgumentMatchers.<Function<DescribeInstancesRequest, DescribeInstancesResult>>any());
 
            final CreateHandler handler = new CreateHandler();
 
@@ -682,27 +701,18 @@ Again, we'll implement the delete handler as a state machine\.
    ```
    package com.example.testing.wordpress;
 
-   import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
-   import software.amazon.cloudformation.proxy.HandlerErrorCode;
-   import software.amazon.cloudformation.proxy.Logger;
-   import software.amazon.cloudformation.proxy.OperationStatus;
-   import software.amazon.cloudformation.proxy.ProgressEvent;
-   import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
    import com.amazonaws.services.ec2.AmazonEC2;
    import com.amazonaws.services.ec2.AmazonEC2ClientBuilder;
    import com.amazonaws.services.ec2.model.DeleteSecurityGroupRequest;
-   import com.amazonaws.services.ec2.model.DescribeInstancesRequest;
-   import com.amazonaws.services.ec2.model.DescribeInstancesResult;
    import com.amazonaws.services.ec2.model.GroupIdentifier;
    import com.amazonaws.services.ec2.model.Instance;
-   import com.amazonaws.services.ec2.model.Reservation;
    import com.amazonaws.services.ec2.model.TerminateInstancesRequest;
+   import software.amazon.cloudformation.proxy.*;
 
    import java.util.List;
    import java.util.stream.Collectors;
 
-   public class DeleteHandler extends BaseHandler<CallbackContext> {
-       private static final String SUPPORTED_REGION = "us-west-2";
+   public class DeleteHandler extends CustomBaseHandler {
        private static final String DELETED_INSTANCE_STATE = "terminated";
        private static final int NUMBER_OF_STATE_POLL_RETRIES = 60;
        private static final int POLL_RETRY_DELAY_IN_MS = 5000;
@@ -737,7 +747,7 @@ Again, we'll implement the delete handler as a state machine\.
            }
 
            if (callbackContext.getInstanceSecurityGroups() == null) {
-               final Instance currentInstanceState = currentInstanceState(model.getInstanceId());
+               final Instance currentInstanceState = retrieveCurrentInstanceState(clientProxy, ec2Client, model.getInstanceId());
 
                if (DELETED_INSTANCE_STATE.equals(currentInstanceState.getState().getName())) {
                    return ProgressEvent.<ResourceModel, CallbackContext>builder()
@@ -775,7 +785,6 @@ Again, we'll implement the delete handler as a state machine\.
            } else if (callbackContext.getInstance().getState().getName().equals(DELETED_INSTANCE_STATE)) {
                callbackContext.getInstanceSecurityGroups().forEach(this::deleteSecurityGroup);
                return ProgressEvent.<ResourceModel, CallbackContext>builder()
-                   .resourceModel(model)
                    .status(OperationStatus.SUCCESS)
                    .build();
            } else {
@@ -788,7 +797,7 @@ Again, we'll implement the delete handler as a state machine\.
                    .resourceModel(model)
                    .status(OperationStatus.IN_PROGRESS)
                    .callbackContext(CallbackContext.builder()
-                                                   .instance(currentInstanceState(model.getInstanceId()))
+                                                   .instance(retrieveCurrentInstanceState(clientProxy, ec2Client, model.getInstanceId()))
                                                    .instanceSecurityGroups(callbackContext.getInstanceSecurityGroups())
                                                    .stabilizationRetriesRemaining(callbackContext.getStabilizationRetriesRemaining() - 1)
                                                    .build())
@@ -805,20 +814,6 @@ Again, we'll implement the delete handler as a state machine\.
                              .map(instance -> new Instance().withState(instance.getCurrentState()).withInstanceId(instance.getInstanceId()))
                              .findFirst()
                              .orElse(new Instance());
-       }
-
-       private Instance currentInstanceState(String instanceId) {
-           DescribeInstancesRequest describeInstancesRequest;
-           DescribeInstancesResult describeInstancesResult;
-
-           describeInstancesRequest = new DescribeInstancesRequest().withInstanceIds(instanceId);
-           describeInstancesResult = clientProxy.injectCredentialsAndInvoke(describeInstancesRequest, ec2Client::describeInstances);
-           return describeInstancesResult.getReservations()
-                                         .stream()
-                                         .map(Reservation::getInstances)
-                                         .flatMap(List::stream)
-                                         .findFirst()
-                                         .orElse(new Instance());
        }
 
        private void deleteSecurityGroup(String securityGroupId) {
@@ -839,32 +834,17 @@ We'll also need to update the unit test for the delete handler\.
    ```
    package com.example.testing.wordpress;
 
-   import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
-   import software.amazon.cloudformation.proxy.HandlerErrorCode;
-   import software.amazon.cloudformation.proxy.Logger;
-   import software.amazon.cloudformation.proxy.OperationStatus;
-   import software.amazon.cloudformation.proxy.ProgressEvent;
-   import software.amazon.cloudformation.proxy.ResourceHandlerRequest;
-   import com.amazonaws.services.ec2.model.DeleteSecurityGroupRequest;
-   import com.amazonaws.services.ec2.model.DeleteSecurityGroupResult;
-   import com.amazonaws.services.ec2.model.DescribeInstancesRequest;
-   import com.amazonaws.services.ec2.model.DescribeInstancesResult;
-   import com.amazonaws.services.ec2.model.GroupIdentifier;
-   import com.amazonaws.services.ec2.model.Instance;
-   import com.amazonaws.services.ec2.model.InstanceState;
-   import com.amazonaws.services.ec2.model.InstanceStateChange;
-   import com.amazonaws.services.ec2.model.Reservation;
-   import com.amazonaws.services.ec2.model.TerminateInstancesRequest;
-   import com.amazonaws.services.ec2.model.TerminateInstancesResult;
-
+   import com.amazonaws.services.ec2.model.*;
    import org.junit.jupiter.api.BeforeEach;
    import org.junit.jupiter.api.Test;
    import org.junit.jupiter.api.extension.ExtendWith;
+   import org.mockito.ArgumentMatchers;
    import org.mockito.Mock;
    import org.mockito.junit.jupiter.MockitoExtension;
+   import software.amazon.cloudformation.proxy.*;
 
    import java.util.Arrays;
-
+   import java.util.function.Function;
 
    import static org.assertj.core.api.Assertions.assertThat;
    import static org.mockito.ArgumentMatchers.any;
@@ -890,7 +870,7 @@ We'll also need to update the unit test for the delete handler\.
        @Test
        public void testSuccessState() {
            final DeleteSecurityGroupResult deleteSecurityGroupResult = new DeleteSecurityGroupResult();
-           doReturn(deleteSecurityGroupResult).when(proxy).injectCredentialsAndInvoke(any(DeleteSecurityGroupRequest.class), any());
+           doReturn(deleteSecurityGroupResult).when(proxy).injectCredentialsAndInvoke(any(DeleteSecurityGroupRequest.class), ArgumentMatchers.<Function<DeleteSecurityGroupRequest, DeleteSecurityGroupResult>>any());
 
            final DeleteHandler handler = new DeleteHandler();
 
@@ -913,7 +893,7 @@ We'll also need to update the unit test for the delete handler\.
            assertThat(response.getStatus()).isEqualTo(OperationStatus.SUCCESS);
            assertThat(response.getCallbackContext()).isNull();
            assertThat(response.getCallbackDelaySeconds()).isEqualTo(0);
-           assertThat(response.getResourceModel()).isEqualTo(request.getDesiredResourceState());
+           assertThat(response.getResourceModel()).isNull();
            assertThat(response.getResourceModels()).isNull();
            assertThat(response.getMessage()).isNull();
            assertThat(response.getErrorCode()).isNull();
@@ -924,7 +904,7 @@ We'll also need to update the unit test for the delete handler\.
            final DescribeInstancesResult describeInstancesResult =
                new DescribeInstancesResult().withReservations(new Reservation().withInstances(new Instance().withState(new InstanceState().withName("terminated"))
                                                                                                             .withSecurityGroups(new GroupIdentifier().withGroupId("sg-1234"))));
-           doReturn(describeInstancesResult).when(proxy).injectCredentialsAndInvoke(any(DescribeInstancesRequest.class), any());
+           doReturn(describeInstancesResult).when(proxy).injectCredentialsAndInvoke(any(DescribeInstancesRequest.class), ArgumentMatchers.<Function<DescribeInstancesRequest, DescribeInstancesResult>>any());
 
            final DeleteHandler handler = new DeleteHandler();
 
@@ -952,7 +932,7 @@ We'll also need to update the unit test for the delete handler\.
            final DescribeInstancesResult describeInstancesResult =
                new DescribeInstancesResult().withReservations(new Reservation().withInstances(new Instance().withState(new InstanceState().withName("running"))
                                                                                                             .withSecurityGroups(new GroupIdentifier().withGroupId("sg-1234"))));
-           doReturn(describeInstancesResult).when(proxy).injectCredentialsAndInvoke(any(DescribeInstancesRequest.class), any());
+           doReturn(describeInstancesResult).when(proxy).injectCredentialsAndInvoke(any(DescribeInstancesRequest.class), ArgumentMatchers.<Function<DescribeInstancesRequest, DescribeInstancesResult>>any());
 
            final DeleteHandler handler = new DeleteHandler();
 
@@ -984,7 +964,7 @@ We'll also need to update the unit test for the delete handler\.
            final InstanceState inProgressState = new InstanceState().withName("in-progress");
            final TerminateInstancesResult terminateInstancesResult =
                new TerminateInstancesResult().withTerminatingInstances(new InstanceStateChange().withCurrentState(inProgressState));
-           doReturn(terminateInstancesResult).when(proxy).injectCredentialsAndInvoke(any(TerminateInstancesRequest.class), any());
+           doReturn(terminateInstancesResult).when(proxy).injectCredentialsAndInvoke(any(TerminateInstancesRequest.class), ArgumentMatchers.<Function<TerminateInstancesRequest, TerminateInstancesResult>>any());
 
            final DeleteHandler handler = new DeleteHandler();
 
@@ -1025,7 +1005,7 @@ We'll also need to update the unit test for the delete handler\.
            final Instance instance = new Instance().withState(inProgressState).withSecurityGroups(group);
            final DescribeInstancesResult describeInstancesResult =
                new DescribeInstancesResult().withReservations(new Reservation().withInstances(instance));
-           doReturn(describeInstancesResult).when(proxy).injectCredentialsAndInvoke(any(DescribeInstancesRequest.class), any());
+           doReturn(describeInstancesResult).when(proxy).injectCredentialsAndInvoke(any(DescribeInstancesRequest.class), ArgumentMatchers.<Function<DescribeInstancesRequest, DescribeInstancesResult>>any());
 
            final DeleteHandler handler = new DeleteHandler();
 
@@ -1084,6 +1064,190 @@ We'll also need to update the unit test for the delete handler\.
        }
    }
    ```
+
+#### Code the Read Handler<a name="resource-type-walkthrough-implement-read-handler-code"></a>
+
+1. In your IDE, open the `ReadHandler.java` file, located in the `src/main/java/com/example/testing/wordpress` folder\.
+
+1. Replace the entire contents of the `ReadHandler.java` file with the following code\.
+
+   ```
+   package com.example.testing.wordpress;
+
+   import com.amazonaws.services.ec2.AmazonEC2;
+   import com.amazonaws.services.ec2.AmazonEC2ClientBuilder;
+   import com.amazonaws.services.ec2.model.Instance;
+   import software.amazon.cloudformation.proxy.*;
+
+   public class ReadHandler extends CustomBaseHandler {
+
+       private static final String DELETED_INSTANCE_STATE = "terminated";
+
+       @Override
+       public ProgressEvent<ResourceModel, CallbackContext> handleRequest(
+           final AmazonWebServicesClientProxy proxy,
+           final ResourceHandlerRequest<ResourceModel> request,
+           final CallbackContext callbackContext,
+           final Logger logger) {
+
+           final ResourceModel model = request.getDesiredResourceState();
+
+           AmazonEC2 ec2Client = AmazonEC2ClientBuilder.standard().withRegion(SUPPORTED_REGION).build();
+
+           Instance currentInstanceState = retrieveCurrentInstanceState(proxy, ec2Client, model.getInstanceId());
+
+           if (currentInstanceState.getInstanceId() == null || DELETED_INSTANCE_STATE.equals(currentInstanceState.getState().getName())) {
+               return ProgressEvent.<ResourceModel, CallbackContext>builder()
+                       .status(OperationStatus.FAILED)
+                       .errorCode(HandlerErrorCode.NotFound)
+                       .build();
+           }
+
+           model.setInstanceId(currentInstanceState.getInstanceId());
+           model.setPublicIp(currentInstanceState.getPublicIpAddress());
+           return ProgressEvent.<ResourceModel, CallbackContext>builder()
+               .resourceModel(model)
+               .status(OperationStatus.SUCCESS)
+               .build();
+       }
+   }
+   ```
+
+#### Update the Read Handler unit test<a name="resource-type-walkthrough-implement-read-handler-unit"></a>
+
+We'll also need to update the unit test for the read handler\.
+
+1. In your IDE, open the `ReadHandlerTest.java` file, located in the `src/test/java/com/example/testing/wordpress` folder\.
+
+1. Replace the entire contents of the `ReadHandlerTest.java` file with the following code\.
+
+   ```
+   package com.example.testing.wordpress;
+
+   import com.amazonaws.services.ec2.model.*;
+   import org.junit.jupiter.api.BeforeEach;
+   import org.junit.jupiter.api.Test;
+   import org.junit.jupiter.api.extension.ExtendWith;
+   import org.mockito.ArgumentMatchers;
+   import org.mockito.Mock;
+   import org.mockito.junit.jupiter.MockitoExtension;
+   import software.amazon.cloudformation.proxy.*;
+
+   import java.util.function.Function;
+
+   import static org.assertj.core.api.Assertions.assertThat;
+   import static org.mockito.ArgumentMatchers.any;
+   import static org.mockito.Mockito.doReturn;
+   import static org.mockito.Mockito.mock;
+
+   @ExtendWith(MockitoExtension.class)
+   public class ReadHandlerTest {
+
+       @Mock
+       private AmazonWebServicesClientProxy proxy;
+
+       @Mock
+       private Logger logger;
+
+       @BeforeEach
+       public void setup() {
+           proxy = mock(AmazonWebServicesClientProxy.class);
+           logger = mock(Logger.class);
+       }
+
+       @Test
+       public void testRunningState() {
+           final String instanceId = "i-1234";
+           final String ipAddress = "1.2.3.4";
+           final InstanceState runningState = new InstanceState().withName("running");
+           final Instance instance = new Instance().withState(runningState).withInstanceId("i-1234").withPublicIpAddress(ipAddress);
+           final DescribeInstancesResult describeInstancesResult =
+                   new DescribeInstancesResult().withReservations(new Reservation().withInstances(instance));
+           doReturn(describeInstancesResult).when(proxy).injectCredentialsAndInvoke(any(DescribeInstancesRequest.class), ArgumentMatchers.<Function<DescribeInstancesRequest, DescribeInstancesResult>>any());
+
+           final ReadHandler handler = new ReadHandler();
+
+           final ResourceModel model = ResourceModel.builder().instanceId(instanceId).build();
+
+           final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
+               .desiredResourceState(model)
+               .build();
+
+           final ProgressEvent<ResourceModel, CallbackContext> response
+               = handler.handleRequest(proxy, request, null, logger);
+
+           assertThat(response).isNotNull();
+           assertThat(response.getStatus()).isEqualTo(OperationStatus.SUCCESS);
+           assertThat(response.getCallbackContext()).isNull();
+           assertThat(response.getCallbackDelaySeconds()).isEqualTo(0);
+           assertThat(response.getResourceModel()).isEqualTo(request.getDesiredResourceState());
+           assertThat(response.getResourceModels()).isNull();
+           assertThat(response.getMessage()).isNull();
+           assertThat(response.getErrorCode()).isNull();
+       }
+
+       @Test
+       public void testTerminatedState() {
+           final String instanceId = "i-1234";
+           final String ipAddress = "1.2.3.4";
+           final InstanceState runningState = new InstanceState().withName("terminated");
+           final Instance instance = new Instance().withState(runningState).withInstanceId("i-1234").withPublicIpAddress(ipAddress);
+           final DescribeInstancesResult describeInstancesResult =
+                   new DescribeInstancesResult().withReservations(new Reservation().withInstances(instance));
+           doReturn(describeInstancesResult).when(proxy).injectCredentialsAndInvoke(any(DescribeInstancesRequest.class), ArgumentMatchers.<Function<DescribeInstancesRequest, DescribeInstancesResult>>any());
+
+           final ReadHandler handler = new ReadHandler();
+
+           final ResourceModel model = ResourceModel.builder().instanceId(instanceId).build();
+
+           final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
+                   .desiredResourceState(model)
+                   .build();
+
+           final ProgressEvent<ResourceModel, CallbackContext> response
+                   = handler.handleRequest(proxy, request, null, logger);
+
+           assertThat(response).isNotNull();
+           assertThat(response.getStatus()).isEqualTo(OperationStatus.FAILED);
+           assertThat(response.getCallbackContext()).isNull();
+           assertThat(response.getCallbackDelaySeconds()).isEqualTo(0);
+           assertThat(response.getResourceModel()).isNull();
+           assertThat(response.getResourceModels()).isNull();
+           assertThat(response.getMessage()).isNull();
+           assertThat(response.getErrorCode()).isSameAs(HandlerErrorCode.NotFound);
+       }
+
+       @Test
+       public void testNotFound() {
+           final String instanceId = "i-1234";
+           doReturn(new DescribeInstancesResult()).when(proxy).injectCredentialsAndInvoke(any(DescribeInstancesRequest.class), ArgumentMatchers.<Function<DescribeInstancesRequest, DescribeInstancesResult>>any());
+
+           final ReadHandler handler = new ReadHandler();
+
+           final ResourceModel model = ResourceModel.builder().instanceId(instanceId).build();
+
+           final ResourceHandlerRequest<ResourceModel> request = ResourceHandlerRequest.<ResourceModel>builder()
+                   .desiredResourceState(model)
+                   .build();
+
+           final ProgressEvent<ResourceModel, CallbackContext> response
+                   = handler.handleRequest(proxy, request, null, logger);
+
+           assertThat(response).isNotNull();
+           assertThat(response.getStatus()).isEqualTo(OperationStatus.FAILED);
+           assertThat(response.getCallbackContext()).isNull();
+           assertThat(response.getCallbackDelaySeconds()).isEqualTo(0);
+           assertThat(response.getResourceModel()).isNull();
+           assertThat(response.getResourceModels()).isNull();
+           assertThat(response.getMessage()).isNull();
+           assertThat(response.getErrorCode()).isSameAs(HandlerErrorCode.NotFound);
+       }
+   }
+   ```
+
+## Build the project<a name="resource-type-walkthrough-build"></a>
+
+Build the project by running `mvn install` in the project's root directory, or using the build command in your IDE.
 
 ## Test the resource type<a name="resource-type-walkthrough-test"></a>
 
@@ -1200,7 +1364,7 @@ Occasionally these tests will fail with a retry\-able error\. In such a case, ru
                },
                "architecture": "x86_64",
                "ebsOptimized": false,
-               "imageId": "ami-04fb0368671b6f138",
+               "imageId": "ami-0039c114b5e564742",
                "blockDeviceMappings": [],
                "stateTransitionReason": "",
                "clientToken": "207dc686-e95c-4df9-8fcb-ee22bbdde963",
@@ -1366,10 +1530,10 @@ To run resource contract tests, you'll need two shell sessions\.
    $ sam local start-lambda
    ```
 
-1. From the resource package root directory, in a session that is aware of the CloudFormation CLI, run the `test` command:
+1. From the resource package root directory, in a session that is aware of the CloudFormation CLI, run the `test` command\.  This runs some [contract tests](https://docs.aws.amazon.com/cloudformation-cli/latest/userguide/contract-tests.html) to verify that the resource handlers satisfy the [contract requirements](https://docs.aws.amazon.com/cloudformation-cli/latest/userguide/resource-type-test-contract.html)\. 
 
    ```
-   $ cfn test
+   $ cfn test --region us-west-2
    ```
 
    The session that's running `sam local start-lambda` will display information about the status of your tests\.
@@ -1458,3 +1622,56 @@ As a final test of the resource type delete handler, you can delete the `wordpre
 aws cloudformation delete-stack --region us-west-2 \
   --stack-name wordpress
 ```
+
+## Clean up ##
+1. Delete any stacks you created using the resource\.
+1. If you submitted multiple versions of the resource to CloudFormation, deregister the non-default versions\.  Start by getting a list of the versions\.
+
+   ```
+   aws cloudformation list-type-versions --region us-west-2 \
+     --type RESOURCE \
+     --type-name Example::Testing::WordPress
+   ```
+   
+   Identify the ARN for each version that has `"IsDefaultVersion": false`\.
+   ```
+   {
+       "TypeVersionSummaries": [
+           {
+               "Type": "RESOURCE",
+               "TypeName": "Example::Testing::WordPress",
+               "VersionId": "00000001",
+               "IsDefaultVersion": false,
+               "Arn": "arn:aws:cloudformation:us-west-2:111122223333:type/resource/Example-Testing-WordPress/00000001",
+               "TimeCreated": "2023-03-15T18:45:36.347000+00:00",
+               "Description": "An example resource that creates a website based on WordPress 6.1.1."
+           },
+           {
+               "Type": "RESOURCE",
+               "TypeName": "Example::Testing::WordPress",
+               "VersionId": "00000002",
+               "IsDefaultVersion": true,
+               "Arn": "arn:aws:cloudformation:us-west-2:111122223333:type/resource/Example-Testing-WordPress/00000002",
+               "TimeCreated": "2023-03-15T18:48:10.317000+00:00",
+               "Description": "An example resource that creates a website based on WordPress 6.1.1."
+           }
+       ]
+   }
+   ```
+   
+   Deregister each non-default version\.
+
+   ```
+   aws cloudformation deregister-type --region us-west-2 \
+     --arn arn:aws:cloudformation:us-west-2:111122223333:type/resource/Example-Testing-WordPress/00000001
+   ```
+   
+1. Deregister the default version of the resource\.
+
+   ```
+   aws cloudformation deregister-type --region us-west-2 \
+     --type RESOURCE \
+     --type-name Example::Testing::WordPress
+   ```
+
+1. Use the [AWS console](https://us-east-1.console.aws.amazon.com/marketplace/home#/subscriptions) to unsubscribe from the AMI\.
