@@ -361,7 +361,6 @@ We'll create a base class for the handlers. This simply provides a place to put 
            if (instanceStateSoFar == null) {
                Instance instance = createEC2Instance(model);
                model.setInstanceId(instance.getInstanceId());
-               model.setPublicIp(instance.getPublicIpAddress());
                return ProgressEvent.<ResourceModel, CallbackContext>builder()
                    .resourceModel(model)
                    .status(OperationStatus.IN_PROGRESS)
@@ -385,7 +384,6 @@ We'll create a base class for the handlers. This simply provides a place to put 
                    throw new RuntimeException(e);
                }
                model.setInstanceId(instanceStateSoFar.getInstanceId());
-               model.setPublicIp(instanceStateSoFar.getPublicIpAddress());
                return ProgressEvent.<ResourceModel, CallbackContext>builder()
                    .resourceModel(model)
                    .status(OperationStatus.IN_PROGRESS)
@@ -1544,7 +1542,7 @@ Once you have completed implementing and testing your resource provided, the fin
 + In a terminal, run the `submit` command to register the resource type in the us\-west\-2 region\.
 
   ```
-  overrides.jsoncfn submit -v --region us-west-2
+  cfn submit -v --region us-west-2
   ```
 
   The CloudFormation CLI validates the included resource type schema, packages your resource provide project and uploads it to the CloudFormation registry, and then returns a registration token\.
