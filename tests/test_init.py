@@ -128,7 +128,9 @@ def test_init_hook_method_interactive():
             "profile": DEFAULT_PROFILE,
         },
     )
-    mock_project.generate.assert_called_once_with(None, None, [], DEFAULT_PROFILE)
+    mock_project.generate.assert_called_once_with(
+        None, None, False, [], DEFAULT_PROFILE
+    )
 
 
 def test_init_resource_method_noninteractive():
@@ -222,7 +224,9 @@ def test_init_hook_method_noninteractive():
             "profile": DEFAULT_PROFILE,
         },
     )
-    mock_project.generate.assert_called_once_with(None, None, [], DEFAULT_PROFILE)
+    mock_project.generate.assert_called_once_with(
+        None, None, False, [], DEFAULT_PROFILE
+    )
 
 
 def test_init_resource_method_noninteractive_invalid_type_name():
@@ -328,7 +332,9 @@ def test_init_hook_method_noninteractive_invalid_type_name():
             "profile": DEFAULT_PROFILE,
         },
     )
-    mock_project.generate.assert_called_once_with(None, None, [], DEFAULT_PROFILE)
+    mock_project.generate.assert_called_once_with(
+        None, None, False, [], DEFAULT_PROFILE
+    )
 
 
 def test_init_hook_method_noninteractive_target_schemas():
@@ -383,6 +389,7 @@ def test_init_hook_method_noninteractive_target_schemas():
     mock_project.generate.assert_called_once_with(
         None,
         None,
+        False,
         ["/files/target-schema.json", "/files/other-target-schema.json"],
         DEFAULT_PROFILE,
     )

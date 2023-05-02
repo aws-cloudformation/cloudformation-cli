@@ -27,7 +27,7 @@ class TypeNameResolver:
         LOG.debug("Resolving the following type names: %s", str(type_names))
 
         if not any(contains_wildcard(tn) for tn in type_names):
-            return type_names
+            return sorted(type_names)
 
         req = self._create_list_types_request(type_names)
 
@@ -36,6 +36,9 @@ class TypeNameResolver:
     @staticmethod
     def resolve_type_names_locally(type_names, local_info):
         LOG.debug("Resolving the following type names: %s", str(type_names))
+
+        if not any(contains_wildcard(tn) for tn in type_names):
+            return sorted(type_names)
 
         if not local_info:
             raise InvalidTypeSchemaError(
@@ -87,6 +90,15 @@ class TypeNameResolver:
     def list_types(self, **kwargs):
         kwargs["PaginationConfig"] = {"PageSize": REGISTRY_RESULTS_PAGE_SIZE}
 
+        def type_enabled(type_summary):
+            if (
+                kwargs["Visibility"] == REGISTRY_VISIBILITY_PRIVATE
+                or "PublisherId" not in type_summary
+            ):
+                return True
+
+            return type_summary.get("IsActivated")
+
         try:
             paginator = self.cfn_client.get_paginator("list_types")
 
@@ -96,7 +108,7 @@ class TypeNameResolver:
                     {
                         type_summary["TypeName"]: type_summary
                         for type_summary in page["TypeSummaries"]
-                        if self._type_enabled(type_summary, kwargs)
+                        if type_enabled(type_summary)
                     }
                 )
 
@@ -124,13 +136,3 @@ class TypeNameResolver:
             req["Filters"] = {"TypeNamePrefix": prefix}
 
         return req
-
-    @staticmethod
-    def _type_enabled(type_summary, request):
-        if (
-            request["Visibility"] == REGISTRY_VISIBILITY_PRIVATE
-            or "PublisherId" not in type_summary
-        ):
-            return True
-
-        return type_summary.get("IsActivated")
