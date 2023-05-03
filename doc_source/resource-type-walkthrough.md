@@ -4,7 +4,10 @@ In this walkthrough, we'll use the CloudFormation CLI to create a sample resourc
 
 ## Prerequisites<a name="resource-type-walkthrough-prereqs"></a>
 
-- Java 8
+- For this walkthrough, you'll need Java 8\. You can also choose to use Java 11 instead, provided that you make the following changes to files you'll use later on as part of this example:
+  - you'll need to change `"runtime": "java8",` to `"runtime": "java11",` in the `.rpdk.config` file;
+  - you'll need to change both occurrences of `Runtime: java8` to `Runtime: java11` in the `template.yml` file;
+  - you'll need to comment out both the `<maven.compiler.source>1.8</maven.compiler.source>` and `<maven.compiler.target>1.8</maven.compiler.target>` lines in the `pom.xml` file, and  add a `<release>11</release>` line inside the `<configuration>` block for the [maven-compiler-plugin](https://maven.apache.org/plugins/maven-compiler-plugin/examples/set-compiler-release.html) in the same `pom.xml` file\.
 - For purposes of this walkthrough, it's assumed you have already set up the CloudFormation CLI and associated tooling for your Java development environment: [Setting up your environment for developing extensions](what-is-cloudformation-cli.md#resource-type-setup)
 - This walkthrough uses an AMI that requires [a subscription](https://aws.amazon.com/marketplace/server/procurement?productId=7d426cb7-9522-4dd7-a56b-55dd8cc1c8d0) before you can use it with your account\.
 
