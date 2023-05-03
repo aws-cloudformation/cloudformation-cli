@@ -71,7 +71,7 @@ def test_validate_plugin_choice_greater_than_choice():
 
 
 def test_validate_plugin_choice_valid():
-    choices = ["python38", PROMPT, "pyton39"]
+    choices = ["python38", PROMPT, "python39"]
     validator = ValidatePluginChoice(choices)
     assert validator("2") == PROMPT
 
