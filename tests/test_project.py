@@ -2451,7 +2451,7 @@ def test__load_target_info_for_hooks(project):
     }
 
     mock_loader.assert_called_once_with(
-        set(test_type_info.keys()),
+        sorted(test_type_info.keys()),
         local_schemas=[
             "/files/target-schema.json",
             "/files/target-schema-not-for-this-project.json",
