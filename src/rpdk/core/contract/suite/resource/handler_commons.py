@@ -102,6 +102,33 @@ def test_model_in_list(resource_client, current_resource_model):
     )
 
 
+def error_test_model_in_list(resource_client, current_resource_model, message):
+    resource_models = get_resource_model_list(resource_client, current_resource_model)
+    assertion_error_message = message
+    for resource_model in resource_models:
+        resource_model_primary_identifier = resource_client.get_primary_identifier(
+            resource_client.primary_identifier_paths, resource_model
+        )
+        current_model_primary_identifier = resource_client.get_primary_identifier(
+            resource_client.primary_identifier_paths, current_resource_model
+        )
+        if resource_model_primary_identifier != current_model_primary_identifier:
+            assertion_error_message = (
+                "%s \n Resource Model primary identifier %s does not match with "
+                "Current Resource Model primary identifier %s \n Resource Model : %s"
+                " \n Currrent Model : %s "
+                % (
+                    message,
+                    resource_model_primary_identifier[0],
+                    current_model_primary_identifier[0],
+                    resource_model,
+                    current_resource_model,
+                )
+            )
+            return assertion_error_message
+    return assertion_error_message
+
+
 @response_contains_primary_identifier
 @response_contains_unchanged_primary_identifier
 @response_contains_resource_model_equal_updated_model

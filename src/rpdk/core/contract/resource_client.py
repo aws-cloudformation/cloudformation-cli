@@ -281,12 +281,20 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         )
 
     def assert_write_only_property_does_not_exist(self, resource_model):
+
+        error_list = []
         if self.write_only_paths:
-            assert not any(
-                self.key_error_safe_traverse(resource_model, write_only_property)
-                for write_only_property in self.write_only_paths
-            ), "The model MUST NOT return properties defined as \
-                writeOnlyProperties in the resource schema"
+            for write_only_property in self.write_only_paths:
+                val = self.key_error_safe_traverse(resource_model, write_only_property)
+                if val:
+                    error_list.append(write_only_property[1])
+            assertion_error_message = (
+                "The model MUST NOT return properties defined as "
+                "writeOnlyProperties in the resource schema "
+                "\n Write only properties in resource model : %s  \n Output Resource Model : %s \n"
+                % (error_list, resource_model)
+            )
+            assert not any(error_list), assertion_error_message
 
     def get_metadata(self):
         try:
@@ -450,7 +458,8 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
             "All properties specified in the request MUST "
             "be present in the model returned, and they MUST"
             " match exactly, with the exception of properties"
-            " defined as writeOnlyProperties in the resource schema"
+            " defined as writeOnlyProperties in the resource schema \n Request Model : %s \n Returned Model : %s \n"
+            % (inputs, outputs)
         )
         try:
             if isinstance(inputs, dict):
@@ -476,6 +485,16 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
                             new_path,
                         )
                     else:
+                        if inputs[key] != outputs[key]:
+                            assertion_error_message = (
+                                "%s Value for property %s in Request Model(%s) and Response Model(%s) does not match"
+                                % (
+                                    assertion_error_message,
+                                    key,
+                                    inputs[key],
+                                    outputs[key],
+                                )
+                            )
                         assert inputs[key] == outputs[key], assertion_error_message
             else:
                 assert inputs == outputs, assertion_error_message
@@ -626,6 +645,22 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
             raise AssertionError(
                 "The primaryIdentifier returned in every progress event must\
                      match the primaryIdentifier passed into the request"
+            ) from e
+
+    @staticmethod
+    def get_primary_identifier(primary_identifier_path, model):
+        try:
+            pid_list = []
+            for primary_identifier in primary_identifier_path:
+                data = traverse(model, fragment_list(primary_identifier, "properties"))[
+                    0
+                ]
+                pid_list.append(data)
+            return pid_list
+        except KeyError as e:
+            raise AssertionError(
+                "The primaryIdentifier returned in every progress event must\
+                     match the primaryIdentifier passed into the request \n"
             ) from e
 
     def _make_payload(
