@@ -55,7 +55,7 @@ This walkthrough uses the Community Edition of the [IntelliJ IDEA](https://www.j
    >> com.example.testing.wordpress
    Initialized a new project in /workplace/tobflem/example-testing-wordpress
    ```
-   
+
 1. Select the default codegen model\.
 
    ```
@@ -319,9 +319,9 @@ We'll create a base class for the handlers. This simply provides a place to put 
    import com.amazonaws.services.ec2.AmazonEC2ClientBuilder;
    import com.amazonaws.services.ec2.model.*;
    import software.amazon.cloudformation.proxy.*;
-   
+
    import java.util.UUID;
-   
+
    public class CreateHandler extends CustomBaseHandler {
        private static final String WORDPRESS_AMI_ID = "ami-0039c114b5e564742";
        private static final String INSTANCE_TYPE = "m4.large";
@@ -1531,7 +1531,7 @@ To run resource contract tests, you'll need two shell sessions\.
    $ sam local start-lambda
    ```
 
-1. From the resource package root directory, in a session that is aware of the CloudFormation CLI, run the `test` command\.  This runs some [contract tests](https://docs.aws.amazon.com/cloudformation-cli/latest/userguide/contract-tests.html) to verify that the resource handlers satisfy the [contract requirements](https://docs.aws.amazon.com/cloudformation-cli/latest/userguide/resource-type-test-contract.html)\. 
+1. From the resource package root directory, in a session that is aware of the CloudFormation CLI, run the `test` command\.  This runs some [contract tests](https://docs.aws.amazon.com/cloudformation-cli/latest/userguide/contract-tests.html) to verify that the resource handlers satisfy the [contract requirements](https://docs.aws.amazon.com/cloudformation-cli/latest/userguide/resource-type-test-contract.html)\.
 
    ```
    $ cfn test --region us-west-2
@@ -1651,7 +1651,7 @@ aws cloudformation delete-stack --region us-west-2 \
      --type RESOURCE \
      --type-name Example::Testing::WordPress
    ```
-   
+
    Identify the ARN for each version that has `"IsDefaultVersion": false`\.
    ```
    {
@@ -1677,14 +1677,14 @@ aws cloudformation delete-stack --region us-west-2 \
        ]
    }
    ```
-   
+
    Deregister each non-default version\.
 
    ```
    aws cloudformation deregister-type --region us-west-2 \
      --arn arn:aws:cloudformation:us-west-2:111122223333:type/resource/Example-Testing-WordPress/00000001
    ```
-   
+
 1. Deregister the default version of the resource\.
 
    ```
