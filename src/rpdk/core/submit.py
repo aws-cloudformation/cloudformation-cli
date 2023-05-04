@@ -12,6 +12,10 @@ LOG = logging.getLogger(__name__)
 def submit(args):
     project = Project()
     project.load()
+    # Use CLI override opposed to config file if use-docker or no-docker switch used
+    if args.use_docker or args.no_docker:
+        project.settings["use_docker"] = args.use_docker
+        project.settings["no_docker"] = args.no_docker
     project.submit(
         args.dry_run,
         args.endpoint_url,
@@ -50,4 +54,19 @@ def setup_subparser(subparsers, parents):
         dest="use_role",
         help="Register the type without an explicit execution role "
         "(Will not be able to invoke AWS APIs).",
+    )
+
+    nodocker_group = parser.add_mutually_exclusive_group()
+    nodocker_group.add_argument(
+        "--use-docker",
+        action="store_true",
+        help="""Use docker for platform-independent packaging.
+            This is highly recommended unless you are experienced
+            with cross-platform packaging.""",
+    )
+    nodocker_group.add_argument(
+        "--no-docker",
+        action="store_true",
+        help="""Generally not recommended unless you are experienced
+            with cross-platform packaging.""",
     )
