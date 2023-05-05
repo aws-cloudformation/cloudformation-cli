@@ -1615,7 +1615,6 @@ def test_assert_write_only_property_does_not_exist(resource_client):
         "a": {"type": "number", "const": 1},
         "b": {"type": "number", "const": 2},
         "c": {"type": "number", "const": 3},
-        "d": {"type": "number", "const": 4},
     }
     resource_client._update_schema(schema)
     resource_client.assert_write_only_property_does_not_exist(schema)
