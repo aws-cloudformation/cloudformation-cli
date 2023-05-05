@@ -7,6 +7,7 @@ from unittest.mock import ANY, patch
 
 import pytest
 
+import rpdk.core.contract.resource_client as rclient
 from rpdk.core.boto_helpers import LOWER_CAMEL_CRED_KEYS
 from rpdk.core.contract.interface import Action, HandlerErrorCode, OperationStatus
 from rpdk.core.contract.resource_client import (
@@ -17,6 +18,7 @@ from rpdk.core.contract.resource_client import (
     prune_properties_if_not_exist_in_path,
     prune_properties_which_dont_exist_in_path,
 )
+from rpdk.core.contract.suite.resource.handler_commons import error_test_model_in_list
 from rpdk.core.exceptions import InvalidProjectError
 from rpdk.core.test import (
     DEFAULT_ENDPOINT,
@@ -148,6 +150,8 @@ SCHEMA_WITH_PROPERTY_TRANSFORM = {
 }
 
 EMPTY_SCHEMA = {"handlers": {"create": [], "delete": [], "read": []}}
+
+RESOURCE_MODEL_LIST = [{"Id": "abc123", "b": "2"}]
 
 
 @pytest.fixture
@@ -388,6 +392,42 @@ def resource_client_inputs_property_transform():
     assert client.account == ACCOUNT
 
     return client
+
+
+def test_error_test_model_in_list(resource_client):
+    patch_resource_model_list = patch(
+        "rpdk.core.contract.suite.resource.handler_commons.get_resource_model_list",
+        autospec=True,
+        return_value=RESOURCE_MODEL_LIST,
+    )
+    resource_client.primary_identifier_paths = {("properties", "Id")}
+    current_resource_model = {"Id": "xyz456", "b": "2"}
+    with patch_resource_model_list:
+        assertion_error_message = error_test_model_in_list(
+            resource_client, current_resource_model, ""
+        )
+        assert (
+            "abc123 does not match with Current Resource Model primary identifier xyz456"
+            in assertion_error_message
+        )
+
+
+def test_get_primary_identifier_success():
+    primary_identifier_path = {("properties", "a")}
+    model = {"a": 1, "b": 3, "c": 4}
+    plist = rclient.ResourceClient.get_primary_identifier(
+        primary_identifier_path, model
+    )
+    assert plist[0] == 1
+
+
+def test_get_primary_identifier_fail():
+    primary_identifier_path = {("properties", "a")}
+    model = {"b": 3, "c": 4}
+    try:
+        rclient.ResourceClient.get_primary_identifier(primary_identifier_path, model)
+    except AssertionError:
+        logging.debug("This test expects Assertion Exception to be thrown")
 
 
 def test_prune_properties():
@@ -1575,6 +1615,7 @@ def test_assert_write_only_property_does_not_exist(resource_client):
         "a": {"type": "number", "const": 1},
         "b": {"type": "number", "const": 2},
         "c": {"type": "number", "const": 3},
+        "d": {"type": "number", "const": 4},
     }
     resource_client._update_schema(schema)
     resource_client.assert_write_only_property_does_not_exist(schema)
