@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Description: >
-  This CloudFormation template provisions all the infrastructure that  is
+  This CloudFormation template provisions all the infrastructure that is
   required to upload artifacts to CloudFormation's managed experience.
 
 Resources:
