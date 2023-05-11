@@ -110,6 +110,7 @@ def invoke(args):
             request["desiredResourceState"],
             request["previousResourceState"],
             request.get("typeConfiguration"),
+            stackId=request.get("stackId")
         )  # pylint: disable=too-many-function-args
 
     current_invocation = 0
