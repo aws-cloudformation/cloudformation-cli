@@ -13,6 +13,7 @@ from rpdk.core.contract.suite.resource.contract_asserts import (
     skip_not_writable_identifier,
 )
 from rpdk.core.contract.suite.resource.handler_commons import (
+    error_test_model_in_list,
     test_create_failure_if_repeat_writeable_id,
     test_create_success,
     test_delete_success,
@@ -75,7 +76,9 @@ def contract_create_read(created_resource, resource_client):
 @pytest.mark.read
 def contract_create_list(created_resource, resource_client):
     _input_model, created_model, _request = created_resource
-    assert test_model_in_list(resource_client, created_model)
+    assert test_model_in_list(resource_client, created_model), error_test_model_in_list(
+        resource_client, created_model, ""
+    )
     test_read_success(resource_client, created_model)
 
 

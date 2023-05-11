@@ -11,6 +11,7 @@ from rpdk.core.contract.suite.resource.contract_asserts import (
     skip_not_tag_updatable,
 )
 from rpdk.core.contract.suite.resource.handler_commons import (
+    error_test_model_in_list,
     test_input_equals_output,
     test_model_in_list,
     test_read_success,
@@ -55,10 +56,26 @@ def contract_update_read(updated_resource, resource_client):
         updated_model,
         updated_input_model,
     ) = updated_resource
+    create_primary_identifiers = resource_client.get_primary_identifier(
+        resource_client.primary_identifier_paths, _created_model
+    )
+    update_primary_identifiers = resource_client.get_primary_identifier(
+        resource_client.primary_identifier_paths, updated_model
+    )
+    assertion_error_message = (
+        "The primaryIdentifier returned must match "
+        "the primaryIdentifier passed into the request "
+        "Create Model primary identifier %s does not match with Update Model primary identifier %s \n Create Model : %s \n Update Model : %s "
+        % (
+            create_primary_identifiers,
+            update_primary_identifiers,
+            _created_model,
+            updated_model,
+        )
+    )
     assert resource_client.is_primary_identifier_equal(
         resource_client.primary_identifier_paths, _created_model, updated_model
-    ), "The primaryIdentifier returned must match\
-         the primaryIdentifier passed into the request"
+    ), assertion_error_message
     read_response = test_read_success(resource_client, updated_model)
     test_input_equals_output(
         resource_client, updated_input_model, read_response["resourceModel"]
@@ -81,9 +98,11 @@ def contract_update_list(updated_resource, resource_client):
         resource_client.primary_identifier_paths, _created_model, updated_model
     ), "The primaryIdentifier returned must match\
          the primaryIdentifier passed into the request"
-    assert test_model_in_list(
-        resource_client, updated_model
-    ), "A list handler MUST always return an updated model"
+    assert test_model_in_list(resource_client, updated_model), error_test_model_in_list(
+        resource_client,
+        updated_model,
+        "A list handler MUST always return an updated model",
+    )
 
 
 @pytest.mark.update
