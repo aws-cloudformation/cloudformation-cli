@@ -43,8 +43,14 @@ Resources:
             SSEAlgorithm: AES256
       LifecycleConfiguration:
         Rules:
-          - Status: Enabled
+          - Id: ExpireObjectsLifecycleRule
+            Status: Enabled
             ExpirationInDays: 3653
+            NoncurrentVersionExpiration:
+              NoncurrentDays: 1
+          - Id: ExpiredObjectDeleteMarkerLifecycleRule
+            Status: Enabled
+            ExpiredObjectDeleteMarker: true
       VersioningConfiguration:
         Status: Enabled
       PublicAccessBlockConfiguration:
