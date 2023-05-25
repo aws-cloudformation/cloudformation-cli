@@ -1538,6 +1538,12 @@ def test_metadata_contains_tag_property(resource_client):
     assert resource_client.metadata_contains_tag_property()
 
 
+def test_metadata_contains_tag_permissions(resource_client):
+    schema = {"tagging": {"taggable": True, "permissions": ["test:permission"]}}
+    resource_client._update_schema(schema)
+    assert resource_client.metadata_contains_tag_permissions()
+
+
 def test_validate_model_contain_tags(resource_client):
     schema = {"tagging": {"taggable": True, "tagProperty": "/properties/Tags"}}
     resource_client._update_schema(schema)
