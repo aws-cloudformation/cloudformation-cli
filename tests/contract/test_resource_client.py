@@ -1538,10 +1538,16 @@ def test_metadata_contains_tag_property(resource_client):
     assert resource_client.metadata_contains_tag_property()
 
 
-def test_metadata_contains_tag_permissions(resource_client):
-    schema = {"tagging": {"taggable": True, "permissions": ["test:permission"]}}
+@pytest.mark.parametrize(
+    "schema,result",
+    [
+        ({"tagging": {"permissions": ["test:permission"]}}, ["test:permission"]),
+        ({}, []),
+    ],
+)
+def test_get_tagging_permission(resource_client, schema, result):
     resource_client._update_schema(schema)
-    assert resource_client.metadata_contains_tag_permissions()
+    assert resource_client.get_tagging_permissions() == result
 
 
 def test_validate_model_contain_tags(resource_client):
