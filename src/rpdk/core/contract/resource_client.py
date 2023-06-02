@@ -837,6 +837,9 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         except KeyError:
             return False
 
+    def get_tagging_permissions(self):
+        return self._schema.get("tagging", {}).get("permissions", [])
+
     def validate_model_contain_tags(self, inputs):
         assertion_error_message = "Contract test inputs does not contain tags property."
         try:
