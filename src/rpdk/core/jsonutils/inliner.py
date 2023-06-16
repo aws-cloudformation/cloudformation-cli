@@ -26,6 +26,13 @@ class RefInliner(RefResolver):
     def _walk_schema(self):
         self._walk(self.schema, (BASE,))
 
+    def resolve(self, ref):
+        """
+        Resolve the given reference.
+        """
+        url = self._urljoin_cache(self.resolution_scope, ref)
+        return url, self._remote_cache(url)
+
     def _walk(self, obj, old_path):
         if isinstance(obj, str):
             return  # very common, easier to debug this case
