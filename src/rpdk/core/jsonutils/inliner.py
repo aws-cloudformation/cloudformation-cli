@@ -35,7 +35,7 @@ class RefInliner(RefResolver):
         url = self._urljoin_cache(self.resolution_scope, ref)
         return url, self._remote_cache(url)
 
-    def _walk(self, obj, old_path):
+    def _walk(self, obj, old_path):  # noqa: C901
         if isinstance(obj, str):
             return  # very common, easier to debug this case
 
@@ -47,8 +47,10 @@ class RefInliner(RefResolver):
                         return
                     try:
                         url, resolved = self.resolve(value)
-                    except RefResolutionError:
-                        url, resolved = self.resolve(value[len(self.META_SCHEMA) :])
+                    except RefResolutionError:  # noqa: E203
+                        url, resolved = self.resolve(  # noqa: E203
+                            value[len(self.META_SCHEMA) :]  # noqa: E203
+                        )  # noqa: E203
                     LOG.debug("Resolved '%s' to '%s'", value, url)
                     # parse the URL into
                     new_path = self.renamer.parse_ref_url(url)
