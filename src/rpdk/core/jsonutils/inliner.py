@@ -53,6 +53,7 @@ class RefInliner(RefResolver):
                                 value[len(self.META_SCHEMA) :]  # noqa: E203
                             )  # noqa: E203
                         except RefResolutionError:
+                            LOG.debug("Resoluation Error")
                             raise
                     LOG.debug("Resolved '%s' to '%s'", value, url)
                     # parse the URL into
