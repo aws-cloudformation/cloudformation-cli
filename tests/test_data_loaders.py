@@ -494,7 +494,7 @@ def test_load_resource_spec_inliner_produced_invalid_schema():
 
 
 @pytest.mark.skip(
-    reason="Inline resolver for meta schema is breaking this, disableing for now"
+    reason="Inline resolver for meta schema is breaking this, disabling for now"
 )
 def test_load_resource_spec_invalid_ref():
     copy = json.loads(json.dumps(BASIC_SCHEMA))
