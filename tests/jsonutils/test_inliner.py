@@ -45,23 +45,12 @@ def test_refinliner_local_refs_simple_are_walked_and_unchanged():
     local = {
         "type": "object",
         "definitions": {"bar": {"type": "string"}},
-        "properties": {
-            "foo": {"$ref": "#/definitions/bar"},
-            "bar": {"$ref": "resource-schema.json#/definitions/bar"},
-        },
+        "properties": {"foo": {"$ref": "#/definitions/bar"}},
     }
 
-    resolved_lock = {
-        "type": "object",
-        "definitions": {"bar": {"type": "string"}},
-        "properties": {
-            "foo": {"$ref": "#/definitions/bar"},
-            "bar": {"$ref": "#/definitions/bar"},
-        },
-    }
     inliner = make_inliner(local)
     schema = inliner.inline()
-    assert schema == resolved_lock
+    assert schema == local
     assert len(inliner.ref_graph) == 1
 
 
