@@ -47,9 +47,7 @@ def test_refinliner_local_refs_simple_are_walked_and_unchanged():
         "definitions": {"bar": {"type": "string"}},
         "properties": {
             "foo": {"$ref": "#/definitions/bar"},
-            "bar": {
-                "$ref": "resource-schema.json#/definitions/bar"
-            }
+            "bar": {"$ref": "resource-schema.json#/definitions/bar"},
         },
     }
     inliner = make_inliner(local)
