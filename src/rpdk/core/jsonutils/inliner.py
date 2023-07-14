@@ -52,9 +52,9 @@ class RefInliner(RefResolver):
                             url, resolved = self.resolve(  # noqa: E203
                                 value[len(self.META_SCHEMA) :]  # noqa: E203
                             )  # noqa: E203
-                        else: # noqa: E203
-                            raise RefResolutionError # noqa: E203
-                        
+                        else:  # noqa: E203
+                            raise RefResolutionError  # noqa: E203
+
                     LOG.debug("Resolved '%s' to '%s'", value, url)
                     # parse the URL into
                     new_path = self.renamer.parse_ref_url(url)
