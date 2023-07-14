@@ -48,7 +48,7 @@ class RefInliner(RefResolver):
                     try:
                         url, resolved = self.resolve(value)
                     except RefResolutionError:  # noqa: E203
-                        if url == self.META_SCHEMA:
+                        if value.contains(self.META_SCHEMA):
                             url, resolved = self.resolve(  # noqa: E203
                                 value[len(self.META_SCHEMA) :]  # noqa: E203
                             )  # noqa: E203
