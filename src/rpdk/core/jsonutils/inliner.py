@@ -35,7 +35,7 @@ class RefInliner(RefResolver):
         url = self._urljoin_cache(self.resolution_scope, ref)
         return url, self._remote_cache(url)
 
-    def _walk(self, obj, old_path):  # noqa: C901
+    def _walk(self, obj, old_path):  # noqa: C901 # pylint: disable=R0912
         if isinstance(obj, str):
             return  # very common, easier to debug this case
 
