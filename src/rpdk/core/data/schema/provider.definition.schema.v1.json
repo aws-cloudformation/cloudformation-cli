@@ -4,6 +4,55 @@
     "title": "CloudFormation Resource Provider Definition MetaSchema",
     "description": "This schema validates a CloudFormation resource provider definition.",
     "definitions": {
+	"handlerSchema": {
+            "type": "object",
+            "properties": {
+                "properties": {
+                    "$ref": "base.definition.schema.v1.json#/properties/properties"
+                },
+                "required": {
+                    "$ref": "base.definition.schema.v1.json#/properties/required"
+                },
+                "allOf": {
+                    "$ref": "base.definition.schema.v1.json#/definitions/schemaArray"
+                },
+                "anyOf": {
+                    "$ref": "base.definition.schema.v1.json#/definitions/schemaArray"
+                },
+                "oneOf": {
+                    "$ref": "base.definition.schema.v1.json#/definitions/schemaArray"
+                }
+            },
+            "required": ["properties"],
+            "additionalProperties": false
+        },
+        "handlerDefinitionWithSchemaOverride": {
+            "description": "Defines any execution operations which can be performed on this resource provider",
+            "type": "object",
+            "properties": {
+                "handlerSchema": {
+                    "$ref": "#/definitions/handlerSchema"
+                },
+                "permissions": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "additionalItems": false
+                },
+                "timeoutInMinutes": {
+                    "description": "Defines the timeout for the entire operation to be interpreted by the invoker of the handler.  The default is 120 (2 hours).",
+                    "type": "integer",
+                    "minimum": 2,
+                    "maximum": 2160,
+                    "default": 120
+                }
+            },
+            "additionalProperties": false,
+            "required": [
+                "permissions"
+            ]
+        },
         "handlerDefinition": {
             "description": "Defines any execution operations which can be performed on this resource provider",
             "type": "object",
@@ -190,7 +239,7 @@
                     "$ref": "#/definitions/handlerDefinition"
                 },
                 "list": {
-                    "$ref": "#/definitions/handlerDefinition"
+                    "$ref": "#/definitions/handlerDefinitionWithSchemaOverride"
                 }
             },
             "additionalProperties": false

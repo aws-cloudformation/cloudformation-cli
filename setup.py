@@ -41,7 +41,7 @@ setup(
         "boto3>=1.10.20",
         "Jinja2>=3.1.2",
         "markupsafe>=2.1.0",
-        "jsonschema>=4.0.0,<5.0",
+        "jsonschema>=3.0.0,<=4.17.3",
         "pytest>=4.5.0",
         "pytest-random-order>=1.0.4",
         "pytest-localserver>=0.5.0",
