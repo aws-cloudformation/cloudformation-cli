@@ -55,3 +55,12 @@ class LanguagePlugin(ABC):
     @abstractmethod
     def package(self, project, zip_file):
         pass
+
+class ExtensionPlugin(ABC):
+    @abstractmethod
+    def setup_subparser(self, subparsers, parents):
+        pass
+
+    @abstractmethod
+    def execute(self, args):
+        pass

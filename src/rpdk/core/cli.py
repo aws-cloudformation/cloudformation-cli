@@ -18,6 +18,7 @@ from .invoke import setup_subparser as invoke_setup_subparser
 from .submit import setup_subparser as submit_setup_subparser
 from .test import setup_subparser as test_setup_subparser
 from .validate import setup_subparser as validate_setup_subparser
+from .plugin_registry import get_parsers, get_plugin_choices, get_extensions
 
 EXIT_UNHANDLED_EXCEPTION = 127
 
@@ -43,6 +44,17 @@ def setup_logging(verbosity):
 def unittest_patch_setup_subparser(_subparsers, _parents):
     pass
 
+def extension_setup_subparser(subparsers, parents):
+    ext = get_extensions()
+
+    for name, extension_cls in ext.items():
+        # parser = subparsers.add_parser(name, parents=parents)
+        # The entry point should be some common class
+        # so that we can do things like ext[name].setup_subparser() in addition to just setting the command
+        extension = extension_cls()()
+        extension.setup_subparser(subparsers, parents)
+        print("UGA UGA")
+        print(name, extension, extension_cls)
 
 def main(args_in=None):  # pylint: disable=too-many-statements
     """The entry point for the CLI."""
@@ -88,6 +100,7 @@ def main(args_in=None):  # pylint: disable=too-many-statements
         invoke_setup_subparser(subparsers, parents)
         unittest_patch_setup_subparser(subparsers, parents)
         build_image_setup_subparser(subparsers, parents)
+        extension_setup_subparser(subparsers, parents)
         args = parser.parse_args(args=args_in)
 
         setup_logging(args.verbose)
