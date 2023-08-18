@@ -57,6 +57,14 @@ class LanguagePlugin(ABC):
         pass
 
 class ExtensionPlugin(ABC):
+    COMMAND_NAME = None
+
+    @property
+    def _command_name(self):
+        if not self.COMMAND_NAME:
+            raise RuntimeError("Set COMMAND_NAME to the command you want to extend cfn with: `cfn COMMAND_NAME`.")
+        return self.COMMAND_NAME
+
     @abstractmethod
     def setup_subparser(self, subparsers, parents):
         pass
