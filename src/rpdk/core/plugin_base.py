@@ -68,7 +68,3 @@ class ExtensionPlugin(ABC):
     @abstractmethod
     def setup_subparser(self, subparsers, parents):
         pass
-
-    @abstractmethod
-    def execute(self, args):
-        pass
