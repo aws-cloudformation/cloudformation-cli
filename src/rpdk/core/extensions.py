@@ -1,5 +1,6 @@
 from .plugin_registry import get_extensions
 
+
 def setup_subparsers(subparsers, parents):
     extensions = get_extensions()
 
