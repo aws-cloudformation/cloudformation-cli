@@ -5,7 +5,11 @@ from unittest.mock import call, patch
 import pytest
 
 from rpdk.core.filters import FILTER_REGISTRY
-from rpdk.core.plugin_base import LanguagePlugin, __name__ as plugin_base_name
+from rpdk.core.plugin_base import (
+    ExtensionPlugin,
+    LanguagePlugin,
+    __name__ as plugin_base_name,
+)
 
 
 class TestLanguagePlugin(LanguagePlugin):
@@ -84,3 +88,19 @@ def test_language_plugin_setup_jinja_env_no_spec(language_plugin):
 
     for name in FILTER_REGISTRY:
         assert name in env.filters
+
+
+class TestExtensionPlugin(ExtensionPlugin):
+    COMMAND_NAME = "test-extension"
+
+    def setup_subparser(self, parent_subparsers, parents):
+        super().setup_subparser(parent_subparsers, parents)
+
+
+@pytest.fixture
+def extension_plugin():
+    return TestExtensionPlugin()
+
+
+def test_extension_plugin_package_no_op(extension_plugin):
+    extension_plugin.setup_subparser(None, None)
