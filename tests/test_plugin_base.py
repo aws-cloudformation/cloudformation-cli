@@ -93,8 +93,8 @@ def test_language_plugin_setup_jinja_env_no_spec(language_plugin):
 class TestExtensionPlugin(ExtensionPlugin):
     COMMAND_NAME = "test-extension"
 
-    def setup_subparser(self, parent_subparsers, parents):
-        super().setup_subparser(parent_subparsers, parents)
+    def setup_parser(self, parser):
+        super().setup_parser(parser)
 
 
 @pytest.fixture
@@ -102,5 +102,15 @@ def extension_plugin():
     return TestExtensionPlugin()
 
 
-def test_extension_plugin_package_no_op(extension_plugin):
-    extension_plugin.setup_subparser(None, None)
+def test_extension_plugin_command_name(extension_plugin):
+    assert extension_plugin.command_name == "test-extension"
+
+
+def test_extension_plugin_command_name_error(extension_plugin):
+    extension_plugin.COMMAND_NAME = None
+    with pytest.raises(RuntimeError):
+        extension_plugin.command_name  # pylint: disable=pointless-statement
+
+
+def test_extension_plugin_setup_parser_no_op(extension_plugin):
+    extension_plugin.setup_parser(None)
