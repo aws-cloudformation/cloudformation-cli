@@ -12,13 +12,13 @@ from .__init__ import __version__
 from .build_image import setup_subparser as build_image_setup_subparser
 from .data_loaders import resource_yaml
 from .exceptions import DownstreamError, SysExitRecommendedError
+from .extensions import setup_subparsers as extensions_setup_subparser
 from .generate import setup_subparser as generate_setup_subparser
 from .init import setup_subparser as init_setup_subparser
 from .invoke import setup_subparser as invoke_setup_subparser
 from .submit import setup_subparser as submit_setup_subparser
 from .test import setup_subparser as test_setup_subparser
 from .validate import setup_subparser as validate_setup_subparser
-from .extensions import setup_subparsers as extensions_setup_subparser
 
 EXIT_UNHANDLED_EXCEPTION = 127
 
@@ -43,6 +43,7 @@ def setup_logging(verbosity):
 
 def unittest_patch_setup_subparser(_subparsers, _parents):
     pass
+
 
 def main(args_in=None):  # pylint: disable=too-many-statements
     """The entry point for the CLI."""
