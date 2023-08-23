@@ -22,6 +22,7 @@ def get_parsers():
 
     return parsers
 
+
 def get_extensions():
     extensions = {
         entry_point.name: entry_point.load
@@ -29,6 +30,7 @@ def get_extensions():
     }
 
     return extensions
+
 
 def load_plugin(language):
     return PLUGIN_REGISTRY[language]()()
