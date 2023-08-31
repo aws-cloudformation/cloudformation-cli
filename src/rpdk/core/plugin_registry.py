@@ -23,5 +23,14 @@ def get_parsers():
     return parsers
 
 
+def get_extensions():
+    extensions = {
+        entry_point.name: entry_point.load
+        for entry_point in pkg_resources.iter_entry_points("rpdk.v1.extensions")
+    }
+
+    return extensions
+
+
 def load_plugin(language):
     return PLUGIN_REGISTRY[language]()()

@@ -77,6 +77,15 @@ def test_main_no_args_prints_help(capsys):
     assert "--help" in out
 
 
+def test_main_setup_extensions():
+    with patch(
+        "rpdk.core.cli.extensions_setup_subparser"
+    ) as extensions_setup_subparser:
+        main(args_in=[])
+
+    extensions_setup_subparser.assert_called_once()
+
+
 def test_main_version_arg_prints_version(capsys):
     main(args_in=["--version"])
     out, err = capsys.readouterr()
