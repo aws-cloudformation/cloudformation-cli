@@ -1,6 +1,7 @@
 import fnmatch
 import logging
 import os
+import re
 
 from botocore.exceptions import ClientError
 
@@ -13,6 +14,9 @@ REGISTRY_DEPRECATED_STATUS_LIVE = "LIVE"
 REGISTRY_VISIBILITY_PRIVATE = "PRIVATE"
 REGISTRY_VISIBILITY_PUBLIC = "PUBLIC"
 REGISTRY_RESULTS_PAGE_SIZE = 100
+TYPE_NAME_PREFIX_REGEX = (
+    r"([A-Za-z0-9]{2,64}::){0,2}([A-Za-z0-9]{2,64}:?){0,1}(:[A-Za-z0-9:]{2,64}){0,1}"
+)
 
 
 def contains_wildcard(pattern):
@@ -132,7 +136,7 @@ class TypeNameResolver:
             prefix = prefix[:index]
 
         req = {}
-        if prefix:
+        if prefix and re.fullmatch(TYPE_NAME_PREFIX_REGEX, prefix):
             req["Filters"] = {"TypeNamePrefix": prefix}
 
         return req
