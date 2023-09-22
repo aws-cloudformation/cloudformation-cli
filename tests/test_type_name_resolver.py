@@ -237,15 +237,18 @@ def test_resolve_type_names_locally_no_local_info(resolver):
         (["AWS::S?::Bucket"], "AWS::S"),
         (["AWS::S?::*Bucket"], "AWS::S"),
         (["AWS::*::Log*"], "AWS::"),
-        (["A*::S?::Bucket*"], "A"),
+        (["A*::S?::Bucket*"], None),
         (["*::S?::Bucket*"], ""),
         (["AWS::S?::BucketPolicy", "AWS::S3::Bucket"], "AWS::S"),
         (["AWS::S*::Queue", "AWS::DynamoDB::*"], "AWS::"),
+        (["AwsCommunity::S3::BucketVersioningEnabled", "AWS::*"], None),
+        (["AWSSamples::*", f'AW{"S" * 64}*', "AWS::S3::Bucket"], "AWS"),
+        ([f'AW{"S" * 64}*'], None),
     ],
 )
 def test_create_list_types_request(type_names, expected):
     req = TypeNameResolver._create_list_types_request(type_names)
     if not expected:
-        assert not req
+        assert req == {}
     else:
         assert req == {"Filters": {"TypeNamePrefix": expected}}
