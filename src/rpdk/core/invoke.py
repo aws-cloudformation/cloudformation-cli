@@ -76,7 +76,7 @@ def get_contract_client(args, project):
 def prepare_payload_for_reinvocation(payload, response, artifact_type):
     if artifact_type == ARTIFACT_TYPE_RESOURCE:
         payload["callbackContext"] = response.get("callbackContext")
-        if response.get("resourceModel") and payload.get("requestData"):
+        if ("resourceModel" in response) and ("requestData" in payload):
             payload["requestData"]["resourceProperties"] = response.get("resourceModel")
 
     return payload

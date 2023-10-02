@@ -8,7 +8,7 @@ import pytest
 
 from rpdk.core.cli import EXIT_UNHANDLED_EXCEPTION, main
 from rpdk.core.contract.interface import Action, HookInvocationPoint
-from rpdk.core.invoke import _needs_reinvocation
+from rpdk.core.invoke import _needs_reinvocation, prepare_payload_for_reinvocation
 from rpdk.core.project import ARTIFACT_TYPE_HOOK, ARTIFACT_TYPE_RESOURCE, Project
 
 ACTIONS = list(Action.__members__)
@@ -349,6 +349,32 @@ def test_keyboard_interrupt_hook(capsys, hook_payload_path, command):
 )
 def test_needs_reinvocation(max_reinvoke, current_invocation, result):
     assert _needs_reinvocation(max_reinvoke, current_invocation) is result
+
+
+# Test prepare_payload_for_reinvocation directly here
+def test_prepare_payload_for_reinvocation():
+    assert prepare_payload_for_reinvocation(
+        {}, {"callbackContext": {"foo": "bar"}}, ARTIFACT_TYPE_RESOURCE
+    ) == {"callbackContext": {"foo": "bar"}}
+    assert prepare_payload_for_reinvocation(
+        {"requestData": {}}, {"callbackContext": {"foo": "bar"}}, ARTIFACT_TYPE_RESOURCE
+    ) == {"callbackContext": {"foo": "bar"}, "requestData": {}}
+    assert prepare_payload_for_reinvocation(
+        {"requestData": {}},
+        {"callbackContext": {"foo": "bar"}, "resourceModel": {"foz": "baz"}},
+        ARTIFACT_TYPE_RESOURCE,
+    ) == {
+        "callbackContext": {"foo": "bar"},
+        "requestData": {"resourceProperties": {"foz": "baz"}},
+    }
+    assert prepare_payload_for_reinvocation(
+        {"requestData": {"resourceProperties": {}}},
+        {"callbackContext": {"foo": "bar"}, "resourceModel": {"foz": "baz"}},
+        ARTIFACT_TYPE_RESOURCE,
+    ) == {
+        "callbackContext": {"foo": "bar"},
+        "requestData": {"resourceProperties": {"foz": "baz"}},
+    }
 
 
 def _invoke_and_expect_resource(status, resource_payload_path, command, *args):
