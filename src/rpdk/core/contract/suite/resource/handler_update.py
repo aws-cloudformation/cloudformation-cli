@@ -93,7 +93,7 @@ def contract_update_list(updated_resource, resource_client):
     assert resource_client.is_primary_identifier_equal(
         resource_client.primary_identifier_paths, _created_model, updated_model
     ), (
-        "The primaryIdentifier returned must match         the primaryIdentifier passed"
+        "The primaryIdentifier returned must match the primaryIdentifier passed"
         " into the request"
     )
     assert test_model_in_list(resource_client, updated_model), error_test_model_in_list(

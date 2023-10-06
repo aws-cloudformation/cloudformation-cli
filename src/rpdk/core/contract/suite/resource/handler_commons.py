@@ -29,8 +29,8 @@ def test_create_success(resource_client, current_resource_model):
 @failed_event(
     error_code=HandlerErrorCode.AlreadyExists,
     msg=(
-        "A create handler MUST NOT create multiple resources given         the same"
-        " idempotency token"
+        "A create handler MUST NOT create multiple resources given the same "
+        "idempotency token"
     ),
 )
 def test_create_failure_if_repeat_writeable_id(resource_client, current_resource_model):
@@ -61,8 +61,8 @@ def test_read_success(resource_client, current_resource_model):
 @failed_event(
     error_code=HandlerErrorCode.NotFound,
     msg=(
-        "A read handler MUST return FAILED with a NotFound error code         if the"
-        " resource does not exist"
+        "A read handler MUST return FAILED with a NotFound error code if the "
+        "resource does not exist"
     ),
 )
 def test_read_failure_not_found(
@@ -144,8 +144,8 @@ def test_update_success(resource_client, update_resource_model, current_resource
 @failed_event(
     error_code=HandlerErrorCode.NotFound,
     msg=(
-        "An update handler MUST return FAILED with a NotFound error code         if the"
-        " resource did not exist prior to the update request"
+        "An update handler MUST return FAILED with a NotFound error code if the "
+        "resource did not exist prior to the update request"
     ),
 )
 def test_update_failure_not_found(resource_client, current_resource_model):
@@ -166,8 +166,8 @@ def test_delete_success(resource_client, current_resource_model):
 @failed_event(
     error_code=HandlerErrorCode.NotFound,
     msg=(
-        "A delete hander MUST return FAILED with a NotFound error code         if the"
-        " resource did not exist prior to the delete request"
+        "A delete hander MUST return FAILED with a NotFound error code if the "
+        "resource did not exist prior to the delete request"
     ),
 )
 def test_delete_failure_not_found(resource_client, current_resource_model):

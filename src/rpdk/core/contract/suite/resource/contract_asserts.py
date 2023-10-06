@@ -16,9 +16,9 @@ def response_contains_resource_model_equal_updated_model(
         **current_resource_model,
         **update_resource_model,
     }, (
-        "All properties specified in the update request MUST be present in the        "
-        " model returned, and they MUST match exactly, with the exception of           "
-        "  properties defined as writeOnlyProperties in the resource schema"
+        "All properties specified in the update request MUST be present in the "
+        "model returned, and they MUST match exactly, with the exception of "
+        "properties defined as writeOnlyProperties in the resource schema"
     )
 
 
@@ -38,7 +38,7 @@ def response_contains_unchanged_primary_identifier(
         current_resource_model,
         response["resourceModel"],
     ), (
-        "PrimaryIdentifier returned in every progress event must match         the"
+        "PrimaryIdentifier returned in every progress event must match the"
         " primaryIdentifier passed into the request"
     )
 

@@ -290,7 +290,7 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
             assertion_error_message = (
                 "The model MUST NOT return properties defined as writeOnlyProperties"
                 " in the resource schema \n Write only properties in resource model :"
-                f" {error_list}  \n Output Resource Model : {{resource_model}} \n"
+                f" {error_list}  \n Output Resource Model : {resource_model} \n"
             )
             assert not any(error_list), assertion_error_message
 
@@ -486,7 +486,7 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
                             assertion_error_message = (
                                 f"{assertion_error_message} Value for property {key} in"
                                 f" Request Model({inputs[key]}) and Response"
-                                " Model({outputs[key]}) does not match"
+                                f" Model({outputs[key]}) does not match"
                             )
                         assert inputs[key] == outputs[key], assertion_error_message
             else:
@@ -636,8 +636,8 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
             )
         except KeyError as e:
             raise AssertionError(
-                "The primaryIdentifier returned in every progress event must           "
-                "          match the primaryIdentifier passed into the request"
+                "The primaryIdentifier returned in every progress event must "
+                "match the primaryIdentifier passed into the request"
             ) from e
 
     @staticmethod
@@ -652,8 +652,8 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
             return pid_list
         except KeyError as e:
             raise AssertionError(
-                "The primaryIdentifier returned in every progress event must           "
-                "          match the primaryIdentifier passed into the request \n"
+                "The primaryIdentifier returned in every progress event must "
+                "match the primaryIdentifier passed into the request \n"
             ) from e
 
     def _make_payload(
@@ -751,7 +751,7 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         if not self.has_required_handlers():
             raise ValueError("Create/Read/Delete handlers are required")
         if assert_status not in [OperationStatus.SUCCESS, OperationStatus.FAILED]:
-            raise ValueError("Assert status {assert_status} not supported.")
+            raise ValueError(f"Assert status {assert_status} not supported.")
 
         status, response = self.call(action, current_model, previous_model, **kwargs)
         if assert_status == OperationStatus.SUCCESS:
