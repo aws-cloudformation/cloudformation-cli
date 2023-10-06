@@ -19,6 +19,7 @@ def package(_args):
         role_arn=False,
         use_role=False,
         set_default=False,
+        profile_name=False,
     )
 
 
