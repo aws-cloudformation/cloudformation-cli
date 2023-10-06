@@ -59,7 +59,6 @@ RUNTIME = random.choice(
         "java8",
         "java11",
         "go1.x",
-        "python3.7",
         "python3.8",
         "python3.9",
         "dotnetcore2.1",
