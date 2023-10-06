@@ -18,4 +18,5 @@ def test_package_command_valid_schema():
         role_arn=False,
         use_role=False,
         set_default=False,
+        profile_name=False,
     )
