@@ -152,14 +152,18 @@ def _setup_invoke_subparser(subparser):
         "--max-reinvoke",
         type=int,
         default=None,
-        help="Maximum number of IN_PROGRESS re-invocations allowed before "
-        "exiting. If not specified, will continue to "
-        "re-invoke until terminal status is reached.",
+        help=(
+            "Maximum number of IN_PROGRESS re-invocations allowed before "
+            "exiting. If not specified, will continue to "
+            "re-invoke until terminal status is reached."
+        ),
     )
     subparser.add_argument(
         "--docker-image",
-        help="Docker image name to run. If specified, invoke will use docker instead "
-        "of SAM",
+        help=(
+            "Docker image name to run. If specified, invoke will use docker instead "
+            "of SAM"
+        ),
     )
 
 
@@ -182,7 +186,10 @@ def setup_subparser(subparsers, parents):
     hook_parser.add_argument(
         "action_invocation_point",
         choices=list(HookInvocationPoint.__members__),
-        help="The provisioning action invocation point, i.e. which hook handler to invoke.",
+        help=(
+            "The provisioning action invocation point, i.e. which hook handler to"
+            " invoke."
+        ),
     )
     _setup_invoke_subparser(hook_parser)
 

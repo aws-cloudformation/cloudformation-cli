@@ -125,8 +125,8 @@ def path_exists(document, path):
         _prop, _resolved_path, _parent = traverse(document, path)
     except LookupError:
         return False
-    else:
-        return True
+
+    return True
 
 
 def prune_properties_from_model(model, paths):
@@ -282,7 +282,6 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         )
 
     def assert_write_only_property_does_not_exist(self, resource_model):
-
         error_list = []
         if self.write_only_paths:
             for write_only_property in self.write_only_paths:
@@ -290,10 +289,9 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
                 if val:
                     error_list.append(write_only_property[1])
             assertion_error_message = (
-                "The model MUST NOT return properties defined as "
-                "writeOnlyProperties in the resource schema "
-                "\n Write only properties in resource model : %s  \n Output Resource Model : %s \n"
-                % (error_list, resource_model)
+                "The model MUST NOT return properties defined as writeOnlyProperties"
+                " in the resource schema \n Write only properties in resource model :"
+                f" {error_list}  \n Output Resource Model : {resource_model} \n"
             )
             assert not any(error_list), assertion_error_message
 
@@ -302,13 +300,13 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
             properties = self._schema["properties"]
         except KeyError:
             return set()
-        else:
-            return {
-                prop
-                for prop in properties.keys()
-                if "insertionOrder" in properties[prop]
-                and properties[prop]["insertionOrder"] == "false"
-            }
+
+        return {
+            prop
+            for prop in properties.keys()
+            if "insertionOrder" in properties[prop]
+            and properties[prop]["insertionOrder"] == "false"
+        }
 
     @property
     def strategy(self):
@@ -456,11 +454,10 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
 
     def compare_model(self, inputs, outputs, path=()):
         assertion_error_message = (
-            "All properties specified in the request MUST "
-            "be present in the model returned, and they MUST"
-            " match exactly, with the exception of properties"
-            " defined as writeOnlyProperties in the resource schema \n Request Model : %s \n Returned Model : %s \n"
-            % (inputs, outputs)
+            "All properties specified in the request MUST be present in the model"
+            " returned, and they MUST match exactly, with the exception of properties"
+            " defined as writeOnlyProperties in the resource schema \n Request Model :"
+            f" {inputs} \n Returned Model : {outputs} \n"
         )
         try:
             if isinstance(inputs, dict):
@@ -488,13 +485,9 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
                     else:
                         if inputs[key] != outputs[key]:
                             assertion_error_message = (
-                                "%s Value for property %s in Request Model(%s) and Response Model(%s) does not match"
-                                % (
-                                    assertion_error_message,
-                                    key,
-                                    inputs[key],
-                                    outputs[key],
-                                )
+                                f"{assertion_error_message} Value for property {key} in"
+                                f" Request Model({inputs[key]}) and Response"
+                                f" Model({outputs[key]}) does not match"
                             )
                         assert inputs[key] == outputs[key], assertion_error_message
             else:
@@ -612,9 +605,9 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
             if action in (Action.READ, Action.LIST)
             else self._timeout_in_seconds * 2
         )
-        assert end_time - start_time <= timeout_in_seconds, (
-            "Handler %r timed out." % action
-        )
+        assert (
+            end_time - start_time <= timeout_in_seconds
+        ), f"Handler {action!r} timed out."
 
     @staticmethod
     def assert_primary_identifier(primary_identifier_paths, resource_model):
@@ -646,8 +639,8 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
             )
         except KeyError as e:
             raise AssertionError(
-                "The primaryIdentifier returned in every progress event must\
-                     match the primaryIdentifier passed into the request"
+                "The primaryIdentifier returned in every progress event must "
+                "match the primaryIdentifier passed into the request"
             ) from e
 
     @staticmethod
@@ -662,8 +655,8 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
             return pid_list
         except KeyError as e:
             raise AssertionError(
-                "The primaryIdentifier returned in every progress event must\
-                     match the primaryIdentifier passed into the request \n"
+                "The primaryIdentifier returned in every progress event must "
+                "match the primaryIdentifier passed into the request \n"
             ) from e
 
     def _make_payload(
@@ -761,7 +754,7 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         if not self.has_required_handlers():
             raise ValueError("Create/Read/Delete handlers are required")
         if assert_status not in [OperationStatus.SUCCESS, OperationStatus.FAILED]:
-            raise ValueError("Assert status {} not supported.".format(assert_status))
+            raise ValueError(f"Assert status {assert_status} not supported.")
 
         status, response = self.call(action, current_model, previous_model, **kwargs)
         if assert_status == OperationStatus.SUCCESS:
@@ -857,7 +850,7 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
                     if key == tag_property_name:
                         return True
             else:
-                raise assertion_error_message
+                raise AssertionError(assertion_error_message)
         except Exception as exception:
             raise AssertionError(assertion_error_message) from exception
         return False

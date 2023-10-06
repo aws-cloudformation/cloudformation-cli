@@ -24,7 +24,7 @@ def _load_fragment(fragment_file):
             return load_yaml(__first_pass_syntax_check(f.read()))
     except (yaml.parser.ParserError, yaml.scanner.ScannerError) as e:
         raise FragmentValidationError(
-            "Fragment file '{}' is invalid: {}".format(fragment_file, str(e))
+            f"Fragment file '{fragment_file}' is invalid: {str(e)}"
         ) from e
 
 
@@ -37,12 +37,12 @@ def _get_fragment_file(fragment_dir):
                 all_fragment_files.append(os.path.join(root, f))
     if len(all_fragment_files) == 0:
         raise FragmentValidationError(
-            f"No module fragment files found in the fragments folder ending in one of {ALLOWED_EXTENSIONS}"
+            "No module fragment files found in the fragments folder ending in one of"
+            f" {ALLOWED_EXTENSIONS}"
         )
     if len(all_fragment_files) > 1:
         raise FragmentValidationError(
-            "A Module can only consist of a "
-            "single template file, but there are "
+            "A Module can only consist of a single template file, but there are "
             + str(len(all_fragment_files))
             + ": "
             + str(all_fragment_files)

@@ -28,13 +28,14 @@ def test_create_success(resource_client, current_resource_model):
 
 @failed_event(
     error_code=HandlerErrorCode.AlreadyExists,
-    msg="A create handler MUST NOT create multiple resources given\
-         the same idempotency token",
+    msg=(
+        "A create handler MUST NOT create multiple resources given the same "
+        "idempotency token"
+    ),
 )
 def test_create_failure_if_repeat_writeable_id(resource_client, current_resource_model):
     LOG.debug(
-        "at least one identifier is writeable; "
-        "performing duplicate-CREATE-failed test"
+        "at least one identifier is writeable; performing duplicate-CREATE-failed test"
     )
     # Should fail, because different clientRequestToken for the same
     # resource model means that the same resource is trying to be
@@ -59,8 +60,10 @@ def test_read_success(resource_client, current_resource_model):
 
 @failed_event(
     error_code=HandlerErrorCode.NotFound,
-    msg="A read handler MUST return FAILED with a NotFound error code\
-         if the resource does not exist",
+    msg=(
+        "A read handler MUST return FAILED with a NotFound error code if the "
+        "resource does not exist"
+    ),
 )
 def test_read_failure_not_found(
     resource_client,
@@ -114,16 +117,11 @@ def error_test_model_in_list(resource_client, current_resource_model, message):
         )
         if resource_model_primary_identifier != current_model_primary_identifier:
             assertion_error_message = (
-                "%s \n Resource Model primary identifier %s does not match with "
-                "Current Resource Model primary identifier %s \n Resource Model : %s"
-                " \n Currrent Model : %s "
-                % (
-                    message,
-                    resource_model_primary_identifier[0],
-                    current_model_primary_identifier[0],
-                    resource_model,
-                    current_resource_model,
-                )
+                f"{message} \n Resource Model primary identifier"
+                f" {resource_model_primary_identifier[0]} does not match with Current"
+                " Resource Model primary identifier"
+                f" {current_model_primary_identifier[0]} \n Resource Model :"
+                f" {resource_model} \n Currrent Model : {current_resource_model} "
             )
             return assertion_error_message
     return assertion_error_message
@@ -145,8 +143,10 @@ def test_update_success(resource_client, update_resource_model, current_resource
 
 @failed_event(
     error_code=HandlerErrorCode.NotFound,
-    msg="An update handler MUST return FAILED with a NotFound error code\
-         if the resource did not exist prior to the update request",
+    msg=(
+        "An update handler MUST return FAILED with a NotFound error code if the "
+        "resource did not exist prior to the update request"
+    ),
 )
 def test_update_failure_not_found(resource_client, current_resource_model):
     update_model = resource_client.generate_update_example(current_resource_model)
@@ -165,8 +165,10 @@ def test_delete_success(resource_client, current_resource_model):
 
 @failed_event(
     error_code=HandlerErrorCode.NotFound,
-    msg="A delete hander MUST return FAILED with a NotFound error code\
-         if the resource did not exist prior to the delete request",
+    msg=(
+        "A delete hander MUST return FAILED with a NotFound error code if the "
+        "resource did not exist prior to the delete request"
+    ),
 )
 def test_delete_failure_not_found(resource_client, current_resource_model):
     _status, _response, error_code = resource_client.call_and_assert(

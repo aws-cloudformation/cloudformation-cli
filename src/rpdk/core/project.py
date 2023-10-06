@@ -122,7 +122,7 @@ def escape_markdown(string):
     if not string:
         return string
     if string[0] in MARKDOWN_RESERVED_CHARACTERS:
-        return "\\{}".format(string)
+        return f"\\{string}"
     return string
 
 
@@ -181,7 +181,7 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
 
     @property
     def configuration_schema_filename(self):
-        return "{}-configuration.json".format(self.hypenated_name)
+        return f"{self.hypenated_name}-configuration.json"
 
     @property
     def schema_path(self):
@@ -303,7 +303,6 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
         self.safewrite(self.schema_path, _write)
 
     def _write_example_inputs(self):
-
         shutil.rmtree(self.example_inputs_path, ignore_errors=True)
         self.example_inputs_path.mkdir(exist_ok=True)
 
@@ -445,7 +444,8 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
 
     def write_configuration_schema(self, path):
         LOG.debug(
-            "Writing type configuration resource specification from resource specification: %s",
+            "Writing type configuration resource specification from resource"
+            " specification: %s",
             path,
         )
 
@@ -551,7 +551,8 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
             self.load_settings()
         except FileNotFoundError as e:
             self._raise_invalid_project(
-                f"Project file {self.settings_path} not found. Have you run 'init' or in a wrong directory?",
+                f"Project file {self.settings_path} not found. Have you run 'init' or"
+                " in a wrong directory?",
                 e,
             )
 
@@ -688,7 +689,8 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
             cli_metadata = self._plugin.get_plugin_information(self)
         except AttributeError:
             LOG.debug(
-                "Version info is not available for plugins, not writing to metadata file"
+                "Version info is not available for plugins, not writing to metadata"
+                " file"
             )
         cli_metadata["cli-version"] = __version__
         zip_file.writestr(CFN_METADATA_FILENAME, json.dumps(cli_metadata))
@@ -724,9 +726,7 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
         if target_info:
             zip_file.writestr(TARGET_INFO_FILENAME, json.dumps(target_info, indent=4))
         for target_name, info in target_info.items():
-            filename = "{}.json".format(
-                "-".join(s.lower() for s in target_name.split("::"))
-            )
+            filename = f'{"-".join(s.lower() for s in target_name.split("::"))}.json'
             content = json.dumps(info.get("Schema", {}), indent=4).encode("utf-8")
             zip_file.writestr(TARGET_SCHEMAS_FOLDER + "/" + filename, content)
             LOG.debug("%s found. Writing to package.", filename)
@@ -737,7 +737,8 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
             cli_metadata = self._plugin.get_plugin_information(self)
         except AttributeError:
             LOG.debug(
-                "Version info is not available for plugins, not writing to metadata file"
+                "Version info is not available for plugins, not writing to metadata"
+                " file"
             )
         cli_metadata["cli-version"] = __version__
         zip_file.writestr(CFN_METADATA_FILENAME, json.dumps(cli_metadata))
@@ -829,7 +830,8 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
     def generate_image_build_config(self):
         if not hasattr(self._plugin, "generate_image_build_config"):
             raise InvalidProjectError(
-                f"Plugin for the {self.runtime} runtime does not support building an image"
+                f"Plugin for the {self.runtime} runtime does not support building an"
+                " image"
             )
         return self._plugin.generate_image_build_config(self)
 
@@ -927,13 +929,14 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
         def __join(item1, item2):
             if not item1 or item2 == item1:
                 return item2
-            return "{}, {}".format(item1, item2)
+            return f"{item1}, {item2}"
 
         def __set_property_type(prop_type, single_type=True):
             nonlocal prop
 
             # mark down formatting of the target value - used for complex objects
             # ($ref) and arrays of such objects
+            # pylint: disable=unnecessary-lambda-assignment
             markdown_lambda = (
                 lambda fname, name: f'<a href="{fname}">{name}</a>'  # noqa: B950, C0301
             )
@@ -943,7 +946,6 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
                 # primitives should not occur for circular ref;
                 type_json = type_yaml = type_longform = BASIC_TYPE_MAPPINGS[prop_type]
             elif prop_type == "array":
-
                 # lambdas to reuse formatting
                 markdown_json = (
                     lambda markdown_value: f"[ {markdown_value}, ... ]"
@@ -1113,10 +1115,10 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
         except ClientError as e:
             LOG.debug("Registering type resulted in unknown ClientError", exc_info=e)
             raise DownstreamError("Unknown CloudFormation error") from e
-        else:
-            self._wait_for_registration(
-                cfn_client, response["RegistrationToken"], set_default
-            )
+
+        self._wait_for_registration(
+            cfn_client, response["RegistrationToken"], set_default
+        )
 
     @staticmethod
     def _wait_for_registration(cfn_client, registration_token, set_default):

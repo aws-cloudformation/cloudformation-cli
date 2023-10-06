@@ -9,7 +9,7 @@ class RefRenamer:
         self.renames = renames if renames else {}
         # this generator never completes
         self.names = (
-            name for name in ("schema{}".format(i) for i in count())
+            name for name in (f"schema{i}" for i in count())
         )  # pragma: no cover
 
     def items(self):

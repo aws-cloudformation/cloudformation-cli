@@ -63,15 +63,11 @@ def contract_update_read(updated_resource, resource_client):
         resource_client.primary_identifier_paths, updated_model
     )
     assertion_error_message = (
-        "The primaryIdentifier returned must match "
-        "the primaryIdentifier passed into the request "
-        "Create Model primary identifier %s does not match with Update Model primary identifier %s \n Create Model : %s \n Update Model : %s "
-        % (
-            create_primary_identifiers,
-            update_primary_identifiers,
-            _created_model,
-            updated_model,
-        )
+        "The primaryIdentifier returned must match the primaryIdentifier passed into"
+        " the request Create Model primary identifier"
+        f" {create_primary_identifiers} does not match with Update Model primary"
+        f" identifier {update_primary_identifiers} \n Create Model :"
+        f" {_created_model} \n Update Model : {updated_model} "
     )
     assert resource_client.is_primary_identifier_equal(
         resource_client.primary_identifier_paths, _created_model, updated_model
@@ -96,8 +92,10 @@ def contract_update_list(updated_resource, resource_client):
     ) = updated_resource
     assert resource_client.is_primary_identifier_equal(
         resource_client.primary_identifier_paths, _created_model, updated_model
-    ), "The primaryIdentifier returned must match\
-         the primaryIdentifier passed into the request"
+    ), (
+        "The primaryIdentifier returned must match the primaryIdentifier passed"
+        " into the request"
+    )
     assert test_model_in_list(resource_client, updated_model), error_test_model_in_list(
         resource_client,
         updated_model,

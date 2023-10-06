@@ -177,7 +177,7 @@ def test_upload_s3_success(uploader):
 
     mock_stack.assert_called_once_with(ANY, INFRA_STACK_NAME)
     mock_time.utcnow.assert_called_once_with()
-    expected_key = "{}-2004-11-17T20-54-33.zip".format(CONTENTS_UTF8)
+    expected_key = f"{CONTENTS_UTF8}-2004-11-17T20-54-33.zip"
     uploader.s3_client.upload_fileobj.assert_called_once_with(
         fileobj, BUCKET_OUTPUT_VALUE, expected_key
     )

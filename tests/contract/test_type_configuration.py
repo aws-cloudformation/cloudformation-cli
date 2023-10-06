@@ -12,9 +12,15 @@ TYPE_CONFIGURATION_TEST_SETTING = (
 
 TYPE_CONFIGURATION_INVALID = '{"Credentials" :{"ApiKey": "123", xxxx}}'
 
-HOOK_CONFIGURATION_TEST_SETTING = '{"CloudFormationConfiguration": {"HookConfiguration": {"Properties": {"Credentials" :{"ApiKey": "123", "ApplicationKey": "123"}}}}}'
+HOOK_CONFIGURATION_TEST_SETTING = (
+    '{"CloudFormationConfiguration": {"HookConfiguration": {"Properties":'
+    ' {"Credentials" :{"ApiKey": "123", "ApplicationKey": "123"}}}}}'
+)
 
-HOOK_CONFIGURATION_INVALID = '{"CloudFormationConfiguration": {"TypeConfiguration": {"Properties": {"Credentials" :{"ApiKey": "123", "ApplicationKey": "123"}}}}}'
+HOOK_CONFIGURATION_INVALID = (
+    '{"CloudFormationConfiguration": {"TypeConfiguration": {"Properties":'
+    ' {"Credentials" :{"ApiKey": "123", "ApplicationKey": "123"}}}}}'
+)
 
 
 def setup_function():

@@ -62,7 +62,7 @@ def get_schema_store(schema_search_path):
     for schema_fname in schema_fnames:
         schema_path = os.path.join(schema_search_path, schema_fname)
         if schema_path.endswith(".json"):
-            with open(schema_path, "r") as schema_f:
+            with open(schema_path, "r", encoding="utf-8") as schema_f:
                 schema = json.load(schema_f)
                 if "$id" in schema:
                     schema_store[schema["$id"]] = schema
@@ -91,21 +91,24 @@ def make_resource_validator_with_additional_properties_check():
     dependencies = schema["definitions"]["validations"]["dependencies"]
     properties_check = {
         "properties": {
-            "$comment": "An object cannot have both defined and undefined \
-properties; therefore, patternProperties is not allowed when properties is specified.\
- Provider should mark additionalProperties as false if the \
-property is of object type and has properties defined \
-in it.",
+            "$comment": (
+                "An object cannot have both defined and undefined properties;"
+                " therefore, patternProperties is not allowed when properties is"
+                " specified. Provider should mark additionalProperties as false if the"
+                " property is of object type and has properties defined in it."
+            ),
             "not": {"required": ["patternProperties"]},
             "required": ["additionalProperties"],
         }
     }
     pattern_properties_check = {
         "patternProperties": {
-            "$comment": "An object cannot have both defined and undefined \
-properties; therefore, properties is not allowed when patternProperties is specified. \
-Provider should mark additionalProperties as false if the property is of object type \
-and has patternProperties defined in it.",
+            "$comment": (
+                "An object cannot have both defined and undefined properties;"
+                " therefore, properties is not allowed when patternProperties is"
+                " specified. Provider should mark additionalProperties as false if the"
+                " property is of object type and has patternProperties defined in it."
+            ),
             "not": {"required": ["properties"]},
             "required": ["additionalProperties"],
         }
@@ -130,8 +133,7 @@ def get_file_base_uri(file):
         name = file.name
     except AttributeError:
         LOG.error(
-            "Resource spec has no filename associated, "
-            "relative references may not work"
+            "Resource spec has no filename associated, relative references may not work"
         )
         name = STDIN_NAME
 
@@ -165,7 +167,8 @@ def load_resource_spec(resource_spec_file):  # pylint: disable=R # noqa: C901
             for property_name, property_details in schema.get("properties", {}).items():
                 if property_name[0].islower():
                     LOG.warning(
-                        "CloudFormation properties don't usually start with lowercase letters: %s",
+                        "CloudFormation properties don't usually start with lowercase"
+                        " letters: %s",
                         property_name,
                     )
                 try:
@@ -231,7 +234,8 @@ def load_resource_spec(resource_spec_file):  # pylint: disable=R # noqa: C901
                             & property_keywords
                         ):
                             LOG.warning(
-                                "Incorrect JSON schema keyword(s) %s for type: %s for property: %s",
+                                "Incorrect JSON schema keyword(s) %s for type: %s for"
+                                " property: %s",
                                 type_specific_keywords - allowed_keywords
                                 & property_keywords,
                                 property_type,
@@ -259,8 +263,9 @@ def load_resource_spec(resource_spec_file):  # pylint: disable=R # noqa: C901
     for enum in nested_lookup("enum", resource_spec):
         if len(enum) > 15:
             LOG.warning(
-                "Consider not manually maintaining large constantly evolving enums like \
-instance types, lambda runtimes, partitions, regions, availability zones, etc. that get outdated quickly: %s",
+                "Consider not manually maintaining large constantly evolving enums like"
+                " instance types, lambda runtimes, partitions, regions, availability"
+                " zones, etc. that get outdated quickly: %s",
                 enum,
             )
 
@@ -284,8 +289,9 @@ instance types, lambda runtimes, partitions, regions, availability zones, etc. t
     } & set(map(str.lower, resource_spec.get("properties", [])))
     if list_options:
         LOG.warning(
-            "LIST API inputs like MaxResults, MaxRecords, MaxItems, NextToken, NextMarker, NextPageToken, PageToken, and Filters are not resource properties. \
-%s should not be present in resource schema",
+            "LIST API inputs like MaxResults, MaxRecords, MaxItems, NextToken,"
+            " NextMarker, NextPageToken, PageToken, and Filters are not resource"
+            " properties. %s should not be present in resource schema",
             list_options,
         )
 
@@ -302,7 +308,8 @@ instance types, lambda runtimes, partitions, regions, availability zones, etc. t
     )
     if read_only_properties_intersection:
         LOG.warning(
-            "readOnlyProperties cannot be specified by customers and should not overlap with writeOnlyProperties, createOnlyProperties, or required: %s",
+            "readOnlyProperties cannot be specified by customers and should not overlap"
+            " with writeOnlyProperties, createOnlyProperties, or required: %s",
             read_only_properties_intersection,
         )
 
@@ -318,10 +325,10 @@ instance types, lambda runtimes, partitions, regions, availability zones, etc. t
         additional_properties_validator.validate(resource_spec)
     except ValidationError as e:
         LOG.warning(
-            "[Warning] Resource spec validation would fail from next \
-major version. Provider should mark additionalProperties as false if the \
-property is of object type and has properties or patternProperties defined \
-in it. Please fix the warnings: %s",
+            "[Warning] Resource spec validation would fail from next major version."
+            " Provider should mark additionalProperties as false if the property is of"
+            " object type and has properties or patternProperties defined in it. Please"
+            " fix the warnings: %s",
             str(e),
         )
 
@@ -331,19 +338,21 @@ in it. Please fix the warnings: %s",
             and primary_id not in create_only_properties
         ):
             LOG.warning(
-                "Property 'primaryIdentifier' - %s must be specified \
-as either readOnly or createOnly",
+                "Property 'primaryIdentifier' - %s must be specified as either readOnly"
+                " or createOnly",
                 primary_id,
             )
 
     if conditional_create_only_properties & create_only_properties:
         raise SpecValidationError(
-            "createOnlyProperties and conditionalCreateOnlyProperties MUST NOT have common properties"
+            "createOnlyProperties and conditionalCreateOnlyProperties MUST NOT have"
+            " common properties"
         )
 
     if conditional_create_only_properties & read_only_properties:
         raise SpecValidationError(
-            "readOnlyProperties and conditionalCreateOnlyProperties MUST NOT have common properties"
+            "readOnlyProperties and conditionalCreateOnlyProperties MUST NOT have"
+            " common properties"
         )
 
     if "tagging" not in resource_spec:
@@ -388,7 +397,8 @@ def load_hook_spec(hook_spec_file):  # pylint: disable=R # noqa: C901
 
     if hook_spec.get("properties"):
         raise SpecValidationError(
-            "Hook types do not support 'properties' directly. Properties must be specified in the 'typeConfiguration' section."
+            "Hook types do not support 'properties' directly. Properties must be"
+            " specified in the 'typeConfiguration' section."
         )
 
     validator = make_hook_validator()
@@ -403,17 +413,20 @@ def load_hook_spec(hook_spec_file):  # pylint: disable=R # noqa: C901
         for permission in handler["permissions"]:
             if "cloudformation:*" in permission:
                 raise SpecValidationError(
-                    f"Wildcards for cloudformation are not allowed for hook handler permissions: '{permission}'"
+                    "Wildcards for cloudformation are not allowed for hook handler"
+                    f" permissions: '{permission}'"
                 )
             if permission in blocked_handler_permissions:
                 raise SpecValidationError(
-                    f"Permission is not allowed for hook handler permissions: '{permission}'"
+                    "Permission is not allowed for hook handler permissions:"
+                    f" '{permission}'"
                 )
 
         for target_name in handler["targetNames"]:
             if "*?" in target_name:
                 raise SpecValidationError(
-                    f"Wildcard pattern '*?' is not allowed in target name: '{target_name}'"
+                    "Wildcard pattern '*?' is not allowed in target name:"
+                    f" '{target_name}'"
                 )
 
     try:

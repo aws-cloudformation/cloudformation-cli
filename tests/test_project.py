@@ -59,7 +59,6 @@ RUNTIME = random.choice(
         "java8",
         "java11",
         "go1.x",
-        "python3.7",
         "python3.8",
         "python3.9",
         "dotnetcore2.1",
@@ -1174,7 +1173,7 @@ def create_hook_input_file(base):
 
 
 def _get_target_schema_filename(target_name):
-    return "{}.json".format("-".join(s.lower() for s in target_name.split("::")))
+    return f'{"-".join(s.lower() for s in target_name.split("::"))}.json'
 
 
 def create_target_schema_file(base, target_schema):
@@ -1235,7 +1234,7 @@ def test_submit_dry_run(project, is_type_configuration_available):
     # fmt: on
 
     mock_temp.assert_not_called()
-    mock_path.assert_called_with("{}.zip".format(project.hypenated_name))
+    mock_path.assert_called_with(f"{project.hypenated_name}.zip")
     mock_plugin.package.assert_called_once_with(project, ANY)
     mock_upload.assert_not_called()
 
@@ -1336,7 +1335,7 @@ def test_submit_dry_run_modules(project):
     # fmt: on
 
     mock_temp.assert_not_called()
-    mock_path.assert_called_with("{}.zip".format(project.hypenated_name))
+    mock_path.assert_called_with(f"{project.hypenated_name}.zip")
     mock_plugin.package.assert_not_called()
     mock_upload.assert_not_called()
 
@@ -1402,7 +1401,7 @@ def test_submit_dry_run_hooks(project):
     # fmt: on
 
     mock_temp.assert_not_called()
-    mock_path.assert_called_with("{}.zip".format(project.hypenated_name))
+    mock_path.assert_called_with(f"{project.hypenated_name}.zip")
     mock_plugin.package.assert_called_once_with(project, ANY)
     mock_upload.assert_not_called()
 
@@ -1528,7 +1527,7 @@ def test_submit_dry_run_hooks_with_target_info(project, session):
     # fmt: on
 
     mock_temp.assert_not_called()
-    mock_path.assert_called_with("{}.zip".format(project.hypenated_name))
+    mock_path.assert_called_with(f"{project.hypenated_name}.zip")
     mock_plugin.package.assert_called_once_with(project, ANY)
     mock_upload.assert_not_called()
 
@@ -1833,7 +1832,7 @@ def test__upload_good_path_create_role_and_set_default_hook(project):
 
 
 @pytest.mark.parametrize(
-    ("use_role,expected_additional_args"),
+    "use_role,expected_additional_args",
     [(True, {"ExecutionRoleArn": "someArn"}), (False, {})],
 )
 def test__upload_good_path_skip_role_creation(
@@ -1888,7 +1887,7 @@ def test__upload_good_path_skip_role_creation(
 
 
 @pytest.mark.parametrize(
-    ("use_role,expected_additional_args"),
+    "use_role,expected_additional_args",
     [(True, {"ExecutionRoleArn": "someArn"}), (False, {})],
 )
 def test__upload_good_path_skip_role_creation_hook(
@@ -2353,11 +2352,11 @@ def test__load_target_info_for_hooks(project):
                     "primaryIdentifier": ["/properties/Name"],
                     "additionalProperties": False,
                 },
-                "ProvisioningType": test_type_info[target_name]["ProvisioningType"],
+                "ProvisioningType": target_value["ProvisioningType"],
                 "IsCfnRegistrySupportedType": True,
                 "SchemaFileAvailable": True,
             }
-            for target_name in test_type_info
+            for target_name, target_value in test_type_info.items()
         },
     )
 
@@ -2505,11 +2504,11 @@ def test__load_target_info_for_hooks_local_only(project):
                     "primaryIdentifier": ["/properties/Name"],
                     "additionalProperties": False,
                 },
-                "ProvisioningType": test_type_info[target_name]["ProvisioningType"],
+                "ProvisioningType": target_value["ProvisioningType"],
                 "IsCfnRegistrySupportedType": True,
                 "SchemaFileAvailable": True,
             }
-            for target_name in test_type_info
+            for target_name, target_value in test_type_info.items()
         },
     )
 
@@ -2528,7 +2527,9 @@ def test__load_target_info_for_hooks_local_only(project):
     patch_is_file = patch("os.path.isfile", return_value=True)
 
     # pylint: disable=line-too-long,confusing-with-statement
-    with patch_sdk as mock_sdk, patch_loader as mock_loader, patch_is_dir, patch_list_dir, patch_path_is_file, patch_is_file:
+    with patch_sdk as mock_sdk, patch_loader as mock_loader, (
+        patch_is_dir
+    ), patch_list_dir, patch_path_is_file, patch_is_file:
         mock_sdk.return_value.region_name = "us-east-1"
         mock_sdk.return_value.client.side_effect = [MagicMock(), MagicMock()]
         project.target_info_path.open.return_value.__enter__.return_value = StringIO(

@@ -151,7 +151,8 @@ def test_load_resource_spec_conditionally_create_only_match_create_only():
         load_resource_spec(json_s(schema))
     assert (
         str(excinfo.value)
-        == "createOnlyProperties and conditionalCreateOnlyProperties MUST NOT have common properties"
+        == "createOnlyProperties and conditionalCreateOnlyProperties MUST NOT have"
+        " common properties"
     )
 
 
@@ -169,7 +170,8 @@ def test_load_resource_spec_conditionally_create_only_match_read_only():
         load_resource_spec(json_s(schema))
     assert (
         str(excinfo.value)
-        == "readOnlyProperties and conditionalCreateOnlyProperties MUST NOT have common properties"
+        == "readOnlyProperties and conditionalCreateOnlyProperties MUST NOT have common"
+        " properties"
     )
 
 

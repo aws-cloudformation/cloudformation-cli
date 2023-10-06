@@ -24,9 +24,8 @@ UNSUPPORTED_TARGET_SCHEMA = {
 def test_hook_success(hook_client, invocation_point, target, target_model):
     if HookClient.is_update_invocation_point(invocation_point):
         raise ValueError(
-            "Invocation point {} not supported for this testing operation".format(
-                invocation_point
-            )
+            f"Invocation point {invocation_point} not supported for this testing"
+            " operation"
         )
 
     _status, response, _error_code = hook_client.call_and_assert(
@@ -39,9 +38,8 @@ def test_hook_success(hook_client, invocation_point, target, target_model):
 def test_update_hook_success(hook_client, invocation_point, target, target_model):
     if not HookClient.is_update_invocation_point(invocation_point):
         raise ValueError(
-            "Invocation point {} not supported for testing UPDATE hook operation".format(
-                invocation_point
-            )
+            f"Invocation point {invocation_point} not supported for testing UPDATE hook"
+            " operation"
         )
 
     _status, response, _error_code = hook_client.call_and_assert(
@@ -85,7 +83,10 @@ def test_hook_handlers_failed(hook_client, invocation_point):
 
 @failed_event(
     error_code=HandlerErrorCode.UnsupportedTarget,
-    msg="A hook handler MUST return FAILED with a UnsupportedTarget error code if the target is not supported",
+    msg=(
+        "A hook handler MUST return FAILED with a UnsupportedTarget error code if the"
+        " target is not supported"
+    ),
 )
 def test_hook_unsupported_target(hook_client, invocation_point):
     if not hook_client.handler_has_wildcard_targets(invocation_point):

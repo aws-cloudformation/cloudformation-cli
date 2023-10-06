@@ -6,7 +6,7 @@ from rpdk.core.extensions import setup_subparsers
 
 
 class ExtensionTest(TestCase):
-    def test_setup_subparsers(self):  # pylint: disable=no-self-use
+    def test_setup_subparsers(self):
         expeted_command_name = "expected-command-name"
 
         mock_extension = MagicMock()
@@ -56,5 +56,6 @@ class ExtensionTest(TestCase):
 
         assert (
             str(context.exception)
-            == '"command-name" is already registered as an extension. Please use a different name.'
+            == '"command-name" is already registered as an extension. Please use a'
+            " different name."
         )

@@ -58,7 +58,7 @@ class Uploader:
                 stack_id,
             )
             raise UploadError(
-                "Failed to create or update the '{}' stack".format(stack_id)
+                f"Failed to create or update the '{stack_id}' stack"
             ) from e
 
         LOG.info(success_msg)
@@ -94,7 +94,7 @@ class Uploader:
                 Capabilities=["CAPABILITY_IAM"],
             )
         except self.cfn_client.exceptions.AlreadyExistsException:
-            LOG.info("%s already exists. " "Attempting to update", stack_name)
+            LOG.info("%s already exists. Attempting to update", stack_name)
             try:
                 result = self.cfn_client.update_stack(
                     **args, Capabilities=["CAPABILITY_IAM"]
@@ -107,7 +107,7 @@ class Uploader:
                     stack_id = stack_name
                 else:
                     LOG.debug(
-                        "%s stack update " "resulted in unknown ClientError",
+                        "%s stack update resulted in unknown ClientError",
                         stack_name,
                         exc_info=e,
                     )
@@ -117,11 +117,11 @@ class Uploader:
                 self._wait_for_stack(
                     stack_id,
                     "stack_update_complete",
-                    "{} stack is up to date".format(stack_name),
+                    f"{stack_name} stack is up to date",
                 )
         except ClientError as e:
             LOG.debug(
-                "%s stack create " "resulted in unknown ClientError",
+                "%s stack create resulted in unknown ClientError",
                 stack_name,
                 exc_info=e,
             )
@@ -131,7 +131,7 @@ class Uploader:
             self._wait_for_stack(
                 stack_id,
                 "stack_create_complete",
-                "{} stack was successfully created".format(stack_name),
+                f"{stack_name} stack was successfully created",
             )
 
         return stack_id
@@ -150,9 +150,7 @@ class Uploader:
             )
             # pylint: disable=W0707
             raise InvalidProjectError()
-        stack_id = self._create_or_update_stack(
-            template, "{}-role-stack".format(resource_type)
-        )
+        stack_id = self._create_or_update_stack(template, f"{resource_type}-role-stack")
         return self._get_stack_output(stack_id, EXECUTION_ROLE_ARN_OUTPUT_NAME)
 
     def upload(self, file_prefix, fileobj):
@@ -164,7 +162,7 @@ class Uploader:
         )
 
         timestamp = datetime.utcnow().isoformat(timespec="seconds").replace(":", "-")
-        key = "{}-{}.zip".format(file_prefix, timestamp)
+        key = f"{file_prefix}-{timestamp}.zip"
 
         LOG.debug("Uploading to '%s/%s'...", self.bucket_name, key)
         try:
@@ -175,7 +173,7 @@ class Uploader:
 
         LOG.debug("Upload complete")
 
-        return "s3://{0}/{1}".format(self.bucket_name, key)
+        return f"s3://{self.bucket_name}/{key}"
 
     def get_log_delivery_role_arn(self):
         return self.log_delivery_role_arn
