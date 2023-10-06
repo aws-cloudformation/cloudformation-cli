@@ -68,7 +68,8 @@ def _prune_properties_for_all_sequence_members(document: dict, path: list) -> di
         _prop, resolved_paths = traverse_path_for_sequence_members(document, path)
     except LookupError:
         # not found means nothing to delete
-        LOG.info(LOOKUP_ERROR_MESSAGE_FORMAT, document, path)
+        # LOG.info(LOOKUP_ERROR_MESSAGE_FORMAT, document, path)
+        pass
     else:
         # paths with indices are gathered in increasing order, but we need to prune in reverse order
         resolved_paths = resolved_paths[::-1]
@@ -499,6 +500,8 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
             else:
                 assert inputs == outputs, assertion_error_message
         except Exception as exception:
+            assertion_error_message += ", inputs: " + json.dumps(inputs)
+            assertion_error_message += ", outputs: " + json.dumps(outputs)
             raise AssertionError(assertion_error_message) from exception
 
     def compare_collection(self, inputs, outputs, is_ordered, path):
