@@ -4,6 +4,55 @@
     "title": "CloudFormation Resource Provider Definition MetaSchema",
     "description": "This schema validates a CloudFormation resource provider definition.",
     "definitions": {
+	"handlerSchema": {
+            "type": "object",
+            "properties": {
+                "properties": {
+                    "$ref": "base.definition.schema.v1.json#/properties/properties"
+                },
+                "required": {
+                    "$ref": "base.definition.schema.v1.json#/properties/required"
+                },
+                "allOf": {
+                    "$ref": "base.definition.schema.v1.json#/definitions/schemaArray"
+                },
+                "anyOf": {
+                    "$ref": "base.definition.schema.v1.json#/definitions/schemaArray"
+                },
+                "oneOf": {
+                    "$ref": "base.definition.schema.v1.json#/definitions/schemaArray"
+                }
+            },
+            "required": ["properties"],
+            "additionalProperties": false
+        },
+        "handlerDefinitionWithSchemaOverride": {
+            "description": "Defines any execution operations which can be performed on this resource provider",
+            "type": "object",
+            "properties": {
+                "handlerSchema": {
+                    "$ref": "#/definitions/handlerSchema"
+                },
+                "permissions": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "additionalItems": false
+                },
+                "timeoutInMinutes": {
+                    "description": "Defines the timeout for the entire operation to be interpreted by the invoker of the handler.  The default is 120 (2 hours).",
+                    "type": "integer",
+                    "minimum": 2,
+                    "maximum": 2160,
+                    "default": 120
+                }
+            },
+            "additionalProperties": false,
+            "required": [
+                "permissions"
+            ]
+        },
         "handlerDefinition": {
             "description": "Defines any execution operations which can be performed on this resource provider",
             "type": "object",
@@ -30,7 +79,7 @@
         },
         "replacementStrategy": {
             "type": "string",
-            "description": "The valid replacement strategies are create_then_delete and delete_then_create. All other inputs are invalid.",
+            "description": "The valid replacement strategies are [create_then_delete] and [delete_then_create]. All other inputs are invalid.",
             "default": "create_then_delete",
             "enum": [
                 "create_then_delete",
@@ -113,12 +162,8 @@
             ],
             "$ref": "base.definition.schema.v1.json#/definitions/httpsUrl"
         },
-        "replacementStrategy": {
-            "$comment": "The order of replacement for an immutable resource update.",
-            "$ref": "#/definitions/replacementStrategy"
-        },
         "taggable": {
-            "$comment": "(Deprecated, please use new metadata attribute tagging) A boolean flag indicating whether this resource type supports tagging.",
+            "description": "(Deprecated, please use new metadata attribute tagging) A boolean flag indicating whether this resource type supports tagging.",
             "type": "boolean",
             "default": true
         },
@@ -149,12 +194,23 @@
                     "description": "A reference to the Tags property in the schema.",
                     "$ref": "http://json-schema.org/draft-07/schema#/properties/$ref",
                     "default": "/properties/Tags"
+                },
+                "permissions": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "additionalItems": false
                 }
             },
             "required": [
                 "taggable"
             ],
             "additionalProperties": false
+        },
+        "replacementStrategy": {
+            "$comment": "The order of replacement for an immutable resource update.",
+            "$ref": "#/definitions/replacementStrategy"
         },
         "additionalProperties": {
             "$comment": "All properties of a resource must be expressed in the schema - arbitrary inputs are not allowed",
@@ -165,9 +221,6 @@
         },
         "definitions": {
             "$ref": "base.definition.schema.v1.json#/properties/definitions"
-        },
-        "propertyTransform": {
-            "$ref": "base.definition.schema.v1.json#/properties/propertyTransform"
         },
         "handlers": {
             "description": "Defines the provisioning operations which can be performed on this resource type",
@@ -186,7 +239,7 @@
                     "$ref": "#/definitions/handlerDefinition"
                 },
                 "list": {
-                    "$ref": "#/definitions/handlerDefinition"
+                    "$ref": "#/definitions/handlerDefinitionWithSchemaOverride"
                 }
             },
             "additionalProperties": false
@@ -250,6 +303,15 @@
         "resourceLink": {
             "description": "A template-able link to a resource instance. AWS-internal service links must be relative to the AWS console domain. External service links must be absolute, HTTPS URIs.",
             "$ref": "#/definitions/resourceLink"
+        },
+        "propertyTransform": {
+            "description": "A map which allows resource owners to define a function for a property with possible transformation. This property helps ensure the input to the model is equal to output",
+            "type": "object",
+            "patternProperties": {
+                "^[A-Za-z0-9]{1,64}$": {
+                    "type": "string"
+                }
+            }
         },
         "typeConfiguration": {
             "description": "TypeConfiguration to set the configuration data for registry types. This configuration data is not passed through the resource properties in template. One of the possible use cases is configuring auth keys for 3P resource providers.",

@@ -1,12 +1,18 @@
 import logging
 import re
 
-from rpdk.core.exceptions import WizardAbortError, WizardValidationError
+from rpdk.core.data_loaders import resource_json
+from rpdk.core.exceptions import (
+    CLIMisconfiguredError,
+    WizardAbortError,
+    WizardValidationError,
+)
 from rpdk.core.plugin_registry import get_plugin_choices
 from rpdk.core.utils.init_utils import input_with_validation, print_error
 
 LOG = logging.getLogger(__name__)
 HOOK_TYPE_NAME_REGEX = r"^[a-zA-Z0-9]{2,64}::[a-zA-Z0-9]{2,64}::[a-zA-Z0-9]{2,64}$"
+HOOK_PLUGINS = ("java", "python37", "python38", "python39")
 
 
 def init_hook(args, project):
@@ -31,7 +37,24 @@ def init_hook(args, project):
     }
 
     project.init_hook(type_name, language, settings)
-    project.generate(args.endpoint_url, args.region, args.target_schemas)
+    try:
+        project.generate(
+            args.endpoint_url, args.region, False, args.target_schemas, args.profile
+        )
+    except CLIMisconfiguredError as e:
+        LOG.debug(
+            "Error when initializing hook project, attempting local project generation",
+            exc_info=e,
+        )
+        example_target = resource_json(
+            __name__, "../data/examples/hook/targets/aws-s3-bucket.json"
+        )
+        project.generate(
+            args.endpoint_url, args.region, True, [example_target], args.profile
+        )
+    # Reload the generated example schema
+    project.load_configuration_schema()
+    # generate the docs based on the example schema loaded
     project.generate_docs()
 
 
@@ -74,7 +97,7 @@ def validate_type_name(value):
 
 class ValidatePluginChoice:
     def __init__(self, choices):
-        self.choices = tuple(choices)
+        self.choices = tuple(filter(lambda l: l in HOOK_PLUGINS, choices))
         self.max = len(self.choices)
 
         pretty = "\n".join(

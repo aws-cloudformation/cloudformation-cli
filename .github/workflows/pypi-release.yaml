@@ -9,11 +9,12 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     - name: Set up Python 3.8
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v4
       with:
         python-version: 3.8
+        cache: 'pip'
     - name: Install dependencies
       run: |
         pip install --upgrade wheel twine
@@ -21,6 +22,6 @@ jobs:
       run: |
         python setup.py sdist bdist_wheel
     - name: Publish distribution 📦 to PyPI (If triggered from release)
-      uses: pypa/gh-action-pypi-publish@master
+      uses: pypa/gh-action-pypi-publish@release/v1
       with:
         password: ${{ secrets.PYPI_API_KEY_CLOUDFORMATION_CLI }}

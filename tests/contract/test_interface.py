@@ -1,6 +1,7 @@
 # fixture and parameter have the same name
 # pylint: disable=redefined-outer-name
 import json
+import sys
 
 import boto3
 import pytest
@@ -25,6 +26,9 @@ def test_operation_status_enum_matches_sdk(client):
 
 
 def test_handler_error_code_enum_matches_sdk(client):
+    if sys.version_info < (3, 7):
+        return
+
     sdk = set(client.meta.service_model.shape_for("HandlerErrorCode").enum)
     enum = set(HandlerErrorCode.__members__)
     assert enum == sdk

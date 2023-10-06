@@ -3,6 +3,7 @@ import json
 import logging
 import os
 import shutil
+import sys
 import zipfile
 from pathlib import Path
 from tempfile import TemporaryFile
@@ -15,27 +16,24 @@ from jsonschema.exceptions import ValidationError
 
 from rpdk.core.fragment.generator import TemplateFragment
 from rpdk.core.jsonutils.flattener import JsonSchemaFlattener
-from rpdk.core.type_schema_loader import TypeSchemaLoader
 
 from . import __version__
 from .boto_helpers import create_sdk_session
-from .data_loaders import (
-    load_hook_spec,
-    load_resource_spec,
-    make_resource_validator,
-    resource_json,
-)
+from .data_loaders import load_hook_spec, load_resource_spec, resource_json
 from .exceptions import (
     DownstreamError,
     FragmentValidationError,
     InternalError,
     InvalidProjectError,
+    RPDKBaseException,
     SpecValidationError,
 )
 from .fragment.module_fragment_reader import _get_fragment_file
 from .jsonutils.pointer import fragment_decode, fragment_encode
 from .jsonutils.utils import traverse
 from .plugin_registry import load_plugin
+from .type_name_resolver import TypeNameResolver
+from .type_schema_loader import TypeSchemaLoader
 from .upload import Uploader
 
 LOG = logging.getLogger(__name__)
@@ -479,7 +477,14 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
             except FileExistsError:
                 LOG.info("File already exists, not overwriting '%s'", path)
 
-    def generate(self, endpoint_url=None, region_name=None, target_schemas=None):
+    def generate(
+        self,
+        endpoint_url=None,
+        region_name=None,
+        local_only=False,
+        target_schemas=None,
+        profile_name=None,
+    ):  # pylint: disable=too-many-arguments
         if self.artifact_type == ARTIFACT_TYPE_MODULE:
             return  # for Modules, the schema is already generated in cfn validate
 
@@ -532,7 +537,11 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
             )
             self.overwrite(path, contents)
             self.target_info = self._load_target_info(
-                endpoint_url, region_name, target_schemas
+                endpoint_url,
+                region_name,
+                type_schemas=target_schemas,
+                local_only=local_only,
+                profile_name=profile_name,
             )
 
         self._plugin.generate(self)
@@ -604,14 +613,24 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
         template_fragment.validate_fragments()
 
     def submit(
-        self, dry_run, endpoint_url, region_name, role_arn, use_role, set_default
+        self,
+        dry_run,
+        endpoint_url,
+        region_name,
+        role_arn,
+        use_role,
+        set_default,
+        profile_name,
     ):  # pylint: disable=too-many-arguments
         context_mgr = self._create_context_manager(dry_run)
 
         with context_mgr as f:
             # the default compression is ZIP_STORED, which helps with the
             # file-size check on upload
-            with zipfile.ZipFile(f, mode="w") as zip_file:
+            args = {}
+            if sys.version_info >= (3, 8):
+                args = {"strict_timestamps": False}
+            with zipfile.ZipFile(f, mode="w", **args) as zip_file:
                 if self.configuration_schema:
                     with zip_file.open(
                         CONFIGURATION_SCHEMA_UPLOAD_FILENAME, "w"
@@ -625,7 +644,9 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
                 if self.artifact_type == ARTIFACT_TYPE_MODULE:
                     self._add_modules_content_to_zip(zip_file)
                 elif self.artifact_type == ARTIFACT_TYPE_HOOK:
-                    self._add_hooks_content_to_zip(zip_file, endpoint_url, region_name)
+                    self._add_hooks_content_to_zip(
+                        zip_file, endpoint_url, region_name, profile_name
+                    )
                 else:
                     self._add_resources_content_to_zip(zip_file)
 
@@ -636,7 +657,13 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
             else:
                 f.seek(0)
                 self._upload(
-                    f, endpoint_url, region_name, role_arn, use_role, set_default
+                    f,
+                    endpoint_url,
+                    region_name,
+                    role_arn,
+                    use_role,
+                    set_default,
+                    profile_name,
                 )
 
     def _add_overrides_file_to_zip(self, zip_file):
@@ -666,7 +693,9 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
         cli_metadata["cli-version"] = __version__
         zip_file.writestr(CFN_METADATA_FILENAME, json.dumps(cli_metadata))
 
-    def _add_hooks_content_to_zip(self, zip_file, endpoint_url=None, region_name=None):
+    def _add_hooks_content_to_zip(
+        self, zip_file, endpoint_url=None, region_name=None, profile_name=None
+    ):
         zip_file.write(self.schema_path, SCHEMA_UPLOAD_FILENAME)
         if os.path.isdir(self.inputs_path):
             for filename in os.listdir(self.inputs_path):
@@ -676,12 +705,24 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
         else:
             LOG.debug("%s not found. Not writing to package.", INPUTS_FOLDER)
 
-        target_info = (
-            self.target_info
-            if self.target_info
-            else self._load_target_info(endpoint_url, region_name)
-        )
-        zip_file.writestr(TARGET_INFO_FILENAME, json.dumps(target_info, indent=4))
+        target_info = {}
+        try:
+            target_info = (
+                self.target_info
+                if self.target_info
+                else self._load_target_info(
+                    endpoint_url, region_name, profile_name=profile_name
+                )
+            )
+        except RPDKBaseException as e:
+            LOG.warning("Failed to load target info, attempting local...", exc_info=e)
+            try:
+                target_info = self._load_target_info(None, None, local_only=True)
+            except RPDKBaseException as ex:
+                LOG.warning("Failed to load target info, ignoring...", exc_info=ex)
+
+        if target_info:
+            zip_file.writestr(TARGET_INFO_FILENAME, json.dumps(target_info, indent=4))
         for target_name, info in target_info.items():
             filename = "{}.json".format(
                 "-".join(s.lower() for s in target_name.split("::"))
@@ -734,6 +775,18 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
             )
             return
 
+        target_names = (
+            self.target_info.keys()
+            if self.target_info
+            else {
+                target_name
+                for handler in self.schema.get("handlers", {}).values()
+                for target_name in handler.get("targetNames", [])
+            }
+            if self.artifact_type == ARTIFACT_TYPE_HOOK
+            else []
+        )
+
         LOG.debug("Removing generated docs: %s", docs_path)
         shutil.rmtree(docs_path, ignore_errors=True)
         docs_path.mkdir(exist_ok=True)
@@ -765,7 +818,11 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
         )
         template = self.env.get_template(readme_template)
         contents = template.render(
-            type_name=self.type_name, schema=docs_schema, ref=ref, getatt=getatt
+            type_name=self.type_name,
+            schema=docs_schema,
+            ref=ref,
+            getatt=getatt,
+            target_names=sorted(target_names),
         )
         self.safewrite(readme_path, contents)
 
@@ -855,7 +912,11 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
             and proppath_ptr in self.schema["createOnlyProperties"]
         ):
             prop["createonly"] = True
-
+        if (
+            "conditionalCreateOnlyProperties" in self.schema
+            and proppath_ptr in self.schema["conditionalCreateOnlyProperties"]
+        ):
+            prop["conditionalCreateOnly"] = True
         if (
             "readOnlyProperties" in self.schema
             and proppath_ptr in self.schema["readOnlyProperties"]
@@ -1003,10 +1064,17 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
         return prop
 
     def _upload(
-        self, fileobj, endpoint_url, region_name, role_arn, use_role, set_default
+        self,
+        fileobj,
+        endpoint_url,
+        region_name,
+        role_arn,
+        use_role,
+        set_default,
+        profile_name,
     ):  # pylint: disable=too-many-arguments, too-many-locals
         LOG.debug("Packaging complete, uploading...")
-        session = create_sdk_session(region_name)
+        session = create_sdk_session(region_name, profile_name)
         LOG.debug("Uploading to region '%s'", session.region_name)
         cfn_client = session.client("cloudformation", endpoint_url=endpoint_url)
         s3_client = session.client("s3")
@@ -1098,105 +1166,70 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
                 raise DownstreamError("Error setting default version") from e
             LOG.warning("Set default version to '%s", arn)
 
-    # pylint: disable=R0912,R0914,R0915
     # flake8: noqa: C901
-    def _load_target_info(self, endpoint_url, region_name, provided_schemas=None):
+    # pylint: disable=R0914
+    def _load_target_info(
+        self,
+        endpoint_url,
+        region_name,
+        type_schemas=None,
+        local_only=False,
+        profile_name=None,
+    ):  # pylint: disable=too-many-arguments
         if self.artifact_type != ARTIFACT_TYPE_HOOK or not self.schema:
             return {}
 
-        if provided_schemas is None:
-            provided_schemas = []
-
-        target_names = set()
-        for handler in self.schema.get("handlers", []).values():
-            for target_name in handler.get("targetNames", []):
-                target_names.add(target_name)
-
-        loader = TypeSchemaLoader.get_type_schema_loader(endpoint_url, region_name)
-
-        provided_target_info = {}
-
-        if os.path.isfile(self.target_info_path):
-            try:
-                with self.target_info_path.open("r", encoding="utf-8") as f:
-                    provided_target_info = json.load(f)
-            except json.JSONDecodeError as e:  # pragma: no cover
-                self._raise_invalid_project(
-                    f"Target info file '{self.target_info_path}' is invalid", e
-                )
+        if type_schemas is None:
+            type_schemas = []
 
         if os.path.isdir(self.target_schemas_path):
             for filename in os.listdir(self.target_schemas_path):
                 absolute_path = self.target_schemas_path / filename
-                if absolute_path.is_file() and absolute_path.match(
-                    "*.json"
-                ):  # pragma: no cover
-                    provided_schemas.append(str(absolute_path))
+                if absolute_path.is_file() and absolute_path.match("*.json"):
+                    type_schemas.append(str(absolute_path))
 
-        loaded_schemas = {}
-        for provided_schema in provided_schemas:
-            loaded_schema = loader.load_type_schema(provided_schema)
-            if not loaded_schema:
-                continue
+        local_info = {}
+        if os.path.isfile(self.target_info_path):
+            try:
+                with self.target_info_path.open("r", encoding="utf-8") as f:
+                    local_info = json.load(f)
+            except json.JSONDecodeError as e:
+                self._raise_invalid_project(
+                    f"Target info file '{self.target_info_path}' is invalid", e
+                )
 
-            if isinstance(loaded_schema, dict):
-                type_schemas = (loaded_schema,)
-            else:
-                type_schemas = loaded_schema
+        target_names = {
+            target_name
+            for handler in self.schema.get("handlers", {}).values()
+            for target_name in handler.get("targetNames", [])
+        }
 
-            for type_schema in type_schemas:
-                try:
-                    type_name = type_schema["typeName"]
-                    if type_name in loaded_schemas:
-                        raise InvalidProjectError(
-                            "Duplicate schemas for '{}' target type.".format(type_name)
-                        )
+        LOG.debug("Hook schema target names: %s", str(target_names))
 
-                    loaded_schemas[type_name] = type_schema
-                except (KeyError, TypeError) as e:
-                    LOG.warning(
-                        "Error while loading a provided schema: %s",
-                        provided_schema,
-                        exc_info=e,
-                    )
+        if local_only:
+            targets = TypeNameResolver.resolve_type_names_locally(
+                target_names, local_info
+            )
+            loader = TypeSchemaLoader(None, None, local_only=local_only)
+        else:
+            session = create_sdk_session(region_name, profile_name)
+            cfn_client = session.client("cloudformation", endpoint_url=endpoint_url)
+            s3_client = session.client("s3")
 
-        validator = make_resource_validator()
+            targets = TypeNameResolver(cfn_client).resolve_type_names(target_names)
+            loader = TypeSchemaLoader(cfn_client, s3_client, local_only=local_only)
 
-        target_info = {}
-        for target_name in target_names:
-            type_info = provided_target_info.get(target_name) or {}
-            if target_name in loaded_schemas:
-                target_schema = loaded_schemas[target_name]
-                target_type = "RESOURCE"
-                provisioning_type = type_info.get(
-                    "ProvisioningType"
-                ) or loader.get_provision_type(target_name, "RESOURCE")
-            else:
-                (
-                    target_schema,
-                    target_type,
-                    provisioning_type,
-                ) = loader.load_schema_from_cfn_registry(target_name, "RESOURCE")
+        LOG.debug("Retrieving info for following target names: %s", str(targets))
 
-            is_registry_type = bool(
-                provisioning_type and provisioning_type != "NON_PROVISIONABLE"
+        type_info = loader.load_type_info(
+            targets, local_schemas=type_schemas, local_info=local_info
+        )
+
+        missing_targets = {target for target in targets if target not in type_info}
+
+        if missing_targets:
+            raise InvalidProjectError(
+                f"Type info missing for the following targets: {missing_targets}"
             )
 
-            if is_registry_type:  # pragma: no cover
-                try:
-                    validator.validate(target_schema)
-                except (SpecValidationError, ValidationError) as e:
-                    self._raise_invalid_project(
-                        f"Target schema for '{target_name}' is invalid: " + str(e), e
-                    )
-
-            target_info[target_name] = {
-                "TargetName": target_name,
-                "TargetType": target_type,
-                "Schema": target_schema,
-                "ProvisioningType": provisioning_type,
-                "IsCfnRegistrySupportedType": is_registry_type,
-                "SchemaFileAvailable": bool(target_schema),
-            }
-
-        return target_info
+        return type_info

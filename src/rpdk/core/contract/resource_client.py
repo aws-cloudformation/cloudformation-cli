@@ -1,10 +1,13 @@
 # pylint: disable=import-outside-toplevel
 # pylint: disable=R0904
+import copy
 import json
 import logging
 import re
+import sys
 import time
 from time import sleep
+from typing import Any, Dict, Tuple
 from uuid import uuid4
 
 import docker
@@ -65,7 +68,8 @@ def _prune_properties_for_all_sequence_members(document: dict, path: list) -> di
         _prop, resolved_paths = traverse_path_for_sequence_members(document, path)
     except LookupError:
         # not found means nothing to delete
-        LOG.info(LOOKUP_ERROR_MESSAGE_FORMAT, document, path)
+        # LOG.info(LOOKUP_ERROR_MESSAGE_FORMAT, document, path)
+        pass
     else:
         # paths with indices are gathered in increasing order, but we need to prune in reverse order
         resolved_paths = resolved_paths[::-1]
@@ -168,9 +172,11 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         log_group_name=None,
         log_role_arn=None,
         docker_image=None,
+        typeconfig=None,
         executable_entrypoint=None,
+        profile=None,
     ):  # pylint: disable=too-many-arguments
-        self._session = create_sdk_session(region)
+        self._session = create_sdk_session(region, profile)
         self._role_arn = role_arn
         self._type_name = type_name
         self._log_group_name = log_group_name
@@ -209,6 +215,7 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         self._docker_image = docker_image
         self._docker_client = docker.from_env() if self._docker_image else None
         self._executable_entrypoint = executable_entrypoint
+        self._typeconfig = typeconfig
 
     def _properties_to_paths(self, key):
         return {fragment_decode(prop, prefix="") for prop in self._schema.get(key, [])}
@@ -225,6 +232,8 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         self.write_only_paths = self._properties_to_paths("writeOnlyProperties")
         self.create_only_paths = self._properties_to_paths("createOnlyProperties")
         self.properties_without_insertion_order = self.get_metadata()
+        self.property_transform_keys = self._properties_to_paths("propertyTransform")
+        self.property_transform = self._schema.get("propertyTransform")
 
         additional_identifiers = self._schema.get("additionalIdentifiers", [])
         self._additional_identifiers_paths = [
@@ -232,18 +241,61 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
             for identifier in additional_identifiers
         ]
 
+    def transform_model(self, input_model):
+        if not self.property_transform:
+            return None
+        # When CT input and output not equal, and with property transform
+        # Need to check system as property transform for CT not supported on Windows
+        if sys.platform.startswith("win"):
+            raise EnvironmentError(
+                "Property transform not available with contract tests on Windows OS"
+            )
+
+        import pyjq
+
+        transformed_input_model = copy.deepcopy(input_model)
+        for key in self.property_transform_keys:
+            path = "/" + "/".join(key)
+            expression = self.property_transform[path]
+            transformed_value = pyjq.first(expression, transformed_input_model)
+            # key is a tuple like ("properties", "A", "B")
+            # input model is like: {"A": {"B": "valueB"}}
+            # use key[1:] here to remove "properties"
+            transformed_input_model = self.update_property(
+                transformed_input_model, transformed_value, key[1:]
+            )
+
+        return transformed_input_model
+
+    def update_property(
+        self, model: Dict[str, Any], value: Any, path: Tuple[str, ...]
+    ) -> Dict[str, Any]:
+        if len(path) > 1:
+            model[path[0]] = self.update_property(model[path[0]], value, path[1:])
+        elif len(path) == 1:
+            model[path[0]] = value
+        return model
+
     def has_only_writable_identifiers(self):
         return all(
             path in self.create_only_paths for path in self.primary_identifier_paths
         )
 
     def assert_write_only_property_does_not_exist(self, resource_model):
+
+        error_list = []
         if self.write_only_paths:
-            assert not any(
-                self.key_error_safe_traverse(resource_model, write_only_property)
-                for write_only_property in self.write_only_paths
-            ), "The model MUST NOT return properties defined as \
-                writeOnlyProperties in the resource schema"
+            for write_only_property in self.write_only_paths:
+                val = self.key_error_safe_traverse(resource_model, write_only_property)
+                if val:
+                    error_list.append(write_only_property[1])
+            assertion_error_message = (
+                "The model MUST NOT return properties defined as "
+                "writeOnlyProperties in the resource schema "
+                "\n Write only properties in resource model : %s  \n Output Resource Model : %s \n"
+                % (error_list, resource_model)
+            )
+            assert not any(error_list), assertion_error_message
 
     def get_metadata(self):
         try:
@@ -392,19 +444,34 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
         example = override_properties(self.invalid_strategy.example(), overrides)
         return {**create_model, **example}
 
-    def compare(self, inputs, outputs, path=()):
+    def compare(self, inputs, outputs):
+        try:
+            self.compare_model(inputs, outputs)
+        except AssertionError as exception:
+            transformed_inputs = self.transform_model(inputs)
+            if transformed_inputs:
+                self.compare_model(transformed_inputs, outputs)
+            else:
+                raise exception
+
+    def compare_model(self, inputs, outputs, path=()):
         assertion_error_message = (
             "All properties specified in the request MUST "
             "be present in the model returned, and they MUST"
             " match exactly, with the exception of properties"
-            " defined as writeOnlyProperties in the resource schema"
+            " defined as writeOnlyProperties in the resource schema \n Request Model : %s \n Returned Model : %s \n"
+            % (inputs, outputs)
         )
         try:
             if isinstance(inputs, dict):
                 for key in inputs:
                     new_path = path + (key,)
                     if isinstance(inputs[key], dict):
-                        self.compare(inputs[key], outputs[key], new_path)
+                        self.compare_model(
+                            inputs[key],
+                            outputs[key],
+                            new_path,
+                        )
                     elif isinstance(inputs[key], list):
                         assert len(inputs[key]) == len(outputs[key])
 
@@ -413,19 +480,38 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
                         )
 
                         self.compare_collection(
-                            inputs[key], outputs[key], is_ordered, new_path
+                            inputs[key],
+                            outputs[key],
+                            is_ordered,
+                            new_path,
                         )
                     else:
+                        if inputs[key] != outputs[key]:
+                            assertion_error_message = (
+                                "%s Value for property %s in Request Model(%s) and Response Model(%s) does not match"
+                                % (
+                                    assertion_error_message,
+                                    key,
+                                    inputs[key],
+                                    outputs[key],
+                                )
+                            )
                         assert inputs[key] == outputs[key], assertion_error_message
             else:
                 assert inputs == outputs, assertion_error_message
         except Exception as exception:
+            assertion_error_message += ", inputs: " + json.dumps(inputs)
+            assertion_error_message += ", outputs: " + json.dumps(outputs)
             raise AssertionError(assertion_error_message) from exception
 
     def compare_collection(self, inputs, outputs, is_ordered, path):
         if is_ordered:
             for index in range(len(inputs)):  # pylint: disable=C0200
-                self.compare(inputs[index], outputs[index], path)
+                self.compare_model(
+                    inputs[index],
+                    outputs[index],
+                    path,
+                )
             return
 
         assert {item_hash(item) for item in inputs} == {
@@ -564,6 +650,22 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
                      match the primaryIdentifier passed into the request"
             ) from e
 
+    @staticmethod
+    def get_primary_identifier(primary_identifier_path, model):
+        try:
+            pid_list = []
+            for primary_identifier in primary_identifier_path:
+                data = traverse(model, fragment_list(primary_identifier, "properties"))[
+                    0
+                ]
+                pid_list.append(data)
+            return pid_list
+        except KeyError as e:
+            raise AssertionError(
+                "The primaryIdentifier returned in every progress event must\
+                     match the primaryIdentifier passed into the request \n"
+            ) from e
+
     def _make_payload(
         self,
         action,
@@ -674,7 +776,7 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
             action,
             current_model,
             previous_model,
-            TypeConfiguration.get_type_configuration(),
+            TypeConfiguration.get_type_configuration(self._typeconfig),
             **kwargs,
         )
         start_time = time.time()
@@ -737,6 +839,9 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
             return "tagProperty" in self._schema["tagging"]
         except KeyError:
             return False
+
+    def get_tagging_permissions(self):
+        return self._schema.get("tagging", {}).get("permissions", [])
 
     def validate_model_contain_tags(self, inputs):
         assertion_error_message = "Contract test inputs does not contain tags property."

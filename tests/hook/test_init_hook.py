@@ -9,7 +9,8 @@ from rpdk.core.hook.init_hook import (
     input_typename,
     validate_type_name,
 )
-from tests.test_init import PROMPT
+
+PROMPT = "java"
 
 
 def test_input_typename():
@@ -36,7 +37,7 @@ def test_input_language_one_plugin():
 
 
 def test_input_language_several_plugins():
-    validator = ValidatePluginChoice(["1", PROMPT, "2"])
+    validator = ValidatePluginChoice(["python38", PROMPT, "python39"])
     patch_validator = patch(
         "rpdk.core.hook.init_hook.validate_plugin_choice", validator
     )
@@ -70,7 +71,7 @@ def test_validate_plugin_choice_greater_than_choice():
 
 
 def test_validate_plugin_choice_valid():
-    choices = ["1", PROMPT, "2"]
+    choices = ["python38", PROMPT, "python39"]
     validator = ValidatePluginChoice(choices)
     assert validator("2") == PROMPT
 

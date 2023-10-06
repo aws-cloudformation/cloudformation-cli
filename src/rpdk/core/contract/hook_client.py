@@ -2,6 +2,7 @@
 # pylint: disable=R0904
 # have to skip B404, import_subprocess is required for executing typescript
 # have to skip B60*, to allow typescript code to be executed using subprocess
+import fnmatch
 import json
 import logging
 import re
@@ -56,11 +57,13 @@ class HookClient:  # pylint: disable=too-many-instance-attributes
         log_group_name=None,
         log_role_arn=None,
         docker_image=None,
+        typeconfig=None,
         executable_entrypoint=None,
         target_info=None,
-    ):  # pylint: disable=too-many-arguments
+        profile=None,
+    ):  # pylint: disable=too-many-arguments,too-many-locals
         self._schema = schema
-        self._session = create_sdk_session(region)
+        self._session = create_sdk_session(region, profile)
         self._role_arn = role_arn
         self._type_name = type_name
         self._log_group_name = log_group_name
@@ -98,6 +101,8 @@ class HookClient:  # pylint: disable=too-many-instance-attributes
         self._docker_client = docker.from_env() if self._docker_image else None
         self._executable_entrypoint = executable_entrypoint
         self._target_info = self._setup_target_info(target_info)
+        self._resolved_targets = {}
+        self._typeconfig = typeconfig
 
     @staticmethod
     def _properties_to_paths(schema, key):
@@ -130,7 +135,8 @@ class HookClient:  # pylint: disable=too-many-instance-attributes
             trim_blocks=True,
             lstrip_blocks=True,
             keep_trailing_newline=True,
-            loader=PackageLoader(__name__, "templates/"),
+            # Unable to use __name__ anymore after Jinja2 3.x change
+            loader=PackageLoader("rpdk.core", "templates/"),
             autoescape=select_autoescape(["html", "htm", "xml", "md"]),
         )
         self._schema = schema
@@ -140,12 +146,24 @@ class HookClient:  # pylint: disable=too-many-instance-attributes
         return self._type_name if self._type_name else self._schema["typeName"]
 
     def get_handler_targets(self, invocation_point):
-        try:
-            handlers = self._schema["handlers"]
-            handler = handlers[generate_handler_name(invocation_point)]
-            return handler["targetNames"]
-        except KeyError:
-            return set()
+        handler = self._schema["handlers"][generate_handler_name(invocation_point)]
+
+        targets = set()
+        for target_name in handler.get("targetNames", []):
+            if self._contains_wildcard(target_name):
+                if target_name not in self._resolved_targets:
+                    self._resolved_targets[target_name] = fnmatch.filter(
+                        self._target_info.keys(), target_name
+                    )
+                targets.update(self._resolved_targets[target_name])
+            else:
+                targets.add(target_name)
+
+        return sorted(targets)
+
+    @staticmethod
+    def _contains_wildcard(pattern):
+        return pattern and ("*" in pattern or "?" in pattern)
 
     @staticmethod
     def assert_in_progress(status, response, target=""):
@@ -239,7 +257,7 @@ class HookClient:  # pylint: disable=too-many-instance-attributes
             return {}
 
         info = self._target_info.get(target)
-        if not info.get("SchemaStrategy"):
+        if not info.get("SchemaStrategy"):  # pragma: no cover
             # imported here to avoid hypothesis being loaded before pytest is loaded
             from .resource_generator import ResourceGenerator
 
@@ -260,7 +278,7 @@ class HookClient:  # pylint: disable=too-many-instance-attributes
             return {}
 
         info = self._target_info.get(target)
-        if not info.get("UpdateSchemaStrategy"):
+        if not info.get("UpdateSchemaStrategy"):  # pragma: no cover
             # imported here to avoid hypothesis being loaded before pytest is loaded
             from .resource_generator import ResourceGenerator
 
@@ -475,7 +493,7 @@ class HookClient:  # pylint: disable=too-many-instance-attributes
             invocation_point,
             target,
             target_model,
-            TypeConfiguration.get_hook_configuration(),
+            TypeConfiguration.get_hook_configuration(self._typeconfig),
             **kwargs,
         )
         start_time = time.time()
@@ -497,3 +515,11 @@ class HookClient:  # pylint: disable=too-many-instance-attributes
             status = HookStatus[response["hookStatus"]]
 
         return status, response
+
+    def handler_has_wildcard_targets(self, invocation_point):
+        return any(
+            self._contains_wildcard(target_name)
+            for target_name in self._schema["handlers"][
+                generate_handler_name(invocation_point)
+            ]["targetNames"]
+        )

@@ -7,6 +7,7 @@ from unittest.mock import ANY, patch
 
 import pytest
 
+import rpdk.core.contract.resource_client as rclient
 from rpdk.core.boto_helpers import LOWER_CAMEL_CRED_KEYS
 from rpdk.core.contract.interface import Action, HandlerErrorCode, OperationStatus
 from rpdk.core.contract.resource_client import (
@@ -17,6 +18,7 @@ from rpdk.core.contract.resource_client import (
     prune_properties_if_not_exist_in_path,
     prune_properties_which_dont_exist_in_path,
 )
+from rpdk.core.contract.suite.resource.handler_commons import error_test_model_in_list
 from rpdk.core.exceptions import InvalidProjectError
 from rpdk.core.test import (
     DEFAULT_ENDPOINT,
@@ -130,7 +132,26 @@ SCHEMA_WITH_ADDITIONAL_IDENTIFIERS = {
     "handlers": {"create": {}, "delete": {}, "read": {}},
 }
 
+SCHEMA_WITH_PROPERTY_TRANSFORM = {
+    "properties": {
+        "a": {"type": "string"},
+        "b": {"$ref": "#/definitions/c"},
+    },
+    "definitions": {
+        "c": {
+            "type": "object",
+            "properties": {"d": {"type": "String"}, "e": {"type": "integer"}},
+        }
+    },
+    "readOnlyProperties": ["/properties/a"],
+    "primaryIdentifier": ["/properties/a"],
+    "handlers": {"create": {}, "delete": {}, "read": {}},
+    "propertyTransform": {"/properties/b/c/d": '.b.c.d + "Test"'},
+}
+
 EMPTY_SCHEMA = {"handlers": {"create": [], "delete": [], "read": []}}
+
+RESOURCE_MODEL_LIST = [{"Id": "abc123", "b": "2"}]
 
 
 @pytest.fixture
@@ -332,6 +353,81 @@ def resource_client_inputs_composite_key():
     assert client.account == ACCOUNT
 
     return client
+
+
+@pytest.fixture
+def resource_client_inputs_property_transform():
+    endpoint = "https://"
+    patch_sesh = patch(
+        "rpdk.core.contract.resource_client.create_sdk_session", autospec=True
+    )
+    patch_creds = patch(
+        "rpdk.core.contract.resource_client.get_temporary_credentials",
+        autospec=True,
+        return_value={},
+    )
+    patch_account = patch(
+        "rpdk.core.contract.resource_client.get_account",
+        autospec=True,
+        return_value=ACCOUNT,
+    )
+    with patch_sesh as mock_create_sesh, patch_creds as mock_creds:
+        with patch_account as mock_account:
+            mock_sesh = mock_create_sesh.return_value
+            mock_sesh.region_name = DEFAULT_REGION
+            client = ResourceClient(
+                DEFAULT_FUNCTION,
+                endpoint,
+                DEFAULT_REGION,
+                SCHEMA_WITH_PROPERTY_TRANSFORM,
+                EMPTY_OVERRIDE,
+            )
+
+    mock_sesh.client.assert_called_once_with("lambda", endpoint_url=endpoint)
+    mock_creds.assert_called_once_with(mock_sesh, LOWER_CAMEL_CRED_KEYS, None)
+    mock_account.assert_called_once_with(mock_sesh, {})
+    assert client._function_name == DEFAULT_FUNCTION
+    assert client._schema == SCHEMA_WITH_PROPERTY_TRANSFORM
+    assert client._overrides == EMPTY_OVERRIDE
+    assert client.account == ACCOUNT
+
+    return client
+
+
+def test_error_test_model_in_list(resource_client):
+    patch_resource_model_list = patch(
+        "rpdk.core.contract.suite.resource.handler_commons.get_resource_model_list",
+        autospec=True,
+        return_value=RESOURCE_MODEL_LIST,
+    )
+    resource_client.primary_identifier_paths = {("properties", "Id")}
+    current_resource_model = {"Id": "xyz456", "b": "2"}
+    with patch_resource_model_list:
+        assertion_error_message = error_test_model_in_list(
+            resource_client, current_resource_model, ""
+        )
+        assert (
+            "abc123 does not match with Current Resource Model primary identifier xyz456"
+            in assertion_error_message
+        )
+
+
+def test_get_primary_identifier_success():
+    primary_identifier_path = {("properties", "a")}
+    model = {"a": 1, "b": 3, "c": 4}
+    plist = rclient.ResourceClient.get_primary_identifier(
+        primary_identifier_path, model
+    )
+    assert plist[0] == 1
+
+
+def test_get_primary_identifier_fail():
+    primary_identifier_path = {("properties", "a")}
+    model = {"b": 3, "c": 4}
+    try:
+        rclient.ResourceClient.get_primary_identifier(primary_identifier_path, model)
+    except AssertionError:
+        logging.debug("This test expects Assertion Exception to be thrown")
 
 
 def test_prune_properties():
@@ -690,6 +786,37 @@ def test_update_schema(resource_client):
     assert resource_client.read_only_paths == {("properties", "b")}
     assert resource_client.write_only_paths == {("properties", "c")}
     assert resource_client.create_only_paths == {("properties", "d")}
+
+
+def test_transform_model(resource_client_inputs_property_transform):
+    inputs = {"a": "ValueA", "b": {"c": {"d": "ValueD", "e": 1}}}
+    expected_inputs = {"a": "ValueA", "b": {"c": {"d": "ValueDTest", "e": 1}}}
+
+    transformed_inputs = resource_client_inputs_property_transform.transform_model(
+        inputs
+    )
+
+    assert transformed_inputs == expected_inputs
+
+
+def test_compare_with_transform_should_pass(resource_client_inputs_property_transform):
+    inputs = {"a": "ValueA", "b": {"c": {"d": "ValueD", "e": 1}}}
+    # transformed_inputs = {"a": "ValueA", "b": {"c": {"d": "ValueDTest", "e": 1}}}
+    outputs = {"a": "ValueA", "b": {"c": {"d": "ValueDTest", "e": 1}}}
+
+    resource_client_inputs_property_transform.compare(inputs, outputs)
+
+
+def test_compare_with_transform_should_throw_exception(
+    resource_client_inputs_property_transform,
+):
+    inputs = {"a": "ValueA", "b": {"c": {"d": "ValueD", "e": 1}}}
+    outputs = {"a": "ValueA", "b": {"c": {"d": "D", "e": 1}}}
+
+    try:
+        resource_client_inputs_property_transform.compare(inputs, outputs)
+    except AssertionError:
+        logging.debug("This test expects Assertion Exception to be thrown")
 
 
 def test_strategy(resource_client):
@@ -1409,6 +1536,18 @@ def test_metadata_contains_tag_property(resource_client):
     schema = {"tagging": {"taggable": True, "tagProperty": "/properties/Tags"}}
     resource_client._update_schema(schema)
     assert resource_client.metadata_contains_tag_property()
+
+
+@pytest.mark.parametrize(
+    "schema,result",
+    [
+        ({"tagging": {"permissions": ["test:permission"]}}, ["test:permission"]),
+        ({}, []),
+    ],
+)
+def test_get_tagging_permission(resource_client, schema, result):
+    resource_client._update_schema(schema)
+    assert resource_client.get_tagging_permissions() == result
 
 
 def test_validate_model_contain_tags(resource_client):

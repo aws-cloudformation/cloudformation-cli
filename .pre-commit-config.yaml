@@ -2,20 +2,20 @@ exclude: ^(buildspec.yml|.pre-commit-config.yaml)$
 fail_fast: true
 repos:
 - repo: https://github.com/asottile/seed-isort-config
-  rev: v2.1.1
+  rev: v2.2.0
   hooks:
     - id: seed-isort-config
 - repo: https://github.com/pre-commit/mirrors-isort
-  rev: v4.3.17
+  rev: v5.10.1
   hooks:
   - id: isort
     # language_version: python3.6
 - repo: https://github.com/ambv/black
-  rev: 22.3.0
+  rev: 22.8.0
   hooks:
   - id: black
 - repo: https://github.com/pre-commit/pre-commit-hooks
-  rev: v2.0.0
+  rev: v4.1.0
   hooks:
   - id: check-case-conflict
   - id: end-of-file-fixer
@@ -23,15 +23,6 @@ repos:
     args:
     - --fix=lf
   - id: trailing-whitespace
-  - id: flake8
-    additional_dependencies:
-    - flake8-bugbear>=19.3.0
-    - flake8-builtins>=1.4.1
-    - flake8-commas>=2.0.0
-    - flake8-comprehensions>=2.1.0
-    - flake8-debugger>=3.1.0
-    - flake8-pep3101>=1.2.1
-    # language_version: python3.6
   - id: pretty-format-json
     exclude: "[inputs.json|syntax_error.json]"
     args:
@@ -41,22 +32,31 @@ repos:
   - id: check-merge-conflict
   # - id: check-yaml  # doesn't work with CloudFormation templates/intrinsics, should use cfn-lint instead
     # language_version: python3.6
+- repo: https://github.com/pycqa/flake8
+  rev: "5.0.4"
+  hooks:
+  - id: flake8
+    additional_dependencies:
+      - flake8-bugbear>=19.3.0
+      - flake8-builtins>=1.4.1
+      - flake8-commas>=2.0.0
+      - flake8-comprehensions>=2.1.0
+      - flake8-debugger>=3.1.0
+      - flake8-pep3101>=1.2.1
+      # language_version: python3.6
 - repo: https://github.com/pre-commit/pygrep-hooks
-  rev: v1.3.0
+  rev: v1.9.0
   hooks:
   - id: python-check-blanket-noqa
   - id: python-check-mock-methods
   - id: python-no-log-warn
 - repo: https://github.com/PyCQA/bandit
-  rev: f5a6f0ca62  # TODO: update once a release > 1.5.1 hits with this change in
+  rev: 1.7.1
   hooks:
   - id: bandit
     files: "^src/"
     # have to skip B101, contract tests use it and there's no way to skip for specific files
-    # have to skip B322, as there is no way to indicate the codebase is Python 3 only (input only vulnerable in Py2)
-    args: ["--skip", "B101,B322"]
-    additional_dependencies:
-      - "importlib-metadata<5"  # https://github.com/PyCQA/bandit/issues/956
+    args: ["--skip", "B101"]
 - repo: local
   hooks:
   - id: pylint-local

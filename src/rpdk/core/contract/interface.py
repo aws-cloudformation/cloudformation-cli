@@ -53,4 +53,5 @@ class HandlerErrorCode(AutoName):
     InvalidTypeConfiguration = auto()
     HandlerInternalFailure = auto()
     NonCompliant = auto()
+    UnsupportedTarget = auto()
     Unknown = auto()

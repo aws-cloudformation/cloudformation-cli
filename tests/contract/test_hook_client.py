@@ -86,7 +86,7 @@ HOOK_TARGET_INFO = {
                 }
             },
         },
-        "ProvisioningType": "FULLY_MUTTABLE",
+        "ProvisioningType": "FULLY_MUTABLE",
         "IsCfnRegistrySupportedType": True,
         "SchemaFileAvailable": True,
     }
@@ -303,6 +303,46 @@ def test_get_handler_target(hook_client):
         HookInvocationPoint.CREATE_PRE_PROVISION
     )
     TestCase().assertCountEqual(target_names, targets)
+
+
+def test_get_handler_target_multiple_targets(hook_client):
+    targets = ["AWS::ExampleResource", "AWS::S3::Bucket", "AWS::S3::BucketPolicy"]
+    schema = {
+        "handlers": {
+            "preCreate": {
+                "targetNames": ["AWS::ExampleResource", "AWS::S?::Bucket*"],
+                "permissions": [],
+            },
+            "preUpdate": {"targetNames": ["AWS::S?::Bucket*"], "permissions": []},
+        }
+    }
+    hook_client._update_schema(schema)
+
+    hook_target_info = {
+        target: {
+            "Schema": {
+                "typeName": targets,
+                "description": "test schema",
+                "properties": {"foo": {"type": "string"}},
+                "primaryIdentifier": ["/properties/foo"],
+                "readOnlyProperties": ["/properties/foo"],
+                "additionalProperties": False,
+            }
+        }
+        for target in targets
+    }
+    hook_client._target_info = HookClient._setup_target_info(hook_target_info)
+
+    target_names = hook_client.get_handler_targets(
+        HookInvocationPoint.CREATE_PRE_PROVISION
+    )
+    TestCase().assertCountEqual(target_names, targets)
+    target_names = hook_client.get_handler_targets(
+        HookInvocationPoint.UPDATE_PRE_PROVISION
+    )
+    TestCase().assertCountEqual(
+        target_names, ["AWS::S3::Bucket", "AWS::S3::BucketPolicy"]
+    )
 
 
 def test_get_handler_target_no_targets(hook_client):
@@ -714,7 +754,7 @@ def test_call_docker():
         '{"hookStatus": "SUCCESS"}__CFN_HOOK_END_RESPONSE__'
     )
     mock_client.containers.run.return_value = str.encode(response_str)
-    with patch_creds:
+    with patch_creds, patch_config:
         status, response = hook_client.call(
             "CREATE_PRE_PROVISION", HOOK_TARGET_TYPE_NAME, {"foo": "bar"}
         )
@@ -1075,3 +1115,24 @@ def test_generate_invalid_target_model_inputs(hook_client_inputs):
     assert hook_client_inputs._generate_target_model(
         "My::Example::Resource", "INVALID"
     ) == {"resourceProperties": {"b": 1}}
+
+
+@pytest.mark.parametrize(
+    "invoke_point,expected",
+    [
+        (HookInvocationPoint.CREATE_PRE_PROVISION, True),
+        (HookInvocationPoint.UPDATE_PRE_PROVISION, False),
+        (HookInvocationPoint.DELETE_PRE_PROVISION, True),
+    ],
+)
+def test_handler_has_wildcard(hook_client, invoke_point, expected):
+    hook_client._schema["handlers"] = {
+        "preCreate": {"targetNames": ["AWS::*::Resource"], "permissions": []},
+        "preUpdate": {
+            "targetNames": ["AWS::Service::TargetResource"],
+            "permissions": [],
+        },
+        "preDelete": {"targetNames": ["AWS::Cloud*", "AWS::S3::Bucket"]},
+    }
+
+    assert hook_client.handler_has_wildcard_targets(invoke_point) == expected

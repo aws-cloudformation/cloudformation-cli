@@ -20,6 +20,7 @@ from rpdk.core.project import (
 from rpdk.core.test import (
     DEFAULT_ENDPOINT,
     DEFAULT_FUNCTION,
+    DEFAULT_PROFILE,
     DEFAULT_REGION,
     _validate_sam_args,
     empty_hook_override,
@@ -139,22 +140,47 @@ def create_invalid_input_file(base):
 @pytest.mark.parametrize(
     "args_in,pytest_args,plugin_args",
     [
-        ([], [], [DEFAULT_FUNCTION, DEFAULT_ENDPOINT, DEFAULT_REGION, "30"]),
-        (["--endpoint", "foo"], [], [DEFAULT_FUNCTION, "foo", DEFAULT_REGION, "30"]),
+        (
+            [],
+            [],
+            [
+                DEFAULT_FUNCTION,
+                DEFAULT_ENDPOINT,
+                DEFAULT_REGION,
+                "240",
+                DEFAULT_PROFILE,
+            ],
+        ),
+        (
+            ["--endpoint", "foo"],
+            [],
+            [DEFAULT_FUNCTION, "foo", DEFAULT_REGION, "240", DEFAULT_PROFILE],
+        ),
         (
             ["--function-name", "bar", "--enforce-timeout", "60"],
             [],
-            ["bar", DEFAULT_ENDPOINT, DEFAULT_REGION, "60"],
+            ["bar", DEFAULT_ENDPOINT, DEFAULT_REGION, "60", DEFAULT_PROFILE],
         ),
         (
             ["--", "-k", "create"],
             ["-k", "create"],
-            [DEFAULT_FUNCTION, DEFAULT_ENDPOINT, DEFAULT_REGION, "30"],
+            [
+                DEFAULT_FUNCTION,
+                DEFAULT_ENDPOINT,
+                DEFAULT_REGION,
+                "240",
+                DEFAULT_PROFILE,
+            ],
         ),
         (
             ["--region", "us-west-2", "--", "--collect-only"],
             ["--collect-only"],
-            [DEFAULT_FUNCTION, DEFAULT_ENDPOINT, "us-west-2", "30"],
+            [DEFAULT_FUNCTION, DEFAULT_ENDPOINT, "us-west-2", "240", DEFAULT_PROFILE],
+        ),
+        (
+            ["--profile", "sandbox"],
+            [],
+            [DEFAULT_FUNCTION, DEFAULT_ENDPOINT, DEFAULT_REGION, "240", "sandbox"],
         ),
     ],
 )
@@ -188,7 +214,7 @@ def test_test_command_happy_path_resource(
     # fmt: on
 
     mock_project.load.assert_called_once_with()
-    function_name, endpoint, region, enforce_timeout = plugin_args
+    function_name, endpoint, region, enforce_timeout, profile = plugin_args
     mock_resource_client.assert_called_once_with(
         function_name,
         endpoint,
@@ -201,8 +227,10 @@ def test_test_command_happy_path_resource(
         mock_project.type_name,
         None,
         None,
-        None,
-        None,
+        typeconfig=None,
+        executable_entrypoint=None,
+        docker_image=None,
+        profile=profile,
     )
     mock_plugin.assert_called_once_with(
         {"resource_client": mock_resource_client.return_value}
@@ -220,22 +248,47 @@ def test_test_command_happy_path_resource(
 @pytest.mark.parametrize(
     "args_in,pytest_args,plugin_args",
     [
-        ([], [], [DEFAULT_FUNCTION, DEFAULT_ENDPOINT, DEFAULT_REGION, "30"]),
-        (["--endpoint", "foo"], [], [DEFAULT_FUNCTION, "foo", DEFAULT_REGION, "30"]),
+        (
+            [],
+            [],
+            [
+                DEFAULT_FUNCTION,
+                DEFAULT_ENDPOINT,
+                DEFAULT_REGION,
+                "240",
+                DEFAULT_PROFILE,
+            ],
+        ),
+        (
+            ["--endpoint", "foo"],
+            [],
+            [DEFAULT_FUNCTION, "foo", DEFAULT_REGION, "240", DEFAULT_PROFILE],
+        ),
         (
             ["--function-name", "bar", "--enforce-timeout", "60"],
             [],
-            ["bar", DEFAULT_ENDPOINT, DEFAULT_REGION, "60"],
+            ["bar", DEFAULT_ENDPOINT, DEFAULT_REGION, "60", DEFAULT_PROFILE],
         ),
         (
             ["--", "-k", "create"],
             ["-k", "create"],
-            [DEFAULT_FUNCTION, DEFAULT_ENDPOINT, DEFAULT_REGION, "30"],
+            [
+                DEFAULT_FUNCTION,
+                DEFAULT_ENDPOINT,
+                DEFAULT_REGION,
+                "240",
+                DEFAULT_PROFILE,
+            ],
         ),
         (
             ["--region", "us-west-2", "--", "--collect-only"],
             ["--collect-only"],
-            [DEFAULT_FUNCTION, DEFAULT_ENDPOINT, "us-west-2", "30"],
+            [DEFAULT_FUNCTION, DEFAULT_ENDPOINT, "us-west-2", "240", DEFAULT_PROFILE],
+        ),
+        (
+            ["--profile", "sandbox"],
+            [],
+            [DEFAULT_FUNCTION, DEFAULT_ENDPOINT, DEFAULT_REGION, "240", "sandbox"],
         ),
     ],
 )
@@ -269,7 +322,7 @@ def test_test_command_happy_path_hook(
     # fmt: on
 
     mock_project.load.assert_called_once_with()
-    function_name, endpoint, region, enforce_timeout = plugin_args
+    function_name, endpoint, region, enforce_timeout, profile = plugin_args
     mock_hook_client.assert_called_once_with(
         function_name,
         endpoint,
@@ -282,9 +335,11 @@ def test_test_command_happy_path_hook(
         mock_project.type_name,
         None,
         None,
-        None,
-        None,
-        HOOK_TARGET_INFO,
+        typeconfig=None,
+        executable_entrypoint=None,
+        docker_image=None,
+        target_info=HOOK_TARGET_INFO,
+        profile=profile,
     )
     mock_plugin.assert_called_once_with({"hook_client": mock_hook_client.return_value})
     mock_ini.assert_called_once_with()
@@ -337,10 +392,18 @@ def test_temporary_ini_file():
 
         with path.open("r", encoding="utf-8") as f:
             assert "[pytest]" in f.read()
+        # Manually clean up temporary file before exiting - issue with NamedTemporaryFile method on Windows
+        try:
+            os.unlink(path_str)
+        except FileNotFoundError:
+            pass
 
 
 def test_get_overrides_no_root():
-    assert get_overrides(None, DEFAULT_REGION, "", None) == EMPTY_RESOURCE_OVERRIDE
+    assert (
+        get_overrides(None, DEFAULT_REGION, "", None, DEFAULT_PROFILE)
+        == EMPTY_RESOURCE_OVERRIDE
+    )
 
 
 def test_get_overrides_file_not_found(base):
@@ -349,20 +412,29 @@ def test_get_overrides_file_not_found(base):
         path.unlink()
     except FileNotFoundError:
         pass
-    assert get_overrides(path, DEFAULT_REGION, "", None) == EMPTY_RESOURCE_OVERRIDE
+    assert (
+        get_overrides(path, DEFAULT_REGION, "", None, DEFAULT_PROFILE)
+        == EMPTY_RESOURCE_OVERRIDE
+    )
 
 
 def test_get_overrides_invalid_file(base):
     path = base / "overrides.json"
     path.write_text("{}")
-    assert get_overrides(base, DEFAULT_REGION, "", None) == EMPTY_RESOURCE_OVERRIDE
+    assert (
+        get_overrides(base, DEFAULT_REGION, "", None, DEFAULT_PROFILE)
+        == EMPTY_RESOURCE_OVERRIDE
+    )
 
 
 def test_get_overrides_empty_overrides(base):
     path = base / "overrides.json"
     with path.open("w", encoding="utf-8") as f:
         json.dump(EMPTY_RESOURCE_OVERRIDE, f)
-    assert get_overrides(base, DEFAULT_REGION, "", None) == EMPTY_RESOURCE_OVERRIDE
+    assert (
+        get_overrides(base, DEFAULT_REGION, "", None, DEFAULT_PROFILE)
+        == EMPTY_RESOURCE_OVERRIDE
+    )
 
 
 def test_get_overrides_invalid_pointer_skipped(base):
@@ -372,7 +444,10 @@ def test_get_overrides_invalid_pointer_skipped(base):
     path = base / "overrides.json"
     with path.open("w", encoding="utf-8") as f:
         json.dump(overrides, f)
-    assert get_overrides(base, DEFAULT_REGION, "", None) == EMPTY_RESOURCE_OVERRIDE
+    assert (
+        get_overrides(base, DEFAULT_REGION, "", None, DEFAULT_PROFILE)
+        == EMPTY_RESOURCE_OVERRIDE
+    )
 
 
 def test_get_overrides_good_path(base):
@@ -382,13 +457,16 @@ def test_get_overrides_good_path(base):
     path = base / "overrides.json"
     with path.open("w", encoding="utf-8") as f:
         json.dump(overrides, f)
-    assert get_overrides(base, DEFAULT_REGION, "", None) == {
+    assert get_overrides(base, DEFAULT_REGION, "", None, DEFAULT_PROFILE) == {
         "CREATE": {("foo", "bar"): {}}
     }
 
 
 def test_get_hook_overrides_no_root():
-    assert get_hook_overrides(None, DEFAULT_REGION, "", None) == EMPTY_HOOK_OVERRIDE
+    assert (
+        get_hook_overrides(None, DEFAULT_REGION, "", None, DEFAULT_PROFILE)
+        == EMPTY_HOOK_OVERRIDE
+    )
 
 
 def test_get_hook_overrides_file_not_found(base):
@@ -397,13 +475,19 @@ def test_get_hook_overrides_file_not_found(base):
         path.unlink()
     except FileNotFoundError:
         pass
-    assert get_hook_overrides(path, DEFAULT_REGION, "", None) == EMPTY_HOOK_OVERRIDE
+    assert (
+        get_hook_overrides(path, DEFAULT_REGION, "", None, DEFAULT_PROFILE)
+        == EMPTY_HOOK_OVERRIDE
+    )
 
 
 def test_get_hook_overrides_invalid_file(base):
     path = base / "overrides.json"
     path.write_text("{}")
-    assert get_hook_overrides(base, DEFAULT_REGION, "", None) == EMPTY_HOOK_OVERRIDE
+    assert (
+        get_hook_overrides(base, DEFAULT_REGION, "", None, DEFAULT_PROFILE)
+        == EMPTY_HOOK_OVERRIDE
+    )
 
 
 def test_get_hook_overrides_good_path(base):
@@ -415,7 +499,7 @@ def test_get_hook_overrides_good_path(base):
     path = base / "overrides.json"
     with path.open("w", encoding="utf-8") as f:
         json.dump(overrides, f)
-    assert get_hook_overrides(base, DEFAULT_REGION, "", None) == {
+    assert get_hook_overrides(base, DEFAULT_REGION, "", None, DEFAULT_PROFILE) == {
         "CREATE_PRE_PROVISION": {
             "My::Example::Resource": {"resourceProperties": {("foo", "bar"): {}}}
         }
@@ -472,7 +556,7 @@ def test_get_overrides_with_jinja(
             mock_cfn_client,
             Mock(),
         ]
-        result = get_overrides(base, DEFAULT_REGION, None, None)
+        result = get_overrides(base, DEFAULT_REGION, None, None, DEFAULT_PROFILE)
 
     assert result == expected_overrides
 
@@ -513,8 +597,7 @@ def test_get_marker_options(schema, expected_marker_keywords):
         )
     ],
 )
-# pylint: disable=R0913
-# pylint: disable=R0914
+# pylint: disable=R0913,R0914
 def test_with_inputs(
     base,
     create_string,
@@ -539,7 +622,7 @@ def test_with_inputs(
             mock_cfn_client,
             Mock(),
         ]
-        result = get_inputs(base, DEFAULT_REGION, None, 1, None)
+        result = get_inputs(base, DEFAULT_REGION, None, 1, None, DEFAULT_PROFILE)
 
     assert result == expected_inputs
 
@@ -563,23 +646,23 @@ def test_with_inputs_invalid(base):
             mock_cfn_client,
             Mock(),
         ]
-        result = get_inputs(base, DEFAULT_REGION, None, 1, None)
+        result = get_inputs(base, DEFAULT_REGION, None, 1, None, DEFAULT_PROFILE)
 
     assert not result
 
 
 def test_get_input_invalid_root():
-    assert not get_inputs("", DEFAULT_REGION, "", 1, None)
+    assert not get_inputs("", DEFAULT_REGION, "", 1, None, DEFAULT_PROFILE)
 
 
 def test_get_input_input_folder_does_not_exist(base):
-    assert not get_inputs(base, DEFAULT_REGION, "", 1, None)
+    assert not get_inputs(base, DEFAULT_REGION, "", 1, None, DEFAULT_PROFILE)
 
 
 def test_get_input_file_not_found(base):
     path = base / "inputs"
     os.mkdir(path, mode=0o777)
-    assert not get_inputs(base, DEFAULT_REGION, "", 1, None)
+    assert not get_inputs(base, DEFAULT_REGION, "", 1, None, DEFAULT_PROFILE)
 
 
 def test_use_both_sam_and_docker_arguments():

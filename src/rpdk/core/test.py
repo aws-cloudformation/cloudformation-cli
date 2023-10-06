@@ -32,8 +32,9 @@ LOG = logging.getLogger(__name__)
 
 DEFAULT_ENDPOINT = "http://127.0.0.1:3001"
 DEFAULT_FUNCTION = "TypeFunction"
+DEFAULT_PROFILE = None
 DEFAULT_REGION = "us-east-1"
-DEFAULT_TIMEOUT = "30"
+DEFAULT_TIMEOUT = "240"
 INPUTS = "inputs"
 
 RESOURCE_OVERRIDES_VALIDATOR = Draft6Validator(
@@ -77,19 +78,32 @@ def empty_hook_override():
     return {"CREATE_PRE_PROVISION": {}}
 
 
+# As per Python docs NamedTemporaryFile does NOT work the same in Windows.  Setting delete=False as workaround.
+#
+# Temporary file must be explicitly cleaned up after temporary_ini_file() is called!
+#
+# "Whether the name can be used to open the file a second time, while the named temporary file is still open,
+# varies across platforms (it can be so used on Unix; it cannot on Windows)."
+# https://docs.python.org/3.9/library/tempfile.html#tempfile.NamedTemporaryFile
+#
+# Fix being tracked here https://github.com/python/cpython/issues/58451
+
+
 @contextmanager
 def temporary_ini_file():
     with NamedTemporaryFile(
-        mode="w", encoding="utf-8", prefix="pytest_", suffix=".ini"
+        mode="w", encoding="utf-8", prefix="pytest_", suffix=".ini", delete=False
     ) as temp:
         LOG.debug("temporary pytest.ini path: %s", temp.name)
         path = Path(temp.name).resolve(strict=True)
         copy_resource(__name__, "data/pytest-contract.ini", path)
+        # Close temporary file for other processes to use, needed on Windows
+        temp.close()
         yield str(path)
 
 
-def get_cloudformation_exports(region_name, endpoint_url, role_arn):
-    session = create_sdk_session(region_name)
+def get_cloudformation_exports(region_name, endpoint_url, role_arn, profile_name):
+    session = create_sdk_session(region_name, profile_name)
     temp_credentials = get_temporary_credentials(session, role_arn=role_arn)
     cfn_client = session.client(
         "cloudformation", endpoint_url=endpoint_url, **temp_credentials
@@ -102,12 +116,14 @@ def get_cloudformation_exports(region_name, endpoint_url, role_arn):
     return exports
 
 
-def render_jinja(overrides_string, region_name, endpoint_url, role_arn):
+def render_jinja(overrides_string, region_name, endpoint_url, role_arn, profile_name):
     env = Environment(autoescape=True)
     parsed_content = env.parse(overrides_string)
     variables = meta.find_undeclared_variables(parsed_content)
     if variables:
-        exports = get_cloudformation_exports(region_name, endpoint_url, role_arn)
+        exports = get_cloudformation_exports(
+            region_name, endpoint_url, role_arn, profile_name
+        )
         invalid_exports = variables - exports.keys()
         if len(invalid_exports) > 0:
             invalid_exports_message = (
@@ -135,14 +151,16 @@ def filter_overrides(overrides, project):
     return overrides
 
 
-def get_overrides(root, region_name, endpoint_url, role_arn):
+def get_overrides(root, region_name, endpoint_url, role_arn, profile_name):
     if not root:
         return empty_override()
 
     path = root / "overrides.json"
     try:
         with path.open("r", encoding="utf-8") as f:
-            overrides_raw = render_jinja(f.read(), region_name, endpoint_url, role_arn)
+            overrides_raw = render_jinja(
+                f.read(), region_name, endpoint_url, role_arn, profile_name
+            )
     except FileNotFoundError:
         LOG.debug("Override file '%s' not found. No overrides will be applied", path)
         return empty_override()
@@ -170,14 +188,16 @@ def get_overrides(root, region_name, endpoint_url, role_arn):
 
 # pylint: disable=R0914
 # flake8: noqa: C901
-def get_hook_overrides(root, region_name, endpoint_url, role_arn):
+def get_hook_overrides(root, region_name, endpoint_url, role_arn, profile_name):
     if not root:
         return empty_hook_override()
 
     path = root / "overrides.json"
     try:
         with path.open("r", encoding="utf-8") as f:
-            overrides_raw = render_jinja(f.read(), region_name, endpoint_url, role_arn)
+            overrides_raw = render_jinja(
+                f.read(), region_name, endpoint_url, role_arn, profile_name
+            )
     except FileNotFoundError:
         LOG.debug("Override file '%s' not found. No overrides will be applied", path)
         return empty_hook_override()
@@ -222,8 +242,8 @@ def get_hook_overrides(root, region_name, endpoint_url, role_arn):
     return overrides
 
 
-# pylint: disable=R0914
-def get_inputs(root, region_name, endpoint_url, value, role_arn):
+# pylint: disable=R0914,too-many-arguments
+def get_inputs(root, region_name, endpoint_url, value, role_arn, profile_name):
     inputs = {}
     if not root:
         return None
@@ -245,7 +265,7 @@ def get_inputs(root, region_name, endpoint_url, value, role_arn):
                 file_path = path / file
                 with file_path.open("r", encoding="utf-8") as f:
                     overrides_raw = render_jinja(
-                        f.read(), region_name, endpoint_url, role_arn
+                        f.read(), region_name, endpoint_url, role_arn, profile_name
                     )
                 overrides = {}
                 for pointer, obj in overrides_raw.items():
@@ -322,9 +342,11 @@ def get_contract_plugin_client(args, project, overrides, inputs):
             args.log_role_arn,
             executable_entrypoint=project.executable_entrypoint,
             docker_image=args.docker_image,
+            typeconfig=args.typeconfig,
             target_info=project._load_target_info(  # pylint: disable=protected-access
                 args.cloudformation_endpoint_url, args.region
             ),
+            profile=args.profile,
         )
         LOG.debug("Setup plugin for HOOK type")
         return plugin_clients
@@ -341,8 +363,10 @@ def get_contract_plugin_client(args, project, overrides, inputs):
         project.type_name,
         args.log_group_name,
         args.log_role_arn,
+        typeconfig=args.typeconfig,
         executable_entrypoint=project.executable_entrypoint,
         docker_image=args.docker_image,
+        profile=args.profile,
     )
     LOG.debug("Setup plugin for RESOURCE type")
     return plugin_clients
@@ -358,11 +382,19 @@ def test(args):
 
     if project.artifact_type == ARTIFACT_TYPE_HOOK:
         overrides = get_hook_overrides(
-            project.root, args.region, args.cloudformation_endpoint_url, args.role_arn
+            project.root,
+            args.region,
+            args.cloudformation_endpoint_url,
+            args.role_arn,
+            args.profile,
         )
     else:
         overrides = get_overrides(
-            project.root, args.region, args.cloudformation_endpoint_url, args.role_arn
+            project.root,
+            args.region,
+            args.cloudformation_endpoint_url,
+            args.role_arn,
+            args.profile,
         )
         filter_overrides(overrides, project)
 
@@ -374,6 +406,7 @@ def test(args):
             args.cloudformation_endpoint_url,
             index,
             args.role_arn,
+            args.profile,
         )
         if not inputs:
             break
@@ -394,6 +427,11 @@ def invoke_test(args, project, overrides, inputs):
             pytest_args.extend(args.passed_to_pytest)
         LOG.debug("pytest args: %s", pytest_args)
         ret = pytest.main(pytest_args, plugins=[plugin])
+        # Manually clean up temporary file before exiting - issue with NamedTemporaryFile method on Windows
+        try:
+            os.unlink(path)
+        except FileNotFoundError:
+            pass
         if ret:
             raise SysExitRecommendedError("One or more contract tests failed")
 
@@ -405,7 +443,7 @@ def setup_subparser(subparsers, parents):
 
     _sam_arguments(parser)
     # this parameter can be used to pass additional arguments to pytest after `--`
-    # for example,
+    # for example, cfn test -- -k contract_delete_update # to have pytest run a single test
 
     parser.add_argument(
         "--role-arn", help="Role used when performing handler operations."
@@ -441,6 +479,11 @@ def setup_subparser(subparsers, parents):
         "of SAM",
     )
 
+    parser.add_argument(
+        "--typeconfig",
+        help="typeConfiguration file to use. Default: '~/.cfn-cli/typeConfiguration.json.'",
+    )
+
 
 def _sam_arguments(parser):
     parser.add_argument(
@@ -464,6 +507,14 @@ def _sam_arguments(parser):
         default=DEFAULT_REGION,
         help=(
             "The region used for temporary credentials " f"(Default: {DEFAULT_REGION})"
+        ),
+    )
+    parser.add_argument(
+        "--profile",
+        default=DEFAULT_PROFILE,
+        help=(
+            "The profile used for temporary credentials "
+            f"(Default: {DEFAULT_PROFILE})"
         ),
     )
 

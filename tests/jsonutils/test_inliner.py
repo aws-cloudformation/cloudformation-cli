@@ -47,6 +47,7 @@ def test_refinliner_local_refs_simple_are_walked_and_unchanged():
         "definitions": {"bar": {"type": "string"}},
         "properties": {"foo": {"$ref": "#/definitions/bar"}},
     }
+
     inliner = make_inliner(local)
     schema = inliner.inline()
     assert schema == local
