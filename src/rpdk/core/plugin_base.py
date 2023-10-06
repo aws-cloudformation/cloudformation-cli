@@ -23,7 +23,6 @@ class LanguagePlugin(ABC):
         return self.MODULE_NAME
 
     def _setup_jinja_env(self, **options):
-
         if "loader" not in options:
             # Try loading module with PEP 451 loaders
             spec = importlib.util.find_spec(self._module_name)
@@ -64,7 +63,8 @@ class ExtensionPlugin(ABC):
     def command_name(self):
         if not self.COMMAND_NAME:
             raise RuntimeError(
-                "Set COMMAND_NAME to the command you want to extend cfn with: `cfn COMMAND_NAME`."
+                "Set COMMAND_NAME to the command you want to extend cfn with: `cfn"
+                " COMMAND_NAME`."
             )
         return self.COMMAND_NAME
 

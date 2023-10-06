@@ -33,7 +33,7 @@ class TypeConfiguration:
                     type_config_file_path,
                 )
                 raise InvalidProjectError(
-                    "Type configuration file '%s' is invalid" % type_config_file_path
+                    f"Type configuration file '{type_config_file_path}' is invalid"
                 ) from json_decode_error
             except FileNotFoundError:
                 LOG.debug(

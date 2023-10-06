@@ -407,8 +407,8 @@ def test_error_test_model_in_list(resource_client):
             resource_client, current_resource_model, ""
         )
         assert (
-            "abc123 does not match with Current Resource Model primary identifier xyz456"
-            in assertion_error_message
+            "abc123 does not match with Current Resource Model primary identifier"
+            " xyz456" in assertion_error_message
         )
 
 
@@ -1323,7 +1323,8 @@ def test_call_and_assert_fails(resource_client_no_handler):
             )
         except ValueError:
             LOG.debug(
-                "Value Error Exception is expected when required CRD handlers are not present"
+                "Value Error Exception is expected when required CRD handlers are not"
+                " present"
             )
 
 

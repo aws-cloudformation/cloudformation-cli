@@ -1,18 +1,18 @@
 # better interactive session, debugger
-ipython>=7.7.0
-ipdb>=0.12
+ipython>=8.0.0
+ipdb>=0.13
 
 # testing tools
-pylint==2.8.3
-coverage>=4.5.4
-pytest>=6.0.0
-pytest-cov>=2.7.1
-pytest-random-order>=1.0.4
-hypothesis>=4.32.3
-pytest-localserver>=0.5.0
+pylint==3.0.1
+coverage>=7.3.2
+pytest>=7.4.2
+pytest-cov>=4.1.0
+pytest-random-order>=1.1.0
+hypothesis>=6.87.1
+pytest-localserver>=0.8.0
 
 # commit hooks
-pre-commit>=1.18.1
+pre-commit>=3.4.0
 
 # packaging
-twine>=3.1.0
+twine>=4.0.2

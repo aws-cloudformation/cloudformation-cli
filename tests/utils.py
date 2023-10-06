@@ -58,7 +58,7 @@ NAMES = [
 
 
 def random_type_name():
-    return "Test::{0}::{1}".format(*sample(NAMES, 2))
+    return f"Test::{NAMES[0]}::{NAMES[1]}"
 
 
 def random_name():

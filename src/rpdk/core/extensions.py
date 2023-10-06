@@ -4,7 +4,8 @@ from .plugin_registry import get_extensions
 def _check_command_name_collision(subparsers, command_name):
     if command_name in subparsers.choices:
         raise RuntimeError(
-            f'"{command_name}" is already registered as an extension. Please use a different name.'
+            f'"{command_name}" is already registered as an extension. Please use a'
+            " different name."
         )
 
 

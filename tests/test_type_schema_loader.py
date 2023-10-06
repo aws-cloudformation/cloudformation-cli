@@ -36,14 +36,10 @@ MULTIPLE_TEST_TARGET_SCHEMAS_JSON = json.dumps(MULTIPLE_TEST_TARGET_SCHEMAS)
 
 TEST_TARGET_SCHEMA_BUCKET = "TestTargetSchemaBucket"
 TEST_TARGET_SCHEMA_KEY = "test-target-schema.json"
-TEST_TARGET_SCHEMA_FILE_PATH = "/files/{}".format(TEST_TARGET_SCHEMA_KEY)
-TEST_TARGET_SCHEMA_FILE_URI = "file://{}".format(TEST_TARGET_SCHEMA_FILE_PATH)
-TEST_S3_TARGET_SCHEMA_URI = "s3://{}/{}".format(
-    TEST_TARGET_SCHEMA_BUCKET, TEST_TARGET_SCHEMA_KEY
-)
-TEST_HTTPS_TARGET_SCHEMA_URI = "https://{}.s3.us-west-2.amazonaws.com/{}".format(
-    TEST_TARGET_SCHEMA_BUCKET, TEST_TARGET_SCHEMA_KEY
-)
+TEST_TARGET_SCHEMA_FILE_PATH = f"/files/{TEST_TARGET_SCHEMA_KEY}"
+TEST_TARGET_SCHEMA_FILE_URI = f"file://{TEST_TARGET_SCHEMA_FILE_PATH}"
+TEST_S3_TARGET_SCHEMA_URI = f"s3://{TEST_TARGET_SCHEMA_BUCKET}/{TEST_TARGET_SCHEMA_KEY}"
+TEST_HTTPS_TARGET_SCHEMA_URI = f"https://{TEST_TARGET_SCHEMA_BUCKET}.s3.us-west-2.amazonaws.com/{TEST_TARGET_SCHEMA_KEY}"
 
 
 # pylint: disable=C0103
@@ -57,7 +53,9 @@ def get_test_type_info(type_name, visibility, provisioning_type):
         "TargetName": type_name,
         "TargetType": "RESOURCE",
         "Type": "RESOURCE",
-        "Arn": f'arn:aws:cloudformation:us-east-1:12345678902:type:resource:{type_name.replace("::", "-")}',
+        "Arn": (
+            f'arn:aws:cloudformation:us-east-1:12345678902:type:resource:{type_name.replace("::", "-")}'
+        ),
         "IsDefaultVersion": True,
         "Description": "Test Schema",
         "ProvisioningType": provisioning_type,
@@ -69,7 +67,9 @@ def get_test_type_info(type_name, visibility, provisioning_type):
 
 def describe_type_result(type_name, visibility, provisioning_type):
     return {
-        "Arn": f'arn:aws:cloudformation:us-east-1:12345678902:type:resource:{type_name.replace("::", "-")}',
+        "Arn": (
+            f'arn:aws:cloudformation:us-east-1:12345678902:type:resource:{type_name.replace("::", "-")}'
+        ),
         "Type": "RESOURCE",
         "TypeName": type_name,
         "IsDefaultVersion": True,
@@ -374,8 +374,8 @@ def test_load_type_info_invalid_local_schemas(loader):
         loader.load_type_info(type_names, local_schemas=0)
 
     assert (
-        "Local Schemas must be either list of schemas to load or mapping of type names to schemas"
-        in str(excinfo.value)
+        "Local Schemas must be either list of schemas to load or mapping of type names"
+        " to schemas" in str(excinfo.value)
     )
 
 
@@ -474,7 +474,9 @@ def test_load_type_schemas(loader):
 
         mock_path_is_file.assert_any_call(TEST_TARGET_SCHEMA_FILE_PATH)
         mock_load_file.assert_called_with(TEST_TARGET_SCHEMA_FILE_PATH)
-        mock_file.assert_called_with(TEST_TARGET_SCHEMA_FILE_PATH, "r")
+        mock_file.assert_called_with(
+            TEST_TARGET_SCHEMA_FILE_PATH, "r", encoding="utf-8"
+        )
 
         mock_get_from_url.assert_called_with(TEST_HTTPS_TARGET_SCHEMA_URI)
         mock_get_request.assert_called_with(TEST_HTTPS_TARGET_SCHEMA_URI, timeout=60)
@@ -555,7 +557,7 @@ def test_load_type_schema_from_file(loader):
     assert_dict_equals(TEST_TARGET_SCHEMA, type_schema)
     mock_path_is_file.assert_called_with(TEST_TARGET_SCHEMA_FILE_PATH)
     mock_load_file.assert_called_with(TEST_TARGET_SCHEMA_FILE_PATH)
-    mock_file.assert_called_with(TEST_TARGET_SCHEMA_FILE_PATH, "r")
+    mock_file.assert_called_with(TEST_TARGET_SCHEMA_FILE_PATH, "r", encoding="utf-8")
 
 
 def test_load_type_schema_from_file_file_not_found(loader):
@@ -574,7 +576,7 @@ def test_load_type_schema_from_file_file_not_found(loader):
 
     mock_path_is_file.assert_has_calls(calls=[call(TEST_TARGET_SCHEMA_FILE_PATH)])
     mock_load_file.assert_called_with(TEST_TARGET_SCHEMA_FILE_PATH)
-    mock_file.assert_called_with(TEST_TARGET_SCHEMA_FILE_PATH, "r")
+    mock_file.assert_called_with(TEST_TARGET_SCHEMA_FILE_PATH, "r", encoding="utf-8")
     assert excinfo.value.__cause__ is e
 
 
@@ -593,7 +595,7 @@ def test_load_type_schema_from_file_uri(loader):
     assert_dict_equals(TEST_TARGET_SCHEMA, type_schema)
     mock_load_from_uri.assert_called_with(TEST_TARGET_SCHEMA_FILE_URI)
     mock_load_file.assert_called_with(TEST_TARGET_SCHEMA_FILE_PATH)
-    mock_file.assert_called_with(TEST_TARGET_SCHEMA_FILE_PATH, "r")
+    mock_file.assert_called_with(TEST_TARGET_SCHEMA_FILE_PATH, "r", encoding="utf-8")
 
 
 def test_load_type_schema_from_file_uri_file_not_found(loader):
@@ -613,7 +615,7 @@ def test_load_type_schema_from_file_uri_file_not_found(loader):
 
     mock_load_from_uri.assert_called_with(TEST_TARGET_SCHEMA_FILE_URI)
     mock_load_file.assert_called_with(TEST_TARGET_SCHEMA_FILE_PATH)
-    mock_file.assert_called_with(TEST_TARGET_SCHEMA_FILE_PATH, "r")
+    mock_file.assert_called_with(TEST_TARGET_SCHEMA_FILE_PATH, "r", encoding="utf-8")
     assert excinfo.value.__cause__ is e
 
 
@@ -796,8 +798,8 @@ def test_load_type_schemas_invalid_schema_format(loader):
         "ftp://unsupportedurlschema.com/test-schema.json"
     )
     assert (
-        "Provided schema is invalid or not supported: ftp://unsupportedurlschema.com/test-schema.json"
-        in str(excinfo.value)
+        "Provided schema is invalid or not supported:"
+        " ftp://unsupportedurlschema.com/test-schema.json" in str(excinfo.value)
     )
 
 

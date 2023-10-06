@@ -221,11 +221,11 @@ class TemplateFragment:  # pylint: disable=too-many-instance-attributes
                 "type": raw_fragments["Resources"][resource]["Type"]
             }
         resources_properties = {}
-        for resource in raw_resources:
+        for resource, resource_value in raw_resources.items():
             type_object = {"type": "object", "properties": {}}
             type_object["properties"]["Type"] = {
                 "type": "string",
-                "const": raw_resources[resource]["type"],
+                "const": resource_value["type"],
             }
             type_object["properties"]["Properties"] = {"type": "object"}
             resources_properties[resource] = type_object
@@ -247,8 +247,8 @@ class TemplateFragment:  # pylint: disable=too-many-instance-attributes
                 "description": description,
             }
         parameter_properties = {}
-        for raw_param in raw_parameters:
-            description = raw_parameters[raw_param]["description"]
+        for raw_param, raw_param_value in raw_parameters.items():
+            description = raw_param_value["description"]
             type_name = "object"
             properties = {"Type": {"type": "string"}}
             required = ["Type"]

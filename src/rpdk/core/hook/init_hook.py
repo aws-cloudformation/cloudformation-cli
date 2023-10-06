@@ -91,7 +91,7 @@ def validate_type_name(value):
         return value
     LOG.debug("'%s' did not match '%s'", value, HOOK_TYPE_NAME_REGEX)
     raise WizardValidationError(
-        "Please enter a value matching '{}'".format(HOOK_TYPE_NAME_REGEX)
+        f"Please enter a value matching '{HOOK_TYPE_NAME_REGEX}'"
     )
 
 
@@ -101,7 +101,7 @@ class ValidatePluginChoice:
         self.max = len(self.choices)
 
         pretty = "\n".join(
-            "[{}] {}".format(i, choice) for i, choice in enumerate(self.choices, 1)
+            f"[{i}] {choice}" for i, choice in enumerate(self.choices, 1)
         )
         self.message = (
             "Select a language for code generation:\n"

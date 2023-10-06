@@ -10,7 +10,7 @@ from rpdk.core.project import Project
     "command", ["init", "generate", "submit", "validate", "test", "invoke"]
 )
 def test_command_help(capsys, command):
-    with patch("rpdk.core.{0}.{0}".format(command), autospec=True) as mock_func:
+    with patch(f"rpdk.core.{command}.{command}", autospec=True) as mock_func:
         with pytest.raises(SystemExit) as excinfo:
             main(args_in=[command, "--help"])
     assert excinfo.value.code != EXIT_UNHANDLED_EXCEPTION
@@ -21,7 +21,7 @@ def test_command_help(capsys, command):
 
 @pytest.mark.parametrize("command", ["invoke"])
 def test_command_with_required_params(capsys, command):
-    with patch("rpdk.core.{0}.{0}".format(command), autospec=True) as mock_func:
+    with patch(f"rpdk.core.{command}.{command}", autospec=True) as mock_func:
         with pytest.raises(SystemExit) as excinfo:
             main(args_in=[command])
     assert excinfo.value.code != EXIT_UNHANDLED_EXCEPTION
@@ -34,7 +34,7 @@ def test_command_with_required_params(capsys, command):
 def test_command_default(command):
     mock_project = Mock(spec=Project)
     with patch(
-        "rpdk.core.{0}.Project".format(command),
+        f"rpdk.core.{command}.Project",
         autospec=True,
         return_value=mock_project,
     ):

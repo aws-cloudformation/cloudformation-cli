@@ -130,7 +130,7 @@ def test_main_unhandled_exception_before_logging(capsys):
 
 def test_main_unhandled_exception_after_logging(capsys):
     def raise_exception(_args):
-        raise Exception
+        raise Exception  # pylint: disable=broad-exception-raised
 
     def setup_subparser(subparsers, parents):
         parser = subparsers.add_parser("fail", parents=parents)

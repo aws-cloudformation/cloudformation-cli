@@ -53,7 +53,9 @@ def setup_subparser(subparsers, parents):
     parser.add_argument("--image-name", help="Image name")
     parser.add_argument(
         "--executable",
-        help="The relative path to the handler executable"
-        " that will be built into the docker image"
-        " (ie target/myjar.jar)",
+        help=(
+            "The relative path to the handler executable"
+            " that will be built into the docker image"
+            " (ie target/myjar.jar)"
+        ),
     )

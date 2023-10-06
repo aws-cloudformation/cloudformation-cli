@@ -56,7 +56,10 @@ TARGET_SCHEMA = {
     "handlers": {"create": {}, "delete": {}, "read": {}},
 }
 
-HOOK_CONFIGURATION = '{"CloudFormationConfiguration": {"HookConfiguration": {"Properties": {"key": "value"}}}}'
+HOOK_CONFIGURATION = (
+    '{"CloudFormationConfiguration": {"HookConfiguration": {"Properties": {"key":'
+    ' "value"}}}}'
+)
 
 HOOK_TARGET_INFO = {
     "My::Example::Resource": {
@@ -346,7 +349,6 @@ def test_get_handler_target_multiple_targets(hook_client):
 
 
 def test_get_handler_target_no_targets(hook_client):
-
     schema = {"handlers": {"preCreate": {"permissions": []}}}
     hook_client._update_schema(schema)
     TestCase().assertFalse(
@@ -734,7 +736,9 @@ def test_call_docker():
         return_value=ACCOUNT,
     )
     patch_docker = patch("rpdk.core.contract.hook_client.docker", autospec=True)
-    with patch_sesh as mock_create_sesh, patch_docker as mock_docker, patch_creds, patch_config:
+    with patch_sesh as mock_create_sesh, patch_docker as mock_docker, (
+        patch_creds
+    ), patch_config:
         with patch_account:
             mock_client = mock_docker.from_env.return_value
             mock_sesh = mock_create_sesh.return_value
@@ -750,8 +754,7 @@ def test_call_docker():
             )
             hook_client._type_name = HOOK_TYPE_NAME
     response_str = (
-        "__CFN_HOOK_START_RESPONSE__"
-        '{"hookStatus": "SUCCESS"}__CFN_HOOK_END_RESPONSE__'
+        '__CFN_HOOK_START_RESPONSE__{"hookStatus": "SUCCESS"}__CFN_HOOK_END_RESPONSE__'
     )
     mock_client.containers.run.return_value = str.encode(response_str)
     with patch_creds, patch_config:
@@ -900,7 +903,8 @@ def test_call_and_assert_failed(hook_client):
     mock_client = hook_client._client
     mock_client.invoke.return_value = {
         "Payload": StringIO(
-            '{"hookStatus": "FAILED","errorCode": "NotFound", "message": "I have failed you"}'
+            '{"hookStatus": "FAILED","errorCode": "NotFound", "message": "I have failed'
+            ' you"}'
         )
     }
     with patch_creds, patch_config:

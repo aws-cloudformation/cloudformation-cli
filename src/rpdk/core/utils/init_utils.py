@@ -25,13 +25,13 @@ def init_artifact_type(args=None):
         except WizardValidationError as error:
             print_error(error)
             artifact_type = input_with_validation(
-                "Do you want to develop a new {}?.".format(INPUT_TYPES_STRING),
+                f"Do you want to develop a new {INPUT_TYPES_STRING}?.",
                 validate_artifact_type,
             )
 
     else:
         artifact_type = input_with_validation(
-            "Do you want to develop a new {}?.".format(INPUT_TYPES_STRING),
+            f"Do you want to develop a new {INPUT_TYPES_STRING}?.",
             validate_artifact_type,
         )
 
@@ -68,9 +68,7 @@ def validate_artifact_type(value):
         return ARTIFACT_TYPE_MODULE
     if value.lower() in VALID_HOOKS_REPRESENTATION:
         return ARTIFACT_TYPE_HOOK
-    raise WizardValidationError(
-        "Please enter a value matching {}".format(INPUT_TYPES_STRING)
-    )
+    raise WizardValidationError(f"Please enter a value matching {INPUT_TYPES_STRING}")
 
 
 def validate_yes(value):

@@ -93,7 +93,7 @@ def fragment_decode(pointer, prefix="#", output=tuple):
     decoded = (part_decode(unquote(segment)) for segment in segments)
     actual = next(decoded)
     if prefix != actual:
-        raise ValueError("Expected prefix '{}', but was '{}'".format(prefix, actual))
+        raise ValueError(f"Expected prefix '{prefix}', but was '{actual}'")
     return output(decoded)
 
 
@@ -117,5 +117,5 @@ def fragment_list(segments, prefix="properties", output=list):
     decoded = (part_decode(unquote(segment)) for segment in segments)
     actual = next(decoded)
     if prefix != actual:
-        raise ValueError("Expected prefix '{}', but was '{}'".format(prefix, actual))
+        raise ValueError(f"Expected prefix '{prefix}', but was '{actual}'")
     return output(decoded)

@@ -21,7 +21,7 @@ def print_cfn_lint_warnings(fragment_dir):
         )
         for lint_warning in lint_warnings:
             print(
-                "\t{} (from rule {})".format(lint_warning.message, lint_warning.rule),
+                f"\t{lint_warning.message} (from rule {lint_warning.rule})",
             )
 
 

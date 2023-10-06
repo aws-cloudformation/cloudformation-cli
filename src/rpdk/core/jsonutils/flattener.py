@@ -34,7 +34,6 @@ class JsonSchemaFlattener:
         return self._schema_map
 
     def _walk(self, sub_schema, property_path):
-
         # have we already seen this path?
         if property_path in self._schema_map:
             return {"$ref": property_path}
@@ -79,9 +78,7 @@ class JsonSchemaFlattener:
                 ref_parts = fragment_decode(ref_path)
             except ValueError as e:
                 # pylint: disable=W0707
-                raise FlatteningError(
-                    "Invalid ref at path '{}': {}".format(ref_path, str(e))
-                )
+                raise FlatteningError(f"Invalid ref at path '{ref_path}': { str(e)}")
 
         ref_schema, ref_parts, _ref_parent = self._find_subschema_by_ref(ref_parts)
         return self._walk(ref_schema, ref_parts)
@@ -160,7 +157,6 @@ class JsonSchemaFlattener:
                 pass
             else:
                 for i, nested_schema in enumerate(schema_array):
-
                     ref_path = path + (arr_key, i)
                     ref_path_is_used = ref_path in self._schema_map
                     walked_schema = self._walk(nested_schema, ref_path)
@@ -187,4 +183,4 @@ class JsonSchemaFlattener:
             return traverse(self._full_schema, ref_path)
         except (LookupError, ValueError):
             # pylint: disable=W0707
-            raise FlatteningError("Invalid ref: {}".format(ref_path))
+            raise FlatteningError(f"Invalid ref: {ref_path}")

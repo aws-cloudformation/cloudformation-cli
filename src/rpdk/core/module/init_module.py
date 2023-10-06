@@ -44,5 +44,5 @@ def validate_type_name(value):
         return value
     LOG.debug("'%s' did not match '%s'", value, MODULE_TYPE_NAME_REGEX)
     raise WizardValidationError(
-        "Please enter a value matching '{}'".format(MODULE_TYPE_NAME_REGEX)
+        f"Please enter a value matching '{MODULE_TYPE_NAME_REGEX}'"
     )

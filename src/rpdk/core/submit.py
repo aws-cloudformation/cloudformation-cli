@@ -52,8 +52,10 @@ def setup_subparser(subparsers, parents):
         "--no-role",
         action="store_false",
         dest="use_role",
-        help="Register the type without an explicit execution role "
-        "(Will not be able to invoke AWS APIs).",
+        help=(
+            "Register the type without an explicit execution role "
+            "(Will not be able to invoke AWS APIs)."
+        ),
     )
 
     nodocker_group = parser.add_mutually_exclusive_group()

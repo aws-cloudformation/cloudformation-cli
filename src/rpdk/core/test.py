@@ -168,7 +168,7 @@ def get_overrides(root, region_name, endpoint_url, role_arn, profile_name):
     try:
         RESOURCE_OVERRIDES_VALIDATOR.validate(overrides_raw)
     except ValidationError as e:
-        LOG.warning("Override file invalid: %s\n" "No overrides will be applied", e)
+        LOG.warning("Override file invalid: %s\nNo overrides will be applied", e)
         return empty_override()
 
     overrides = empty_override()
@@ -205,7 +205,7 @@ def get_hook_overrides(root, region_name, endpoint_url, role_arn, profile_name):
     try:
         HOOK_OVERRIDES_VALIDATOR.validate(overrides_raw)
     except ValidationError as e:
-        LOG.warning("Override file invalid: %s\n" "No overrides will be applied", e)
+        LOG.warning("Override file invalid: %s\nNo overrides will be applied", e)
         return empty_hook_override()
 
     overrides = empty_hook_override()
@@ -461,27 +461,38 @@ def setup_subparser(subparsers, parents):
 
     parser.add_argument(
         "--log-group-name",
-        help="The log group to which contract tests lambda handler logs will be delivered. "
-        "Specified log group doesn't have to exist as long as log-role-arn specified has logs:CreateLogGroup "
-        "permission. Need to be used together with --log-role-arn",
+        help=(
+            "The log group to which contract tests lambda handler logs will be"
+            " delivered. Specified log group doesn't have to exist as long as"
+            " log-role-arn specified has logs:CreateLogGroup permission. Need to be"
+            " used together with --log-role-arn"
+        ),
     )
 
     parser.add_argument(
         "--log-role-arn",
-        help="Role for delivering contract tests lambda handler logs. Need to be used together with --log-group-name",
+        help=(
+            "Role for delivering contract tests lambda handler logs. Need to be used"
+            " together with --log-group-name"
+        ),
     )
 
     parser.add_argument("passed_to_pytest", nargs="*", help=SUPPRESS)
 
     parser.add_argument(
         "--docker-image",
-        help="Docker image name to run. If specified, invoke will use docker instead "
-        "of SAM",
+        help=(
+            "Docker image name to run. If specified, invoke will use docker instead "
+            "of SAM"
+        ),
     )
 
     parser.add_argument(
         "--typeconfig",
-        help="typeConfiguration file to use. Default: '~/.cfn-cli/typeConfiguration.json.'",
+        help=(
+            "typeConfiguration file to use. Default:"
+            " '~/.cfn-cli/typeConfiguration.json.'"
+        ),
     )
 
 
@@ -505,17 +516,12 @@ def _sam_arguments(parser):
     parser.add_argument(
         "--region",
         default=DEFAULT_REGION,
-        help=(
-            "The region used for temporary credentials " f"(Default: {DEFAULT_REGION})"
-        ),
+        help=f"The region used for temporary credentials (Default: {DEFAULT_REGION})",
     )
     parser.add_argument(
         "--profile",
         default=DEFAULT_PROFILE,
-        help=(
-            "The profile used for temporary credentials "
-            f"(Default: {DEFAULT_PROFILE})"
-        ),
+        help=f"The profile used for temporary credentials (Default: {DEFAULT_PROFILE})",
     )
 
 

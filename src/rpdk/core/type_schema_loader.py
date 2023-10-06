@@ -69,8 +69,9 @@ class TypeSchemaLoader:
                     if "Schema" in target_info:
                         if target_info["Schema"] != schemas[type_name]:
                             raise InvalidTypeSchemaError(
-                                f"Duplicate conflicting schemas for '{type_name}' target type in 'target-info.json' "
-                                f"file and 'target-schemas' directory. "
+                                f"Duplicate conflicting schemas for '{type_name}'"
+                                " target type in 'target-info.json' file and"
+                                " 'target-schemas' directory. "
                             )
                     else:
                         target_info["Schema"] = schemas[type_name]
@@ -86,12 +87,14 @@ class TypeSchemaLoader:
                     )
             elif self.local_only:
                 LOG.warning(
-                    "Attempting to load local type info %s with incorrect configuration. Local target schema file or "
-                    "'target-info.json' are required to load local target info",
+                    "Attempting to load local type info %s with incorrect"
+                    " configuration. Local target schema file or 'target-info.json' are"
+                    " required to load local target info",
                     type_name,
                 )
                 raise InvalidTypeSchemaError(
-                    "Local type schema or 'target-info.json' are required to load local type info"
+                    "Local type schema or 'target-info.json' are required to load local"
+                    " type info"
                 )
             else:
                 target_info.update(
@@ -175,7 +178,8 @@ class TypeSchemaLoader:
             schemas = self.load_type_schemas(local_schemas)
         else:
             raise InvalidTypeSchemaError(
-                "Local Schemas must be either list of schemas to load or mapping of type names to schemas"
+                "Local Schemas must be either list of schemas to load or mapping of"
+                " type names to schemas"
             )
 
         return schemas
@@ -221,7 +225,7 @@ class TypeSchemaLoader:
     @staticmethod
     def load_type_schema_from_file(schema_path):
         try:
-            with open(schema_path, "r") as file:
+            with open(schema_path, "r", encoding="utf-8") as file:
                 return TypeSchemaLoader.load_type_schema_from_json(file.read())
         except FileNotFoundError as e:
             LOG.debug("Target schema file '%s' not found", schema_path, exc_info=e)
@@ -253,7 +257,8 @@ class TypeSchemaLoader:
             return self.load_type_schema_from_json(type_schema)
         except ClientError as err:
             LOG.debug(
-                "Getting S3 object in bucket '%s' with key '%s' resulted in unknown ClientError",
+                "Getting S3 object in bucket '%s' with key '%s' resulted in unknown"
+                " ClientError",
                 bucket,
                 key,
                 exc_info=err,

@@ -35,7 +35,9 @@ def list_types_result(type_names):
             {
                 "Type": "RESOURCE",
                 "TypeName": type_name,
-                "TypeArn": f'arn:aws:cloudformation:us-east-1:123456789012:type/resource/{type_name.replace("::", "-")}',
+                "TypeArn": (
+                    f'arn:aws:cloudformation:us-east-1:123456789012:type/resource/{type_name.replace("::", "-")}'
+                ),
             }
             for type_name in type_names
         ]
@@ -249,6 +251,6 @@ def test_resolve_type_names_locally_no_local_info(resolver):
 def test_create_list_types_request(type_names, expected):
     req = TypeNameResolver._create_list_types_request(type_names)
     if not expected:
-        assert req == {}
+        assert not req
     else:
         assert req == {"Filters": {"TypeNamePrefix": expected}}

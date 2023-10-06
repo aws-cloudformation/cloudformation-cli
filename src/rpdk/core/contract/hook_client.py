@@ -378,9 +378,9 @@ class HookClient:  # pylint: disable=too-many-instance-attributes
 
     def assert_time(self, start_time, end_time, action):
         timeout_in_seconds = self._timeout_in_seconds
-        assert end_time - start_time <= timeout_in_seconds, (
-            "Handler %r timed out." % action
-        )
+        assert (
+            end_time - start_time <= timeout_in_seconds
+        ), f"Handler {action!r} timed out."
 
     def _make_payload(
         self,
@@ -472,7 +472,7 @@ class HookClient:  # pylint: disable=too-many-instance-attributes
         **kwargs,
     ):
         if assert_status not in [HookStatus.SUCCESS, HookStatus.FAILED]:
-            raise ValueError("Assert status {} not supported.".format(assert_status))
+            raise ValueError(f"Assert status {assert_status} not supported.")
 
         status, response = self.call(invocation_point, target, target_model, **kwargs)
         if assert_status == HookStatus.SUCCESS:

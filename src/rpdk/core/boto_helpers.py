@@ -39,9 +39,7 @@ def get_temporary_credentials(session, key_names=BOTO_CRED_KEYS, role_arn=None):
         region_name=session.region_name,
     )
     if role_arn:
-        session_name = "CloudFormationContractTest-{:%Y%m%d%H%M%S}".format(
-            datetime.now()
-        )
+        session_name = f"CloudFormationContractTest-{datetime.now():%Y%m%d%H%M%S}"
         try:
             response = sts_client.assume_role(
                 RoleArn=role_arn, RoleSessionName=session_name, DurationSeconds=900
@@ -54,7 +52,7 @@ def get_temporary_credentials(session, key_names=BOTO_CRED_KEYS, role_arn=None):
                 role_arn,
             )
             raise DownstreamError() from Exception(
-                "Could not assume specified role '{}'".format(role_arn)
+                "Could not assume specified role '{role_arn}'"
             )
         temp = response["Credentials"]
         creds = (temp["AccessKeyId"], temp["SecretAccessKey"], temp["SessionToken"])
