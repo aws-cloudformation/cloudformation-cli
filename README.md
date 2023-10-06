@@ -46,6 +46,14 @@ cfn submit --dry-run #prepares schema handler package without submitting for reg
 cfn submit --set-default # if successfully registered, set submitted version to be the new default version
 ```
 
+### Command: package
+
+This is to create a schema handler package without submitting equivalent to `cfn submit --dry-run`
+
+```bash
+cfn package
+```
+
 ### Command: test
 
 To run the contract tests for a resource type, use the `test` command.
