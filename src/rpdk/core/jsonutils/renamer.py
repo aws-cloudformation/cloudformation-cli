@@ -1,6 +1,5 @@
 from itertools import count
-
-from jsonschema.compat import urldefrag
+from urllib.parse import urldefrag
 
 from .pointer import fragment_decode
 

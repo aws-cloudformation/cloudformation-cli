@@ -6,10 +6,10 @@ jobs:
   schema-updater:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - run: |
           curl https://raw.githubusercontent.com/aws-cloudformation/aws-cloudformation-resource-schema/master/src/main/resources/schema/provider.definition.schema.v1.json > src/rpdk/core/data/schema/provider.definition.schema.v1.json
-      - uses: peter-evans/create-pull-request@v3
+      - uses: peter-evans/create-pull-request@v5
         with:
           commit-message: |
             CloudFormation Resource Provider Definition MetaSchema update

@@ -43,8 +43,11 @@ To activate a hook in your account, use the following JSON as the `Configuration
 {{ prop.description }}
 {% endif %}
 
-_Required_: {% if propname in schema.required %}Yes{% else %}No{% endif %}
-
+{% if schema.required is defined and propname in schema.required %}
+_Required_: Yes
+{% else %}
+_Required_: No
+{% endif %}
 
 _Type_: {{ prop.longformtype }}
 {% if prop.allowedvalues %}
@@ -66,6 +69,15 @@ _Maximum Length_: <code>{{ prop.maxLength }}</code>
 {% endif %}
 
 ---
+
+## Targets
+
+{% for target_name in target_names %}
+* `{{ target_name }}`
+{% endfor %}
+
+---
+
 <p id="footnote-1"><i> Please note that the enum values for <a href="https://docs.aws.amazon.com/cloudformation-cli/latest/userguide/hooks-structure.html#hooks-targetstacks" title="TargetStacks">
 TargetStacks</a> and <a href="https://docs.aws.amazon.com/cloudformation-cli/latest/userguide/hooks-structure.html#hooks-failuremode" title="FailureMode">FailureMode</a>
 might go out of date, please refer to their official documentation page for up-to-date values. </i></p>

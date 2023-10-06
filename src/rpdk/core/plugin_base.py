@@ -55,3 +55,19 @@ class LanguagePlugin(ABC):
     @abstractmethod
     def package(self, project, zip_file):
         pass
+
+
+class ExtensionPlugin(ABC):
+    COMMAND_NAME = None
+
+    @property
+    def command_name(self):
+        if not self.COMMAND_NAME:
+            raise RuntimeError(
+                "Set COMMAND_NAME to the command you want to extend cfn with: `cfn COMMAND_NAME`."
+            )
+        return self.COMMAND_NAME
+
+    @abstractmethod
+    def setup_parser(self, parser):
+        pass
