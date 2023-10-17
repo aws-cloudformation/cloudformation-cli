@@ -55,6 +55,7 @@ setup(
         "cfn-lint>=0.78.1",
         "cfn_flip>=1.2.3",
         "nested-lookup",
+        "botocore>=1.31.17",
     ],
     entry_points={
         "console_scripts": ["cfn-cli = rpdk.core.cli:main", "cfn = rpdk.core.cli:main"]
