@@ -91,6 +91,7 @@ INVALID_INPUTS_FILE = "inputs/inputs_1_invalid.json"
 PRE_CREATE_INPUTS_FILE = "inputs/inputs_1_pre_create.json"
 PRE_UPDATE_INPUTS_FILE = "inputs/inputs_1_pre_update.json"
 INVALID_PRE_DELETE_INPUTS_FILE = "inputs/inputs_1_invalid_pre_delete.json"
+README_INPUTS_FILE = "inputs/README.md"
 
 PLUGIN_INFORMATION = {
     "plugin-version": "2.1.3",
@@ -1125,7 +1126,7 @@ def test_settings_not_found(project):
     assert "init" in str(excinfo.value)
 
 
-def create_input_file(base):
+def create_input_files(base):
     path = base / "inputs"
     os.mkdir(path, mode=0o777)
 
@@ -1140,6 +1141,11 @@ def create_input_file(base):
     path_invalid = base / INVALID_INPUTS_FILE
     with path_invalid.open("w", encoding="utf-8") as f:
         f.write("{}")
+
+    # Add a file 
+    path_readme = base / README_INPUTS_FILE
+    with path_readme.open("w", encoding="utf-8") as f:
+        f.write("# My README for devs")
 
 
 def create_hook_input_file(base):
@@ -1207,7 +1213,7 @@ def test_submit_dry_run(project, is_type_configuration_available):
     with project.overrides_path.open("w", encoding="utf-8") as f:
         f.write(json.dumps(empty_override()))
 
-    create_input_file(project.root)
+    create_input_files(project.root)
 
     project.write_settings()
 
@@ -1279,6 +1285,8 @@ def test_submit_dry_run(project, is_type_configuration_available):
         assert input_invalid == {}
         input_update = json.loads(zip_file.read(UPDATE_INPUTS_FILE).decode("utf-8"))
         assert input_update == {}
+        # ensure we don't add non-json files
+        assert README_INPUTS_FILE not in zipfile.namelist()
         assert zip_file.testzip() is None
         metadata_info = json.loads(zip_file.read(CFN_METADATA_FILENAME).decode("utf-8"))
         assert "cli-version" in metadata_info
@@ -1374,7 +1382,7 @@ def test_submit_dry_run_hooks(project):
     with project.overrides_path.open("w", encoding="utf-8") as f:
         f.write(json.dumps(empty_hook_override()))
 
-    create_input_file(project.root)
+    create_input_files(project.root)
 
     project.write_settings()
 
