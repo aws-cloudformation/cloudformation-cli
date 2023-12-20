@@ -125,10 +125,8 @@ def _stub_exports(template, exports, pattern):
             LOG.error(str(e))
             raise ValueError(
                 f"Export does not contain provided undeclared variable '{export}'. {e}"
-            )
-        else:
-            return value_to_stub
-
+            ) from e
+        return value_to_stub
     return re.sub(pattern, __retrieve_args, template)
 
 
