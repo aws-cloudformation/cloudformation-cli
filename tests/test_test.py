@@ -22,6 +22,7 @@ from rpdk.core.test import (
     DEFAULT_FUNCTION,
     DEFAULT_PROFILE,
     DEFAULT_REGION,
+    _stub_exports,
     _validate_sam_args,
     empty_hook_override,
     empty_override,
@@ -109,6 +110,44 @@ def _get_expected_marker_options(artifact_type):
     return " and ".join(
         ["not " + action for action in all_actions if action not in included_actions]
     )
+
+
+@pytest.mark.parametrize(
+    "template_string,exports,expected",
+    [
+        (
+            '{"newName": "{{name}}","newLastName": {"newName": "{{ lastname }}"}}',
+            {"name": "Jon", "lastname": "Snow"},
+            '{"newName": "Jon","newLastName": {"newName": "Snow"}}',
+        ),
+        (
+            '{"newName": " {{ name  }}","newLastName": {"newName": "{{ lastname } }"}}',
+            {"name": "Jon", "lastname": "Snow"},
+            '{"newName": " Jon","newLastName": {"newName": "{{ lastname } }"}}',
+        ),
+    ],
+)
+def test_stub_exports(template_string, exports, expected):
+    assert expected == _stub_exports(
+        template_string, exports, r"{{([-A-Za-z0-9:\s]+?)}}"
+    )
+
+
+@pytest.mark.parametrize(
+    "template_string,exports",
+    [
+        (
+            '{"newName": "{{name}}","newLastName": {"newName": "{{ lastname }}"}}',
+            {"name": "Jon"},
+        ),
+    ],
+)
+def test_stub_exports_exception(template_string, exports):
+    with pytest.raises(ValueError) as e:
+        _stub_exports(template_string, exports, r"{{([-A-Za-z0-9:\s]+?)}}")
+        assert (
+            str(e) == "Export does not contain provided undeclared variable 'lastname'"
+        )
 
 
 def create_input_file(base, create_string, update_string, invalid_string):
