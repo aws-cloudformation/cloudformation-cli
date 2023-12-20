@@ -5,6 +5,7 @@ Projects can be created via the 'init' sub command.
 import json
 import logging
 import os
+import re
 from argparse import SUPPRESS
 from collections import OrderedDict
 from contextlib import contextmanager
@@ -12,7 +13,6 @@ from pathlib import Path
 from tempfile import NamedTemporaryFile
 
 import pytest
-from jinja2 import Environment, Template, meta
 from jsonschema import Draft6Validator
 from jsonschema.exceptions import ValidationError
 
@@ -116,10 +116,27 @@ def get_cloudformation_exports(region_name, endpoint_url, role_arn, profile_name
     return exports
 
 
-def render_jinja(overrides_string, region_name, endpoint_url, role_arn, profile_name):
-    env = Environment(autoescape=True)
-    parsed_content = env.parse(overrides_string)
-    variables = meta.find_undeclared_variables(parsed_content)
+def _stub_exports(template, exports, pattern):
+    def __retrieve_args(match):
+        try:
+            export = str(match.group(1)).strip()
+            value_to_stub = str(exports[export])
+        except LookupError as e:
+            LOG.error(str(e))
+            raise ValueError(
+                f"Export does not contain provided undeclared variable '{export}'. {e}"
+            )
+        else:
+            return value_to_stub
+
+    return re.sub(pattern, __retrieve_args, template)
+
+
+def render_template(
+    overrides_string, region_name, endpoint_url, role_arn, profile_name
+):
+    regex = r"{{([-A-Za-z0-9:\s]+?)}}"
+    variables = set(str(match).strip() for match in re.findall(regex, overrides_string))
     if variables:
         exports = get_cloudformation_exports(
             region_name, endpoint_url, role_arn, profile_name
@@ -132,8 +149,7 @@ def render_jinja(overrides_string, region_name, endpoint_url, role_arn, profile_
             )
             LOG.warning(invalid_exports_message, invalid_exports)
             return empty_override()
-        overrides_template = Template(overrides_string)
-        to_return = json.loads(overrides_template.render(exports))
+        to_return = json.loads(_stub_exports(overrides_string, exports, regex))
     else:
         to_return = json.loads(overrides_string)
     return to_return
@@ -158,7 +174,7 @@ def get_overrides(root, region_name, endpoint_url, role_arn, profile_name):
     path = root / "overrides.json"
     try:
         with path.open("r", encoding="utf-8") as f:
-            overrides_raw = render_jinja(
+            overrides_raw = render_template(
                 f.read(), region_name, endpoint_url, role_arn, profile_name
             )
     except FileNotFoundError:
@@ -195,7 +211,7 @@ def get_hook_overrides(root, region_name, endpoint_url, role_arn, profile_name):
     path = root / "overrides.json"
     try:
         with path.open("r", encoding="utf-8") as f:
-            overrides_raw = render_jinja(
+            overrides_raw = render_template(
                 f.read(), region_name, endpoint_url, role_arn, profile_name
             )
     except FileNotFoundError:
@@ -264,7 +280,7 @@ def get_inputs(root, region_name, endpoint_url, value, role_arn, profile_name):
 
                 file_path = path / file
                 with file_path.open("r", encoding="utf-8") as f:
-                    overrides_raw = render_jinja(
+                    overrides_raw = render_template(
                         f.read(), region_name, endpoint_url, role_arn, profile_name
                     )
                 overrides = {}
