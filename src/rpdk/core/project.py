@@ -959,6 +959,22 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
                     lambda markdown_value: f"List of {markdown_value}"
                 )  # noqa: E731
 
+                if "items" not in prop.keys():
+                    LOG.warning(
+                        'Warning: found schema property of array type with no "items" key; \n'
+                        'defaulting data types for array items to "Map" in generated docs.\n'
+                        'If "Map" is not what you need instead, specify the expected data type \n'
+                        "for array items such as (example with items of string type):\n"
+                        '    "ExampleProperty" : {\n'
+                        '        "description" : "Example description.",\n'
+                        '        "type": "array",\n'
+                        '        "items": {\n'
+                        '            "type": "string"\n'
+                        "        }\n"
+                        "    }\n"
+                    )
+                    prop["items"] = {}
+
                 # potential circular ref
                 # setting up markdown before going deep in the heap to reuse markdown
                 if "$ref" in prop["items"]:
