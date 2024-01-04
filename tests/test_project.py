@@ -601,6 +601,122 @@ def test_generate_docs_with_multiref_property(project, tmp_path_factory):
     assert read_me_stripped == read_me_target_stripped
 
 
+def test_when_array_property_has_items_then_generated_docs_should_use_specified_items_type(
+    project, tmp_path_factory, session
+):
+    project.artifact_type = ARTIFACT_TYPE_HOOK
+    project.schema = resource_json(
+        __name__,
+        "data/schema/hook/valid/valid_hook_configuration_with_array_items.json",
+    )
+    project.type_name = "TestOnly::Sample::Hook"
+    # tmpdir conflicts with other tests, make a unique one
+    project.root = tmp_path_factory.mktemp(
+        "generate_docs_when_array_property_has_items"
+    )
+
+    project.load_configuration_schema()
+
+    mock_plugin = MagicMock(spec=["generate"])
+    patch_session = patch("rpdk.core.boto_helpers.Boto3Session")
+
+    def get_test_schema():
+        return {
+            "typeName": "AWS::S3::Bucket",
+            "description": "test schema",
+            "properties": {"foo": {"type": "string"}},
+            "primaryIdentifier": ["/properties/foo"],
+            "additionalProperties": False,
+        }
+
+    mock_cfn_client = MagicMock(spec=["describe_type"])
+    with patch.object(project, "_plugin", mock_plugin), patch_session as mock_session:
+        mock_cfn_client.describe_type.return_value = {
+            "Schema": json.dumps(get_test_schema()),
+            "Type": "",
+            "ProvisioningType": "",
+        }
+        session.client.side_effect = [mock_cfn_client, MagicMock()]
+        mock_session.return_value = session
+        project.generate()
+        project.generate_docs()
+    mock_plugin.generate.assert_called_once_with(project)
+
+    docs_dir = project.root / "docs"
+    readme_file = project.root / "docs" / "README.md"
+
+    assert docs_dir.is_dir()
+    assert readme_file.is_file()
+    with patch.object(project, "_plugin", mock_plugin), patch_session as mock_session:
+        session.client.side_effect = [mock_cfn_client, MagicMock()]
+        mock_session.return_value = session
+        project.generate()
+    readme_contents = readme_file.read_text(encoding="utf-8").strip().replace("\n", " ")
+    assert project.type_name in readme_contents
+    assert (
+        "exampleArrayProperty  Example property of array type with items of string type.  _Required_: No  _Type_: List of String"
+        in readme_contents
+    )
+
+
+def test_when_array_property_has_no_items_then_generated_docs_should_default_to_map_items_type(
+    project, tmp_path_factory, session
+):
+    project.artifact_type = ARTIFACT_TYPE_HOOK
+    project.schema = resource_json(
+        __name__,
+        "data/schema/hook/valid/valid_hook_configuration_without_array_items.json",
+    )
+    project.type_name = "TestOnly::Sample::Hook"
+    # tmpdir conflicts with other tests, make a unique one
+    project.root = tmp_path_factory.mktemp(
+        "generate_docs_when_array_property_has_no_items"
+    )
+
+    project.load_configuration_schema()
+
+    mock_plugin = MagicMock(spec=["generate"])
+    patch_session = patch("rpdk.core.boto_helpers.Boto3Session")
+
+    def get_test_schema():
+        return {
+            "typeName": "AWS::S3::Bucket",
+            "description": "test schema",
+            "properties": {"foo": {"type": "string"}},
+            "primaryIdentifier": ["/properties/foo"],
+            "additionalProperties": False,
+        }
+
+    mock_cfn_client = MagicMock(spec=["describe_type"])
+    with patch.object(project, "_plugin", mock_plugin), patch_session as mock_session:
+        mock_cfn_client.describe_type.return_value = {
+            "Schema": json.dumps(get_test_schema()),
+            "Type": "",
+            "ProvisioningType": "",
+        }
+        session.client.side_effect = [mock_cfn_client, MagicMock()]
+        mock_session.return_value = session
+        project.generate()
+        project.generate_docs()
+    mock_plugin.generate.assert_called_once_with(project)
+
+    docs_dir = project.root / "docs"
+    readme_file = project.root / "docs" / "README.md"
+
+    assert docs_dir.is_dir()
+    assert readme_file.is_file()
+    with patch.object(project, "_plugin", mock_plugin), patch_session as mock_session:
+        session.client.side_effect = [mock_cfn_client, MagicMock()]
+        mock_session.return_value = session
+        project.generate()
+    readme_contents = readme_file.read_text(encoding="utf-8").strip().replace("\n", " ")
+    assert project.type_name in readme_contents
+    assert (
+        "exampleArrayProperty  Example property of array type without items (that is, an 'items` key at this same level).  _Required_: No  _Type_: List of Map"
+        in readme_contents
+    )
+
+
 def test_generate_with_docs_invalid_property_type(project, tmp_path_factory):
     project.schema = resource_json(
         __name__, "data/schema/invalid/invalid_property_type_invalid.json"

@@ -1,0 +1,37 @@
+{
+    "typeName": "TestOnly::Sample::Hook",
+    "description": "Example hook schema for unit tests.",
+    "sourceUrl": "https://github.com/aws-cloudformation/SAMPLE-URL-SUFFIX",
+    "documentationUrl": "https://github.com/aws-cloudformation/SAMPLE-URL-SUFFIX/blob/main/README.md",
+    "typeConfiguration": {
+        "properties": {
+            "exampleArrayProperty": {
+                "type": "array",
+                "description": "Example property of array type without items (that is, an 'items` key at this same level)."
+            }
+        },
+        "additionalProperties": false
+    },
+    "required": [],
+    "handlers": {
+        "preCreate": {
+            "targetNames": [
+                "AWS::S3::Bucket"
+            ],
+            "permissions": []
+        },
+        "preUpdate": {
+            "targetNames": [
+                "AWS::S3::Bucket"
+            ],
+            "permissions": []
+        },
+        "preDelete": {
+            "targetNames": [
+                "AWS::S3::Bucket"
+            ],
+            "permissions": []
+        }
+    },
+    "additionalProperties": false
+}
