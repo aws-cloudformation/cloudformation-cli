@@ -12,6 +12,7 @@ disable=
     duplicate-code,             # finds dupes between tests and plugins
     too-few-public-methods,     # triggers when inheriting
     ungrouped-imports,          # clashes with isort
+    W0613                       # Unused argument 'kwargs'
 
 [BASIC]
 
@@ -23,4 +24,5 @@ indent-string='    '
 max-line-length=160
 
 [DESIGN]
-max-locals=16
+max-locals=17
+max-args=6

@@ -56,6 +56,7 @@ class HookClient:  # pylint: disable=too-many-instance-attributes
         type_name=None,
         log_group_name=None,
         log_role_arn=None,
+        headers=None,
         docker_image=None,
         typeconfig=None,
         executable_entrypoint=None,
@@ -69,9 +70,12 @@ class HookClient:  # pylint: disable=too-many-instance-attributes
         self._log_group_name = log_group_name
         self._log_role_arn = log_role_arn
         self.region = region
+        self._headers = headers
         self.account = get_account(
             self._session,
-            get_temporary_credentials(self._session, LOWER_CAMEL_CRED_KEYS, role_arn),
+            get_temporary_credentials(
+                self._session, LOWER_CAMEL_CRED_KEYS, role_arn, headers
+            ),
         )
         self._function_name = function_name
         if endpoint.startswith("http://"):
@@ -396,11 +400,11 @@ class HookClient:  # pylint: disable=too-many-instance-attributes
             self.account,
             invocation_point,
             get_temporary_credentials(
-                self._session, LOWER_CAMEL_CRED_KEYS, self._role_arn
+                self._session, LOWER_CAMEL_CRED_KEYS, self._role_arn, self._headers
             ),
             self._log_group_name,
             get_temporary_credentials(
-                self._session, LOWER_CAMEL_CRED_KEYS, self._log_role_arn
+                self._session, LOWER_CAMEL_CRED_KEYS, self._log_role_arn, self._headers
             ),
             self.generate_token(),
             target_model,
