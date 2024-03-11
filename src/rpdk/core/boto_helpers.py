@@ -32,17 +32,35 @@ def create_sdk_session(region_name=None, profile_name=None):
     return session
 
 
-def get_temporary_credentials(session, key_names=BOTO_CRED_KEYS, role_arn=None):
+def get_temporary_credentials(
+    session, key_names=BOTO_CRED_KEYS, role_arn=None, headers=None
+):
     sts_client = session.client(
         "sts",
         endpoint_url=get_service_endpoint("sts", session.region_name),
         region_name=session.region_name,
     )
+    check_keys = {"account_id", "source_arn"}
+    if (
+        headers
+        and check_keys.issubset(headers.keys())
+        and headers["account_id"]
+        and headers["source_arn"]
+    ):
+        # Inject headers through the event system.
+        def inject_confused_deputy_headers(params, **kwargs):
+            params["headers"]["x-amz-source-account"] = headers["account_id"]
+            params["headers"]["x-amz-source-arn"] = headers["source_arn"]
+
+        sts_client.meta.events.register("before-call", inject_confused_deputy_headers)
+        LOG.info(headers)
     if role_arn:
         session_name = f"CloudFormationContractTest-{datetime.now():%Y%m%d%H%M%S}"
         try:
             response = sts_client.assume_role(
-                RoleArn=role_arn, RoleSessionName=session_name, DurationSeconds=900
+                RoleArn=role_arn,
+                RoleSessionName=session_name,
+                DurationSeconds=900,
             )
         except ClientError:
             # pylint: disable=W1201

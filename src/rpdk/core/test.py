@@ -102,9 +102,13 @@ def temporary_ini_file():
         yield str(path)
 
 
-def get_cloudformation_exports(region_name, endpoint_url, role_arn, profile_name):
+def get_cloudformation_exports(
+    region_name, endpoint_url, role_arn, profile_name, headers
+):
     session = create_sdk_session(region_name, profile_name)
-    temp_credentials = get_temporary_credentials(session, role_arn=role_arn)
+    temp_credentials = get_temporary_credentials(
+        session, role_arn=role_arn, headers=headers
+    )
     cfn_client = session.client(
         "cloudformation", endpoint_url=endpoint_url, **temp_credentials
     )
@@ -132,13 +136,13 @@ def _stub_exports(template, exports, pattern):
 
 
 def render_template(
-    overrides_string, region_name, endpoint_url, role_arn, profile_name
+    overrides_string, region_name, endpoint_url, role_arn, profile_name, headers
 ):
     regex = r"{{([-A-Za-z0-9:\s]+?)}}"
     variables = set(str(match).strip() for match in re.findall(regex, overrides_string))
     if variables:
         exports = get_cloudformation_exports(
-            region_name, endpoint_url, role_arn, profile_name
+            region_name, endpoint_url, role_arn, profile_name, headers
         )
         invalid_exports = variables - exports.keys()
         if len(invalid_exports) > 0:
@@ -166,7 +170,7 @@ def filter_overrides(overrides, project):
     return overrides
 
 
-def get_overrides(root, region_name, endpoint_url, role_arn, profile_name):
+def get_overrides(root, region_name, endpoint_url, role_arn, profile_name, headers):
     if not root:
         return empty_override()
 
@@ -174,7 +178,12 @@ def get_overrides(root, region_name, endpoint_url, role_arn, profile_name):
     try:
         with path.open("r", encoding="utf-8") as f:
             overrides_raw = render_template(
-                f.read(), region_name, endpoint_url, role_arn, profile_name
+                f.read(),
+                region_name,
+                endpoint_url,
+                role_arn,
+                profile_name,
+                headers=headers,
             )
     except FileNotFoundError:
         LOG.debug("Override file '%s' not found. No overrides will be applied", path)
@@ -203,7 +212,9 @@ def get_overrides(root, region_name, endpoint_url, role_arn, profile_name):
 
 # pylint: disable=R0914
 # flake8: noqa: C901
-def get_hook_overrides(root, region_name, endpoint_url, role_arn, profile_name):
+def get_hook_overrides(
+    root, region_name, endpoint_url, role_arn, profile_name, headers
+):
     if not root:
         return empty_hook_override()
 
@@ -211,7 +222,12 @@ def get_hook_overrides(root, region_name, endpoint_url, role_arn, profile_name):
     try:
         with path.open("r", encoding="utf-8") as f:
             overrides_raw = render_template(
-                f.read(), region_name, endpoint_url, role_arn, profile_name
+                f.read(),
+                region_name,
+                endpoint_url,
+                role_arn,
+                profile_name,
+                headers=headers,
             )
     except FileNotFoundError:
         LOG.debug("Override file '%s' not found. No overrides will be applied", path)
@@ -258,7 +274,7 @@ def get_hook_overrides(root, region_name, endpoint_url, role_arn, profile_name):
 
 
 # pylint: disable=R0914,too-many-arguments
-def get_inputs(root, region_name, endpoint_url, value, role_arn, profile_name):
+def get_inputs(root, region_name, endpoint_url, value, role_arn, profile_name, headers):
     inputs = {}
     if not root:
         return None
@@ -280,7 +296,12 @@ def get_inputs(root, region_name, endpoint_url, value, role_arn, profile_name):
                 file_path = path / file
                 with file_path.open("r", encoding="utf-8") as f:
                     overrides_raw = render_template(
-                        f.read(), region_name, endpoint_url, role_arn, profile_name
+                        f.read(),
+                        region_name,
+                        endpoint_url,
+                        role_arn,
+                        profile_name,
+                        headers=headers,
                     )
                 overrides = {}
                 for pointer, obj in overrides_raw.items():
@@ -355,6 +376,7 @@ def get_contract_plugin_client(args, project, overrides, inputs):
             project.type_name,
             args.log_group_name,
             args.log_role_arn,
+            headers={"account_id": args.source_account, "source_arn": args.source_arn},
             executable_entrypoint=project.executable_entrypoint,
             docker_image=args.docker_image,
             typeconfig=args.typeconfig,
@@ -378,6 +400,7 @@ def get_contract_plugin_client(args, project, overrides, inputs):
         project.type_name,
         args.log_group_name,
         args.log_role_arn,
+        headers={"account_id": args.source_account, "source_arn": args.source_arn},
         typeconfig=args.typeconfig,
         executable_entrypoint=project.executable_entrypoint,
         docker_image=args.docker_image,
@@ -402,6 +425,7 @@ def test(args):
             args.cloudformation_endpoint_url,
             args.role_arn,
             args.profile,
+            headers={"account_id": args.source_account, "source_arn": args.source_arn},
         )
     else:
         overrides = get_overrides(
@@ -410,6 +434,7 @@ def test(args):
             args.cloudformation_endpoint_url,
             args.role_arn,
             args.profile,
+            headers={"account_id": args.source_account, "source_arn": args.source_arn},
         )
         filter_overrides(overrides, project)
 
@@ -422,6 +447,7 @@ def test(args):
             index,
             args.role_arn,
             args.profile,
+            headers={"account_id": args.source_account, "source_arn": args.source_arn},
         )
         if not inputs:
             break
@@ -508,6 +534,15 @@ def setup_subparser(subparsers, parents):
             "typeConfiguration file to use. Default:"
             " '~/.cfn-cli/typeConfiguration.json.'"
         ),
+    )
+    parser.add_argument(
+        "--source-account",
+        help="Source Account key used for Assume Role to Run Contract Tests",
+    )
+
+    parser.add_argument(
+        "--source-arn",
+        help="Source Type Version Arn key used for Assume Role to Run Contract Tests",
     )
 
 

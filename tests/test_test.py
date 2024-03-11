@@ -266,6 +266,7 @@ def test_test_command_happy_path_resource(
         mock_project.type_name,
         None,
         None,
+        headers={"account_id": None, "source_arn": None},
         typeconfig=None,
         executable_entrypoint=None,
         docker_image=None,
@@ -374,6 +375,7 @@ def test_test_command_happy_path_hook(
         mock_project.type_name,
         None,
         None,
+        headers={"account_id": None, "source_arn": None},
         typeconfig=None,
         executable_entrypoint=None,
         docker_image=None,
@@ -440,7 +442,7 @@ def test_temporary_ini_file():
 
 def test_get_overrides_no_root():
     assert (
-        get_overrides(None, DEFAULT_REGION, "", None, DEFAULT_PROFILE)
+        get_overrides(None, DEFAULT_REGION, "", None, DEFAULT_PROFILE, None)
         == EMPTY_RESOURCE_OVERRIDE
     )
 
@@ -452,7 +454,7 @@ def test_get_overrides_file_not_found(base):
     except FileNotFoundError:
         pass
     assert (
-        get_overrides(path, DEFAULT_REGION, "", None, DEFAULT_PROFILE)
+        get_overrides(path, DEFAULT_REGION, "", None, DEFAULT_PROFILE, None)
         == EMPTY_RESOURCE_OVERRIDE
     )
 
@@ -461,7 +463,7 @@ def test_get_overrides_invalid_file(base):
     path = base / "overrides.json"
     path.write_text("{}")
     assert (
-        get_overrides(base, DEFAULT_REGION, "", None, DEFAULT_PROFILE)
+        get_overrides(base, DEFAULT_REGION, "", None, DEFAULT_PROFILE, None)
         == EMPTY_RESOURCE_OVERRIDE
     )
 
@@ -471,7 +473,7 @@ def test_get_overrides_empty_overrides(base):
     with path.open("w", encoding="utf-8") as f:
         json.dump(EMPTY_RESOURCE_OVERRIDE, f)
     assert (
-        get_overrides(base, DEFAULT_REGION, "", None, DEFAULT_PROFILE)
+        get_overrides(base, DEFAULT_REGION, "", None, DEFAULT_PROFILE, None)
         == EMPTY_RESOURCE_OVERRIDE
     )
 
@@ -484,7 +486,7 @@ def test_get_overrides_invalid_pointer_skipped(base):
     with path.open("w", encoding="utf-8") as f:
         json.dump(overrides, f)
     assert (
-        get_overrides(base, DEFAULT_REGION, "", None, DEFAULT_PROFILE)
+        get_overrides(base, DEFAULT_REGION, "", None, DEFAULT_PROFILE, None)
         == EMPTY_RESOURCE_OVERRIDE
     )
 
@@ -496,14 +498,14 @@ def test_get_overrides_good_path(base):
     path = base / "overrides.json"
     with path.open("w", encoding="utf-8") as f:
         json.dump(overrides, f)
-    assert get_overrides(base, DEFAULT_REGION, "", None, DEFAULT_PROFILE) == {
+    assert get_overrides(base, DEFAULT_REGION, "", None, DEFAULT_PROFILE, None) == {
         "CREATE": {("foo", "bar"): {}}
     }
 
 
 def test_get_hook_overrides_no_root():
     assert (
-        get_hook_overrides(None, DEFAULT_REGION, "", None, DEFAULT_PROFILE)
+        get_hook_overrides(None, DEFAULT_REGION, "", None, DEFAULT_PROFILE, None)
         == EMPTY_HOOK_OVERRIDE
     )
 
@@ -515,7 +517,7 @@ def test_get_hook_overrides_file_not_found(base):
     except FileNotFoundError:
         pass
     assert (
-        get_hook_overrides(path, DEFAULT_REGION, "", None, DEFAULT_PROFILE)
+        get_hook_overrides(path, DEFAULT_REGION, "", None, DEFAULT_PROFILE, None)
         == EMPTY_HOOK_OVERRIDE
     )
 
@@ -524,7 +526,7 @@ def test_get_hook_overrides_invalid_file(base):
     path = base / "overrides.json"
     path.write_text("{}")
     assert (
-        get_hook_overrides(base, DEFAULT_REGION, "", None, DEFAULT_PROFILE)
+        get_hook_overrides(base, DEFAULT_REGION, "", None, DEFAULT_PROFILE, None)
         == EMPTY_HOOK_OVERRIDE
     )
 
@@ -538,7 +540,9 @@ def test_get_hook_overrides_good_path(base):
     path = base / "overrides.json"
     with path.open("w", encoding="utf-8") as f:
         json.dump(overrides, f)
-    assert get_hook_overrides(base, DEFAULT_REGION, "", None, DEFAULT_PROFILE) == {
+    assert get_hook_overrides(
+        base, DEFAULT_REGION, "", None, DEFAULT_PROFILE, None
+    ) == {
         "CREATE_PRE_PROVISION": {
             "My::Example::Resource": {"resourceProperties": {("foo", "bar"): {}}}
         }
@@ -595,7 +599,7 @@ def test_get_overrides_with_jinja(
             mock_cfn_client,
             Mock(),
         ]
-        result = get_overrides(base, DEFAULT_REGION, None, None, DEFAULT_PROFILE)
+        result = get_overrides(base, DEFAULT_REGION, None, None, DEFAULT_PROFILE, None)
 
     assert result == expected_overrides
 
@@ -661,7 +665,7 @@ def test_with_inputs(
             mock_cfn_client,
             Mock(),
         ]
-        result = get_inputs(base, DEFAULT_REGION, None, 1, None, DEFAULT_PROFILE)
+        result = get_inputs(base, DEFAULT_REGION, None, 1, None, DEFAULT_PROFILE, None)
 
     assert result == expected_inputs
 
@@ -685,23 +689,23 @@ def test_with_inputs_invalid(base):
             mock_cfn_client,
             Mock(),
         ]
-        result = get_inputs(base, DEFAULT_REGION, None, 1, None, DEFAULT_PROFILE)
+        result = get_inputs(base, DEFAULT_REGION, None, 1, None, DEFAULT_PROFILE, None)
 
     assert not result
 
 
 def test_get_input_invalid_root():
-    assert not get_inputs("", DEFAULT_REGION, "", 1, None, DEFAULT_PROFILE)
+    assert not get_inputs("", DEFAULT_REGION, "", 1, None, DEFAULT_PROFILE, None)
 
 
 def test_get_input_input_folder_does_not_exist(base):
-    assert not get_inputs(base, DEFAULT_REGION, "", 1, None, DEFAULT_PROFILE)
+    assert not get_inputs(base, DEFAULT_REGION, "", 1, None, DEFAULT_PROFILE, None)
 
 
 def test_get_input_file_not_found(base):
     path = base / "inputs"
     os.mkdir(path, mode=0o777)
-    assert not get_inputs(base, DEFAULT_REGION, "", 1, None, DEFAULT_PROFILE)
+    assert not get_inputs(base, DEFAULT_REGION, "", 1, None, DEFAULT_PROFILE, None)
 
 
 def test_use_both_sam_and_docker_arguments():
