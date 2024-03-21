@@ -269,14 +269,6 @@
             },
             "additionalProperties": false
         },
-        "propertyTransform": {
-            "type": "object",
-            "patternProperties": {
-                "^[A-Za-z0-9]{1,64}$": {
-                    "type": "string"
-                }
-            }
-        },
         "remote": {
             "description": "Reserved for CloudFormation use. A namespace to inline remote schemas.",
             "type": "object",
