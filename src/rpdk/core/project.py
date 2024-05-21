@@ -29,6 +29,7 @@ from .exceptions import (
     SpecValidationError,
 )
 from .fragment.module_fragment_reader import _get_fragment_file
+from .generate_stack_templates import StackTemplateGenerator
 from .jsonutils.pointer import fragment_decode, fragment_encode
 from .jsonutils.utils import traverse
 from .plugin_registry import load_plugin
@@ -56,7 +57,17 @@ TYPE_NAME_HOOK_REGEX = "^[a-zA-Z0-9]{2,64}::[a-zA-Z0-9]{2,64}::[a-zA-Z0-9]{2,64}
 ARTIFACT_TYPE_RESOURCE = "RESOURCE"
 ARTIFACT_TYPE_MODULE = "MODULE"
 ARTIFACT_TYPE_HOOK = "HOOK"
-
+TARGET_CANARY_ROOT_FOLDER = "canary-bundle"
+TARGET_CANARY_FOLDER = "canary-bundle/canary"
+RPDK_CONFIG_FILE = ".rpdk-config"
+CANARY_FILE_PREFIX = "canary"
+CONTRACT_TEST_DEPENDENCY_FILE_NAME = "dependencies.yml"
+CANARY_DEPENDENCY_FILE_NAME = "bootstrap.yaml"
+CANARY_SETTINGS = "canarySettings"
+TYPE_NAME = "typeName"
+CONTRACT_TEST_FILE_NAMES = "contract_test_file_names"
+INPUT1_FILE_NAME = "inputs_1.json"
+FILE_GENERATION_ENABLED = "file_generation_enabled"
 DEFAULT_ROLE_TIMEOUT_MINUTES = 120  # 2 hours
 # min and max are according to CreateRole API restrictions
 # https://docs.aws.amazon.com/IAM/latest/APIReference/API_CreateRole.html
@@ -145,6 +156,7 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
         self.test_entrypoint = None
         self.executable_entrypoint = None
         self.fragment_dir = None
+        self.canary_settings = {}
         self.target_info = {}
 
         self.env = Environment(
@@ -206,6 +218,18 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
     @property
     def target_info_path(self):
         return self.root / TARGET_INFO_FILENAME
+
+    @property
+    def target_canary_root_path(self):
+        return self.root / TARGET_CANARY_ROOT_FOLDER
+
+    @property
+    def target_canary_folder_path(self):
+        return self.root / TARGET_CANARY_FOLDER
+
+    @property
+    def rpdk_config(self):
+        return self.root / RPDK_CONFIG_FILE
 
     @staticmethod
     def _raise_invalid_project(msg, e):
@@ -277,6 +301,7 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
         self.executable_entrypoint = raw_settings.get("executableEntrypoint")
         self._plugin = load_plugin(raw_settings["language"])
         self.settings = raw_settings.get("settings", {})
+        self.canary_settings = raw_settings.get("canarySettings", {})
 
     def _write_example_schema(self):
         self.schema = resource_json(
@@ -338,6 +363,7 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
                     "testEntrypoint": self.test_entrypoint,
                     "settings": self.settings,
                     **executable_entrypoint_dict,
+                    "canarySettings": self.canary_settings,
                 },
                 f,
                 indent=4,
@@ -391,6 +417,10 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
         self.language = language
         self._plugin = load_plugin(language)
         self.settings = settings or {}
+        self.canary_settings = {
+            FILE_GENERATION_ENABLED: True,
+            CONTRACT_TEST_FILE_NAMES: [INPUT1_FILE_NAME],
+        }
         self._write_example_schema()
         self._write_example_inputs()
         self._plugin.init(self)
@@ -1251,3 +1281,28 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
             )
 
         return type_info
+
+    def generate_canary_files(self) -> None:
+        """
+        Generate canary files based on the contract test input files.
+
+        This method checks if file generation is enabled and if the target contract test folder exists.
+        If both conditions are met, it creates the canary folder, copies the contract test dependencies,
+        and generates canary files for each contract test input file up to the specified count.
+        """
+        stack_template_config = {
+            "root_folder_path": self.target_canary_root_path,
+            "target_folder_path": self.target_canary_folder_path,
+            "dependency_file_name": CANARY_DEPENDENCY_FILE_NAME,
+            "file_prefix": CANARY_FILE_PREFIX,
+            "file_generation_enabled": self.canary_settings.get(
+                FILE_GENERATION_ENABLED, False
+            ),
+        }
+        generate_stack_templates = StackTemplateGenerator(
+            self.type_name,
+            stack_template_config,
+            self.canary_settings.get(CONTRACT_TEST_FILE_NAMES, [INPUT1_FILE_NAME]),
+            self.root,
+        )
+        generate_stack_templates.generate_stack_templates()
