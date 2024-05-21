@@ -335,7 +335,7 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
         self.entrypoint = raw_settings["entrypoint"]
         self.test_entrypoint = raw_settings["testEntrypoint"]
         self.executable_entrypoint = raw_settings.get("executableEntrypoint")
-        self._plugin = load_plugin(raw_settings["language"])
+        # self._plugin = load_plugin(raw_settings["language"])
         self.settings = raw_settings.get("settings", {})
         self.canary_settings = raw_settings.get("canarySettings", {})
 
@@ -486,14 +486,36 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
         with self.schema_path.open("r", encoding="utf-8") as f:
             self.schema = load_hook_spec(f)
 
-    def load_schema(self):
+    def load_schema(self, args=None):
         if not self.type_info:
             msg = "Internal error (Must load settings first)"
             LOG.critical(msg)
             raise InternalError(msg)
 
+        type_name = f"{self.type_info[0]}::{self.type_info[1]}::{self.type_info[2]}"
+
+        original_schema = self._retrieve_global_schema(type_name, args)
+
         with self.schema_path.open("r", encoding="utf-8") as f:
-            self.schema = load_resource_spec(f)
+            self.schema = load_resource_spec(f, original_schema)
+
+    def _retrieve_global_schema(self, type_name, args):
+        try:
+            session = create_sdk_session(args.region, args.profile)
+            cfn_client = session.client(
+                "cloudformation", endpoint_url=args.endpoint_url
+            )
+            _response = cfn_client.describe_type(Type="RESOURCE", TypeName=type_name)
+            return _response["Schema"]
+        except ClientError as e:
+            LOG.warning(
+                f"Attempted to retrieve latest schema from registry for ResourceType {type_name}"
+            )
+            LOG.warning(str(e))
+            return None
+        except Exception as ex:
+            print(str(ex))
+            return None
 
     def load_configuration_schema(self):
         if not self.schema:
@@ -611,7 +633,7 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
 
         self._plugin.generate(self)
 
-    def load(self):
+    def load(self, args=None):
         try:
             self.load_settings()
         except FileNotFoundError as e:
@@ -626,12 +648,12 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
         elif self.artifact_type == ARTIFACT_TYPE_HOOK:
             self._load_hooks_project()
         else:
-            self._load_resources_project()
+            self._load_resources_project(args)
 
-    def _load_resources_project(self):
+    def _load_resources_project(self, args):
         LOG.info("Validating your resource specification...")
         try:
-            self.load_schema()
+            self.load_schema(args)
             self.load_configuration_schema()
             LOG.warning("Resource schema is valid.")
         except FileNotFoundError as e:
