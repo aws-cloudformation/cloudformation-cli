@@ -2,13 +2,16 @@
 import json
 import logging
 import os
+import re
 import shutil
 import sys
 import zipfile
 from pathlib import Path
 from tempfile import TemporaryFile
+from typing import Any, Dict
 from uuid import uuid4
 
+import yaml
 from botocore.exceptions import ClientError, WaiterError
 from jinja2 import Environment, PackageLoader, select_autoescape
 from jsonschema import Draft7Validator
@@ -29,7 +32,6 @@ from .exceptions import (
     SpecValidationError,
 )
 from .fragment.module_fragment_reader import _get_fragment_file
-from .generate_stack_templates import StackTemplateGenerator
 from .jsonutils.pointer import fragment_decode, fragment_encode
 from .jsonutils.utils import traverse
 from .plugin_registry import load_plugin
@@ -68,6 +70,21 @@ TYPE_NAME = "typeName"
 CONTRACT_TEST_FILE_NAMES = "contract_test_file_names"
 INPUT1_FILE_NAME = "inputs_1.json"
 FILE_GENERATION_ENABLED = "file_generation_enabled"
+CONTRACT_TEST_FOLDER = "contract-tests-artifacts"
+CONTRACT_TEST_INPUT_PREFIX = "inputs_*"
+CONTRACT_TEST_DEPENDENCY_FILE_NAME = "dependencies.yml"
+FILE_GENERATION_ENABLED = "file_generation_enabled"
+TYPE_NAME = "typeName"
+CONTRACT_TEST_FILE_NAMES = "contract_test_file_names"
+INPUT1_FILE_NAME = "inputs_1.json"
+FN_SUB = "Fn::Sub"
+FN_IMPORT_VALUE = "Fn::ImportValue"
+UUID = "uuid"
+DYNAMIC_VALUES_MAP = {
+    "region": "${AWS::Region}",
+    "partition": "${AWS::Partition}",
+    "account": "${AWS::AccountId}",
+}
 DEFAULT_ROLE_TIMEOUT_MINUTES = 120  # 2 hours
 # min and max are according to CreateRole API restrictions
 # https://docs.aws.amazon.com/IAM/latest/APIReference/API_CreateRole.html
@@ -230,6 +247,18 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
     @property
     def rpdk_config(self):
         return self.root / RPDK_CONFIG_FILE
+
+    @property
+    def file_generation_enabled(self):
+        return self.canary_settings.get(FILE_GENERATION_ENABLED, False)
+
+    @property
+    def contract_test_file_names(self):
+        return self.canary_settings.get(CONTRACT_TEST_FILE_NAMES, [INPUT1_FILE_NAME])
+
+    @property
+    def target_contract_test_folder_path(self):
+        return self.root / CONTRACT_TEST_FOLDER
 
     @staticmethod
     def _raise_invalid_project(msg, e):
@@ -1283,26 +1312,81 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
         return type_info
 
     def generate_canary_files(self) -> None:
-        """
-        Generate canary files based on the contract test input files.
+        if (
+            not self.file_generation_enabled
+            or not Path(self.target_contract_test_folder_path).exists()
+        ):
+            return
+        self._setup_stack_template_environment()
+        self._generate_stack_template_files()
 
-        This method checks if file generation is enabled and if the target contract test folder exists.
-        If both conditions are met, it creates the canary folder, copies the contract test dependencies,
-        and generates canary files for each contract test input file up to the specified count.
-        """
-        stack_template_config = {
-            "root_folder_path": self.target_canary_root_path,
-            "target_folder_path": self.target_canary_folder_path,
-            "dependency_file_name": CANARY_DEPENDENCY_FILE_NAME,
-            "file_prefix": CANARY_FILE_PREFIX,
-            "file_generation_enabled": self.canary_settings.get(
-                FILE_GENERATION_ENABLED, False
-            ),
-        }
-        generate_stack_templates = StackTemplateGenerator(
-            self.type_name,
-            stack_template_config,
-            self.canary_settings.get(CONTRACT_TEST_FILE_NAMES, [INPUT1_FILE_NAME]),
-            self.root,
+    def _setup_stack_template_environment(self) -> None:
+        stack_template_root = Path(self.target_canary_root_path)
+        stack_template_folder = Path(self.target_canary_folder_path)
+        stack_template_folder.mkdir(parents=True, exist_ok=True)
+        dependencies_file = (
+            Path(self.target_contract_test_folder_path)
+            / CONTRACT_TEST_DEPENDENCY_FILE_NAME
         )
-        generate_stack_templates.generate_stack_templates()
+        bootstrap_file = stack_template_root / CANARY_DEPENDENCY_FILE_NAME
+        if dependencies_file.exists():
+            shutil.copy(str(dependencies_file), str(bootstrap_file))
+
+    def _generate_stack_template_files(self) -> None:
+        stack_template_folder = Path(self.target_canary_folder_path)
+        contract_test_folder = Path(self.target_contract_test_folder_path)
+        contract_test_files = [
+            file
+            for file in contract_test_folder.glob(CONTRACT_TEST_INPUT_PREFIX)
+            if file.is_file() and file.name in self.contract_test_file_names
+        ]
+        contract_test_files = sorted(contract_test_files)
+        for count, ct_file in enumerate(contract_test_files, start=1):
+            with ct_file.open("r") as f:
+                json_data = json.load(f)
+            resource_name = self.type_info[2]
+            stack_template_data = {
+                "Description": f"Template for {self.type_name}",
+                "Resources": {
+                    f"{resource_name}": {
+                        "Type": self.type_name,
+                        "Properties": self._replace_dynamic_values(
+                            json_data["CreateInputs"]
+                        ),
+                    }
+                },
+            }
+            stack_template_file_name = f"{CANARY_FILE_PREFIX}{count}_001.yaml"
+            stack_template_file_path = stack_template_folder / stack_template_file_name
+            with stack_template_file_path.open("w") as stack_template_file:
+                yaml.dump(stack_template_data, stack_template_file, indent=2)
+
+    def _replace_dynamic_values(self, properties: Dict[str, Any]) -> Dict[str, Any]:
+        for key, value in properties.items():
+            if isinstance(value, dict):
+                properties[key] = self._replace_dynamic_values(value)
+            elif isinstance(value, list):
+                properties[key] = [self._replace_dynamic_value(item) for item in value]
+            else:
+                return_value = self._replace_dynamic_value(value)
+                properties[key] = return_value
+        return properties
+
+    def _replace_dynamic_value(self, original_value: Any) -> Any:
+        pattern = r"\{\{(.*?)\}\}"
+
+        def replace_token(match):
+            token = match.group(1)
+            if UUID in token:
+                return str(uuid4())
+            if token in DYNAMIC_VALUES_MAP:
+                return DYNAMIC_VALUES_MAP[token]
+            return f'{{"{FN_IMPORT_VALUE}": "{token.strip()}"}}'
+
+        replaced_value = re.sub(pattern, replace_token, str(original_value))
+
+        if any(value in replaced_value for value in DYNAMIC_VALUES_MAP.values()):
+            replaced_value = {FN_SUB: replaced_value}
+        if FN_IMPORT_VALUE in replaced_value:
+            replaced_value = json.loads(replaced_value)
+        return replaced_value
