@@ -383,6 +383,90 @@ def test_load_resource_spec_without_array_type_valid():
     assert result == schema
 
 
+def test_load_resource_spec_with_relationship_valid():
+    schema = {
+        "typeName": "AWS::FOO::BAR",
+        "description": "test schema",
+        "additionalProperties": False,
+        "properties": {
+            "foo": {
+                "type": "string",
+                "relationshipRef": {
+                    "typeName": "ABC::DEF::GHI",
+                    "propertyPath": "/properties/id",
+                },
+            },
+            "bar": {"type": "string"},
+        },
+        "definitions": {
+            "XYZ": {
+                "type": "object",
+                "additionalProperties": False,
+                "properties": {"Value": {"type": "string"}, "Key": {"type": "string"}},
+            }
+        },
+        "primaryIdentifier": ["/properties/foo"],
+        "readOnlyProperties": ["/properties/foo"],
+        "createOnlyProperties": ["/properties/foo"],
+        "conditionalCreateOnlyProperties": ["/properties/bar"],
+    }
+    result = load_resource_spec(json_s(schema))
+    assert result == schema
+
+
+def test_load_resource_spec_with_relationship_invalid():
+    schema = {
+        "typeName": "AWS::FOO::BAR",
+        "description": "test schema",
+        "additionalProperties": False,
+        "properties": {
+            "foo": {"type": "object", "relationshipRef": {"typeName": "ABC::DEF::GHI"}},
+            "bar": {"type": "string"},
+        },
+        "definitions": {
+            "XYZ": {
+                "type": "object",
+                "additionalProperties": False,
+                "properties": {"Value": {"type": "string"}, "Key": {"type": "string"}},
+            }
+        },
+        "primaryIdentifier": ["/properties/foo"],
+        "readOnlyProperties": ["/properties/foo"],
+        "createOnlyProperties": ["/properties/foo"],
+        "conditionalCreateOnlyProperties": ["/properties/bar"],
+    }
+    with pytest.raises(SpecValidationError) as excinfo:
+        load_resource_spec(json_s(schema))
+
+    assert "Failed validating" in str(excinfo.value)
+
+
+def test_load_resource_spec_with_relationship_invalid_pattern():
+    schema = {
+        "typeName": "AWS::FOO::BAR",
+        "description": "test schema",
+        "additionalProperties": False,
+        "properties": {
+            "foo": {
+                "type": "string",
+                "relationshipRef": {
+                    "typeName": "string",
+                    "propertyPath": "string",
+                },
+            },
+            "bar": {"type": "string"},
+        },
+        "primaryIdentifier": ["/properties/foo"],
+        "readOnlyProperties": ["/properties/foo"],
+        "createOnlyProperties": ["/properties/foo"],
+        "conditionalCreateOnlyProperties": ["/properties/bar"],
+    }
+    with pytest.raises(SpecValidationError) as excinfo:
+        load_resource_spec(json_s(schema))
+
+    assert "does not match '^[a-zA-Z0-9]{2,64}::[a-zA-Z0-9]{2,64}" in str(excinfo.value)
+
+
 def test_load_hook_spec_properties_key_is_invalid():
     schema = {
         "typeName": "AWS::FOO::BAR",
