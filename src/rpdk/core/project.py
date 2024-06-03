@@ -1,4 +1,5 @@
 # pylint: disable=too-many-lines
+import copy
 import json
 import logging
 import os
@@ -76,7 +77,6 @@ CONTRACT_TEST_DEPENDENCY_FILE_NAME = "dependencies.yml"
 FILE_GENERATION_ENABLED = "file_generation_enabled"
 TYPE_NAME = "typeName"
 CONTRACT_TEST_FILE_NAMES = "contract_test_file_names"
-INPUT1_FILE_NAME = "inputs_1.json"
 FN_SUB = "Fn::Sub"
 FN_IMPORT_VALUE = "Fn::ImportValue"
 UUID = "uuid"
@@ -1345,21 +1345,64 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
             with ct_file.open("r") as f:
                 json_data = json.load(f)
             resource_name = self.type_info[2]
-            stack_template_data = {
-                "Description": f"Template for {self.type_name}",
-                "Resources": {
-                    f"{resource_name}": {
-                        "Type": self.type_name,
-                        "Properties": self._replace_dynamic_values(
-                            json_data["CreateInputs"]
-                        ),
-                    }
-                },
-            }
-            stack_template_file_name = f"{CANARY_FILE_PREFIX}{count}_001.yaml"
-            stack_template_file_path = stack_template_folder / stack_template_file_name
-            with stack_template_file_path.open("w") as stack_template_file:
-                yaml.dump(stack_template_data, stack_template_file, indent=2)
+
+            if "PatchInputs" in json_data:
+                deepcopy_create_input = copy.deepcopy(json_data["CreateInputs"])
+                self._save_stack_template_data(
+                    resource_name,
+                    count,
+                    stack_template_folder,
+                    self._apply_patch_inputs_to_create_inputs(
+                        json_data["PatchInputs"], deepcopy_create_input
+                    ),
+                    "002",
+                )
+            self._save_stack_template_data(
+                resource_name,
+                count,
+                stack_template_folder,
+                json_data["CreateInputs"],
+                "001",
+            )
+
+    def _save_stack_template_data(
+        self,
+        resource_name,
+        contract_test_input_count,
+        stack_template_folder,
+        properties_data,
+        suffix,
+    ):
+        stack_template_data = {
+            "Description": f"Template for {self.type_name}",
+            "Resources": {
+                f"{resource_name}": {
+                    "Type": self.type_name,
+                    "Properties": self._replace_dynamic_values(
+                        properties_data,
+                    ),
+                }
+            },
+        }
+        stack_template_file_name = (
+            f"{CANARY_FILE_PREFIX}{contract_test_input_count}_{suffix}.yaml"
+        )
+        stack_template_file_path = stack_template_folder / stack_template_file_name
+        with stack_template_file_path.open("w") as stack_template_file:
+            yaml.dump(stack_template_data, stack_template_file, indent=2)
+
+    def _apply_patch_inputs_to_create_inputs(
+        self, patch_inputs: Dict[str, Any], create_inputs: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        output = create_inputs
+        for patch_input in patch_inputs:
+            if patch_input["op"] == "replace":
+                key_list = patch_input["path"].split("/")
+                current_output = output
+                for key in key_list[:-1]:
+                    current_output = current_output.setdefault(key, {})
+                current_output[key_list[-1]] = patch_input["value"]
+        return output
 
     def _replace_dynamic_values(self, properties: Dict[str, Any]) -> Dict[str, Any]:
         for key, value in properties.items():
