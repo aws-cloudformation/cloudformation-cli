@@ -1346,6 +1346,15 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
                 json_data = json.load(f)
             resource_name = self.type_info[2]
 
+            self._save_stack_template_data(
+                resource_name,
+                count,
+                stack_template_folder,
+                self._replace_dynamic_values(
+                    json_data["CreateInputs"],
+                ),
+                "001",
+            )
             if "PatchInputs" in json_data:
                 deepcopy_create_input = copy.deepcopy(json_data["CreateInputs"])
                 self._save_stack_template_data(
@@ -1353,17 +1362,11 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
                     count,
                     stack_template_folder,
                     self._apply_patch_inputs_to_create_inputs(
-                        json_data["PatchInputs"], deepcopy_create_input
+                        json_data["PatchInputs"],
+                        deepcopy_create_input,
                     ),
                     "002",
                 )
-            self._save_stack_template_data(
-                resource_name,
-                count,
-                stack_template_folder,
-                json_data["CreateInputs"],
-                "001",
-            )
 
     def _save_stack_template_data(
         self,
@@ -1378,9 +1381,7 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
             "Resources": {
                 f"{resource_name}": {
                     "Type": self.type_name,
-                    "Properties": self._replace_dynamic_values(
-                        properties_data,
-                    ),
+                    "Properties": properties_data,
                 }
             },
         }
@@ -1394,15 +1395,41 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
     def _apply_patch_inputs_to_create_inputs(
         self, patch_inputs: Dict[str, Any], create_inputs: Dict[str, Any]
     ) -> Dict[str, Any]:
-        output = create_inputs
         for patch_input in patch_inputs:
-            if patch_input["op"] == "replace":
-                key_list = patch_input["path"].split("/")
-                current_output = output
-                for key in key_list[:-1]:
-                    current_output = current_output.setdefault(key, {})
-                current_output[key_list[-1]] = patch_input["value"]
-        return output
+            self._apply_patch_input_to_create_input(patch_input, create_inputs)
+        return create_inputs
+
+    def _apply_patch_input_to_create_input(
+        self, patch_input: Any, create_inputs: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        op = patch_input.get("op")
+        path = patch_input.get("path")
+        if op not in {"replace", "remove", "add"}:
+            return create_inputs
+        key_list = [self._translate_integer_key(key) for key in path.split("/") if key]
+        current_input = create_inputs
+        for key in key_list[:-1]:
+            try:
+                current_input = current_input[key]
+            except (KeyError, IndexError):
+                LOG.warning("Canary generation skipped for invalid path: %s", path)
+                return create_inputs
+        patch_key = key_list[-1]
+        if op == "remove":
+            del current_input[patch_key]
+        elif op == "add" and isinstance(current_input, list):
+            current_input.insert(patch_key, patch_input["value"])
+            self._replace_dynamic_values_with_root_key(current_input, patch_key)
+        else:
+            # remaining use cases for both "add" and "replace" operations
+            current_input[patch_key] = patch_input["value"]
+            self._replace_dynamic_values_with_root_key(current_input, patch_key)
+        return create_inputs
+
+    def _translate_integer_key(self, key: str) -> Any:
+        if key.isdigit():
+            key = int(key)
+        return key
 
     def _replace_dynamic_values(self, properties: Dict[str, Any]) -> Dict[str, Any]:
         for key, value in properties.items():
@@ -1413,6 +1440,19 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
             else:
                 return_value = self._replace_dynamic_value(value)
                 properties[key] = return_value
+        return properties
+
+    def _replace_dynamic_values_with_root_key(
+        self, properties: Dict[str, Any], root_key=None
+    ) -> Dict[str, Any]:
+        value = properties[root_key]
+        if isinstance(value, dict):
+            properties[root_key] = self._replace_dynamic_values(value)
+        elif isinstance(value, list):
+            properties[root_key] = [self._replace_dynamic_value(item) for item in value]
+        else:
+            return_value = self._replace_dynamic_value(value)
+            properties[root_key] = return_value
         return properties
 
     def _replace_dynamic_value(self, original_value: Any) -> Any:
