@@ -17,6 +17,7 @@ from pathlib import Path
 from shutil import copyfile
 from unittest.mock import ANY, MagicMock, Mock, call, patch
 
+import jsonpatch
 import pytest
 import yaml
 from botocore.exceptions import ClientError, WaiterError
@@ -3045,7 +3046,7 @@ def test_generate_canary_files_with_patch_inputs(mock_yaml_dump, project):
         "PatchInputs": [
             {
                 "op": "replace",
-                "path": "Property1",
+                "path": "/Property1",
                 "value": update_value_1,
             }
         ],
@@ -3111,7 +3112,7 @@ def test_create_template_file_with_patch_inputs(mock_yaml_dump, project):
         "PatchInputs": [
             {
                 "op": "replace",
-                "path": "Property1",
+                "path": "/Property1",
                 "value": update_value_1,
             },
             {
@@ -3121,12 +3122,12 @@ def test_create_template_file_with_patch_inputs(mock_yaml_dump, project):
             },
             {
                 "op": "replace",
-                "path": "Property3",
+                "path": "/Property3",
                 "value": {"Nested": "{{partition}}"},
             },
             {
                 "op": "replace",
-                "path": "Property4",
+                "path": "/Property4",
                 "value": ["{{region}}", update_value_2],
             },
         ],
@@ -3223,12 +3224,12 @@ def test_create_template_file_by_list_index(mock_yaml_dump, project):
         "PatchInputs": [
             {
                 "op": "replace",
-                "path": "Property1/1",
+                "path": "/Property1/1",
                 "value": update_value_1,
             },
             {
                 "op": "add",
-                "path": "Property2/1",
+                "path": "/Property2/1",
                 "value": update_value_2,
             },
         ],
@@ -3300,15 +3301,15 @@ def test_create_template_file_with_skipped_patch_operation(mock_yaml_dump, proje
         "PatchInputs": [
             {
                 "op": "test",
-                "path": "Property1",
+                "path": "/Property1",
                 "value": update_value_1,
             },
             {
                 "op": "move",
-                "path": "Property4",
+                "path": "/Property4",
                 "value": update_value_2,
             },
-            {"op": "copy", "from": "Property4", "path": "Property2"},
+            {"op": "copy", "from": "Property4", "path": "/Property2"},
         ],
     }
     setup_contract_test_data(project.root, contract_test_data)
@@ -3379,13 +3380,13 @@ def test_create_template_file_with_patch_inputs_missing_from_create(
         },
         "PatchInputs": [
             {
-                "op": "replace",
-                "path": "Property4",
+                "op": "add",
+                "path": "/Property4",
                 "value": ["{{region}}", update_value_2],
             },
             {
                 "op": "add",
-                "path": "Property8",
+                "path": "/Property8",
                 "value": update_value_8,
             },
         ],
@@ -3466,9 +3467,7 @@ def test_create_template_file_with_patch_inputs_missing_from_create(
 
 
 @patch("rpdk.core.project.yaml.dump")
-def test_create_template_file_with_skipping_patch_inputs_with_invalid_path(
-    mock_yaml_dump, project
-):
+def test_create_template_file_throws_error_with_invalid_path(mock_yaml_dump, project):
     update_value1 = "Value1b"
     update_value_2 = "Value2b"
     contract_test_data = {
@@ -3478,12 +3477,12 @@ def test_create_template_file_with_skipping_patch_inputs_with_invalid_path(
         "PatchInputs": [
             {
                 "op": "replace",
-                "path": "Property1",
+                "path": "/Property1",
                 "value": update_value1,
             },
             {
-                "op": "replace",
-                "path": "Property4/SubProperty4",
+                "op": "add",
+                "path": "/Property4/SubProperty4",
                 "value": update_value_2,
             },
         ],
@@ -3511,26 +3510,10 @@ def test_create_template_file_with_skipping_patch_inputs_with_invalid_path(
 
     with patch_settings(project, data) as mock_open, patch_load as mock_load:
         project.load_settings()
-    project.generate_canary_files()
+    with pytest.raises(jsonpatch.JsonPointerException):
+        project.generate_canary_files()
     mock_open.assert_called_once_with("r", encoding="utf-8")
     mock_load.assert_called_once_with(LANGUAGE)
-
-    expected_template_data = {
-        "Description": "Template for AWS::Example::Resource",
-        "Resources": {
-            "Resource": {
-                "Type": "AWS::Example::Resource",
-                "Properties": {
-                    "Property1": update_value1,
-                },
-            }
-        },
-    }
-    args, kwargs = _get_mock_yaml_dump_call_arg(
-        mock_yaml_dump.call_args_list, CANARY_PATCH_FILE_SUFFIX
-    )
-    assert args[0] == expected_template_data
-    assert kwargs
 
 
 @patch("rpdk.core.project.yaml.dump")
@@ -3550,12 +3533,12 @@ def test_create_template_file_with_nested_replace_patch_inputs(mock_yaml_dump, p
         "PatchInputs": [
             {
                 "op": "replace",
-                "path": "Property8/Nested/PropertyA",
+                "path": "/Property8/Nested/PropertyA",
                 "value": update_value_1,
             },
             {
                 "op": "replace",
-                "path": "Property8/Nested/PropertyB",
+                "path": "/Property8/Nested/PropertyB",
                 "value": ["{{region}}", update_value_2],
             },
         ],
@@ -3657,12 +3640,12 @@ def test_create_template_file_with_nested_remove_patch_inputs(mock_yaml_dump, pr
         "PatchInputs": [
             {
                 "op": "replace",
-                "path": "Property8/Nested/PropertyA",
+                "path": "/Property8/Nested/PropertyA",
                 "value": update_value_1,
             },
             {
                 "op": "remove",
-                "path": "Property8/Nested/PropertyB/1",
+                "path": "/Property8/Nested/PropertyB/1",
             },
         ],
     }
@@ -3760,7 +3743,7 @@ def test_create_template_file_with_nested_add_patch_inputs(mock_yaml_dump, proje
         "PatchInputs": [
             {
                 "op": "add",
-                "path": "Property8/Nested/PropertyB/2",
+                "path": "/Property8/Nested/PropertyB/2",
                 "value": update_value_2,
             },
         ],
