@@ -5,8 +5,11 @@ import json
 import logging
 import os
 import random
+import re
+import shutil
 import string
 import sys
+import uuid
 import zipfile
 from contextlib import contextmanager
 from io import StringIO
@@ -28,11 +31,19 @@ from rpdk.core.exceptions import (
 )
 from rpdk.core.plugin_base import LanguagePlugin
 from rpdk.core.project import (
+    CANARY_DEPENDENCY_FILE_NAME,
+    CANARY_FILE_PREFIX,
     CFN_METADATA_FILENAME,
     CONFIGURATION_SCHEMA_UPLOAD_FILENAME,
+    CONTRACT_TEST_DEPENDENCY_FILE_NAME,
+    CONTRACT_TEST_FILE_NAMES,
+    CONTRACT_TEST_FOLDER,
+    FILE_GENERATION_ENABLED,
     OVERRIDES_FILENAME,
     SCHEMA_UPLOAD_FILENAME,
     SETTINGS_FILENAME,
+    TARGET_CANARY_FOLDER,
+    TARGET_CANARY_ROOT_FOLDER,
     TARGET_INFO_FILENAME,
     Project,
     escape_markdown,
@@ -2734,3 +2745,276 @@ def test__load_target_info_for_hooks_local_only(project):
         sorted(test_type_info.keys()), local_schemas=ANY, local_info=test_type_info
     )
     assert len(mock_loader.call_args[1]["local_schemas"]) == 4
+
+
+def setup_contract_test_data(tmp_path, contract_test_data=None):
+    root_path = tmp_path
+    contract_test_folder = root_path / CONTRACT_TEST_FOLDER
+    contract_test_folder.mkdir(parents=True, exist_ok=True)
+    assert contract_test_folder.exists()
+    # Create a dummy JSON file in the canary_root_path directory
+    create_dummy_json_file(contract_test_folder, "inputs_1.json", contract_test_data)
+    create_dummy_json_file(contract_test_folder, "inputs_2.json", contract_test_data)
+    (contract_test_folder / CONTRACT_TEST_DEPENDENCY_FILE_NAME).touch()
+    assert contract_test_folder.exists()
+    return Project(str(root_path))
+
+
+def create_dummy_json_file(directory: Path, file_name: str, dummy_data=None):
+    """Create a dummy JSON file in the given directory."""
+    dummy_json_file = directory / file_name
+    if not dummy_data:
+        dummy_data = {
+            "CreateInputs": {
+                "Property1": "Value1",
+                "Property2": "Value1",
+            }
+        }
+    with dummy_json_file.open("w") as f:
+        json.dump(dummy_data, f)
+
+
+def create_folder(folder: Path):
+    if os.path.exists(folder):
+        shutil.rmtree(folder)
+    folder.mkdir()
+
+
+def test_generate_canary_files(project):
+    setup_contract_test_data(project.root)
+    tmp_path = project.root
+    plugin = object()
+    data = json.dumps(
+        {
+            "artifact_type": "RESOURCE",
+            "language": LANGUAGE,
+            "runtime": RUNTIME,
+            "entrypoint": None,
+            "testEntrypoint": None,
+            "futureProperty": "value",
+            "typeName": "AWS::Example::Resource",
+            "canarySettings": {
+                FILE_GENERATION_ENABLED: True,
+                CONTRACT_TEST_FILE_NAMES: ["inputs_1.json", "inputs_2.json"],
+            },
+        }
+    )
+    patch_load = patch(
+        "rpdk.core.project.load_plugin", autospec=True, return_value=plugin
+    )
+
+    with patch_settings(project, data) as mock_open, patch_load as mock_load:
+        project.load_settings()
+    project.generate_canary_files()
+    mock_open.assert_called_once_with("r", encoding="utf-8")
+    mock_load.assert_called_once_with(LANGUAGE)
+    canary_root_path = tmp_path / TARGET_CANARY_ROOT_FOLDER
+    canary_folder_path = tmp_path / TARGET_CANARY_FOLDER
+    assert canary_root_path.exists()
+    assert canary_folder_path.exists()
+
+    canary_files = list(canary_folder_path.glob(f"{CANARY_FILE_PREFIX}*"))
+    assert len(canary_files) == 2
+    canary_files.sort()
+    assert canary_files[0].name == f"{CANARY_FILE_PREFIX}1_001.yaml"
+    assert canary_files[1].name == f"{CANARY_FILE_PREFIX}2_001.yaml"
+
+    bootstrap_file = canary_root_path / CANARY_DEPENDENCY_FILE_NAME
+    assert bootstrap_file.exists()
+
+
+@patch("rpdk.core.project.yaml.dump")
+def test_create_template_file(mock_yaml_dump, project):
+    contract_test_data = {
+        "CreateInputs": {
+            "Property1": "Value1",
+            "Property2": "{{test123}}",
+            "Property3": {"Nested": "{{partition}}"},
+            "Property4": ["{{region}}", "Value2"],
+            "Property5": "{{uuid}}",
+            "Property6": "{{account}}",
+            "Property7": "prefix-{{uuid}}-sufix",
+        }
+    }
+    setup_contract_test_data(project.root, contract_test_data)
+    plugin = object()
+    data = json.dumps(
+        {
+            "artifact_type": "RESOURCE",
+            "language": LANGUAGE,
+            "runtime": RUNTIME,
+            "entrypoint": None,
+            "testEntrypoint": None,
+            "futureProperty": "value",
+            "typeName": "AWS::Example::Resource",
+            "canarySettings": {
+                FILE_GENERATION_ENABLED: True,
+                CONTRACT_TEST_FILE_NAMES: ["inputs_1.json", "inputs_2.json"],
+            },
+        }
+    )
+    patch_load = patch(
+        "rpdk.core.project.load_plugin", autospec=True, return_value=plugin
+    )
+
+    with patch_settings(project, data) as mock_open, patch_load as mock_load:
+        project.load_settings()
+    project.generate_canary_files()
+    mock_open.assert_called_once_with("r", encoding="utf-8")
+    mock_load.assert_called_once_with(LANGUAGE)
+    expected_template_data = {
+        "Description": "Template for AWS::Example::Resource",
+        "Resources": {
+            "Resource": {
+                "Type": "AWS::Example::Resource",
+                "Properties": {
+                    "Property1": "Value1",
+                    "Property2": {"Fn::ImportValue": ANY},
+                    "Property3": {"Nested": {"Fn::Sub": "${AWS::Partition}"}},
+                    "Property4": [{"Fn::Sub": "${AWS::Region}"}, "Value2"],
+                    "Property5": ANY,
+                    "Property6": {"Fn::Sub": "${AWS::AccountId}"},
+                    "Property7": ANY,
+                },
+            }
+        },
+    }
+    args, kwargs = mock_yaml_dump.call_args
+    assert args[0] == expected_template_data
+    assert kwargs
+    # Assert UUID generation
+    replaced_properties = args[0]["Resources"]["Resource"]["Properties"]
+    assert isinstance(replaced_properties["Property5"], str)
+    assert len(replaced_properties["Property5"]) == 36  # Standard UUID length
+    assert re.match(
+        r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}",
+        replaced_properties["Property5"],
+    )
+
+    # Assert the generated UUID is a valid UUID
+    generated_uuid = replaced_properties["Property5"]
+    assert uuid.UUID(generated_uuid)
+    property7_value = replaced_properties["Property7"]
+    # Assert the replaced value
+    assert isinstance(property7_value, str)
+    assert "prefix-" in property7_value
+    assert "-sufix" in property7_value
+    # Extract the UUID part
+    property7_value = property7_value.replace("prefix-", "").replace("-sufix", "")
+    # Assert the UUID format
+    assert len(property7_value) == 36  # Standard UUID length
+    assert re.match(
+        r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}", property7_value
+    )
+    # Assert the UUID is a valid UUID
+    assert uuid.UUID(property7_value)
+
+
+def setup_rpdk_config(project, rpdk_config):
+    root_path = project.root
+    plugin = object()
+    data = json.dumps(rpdk_config)
+    patch_load = patch(
+        "rpdk.core.project.load_plugin", autospec=True, return_value=plugin
+    )
+
+    with patch_settings(project, data) as mock_open, patch_load as mock_load:
+        project.load_settings()
+    mock_open.assert_called_once_with("r", encoding="utf-8")
+    mock_load.assert_called_once_with(LANGUAGE)
+    contract_test_folder = root_path / CONTRACT_TEST_FOLDER
+    contract_test_folder.mkdir(parents=True, exist_ok=True)
+    # Create a dummy JSON file in the canary_root_path directory
+    create_dummy_json_file(contract_test_folder, "inputs_1.json")
+    create_dummy_json_file(contract_test_folder, "inputs_2.json")
+    (contract_test_folder / CONTRACT_TEST_DEPENDENCY_FILE_NAME).touch()
+
+
+def test_generate_canary_files_when_not_enabled(project):
+    rpdk_config = {
+        ARTIFACT_TYPE_RESOURCE: "RESOURCE",
+        "language": LANGUAGE,
+        "runtime": RUNTIME,
+        "entrypoint": None,
+        "testEntrypoint": None,
+        "futureProperty": "value",
+        "typeName": "AWS::Example::Resource",
+        "canarySettings": {
+            FILE_GENERATION_ENABLED: False,
+            "contract_test_file_names": ["inputs_1.json", "inputs_2.json"],
+        },
+    }
+    tmp_path = project.root
+    setup_rpdk_config(project, rpdk_config)
+    project.generate_canary_files()
+
+    canary_root_path = tmp_path / TARGET_CANARY_ROOT_FOLDER
+    canary_folder_path = tmp_path / TARGET_CANARY_FOLDER
+    assert not canary_root_path.exists()
+    assert not canary_folder_path.exists()
+
+
+def test_generate_canary_files_no_canary_settings(project):
+    rpdk_config = {
+        ARTIFACT_TYPE_RESOURCE: "RESOURCE",
+        "language": LANGUAGE,
+        "runtime": RUNTIME,
+        "entrypoint": None,
+        "testEntrypoint": None,
+        "futureProperty": "value",
+        "typeName": "AWS::Example::Resource",
+    }
+    tmp_path = project.root
+    setup_rpdk_config(project, rpdk_config)
+    project.generate_canary_files()
+
+    canary_root_path = tmp_path / TARGET_CANARY_ROOT_FOLDER
+    canary_folder_path = tmp_path / TARGET_CANARY_FOLDER
+    assert not canary_root_path.exists()
+    assert not canary_folder_path.exists()
+
+
+def test_generate_canary_files_empty_input_files(project):
+    rpdk_config = {
+        ARTIFACT_TYPE_RESOURCE: "RESOURCE",
+        "language": LANGUAGE,
+        "runtime": RUNTIME,
+        "entrypoint": None,
+        "testEntrypoint": None,
+        "futureProperty": "value",
+        "typeName": "AWS::Example::Resource",
+        "canarySettings": {
+            FILE_GENERATION_ENABLED: True,
+            "contract_test_file_names": [],
+        },
+    }
+    tmp_path = project.root
+    setup_rpdk_config(project, rpdk_config)
+    project.generate_canary_files()
+
+    canary_root_path = tmp_path / TARGET_CANARY_ROOT_FOLDER
+    canary_folder_path = tmp_path / TARGET_CANARY_FOLDER
+    assert canary_root_path.exists()
+    assert canary_folder_path.exists()
+    canary_files = list(canary_folder_path.glob(f"{CANARY_FILE_PREFIX}*"))
+    assert not canary_files
+
+
+def test_generate_canary_files_empty_canary_settings(project):
+    rpdk_config = {
+        ARTIFACT_TYPE_RESOURCE: "RESOURCE",
+        "language": LANGUAGE,
+        "runtime": RUNTIME,
+        "entrypoint": None,
+        "testEntrypoint": None,
+        "futureProperty": "value",
+        "typeName": "AWS::Example::Resource",
+        "canarySettings": {},
+    }
+    tmp_path = project.root
+    setup_rpdk_config(project, rpdk_config)
+    project.generate_canary_files()
+    canary_root_path = tmp_path / TARGET_CANARY_ROOT_FOLDER
+    canary_folder_path = tmp_path / TARGET_CANARY_FOLDER
+    assert not canary_root_path.exists()
+    assert not canary_folder_path.exists()

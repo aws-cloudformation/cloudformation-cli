@@ -5,7 +5,7 @@ ipdb>=0.13
 # testing tools
 pylint==3.0.1
 coverage>=7.3.2
-pytest>=7.4.2
+pytest>=7.4.2,<8.0.0
 pytest-cov>=4.1.0
 pytest-random-order>=1.1.0
 hypothesis>=6.87.1

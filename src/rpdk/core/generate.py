@@ -20,7 +20,7 @@ def generate(args):
         args.profile,
     )
     project.generate_docs()
-
+    project.generate_canary_files()
     LOG.warning("Generated files for %s", project.type_name)
 
 
