@@ -17,6 +17,7 @@ from pathlib import Path
 from shutil import copyfile
 from unittest.mock import ANY, MagicMock, Mock, call, patch
 
+import jsonpatch
 import pytest
 import yaml
 from botocore.exceptions import ClientError, WaiterError
@@ -57,6 +58,8 @@ from .utils import CONTENTS_UTF8, UnclosingBytesIO
 ARTIFACT_TYPE_RESOURCE = "RESOURCE"
 ARTIFACT_TYPE_MODULE = "MODULE"
 ARTIFACT_TYPE_HOOK = "HOOK"
+CANARY_CREATE_FILE_SUFFIX = "001"
+CANARY_PATCH_FILE_SUFFIX = "002"
 LANGUAGE = "BQHDBC"
 TYPE_NAME = "AWS::Color::Red"
 MODULE_TYPE_NAME = "AWS::Color::Red::MODULE"
@@ -3017,3 +3020,809 @@ def test_generate_canary_files_empty_canary_settings(project):
     canary_folder_path = tmp_path / TARGET_CANARY_FOLDER
     assert not canary_root_path.exists()
     assert not canary_folder_path.exists()
+
+
+def _get_mock_yaml_dump_call_arg(
+    call_args_list, canary_operation_suffix, arg_index=0, contract_test_count="2"
+):
+    pattern = (
+        rf"{CANARY_FILE_PREFIX}{contract_test_count}_{canary_operation_suffix}\.yaml$"
+    )
+    return [
+        call_item
+        for call_item in call_args_list
+        if re.search(pattern, call_item.args[1].name)
+    ][arg_index]
+
+
+@patch("rpdk.core.project.yaml.dump")
+def test_generate_canary_files_with_patch_inputs(mock_yaml_dump, project):
+    tmp_path = project.root
+    update_value_1 = "Value1b"
+    contract_test_data = {
+        "CreateInputs": {
+            "Property1": "Value1",
+        },
+        "PatchInputs": [
+            {
+                "op": "replace",
+                "path": "/Property1",
+                "value": update_value_1,
+            }
+        ],
+    }
+    setup_contract_test_data(project.root, contract_test_data)
+    plugin = object()
+    data = json.dumps(
+        {
+            "artifact_type": "RESOURCE",
+            "language": LANGUAGE,
+            "runtime": RUNTIME,
+            "entrypoint": None,
+            "testEntrypoint": None,
+            "futureProperty": "value",
+            "typeName": "AWS::Example::Resource",
+            "canarySettings": {
+                FILE_GENERATION_ENABLED: True,
+                CONTRACT_TEST_FILE_NAMES: ["inputs_1.json", "inputs_2.json"],
+            },
+        }
+    )
+    patch_load = patch(
+        "rpdk.core.project.load_plugin", autospec=True, return_value=plugin
+    )
+
+    with patch_settings(project, data) as mock_open, patch_load as mock_load:
+        project.load_settings()
+    project.generate_canary_files()
+    mock_open.assert_called_once_with("r", encoding="utf-8")
+    mock_load.assert_called_once_with(LANGUAGE)
+    canary_root_path = tmp_path / TARGET_CANARY_ROOT_FOLDER
+    canary_folder_path = tmp_path / TARGET_CANARY_FOLDER
+    assert canary_root_path.exists()
+    assert canary_folder_path.exists()
+
+    canary_files = list(canary_folder_path.glob(f"{CANARY_FILE_PREFIX}*"))
+    assert len(canary_files) == 4
+    canary_files.sort()
+    assert canary_files[0].name == f"{CANARY_FILE_PREFIX}1_001.yaml"
+    assert canary_files[1].name == f"{CANARY_FILE_PREFIX}1_002.yaml"
+    assert canary_files[2].name == f"{CANARY_FILE_PREFIX}2_001.yaml"
+    assert canary_files[3].name == f"{CANARY_FILE_PREFIX}2_002.yaml"
+
+    bootstrap_file = canary_root_path / CANARY_DEPENDENCY_FILE_NAME
+    assert bootstrap_file.exists()
+
+
+@patch("rpdk.core.project.yaml.dump")
+def test_create_template_file_with_patch_inputs(mock_yaml_dump, project):
+    update_value_1 = "Value1b"
+    update_value_2 = "Value2b"
+
+    contract_test_data = {
+        "CreateInputs": {
+            "Property1": "Value1",
+            "Property2": "{{test123}}",
+            "Property3": {"Nested": "{{partition}}"},
+            "Property4": ["{{region}}", "Value2"],
+            "Property5": "{{uuid}}",
+            "Property6": "{{account}}",
+            "Property7": "prefix-{{uuid}}-sufix",
+        },
+        "PatchInputs": [
+            {
+                "op": "replace",
+                "path": "/Property1",
+                "value": update_value_1,
+            },
+            {
+                "op": "replace",
+                "path": "/Property2",
+                "value": "{{test1234}}",
+            },
+            {
+                "op": "replace",
+                "path": "/Property3",
+                "value": {"Nested": "{{partition}}"},
+            },
+            {
+                "op": "replace",
+                "path": "/Property4",
+                "value": ["{{region}}", update_value_2],
+            },
+        ],
+    }
+    setup_contract_test_data(project.root, contract_test_data)
+    plugin = object()
+    data = json.dumps(
+        {
+            "artifact_type": "RESOURCE",
+            "language": LANGUAGE,
+            "runtime": RUNTIME,
+            "entrypoint": None,
+            "testEntrypoint": None,
+            "futureProperty": "value",
+            "typeName": "AWS::Example::Resource",
+            "canarySettings": {
+                FILE_GENERATION_ENABLED: True,
+                CONTRACT_TEST_FILE_NAMES: ["inputs_1.json", "inputs_2.json"],
+            },
+        }
+    )
+    patch_load = patch(
+        "rpdk.core.project.load_plugin", autospec=True, return_value=plugin
+    )
+
+    with patch_settings(project, data) as mock_open, patch_load as mock_load:
+        project.load_settings()
+    project.generate_canary_files()
+    mock_open.assert_called_once_with("r", encoding="utf-8")
+    mock_load.assert_called_once_with(LANGUAGE)
+
+    expected_template_data = {
+        "Description": "Template for AWS::Example::Resource",
+        "Resources": {
+            "Resource": {
+                "Type": "AWS::Example::Resource",
+                "Properties": {
+                    "Property1": update_value_1,
+                    "Property2": {"Fn::ImportValue": "test1234"},
+                    "Property3": {"Nested": {"Fn::Sub": "${AWS::Partition}"}},
+                    "Property4": [{"Fn::Sub": "${AWS::Region}"}, update_value_2],
+                    "Property5": ANY,
+                    "Property6": {"Fn::Sub": "${AWS::AccountId}"},
+                    "Property7": ANY,
+                },
+            }
+        },
+    }
+    args, kwargs = _get_mock_yaml_dump_call_arg(
+        mock_yaml_dump.call_args_list, CANARY_PATCH_FILE_SUFFIX
+    )
+    assert args[0] == expected_template_data
+    assert kwargs
+    # verify that dynamically generated variables will be equal between patch and create canaries
+    patch_property5 = args[0]["Resources"]["Resource"]["Properties"]["Property5"]
+
+    # verify that CreateInputs canary is correct
+    expected_template_data_create = {
+        "Description": "Template for AWS::Example::Resource",
+        "Resources": {
+            "Resource": {
+                "Type": "AWS::Example::Resource",
+                "Properties": {
+                    "Property1": "Value1",
+                    "Property2": {"Fn::ImportValue": "test123"},
+                    "Property3": {"Nested": {"Fn::Sub": "${AWS::Partition}"}},
+                    "Property4": [{"Fn::Sub": "${AWS::Region}"}, "Value2"],
+                    "Property5": ANY,
+                    "Property6": {"Fn::Sub": "${AWS::AccountId}"},
+                    "Property7": ANY,
+                },
+            }
+        },
+    }
+    args, kwargs = _get_mock_yaml_dump_call_arg(
+        mock_yaml_dump.call_args_list, CANARY_CREATE_FILE_SUFFIX
+    )
+    assert args[0] == expected_template_data_create
+    assert kwargs
+    assert (
+        patch_property5 == args[0]["Resources"]["Resource"]["Properties"]["Property5"]
+    )
+
+
+@patch("rpdk.core.project.yaml.dump")
+def test_create_template_file_by_list_index(mock_yaml_dump, project):
+    update_value_1 = "Value1b"
+    update_value_2 = "Value2b"
+    contract_test_data = {
+        "CreateInputs": {
+            "Property1": ["{{region}}", "Value1"],
+            "Property2": ["{{region}}", "Value2"],
+        },
+        "PatchInputs": [
+            {
+                "op": "replace",
+                "path": "/Property1/1",
+                "value": update_value_1,
+            },
+            {
+                "op": "add",
+                "path": "/Property2/1",
+                "value": update_value_2,
+            },
+        ],
+    }
+    setup_contract_test_data(project.root, contract_test_data)
+    plugin = object()
+    data = json.dumps(
+        {
+            "artifact_type": "RESOURCE",
+            "language": LANGUAGE,
+            "runtime": RUNTIME,
+            "entrypoint": None,
+            "testEntrypoint": None,
+            "futureProperty": "value",
+            "typeName": "AWS::Example::Resource",
+            "canarySettings": {
+                FILE_GENERATION_ENABLED: True,
+                CONTRACT_TEST_FILE_NAMES: ["inputs_1.json", "inputs_2.json"],
+            },
+        }
+    )
+    patch_load = patch(
+        "rpdk.core.project.load_plugin", autospec=True, return_value=plugin
+    )
+
+    with patch_settings(project, data) as mock_open, patch_load as mock_load:
+        project.load_settings()
+    project.generate_canary_files()
+    mock_open.assert_called_once_with("r", encoding="utf-8")
+    mock_load.assert_called_once_with(LANGUAGE)
+
+    expected_template_data = {
+        "Description": "Template for AWS::Example::Resource",
+        "Resources": {
+            "Resource": {
+                "Type": "AWS::Example::Resource",
+                "Properties": {
+                    "Property1": [{"Fn::Sub": "${AWS::Region}"}, update_value_1],
+                    "Property2": [
+                        {"Fn::Sub": "${AWS::Region}"},
+                        update_value_2,
+                        "Value2",
+                    ],
+                },
+            }
+        },
+    }
+    args, kwargs = _get_mock_yaml_dump_call_arg(
+        mock_yaml_dump.call_args_list, CANARY_PATCH_FILE_SUFFIX
+    )
+    assert args[0] == expected_template_data
+    assert kwargs
+
+
+@patch("rpdk.core.project.yaml.dump")
+def test_create_template_file_with_skipped_patch_operation(mock_yaml_dump, project):
+    update_value_1 = "Value1b"
+    update_value_2 = "Value2b"
+    contract_test_data = {
+        "CreateInputs": {
+            "Property1": "Value1",
+            "Property2": "{{test123}}",
+            "Property3": {"Nested": "{{partition}}"},
+            "Property4": ["{{region}}", "Value2"],
+            "Property5": "{{uuid}}",
+            "Property6": "{{account}}",
+            "Property7": "prefix-{{uuid}}-sufix",
+        },
+        "PatchInputs": [
+            {
+                "op": "test",
+                "path": "/Property1",
+                "value": update_value_1,
+            },
+            {
+                "op": "move",
+                "path": "/Property4",
+                "value": update_value_2,
+            },
+            {"op": "copy", "from": "Property4", "path": "/Property2"},
+        ],
+    }
+    setup_contract_test_data(project.root, contract_test_data)
+    plugin = object()
+    data = json.dumps(
+        {
+            "artifact_type": "RESOURCE",
+            "language": LANGUAGE,
+            "runtime": RUNTIME,
+            "entrypoint": None,
+            "testEntrypoint": None,
+            "futureProperty": "value",
+            "typeName": "AWS::Example::Resource",
+            "canarySettings": {
+                FILE_GENERATION_ENABLED: True,
+                CONTRACT_TEST_FILE_NAMES: ["inputs_1.json", "inputs_2.json"],
+            },
+        }
+    )
+    patch_load = patch(
+        "rpdk.core.project.load_plugin", autospec=True, return_value=plugin
+    )
+
+    with patch_settings(project, data) as mock_open, patch_load as mock_load:
+        project.load_settings()
+    project.generate_canary_files()
+    mock_open.assert_called_once_with("r", encoding="utf-8")
+    mock_load.assert_called_once_with(LANGUAGE)
+
+    expected_template_data = {
+        "Description": "Template for AWS::Example::Resource",
+        "Resources": {
+            "Resource": {
+                "Type": "AWS::Example::Resource",
+                "Properties": {
+                    "Property1": "Value1",
+                    "Property2": {"Fn::ImportValue": ANY},
+                    "Property3": {"Nested": {"Fn::Sub": "${AWS::Partition}"}},
+                    "Property4": [{"Fn::Sub": "${AWS::Region}"}, "Value2"],
+                    "Property5": ANY,
+                    "Property6": {"Fn::Sub": "${AWS::AccountId}"},
+                    "Property7": ANY,
+                },
+            }
+        },
+    }
+    args, kwargs = _get_mock_yaml_dump_call_arg(
+        mock_yaml_dump.call_args_list, CANARY_PATCH_FILE_SUFFIX
+    )
+    assert args[0] == expected_template_data
+    assert kwargs
+
+
+@patch("rpdk.core.project.yaml.dump")
+def test_create_template_file_with_patch_inputs_missing_from_create(
+    mock_yaml_dump, project
+):
+    update_value_2 = "Value2b"
+    update_value_8 = "Value8"
+    contract_test_data = {
+        "CreateInputs": {
+            "Property1": "Value1",
+            "Property2": "{{test123}}",
+            "Property3": {"Nested": "{{partition}}"},
+            "Property5": "{{uuid}}",
+            "Property6": "{{account}}",
+            "Property7": "prefix-{{uuid}}-sufix",
+        },
+        "PatchInputs": [
+            {
+                "op": "add",
+                "path": "/Property4",
+                "value": ["{{region}}", update_value_2],
+            },
+            {
+                "op": "add",
+                "path": "/Property8",
+                "value": update_value_8,
+            },
+        ],
+    }
+    setup_contract_test_data(project.root, contract_test_data)
+    plugin = object()
+    data = json.dumps(
+        {
+            "artifact_type": "RESOURCE",
+            "language": LANGUAGE,
+            "runtime": RUNTIME,
+            "entrypoint": None,
+            "testEntrypoint": None,
+            "futureProperty": "value",
+            "typeName": "AWS::Example::Resource",
+            "canarySettings": {
+                FILE_GENERATION_ENABLED: True,
+                CONTRACT_TEST_FILE_NAMES: ["inputs_1.json", "inputs_2.json"],
+            },
+        }
+    )
+    patch_load = patch(
+        "rpdk.core.project.load_plugin", autospec=True, return_value=plugin
+    )
+
+    with patch_settings(project, data) as mock_open, patch_load as mock_load:
+        project.load_settings()
+    project.generate_canary_files()
+    mock_open.assert_called_once_with("r", encoding="utf-8")
+    mock_load.assert_called_once_with(LANGUAGE)
+
+    expected_template_data = {
+        "Description": "Template for AWS::Example::Resource",
+        "Resources": {
+            "Resource": {
+                "Type": "AWS::Example::Resource",
+                "Properties": {
+                    "Property1": "Value1",
+                    "Property2": {"Fn::ImportValue": ANY},
+                    "Property3": {"Nested": {"Fn::Sub": "${AWS::Partition}"}},
+                    "Property4": [{"Fn::Sub": "${AWS::Region}"}, update_value_2],
+                    "Property5": ANY,
+                    "Property6": {"Fn::Sub": "${AWS::AccountId}"},
+                    "Property7": ANY,
+                    "Property8": update_value_8,
+                },
+            }
+        },
+    }
+    args, kwargs = _get_mock_yaml_dump_call_arg(
+        mock_yaml_dump.call_args_list, CANARY_PATCH_FILE_SUFFIX
+    )
+    assert args[0] == expected_template_data
+    assert kwargs
+
+    # verify that CreateInputs canary is correct
+    expected_template_data_create = {
+        "Description": "Template for AWS::Example::Resource",
+        "Resources": {
+            "Resource": {
+                "Type": "AWS::Example::Resource",
+                "Properties": {
+                    "Property1": "Value1",
+                    "Property2": {"Fn::ImportValue": ANY},
+                    "Property3": {"Nested": {"Fn::Sub": "${AWS::Partition}"}},
+                    "Property5": ANY,
+                    "Property6": {"Fn::Sub": "${AWS::AccountId}"},
+                    "Property7": ANY,
+                },
+            }
+        },
+    }
+    args, kwargs = _get_mock_yaml_dump_call_arg(
+        mock_yaml_dump.call_args_list, CANARY_CREATE_FILE_SUFFIX
+    )
+    assert args[0] == expected_template_data_create
+    assert kwargs
+
+
+@patch("rpdk.core.project.yaml.dump")
+def test_create_template_file_throws_error_with_invalid_path(mock_yaml_dump, project):
+    update_value1 = "Value1b"
+    update_value_2 = "Value2b"
+    contract_test_data = {
+        "CreateInputs": {
+            "Property1": "Value1",
+        },
+        "PatchInputs": [
+            {
+                "op": "replace",
+                "path": "/Property1",
+                "value": update_value1,
+            },
+            {
+                "op": "add",
+                "path": "/Property4/SubProperty4",
+                "value": update_value_2,
+            },
+        ],
+    }
+    setup_contract_test_data(project.root, contract_test_data)
+    plugin = object()
+    data = json.dumps(
+        {
+            "artifact_type": "RESOURCE",
+            "language": LANGUAGE,
+            "runtime": RUNTIME,
+            "entrypoint": None,
+            "testEntrypoint": None,
+            "futureProperty": "value",
+            "typeName": "AWS::Example::Resource",
+            "canarySettings": {
+                FILE_GENERATION_ENABLED: True,
+                CONTRACT_TEST_FILE_NAMES: ["inputs_1.json", "inputs_2.json"],
+            },
+        }
+    )
+    patch_load = patch(
+        "rpdk.core.project.load_plugin", autospec=True, return_value=plugin
+    )
+
+    with patch_settings(project, data) as mock_open, patch_load as mock_load:
+        project.load_settings()
+    with pytest.raises(jsonpatch.JsonPointerException):
+        project.generate_canary_files()
+    mock_open.assert_called_once_with("r", encoding="utf-8")
+    mock_load.assert_called_once_with(LANGUAGE)
+
+
+@patch("rpdk.core.project.yaml.dump")
+def test_create_template_file_with_nested_replace_patch_inputs(mock_yaml_dump, project):
+    update_value_1 = "Value_Nested1b"
+    update_value_2 = "Value_Nested2b"
+    contract_test_data = {
+        "CreateInputs": {
+            "Property1": "Value1",
+            "Property8": {
+                "Nested": {
+                    "PropertyA": "Value_Nested1",
+                    "PropertyB": ["{{region}}", "Value_Nested2"],
+                }
+            },
+        },
+        "PatchInputs": [
+            {
+                "op": "replace",
+                "path": "/Property8/Nested/PropertyA",
+                "value": update_value_1,
+            },
+            {
+                "op": "replace",
+                "path": "/Property8/Nested/PropertyB",
+                "value": ["{{region}}", update_value_2],
+            },
+        ],
+    }
+    setup_contract_test_data(project.root, contract_test_data)
+    plugin = object()
+    data = json.dumps(
+        {
+            "artifact_type": "RESOURCE",
+            "language": LANGUAGE,
+            "runtime": RUNTIME,
+            "entrypoint": None,
+            "testEntrypoint": None,
+            "futureProperty": "value",
+            "typeName": "AWS::Example::Resource",
+            "canarySettings": {
+                FILE_GENERATION_ENABLED: True,
+                CONTRACT_TEST_FILE_NAMES: ["inputs_1.json", "inputs_2.json"],
+            },
+        }
+    )
+    patch_load = patch(
+        "rpdk.core.project.load_plugin", autospec=True, return_value=plugin
+    )
+
+    with patch_settings(project, data) as mock_open, patch_load as mock_load:
+        project.load_settings()
+    project.generate_canary_files()
+    mock_open.assert_called_once_with("r", encoding="utf-8")
+    mock_load.assert_called_once_with(LANGUAGE)
+
+    expected_template_data = {
+        "Description": "Template for AWS::Example::Resource",
+        "Resources": {
+            "Resource": {
+                "Type": "AWS::Example::Resource",
+                "Properties": {
+                    "Property1": "Value1",
+                    "Property8": {
+                        "Nested": {
+                            "PropertyA": update_value_1,
+                            "PropertyB": [
+                                {"Fn::Sub": "${AWS::Region}"},
+                                update_value_2,
+                            ],
+                        }
+                    },
+                },
+            }
+        },
+    }
+    args, kwargs = _get_mock_yaml_dump_call_arg(
+        mock_yaml_dump.call_args_list, CANARY_PATCH_FILE_SUFFIX
+    )
+    assert args[0] == expected_template_data
+    assert kwargs
+
+    # verify that CreateInputs canary is correct
+    expected_template_data_create = {
+        "Description": "Template for AWS::Example::Resource",
+        "Resources": {
+            "Resource": {
+                "Type": "AWS::Example::Resource",
+                "Properties": {
+                    "Property1": "Value1",
+                    "Property8": {
+                        "Nested": {
+                            "PropertyA": "Value_Nested1",
+                            "PropertyB": [
+                                {"Fn::Sub": "${AWS::Region}"},
+                                "Value_Nested2",
+                            ],
+                        }
+                    },
+                },
+            }
+        },
+    }
+    args, kwargs = _get_mock_yaml_dump_call_arg(
+        mock_yaml_dump.call_args_list, CANARY_CREATE_FILE_SUFFIX
+    )
+    assert args[0] == expected_template_data_create
+    assert kwargs
+
+
+@patch("rpdk.core.project.yaml.dump")
+def test_create_template_file_with_nested_remove_patch_inputs(mock_yaml_dump, project):
+    update_value_1 = "Value_Nested1b"
+    contract_test_data = {
+        "CreateInputs": {
+            "Property1": "Value1",
+            "Property8": {
+                "Nested": {
+                    "PropertyA": "Value_Nested1",
+                    "PropertyB": ["{{region}}", "Value_Nested2"],
+                }
+            },
+        },
+        "PatchInputs": [
+            {
+                "op": "replace",
+                "path": "/Property8/Nested/PropertyA",
+                "value": update_value_1,
+            },
+            {
+                "op": "remove",
+                "path": "/Property8/Nested/PropertyB/1",
+            },
+        ],
+    }
+    setup_contract_test_data(project.root, contract_test_data)
+    plugin = object()
+    data = json.dumps(
+        {
+            "artifact_type": "RESOURCE",
+            "language": LANGUAGE,
+            "runtime": RUNTIME,
+            "entrypoint": None,
+            "testEntrypoint": None,
+            "futureProperty": "value",
+            "typeName": "AWS::Example::Resource",
+            "canarySettings": {
+                FILE_GENERATION_ENABLED: True,
+                CONTRACT_TEST_FILE_NAMES: ["inputs_1.json", "inputs_2.json"],
+            },
+        }
+    )
+    patch_load = patch(
+        "rpdk.core.project.load_plugin", autospec=True, return_value=plugin
+    )
+
+    with patch_settings(project, data) as mock_open, patch_load as mock_load:
+        project.load_settings()
+    project.generate_canary_files()
+    mock_open.assert_called_once_with("r", encoding="utf-8")
+    mock_load.assert_called_once_with(LANGUAGE)
+    expected_template_data = {
+        "Description": "Template for AWS::Example::Resource",
+        "Resources": {
+            "Resource": {
+                "Type": "AWS::Example::Resource",
+                "Properties": {
+                    "Property1": "Value1",
+                    "Property8": {
+                        "Nested": {
+                            "PropertyA": update_value_1,
+                            "PropertyB": [
+                                {"Fn::Sub": "${AWS::Region}"},
+                            ],
+                        }
+                    },
+                },
+            }
+        },
+    }
+    args, kwargs = _get_mock_yaml_dump_call_arg(
+        mock_yaml_dump.call_args_list, CANARY_PATCH_FILE_SUFFIX
+    )
+    assert args[0] == expected_template_data
+    assert kwargs
+
+    # verify that CreateInputs canary is correct
+    expected_template_data_create = {
+        "Description": "Template for AWS::Example::Resource",
+        "Resources": {
+            "Resource": {
+                "Type": "AWS::Example::Resource",
+                "Properties": {
+                    "Property1": "Value1",
+                    "Property8": {
+                        "Nested": {
+                            "PropertyA": "Value_Nested1",
+                            "PropertyB": [
+                                {"Fn::Sub": "${AWS::Region}"},
+                                "Value_Nested2",
+                            ],
+                        }
+                    },
+                },
+            }
+        },
+    }
+    args, kwargs = _get_mock_yaml_dump_call_arg(
+        mock_yaml_dump.call_args_list, CANARY_CREATE_FILE_SUFFIX
+    )
+    assert args[0] == expected_template_data_create
+    assert kwargs
+
+
+@patch("rpdk.core.project.yaml.dump")
+def test_create_template_file_with_nested_add_patch_inputs(mock_yaml_dump, project):
+    update_value_2 = "Value_Nested2b"
+    contract_test_data = {
+        "CreateInputs": {
+            "Property8": {
+                "Nested": {
+                    "PropertyA": "Value_Nested1",
+                    "PropertyB": ["{{region}}", "Value_Nested2"],
+                }
+            },
+        },
+        "PatchInputs": [
+            {
+                "op": "add",
+                "path": "/Property8/Nested/PropertyB/2",
+                "value": update_value_2,
+            },
+        ],
+    }
+    setup_contract_test_data(project.root, contract_test_data)
+    plugin = object()
+    data = json.dumps(
+        {
+            "artifact_type": "RESOURCE",
+            "language": LANGUAGE,
+            "runtime": RUNTIME,
+            "entrypoint": None,
+            "testEntrypoint": None,
+            "futureProperty": "value",
+            "typeName": "AWS::Example::Resource",
+            "canarySettings": {
+                FILE_GENERATION_ENABLED: True,
+                CONTRACT_TEST_FILE_NAMES: ["inputs_1.json", "inputs_2.json"],
+            },
+        }
+    )
+    patch_load = patch(
+        "rpdk.core.project.load_plugin", autospec=True, return_value=plugin
+    )
+
+    with patch_settings(project, data) as mock_open, patch_load as mock_load:
+        project.load_settings()
+    project.generate_canary_files()
+    mock_open.assert_called_once_with("r", encoding="utf-8")
+    mock_load.assert_called_once_with(LANGUAGE)
+
+    expected_template_data = {
+        "Description": "Template for AWS::Example::Resource",
+        "Resources": {
+            "Resource": {
+                "Type": "AWS::Example::Resource",
+                "Properties": {
+                    "Property8": {
+                        "Nested": {
+                            "PropertyA": "Value_Nested1",
+                            "PropertyB": [
+                                {"Fn::Sub": "${AWS::Region}"},
+                                "Value_Nested2",
+                                update_value_2,
+                            ],
+                        }
+                    },
+                },
+            }
+        },
+    }
+    args, kwargs = _get_mock_yaml_dump_call_arg(
+        mock_yaml_dump.call_args_list, CANARY_PATCH_FILE_SUFFIX
+    )
+    assert args[0] == expected_template_data
+    assert kwargs
+
+    # verify that CreateInputs canary is correct
+    expected_template_data_create = {
+        "Description": "Template for AWS::Example::Resource",
+        "Resources": {
+            "Resource": {
+                "Type": "AWS::Example::Resource",
+                "Properties": {
+                    "Property8": {
+                        "Nested": {
+                            "PropertyA": "Value_Nested1",
+                            "PropertyB": [
+                                {"Fn::Sub": "${AWS::Region}"},
+                                "Value_Nested2",
+                            ],
+                        }
+                    },
+                },
+            }
+        },
+    }
+    args, kwargs = _get_mock_yaml_dump_call_arg(
+        mock_yaml_dump.call_args_list, CANARY_CREATE_FILE_SUFFIX
+    )
+    assert args[0] == expected_template_data_create
+    assert kwargs

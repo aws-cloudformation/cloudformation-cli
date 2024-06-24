@@ -11,6 +11,7 @@ from tempfile import TemporaryFile
 from typing import Any, Dict
 from uuid import uuid4
 
+import jsonpatch
 import yaml
 from botocore.exceptions import ClientError, WaiterError
 from jinja2 import Environment, PackageLoader, select_autoescape
@@ -63,6 +64,13 @@ TARGET_CANARY_ROOT_FOLDER = "canary-bundle"
 TARGET_CANARY_FOLDER = "canary-bundle/canary"
 RPDK_CONFIG_FILE = ".rpdk-config"
 CANARY_FILE_PREFIX = "canary"
+CANARY_FILE_CREATE_SUFFIX = "001"
+CANARY_FILE_UPDATE_SUFFIX = "002"
+CANARY_SUPPORTED_PATCH_INPUT_OPERATIONS = {"replace", "remove", "add"}
+CREATE_INPUTS_KEY = "CreateInputs"
+PATCH_INPUTS_KEY = "PatchInputs"
+PATCH_VALUE_KEY = "value"
+PATCH_OPERATION_KEY = "op"
 CONTRACT_TEST_DEPENDENCY_FILE_NAME = "dependencies.yml"
 CANARY_DEPENDENCY_FILE_NAME = "bootstrap.yaml"
 CANARY_SETTINGS = "canarySettings"
@@ -76,7 +84,6 @@ CONTRACT_TEST_DEPENDENCY_FILE_NAME = "dependencies.yml"
 FILE_GENERATION_ENABLED = "file_generation_enabled"
 TYPE_NAME = "typeName"
 CONTRACT_TEST_FILE_NAMES = "contract_test_file_names"
-INPUT1_FILE_NAME = "inputs_1.json"
 FN_SUB = "Fn::Sub"
 FN_IMPORT_VALUE = "Fn::ImportValue"
 UUID = "uuid"
@@ -1345,21 +1352,68 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
             with ct_file.open("r") as f:
                 json_data = json.load(f)
             resource_name = self.type_info[2]
-            stack_template_data = {
-                "Description": f"Template for {self.type_name}",
-                "Resources": {
-                    f"{resource_name}": {
-                        "Type": self.type_name,
-                        "Properties": self._replace_dynamic_values(
-                            json_data["CreateInputs"]
-                        ),
-                    }
-                },
-            }
-            stack_template_file_name = f"{CANARY_FILE_PREFIX}{count}_001.yaml"
-            stack_template_file_path = stack_template_folder / stack_template_file_name
-            with stack_template_file_path.open("w") as stack_template_file:
-                yaml.dump(stack_template_data, stack_template_file, indent=2)
+
+            self._save_stack_template_data(
+                resource_name,
+                count,
+                stack_template_folder,
+                self._replace_dynamic_values(
+                    json_data[CREATE_INPUTS_KEY],
+                ),
+                CANARY_FILE_CREATE_SUFFIX,
+            )
+            if PATCH_INPUTS_KEY in json_data:
+                supported_patch_inputs = self._translate_supported_patch_inputs(
+                    json_data[PATCH_INPUTS_KEY]
+                )
+                patch_data = jsonpatch.apply_patch(
+                    json_data[CREATE_INPUTS_KEY], supported_patch_inputs, in_place=False
+                )
+                self._save_stack_template_data(
+                    resource_name,
+                    count,
+                    stack_template_folder,
+                    patch_data,
+                    CANARY_FILE_UPDATE_SUFFIX,
+                )
+
+    def _save_stack_template_data(
+        self,
+        resource_name,
+        contract_test_input_count,
+        stack_template_folder,
+        properties_data,
+        suffix,
+    ):
+        stack_template_data = {
+            "Description": f"Template for {self.type_name}",
+            "Resources": {
+                f"{resource_name}": {
+                    "Type": self.type_name,
+                    "Properties": properties_data,
+                }
+            },
+        }
+        stack_template_file_name = (
+            f"{CANARY_FILE_PREFIX}{contract_test_input_count}_{suffix}.yaml"
+        )
+        stack_template_file_path = stack_template_folder / stack_template_file_name
+        with stack_template_file_path.open("w") as stack_template_file:
+            yaml.dump(stack_template_data, stack_template_file, indent=2)
+
+    def _translate_supported_patch_inputs(self, patch_inputs: Any) -> Any:
+        output = []
+        for patch_input in patch_inputs:
+            if (
+                patch_input.get(PATCH_OPERATION_KEY)
+                in CANARY_SUPPORTED_PATCH_INPUT_OPERATIONS
+            ):
+                if PATCH_VALUE_KEY in patch_input:
+                    self._replace_dynamic_values_with_root_key(
+                        patch_input, PATCH_VALUE_KEY
+                    )
+                output.append(patch_input)
+        return output
 
     def _replace_dynamic_values(self, properties: Dict[str, Any]) -> Dict[str, Any]:
         for key, value in properties.items():
@@ -1370,6 +1424,19 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
             else:
                 return_value = self._replace_dynamic_value(value)
                 properties[key] = return_value
+        return properties
+
+    def _replace_dynamic_values_with_root_key(
+        self, properties: Dict[str, Any], root_key=None
+    ) -> Dict[str, Any]:
+        value = properties[root_key]
+        if isinstance(value, dict):
+            properties[root_key] = self._replace_dynamic_values(value)
+        elif isinstance(value, list):
+            properties[root_key] = [self._replace_dynamic_value(item) for item in value]
+        else:
+            return_value = self._replace_dynamic_value(value)
+            properties[root_key] = return_value
         return properties
 
     def _replace_dynamic_value(self, original_value: Any) -> Any:
