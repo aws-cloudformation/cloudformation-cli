@@ -39,7 +39,6 @@ from rpdk.core.project import (
     CONTRACT_TEST_DEPENDENCY_FILE_NAME,
     CONTRACT_TEST_FILE_NAMES,
     CONTRACT_TEST_FOLDER,
-    FILE_GENERATION_ENABLED,
     OVERRIDES_FILENAME,
     SCHEMA_UPLOAD_FILENAME,
     SETTINGS_FILENAME,
@@ -2796,7 +2795,6 @@ def test_generate_canary_files(project):
             "futureProperty": "value",
             "typeName": "AWS::Example::Resource",
             "canarySettings": {
-                FILE_GENERATION_ENABLED: True,
                 CONTRACT_TEST_FILE_NAMES: ["inputs_1.json", "inputs_2.json"],
             },
         }
@@ -2850,7 +2848,6 @@ def test_create_template_file(mock_yaml_dump, project):
             "futureProperty": "value",
             "typeName": "AWS::Example::Resource",
             "canarySettings": {
-                FILE_GENERATION_ENABLED: True,
                 CONTRACT_TEST_FILE_NAMES: ["inputs_1.json", "inputs_2.json"],
             },
         }
@@ -2932,30 +2929,6 @@ def setup_rpdk_config(project, rpdk_config):
     (contract_test_folder / CONTRACT_TEST_DEPENDENCY_FILE_NAME).touch()
 
 
-def test_generate_canary_files_when_not_enabled(project):
-    rpdk_config = {
-        ARTIFACT_TYPE_RESOURCE: "RESOURCE",
-        "language": LANGUAGE,
-        "runtime": RUNTIME,
-        "entrypoint": None,
-        "testEntrypoint": None,
-        "futureProperty": "value",
-        "typeName": "AWS::Example::Resource",
-        "canarySettings": {
-            FILE_GENERATION_ENABLED: False,
-            "contract_test_file_names": ["inputs_1.json", "inputs_2.json"],
-        },
-    }
-    tmp_path = project.root
-    setup_rpdk_config(project, rpdk_config)
-    project.generate_canary_files()
-
-    canary_root_path = tmp_path / TARGET_CANARY_ROOT_FOLDER
-    canary_folder_path = tmp_path / TARGET_CANARY_FOLDER
-    assert not canary_root_path.exists()
-    assert not canary_folder_path.exists()
-
-
 def test_generate_canary_files_no_canary_settings(project):
     rpdk_config = {
         ARTIFACT_TYPE_RESOURCE: "RESOURCE",
@@ -2986,7 +2959,6 @@ def test_generate_canary_files_empty_input_files(project):
         "futureProperty": "value",
         "typeName": "AWS::Example::Resource",
         "canarySettings": {
-            FILE_GENERATION_ENABLED: True,
             "contract_test_file_names": [],
         },
     }
@@ -3018,8 +2990,8 @@ def test_generate_canary_files_empty_canary_settings(project):
     project.generate_canary_files()
     canary_root_path = tmp_path / TARGET_CANARY_ROOT_FOLDER
     canary_folder_path = tmp_path / TARGET_CANARY_FOLDER
-    assert not canary_root_path.exists()
-    assert not canary_folder_path.exists()
+    assert canary_root_path.exists()
+    assert canary_folder_path.exists()
 
 
 def _get_mock_yaml_dump_call_arg(
@@ -3063,7 +3035,6 @@ def test_generate_canary_files_with_patch_inputs(mock_yaml_dump, project):
             "futureProperty": "value",
             "typeName": "AWS::Example::Resource",
             "canarySettings": {
-                FILE_GENERATION_ENABLED: True,
                 CONTRACT_TEST_FILE_NAMES: ["inputs_1.json", "inputs_2.json"],
             },
         }
@@ -3144,7 +3115,6 @@ def test_create_template_file_with_patch_inputs(mock_yaml_dump, project):
             "futureProperty": "value",
             "typeName": "AWS::Example::Resource",
             "canarySettings": {
-                FILE_GENERATION_ENABLED: True,
                 CONTRACT_TEST_FILE_NAMES: ["inputs_1.json", "inputs_2.json"],
             },
         }
@@ -3246,7 +3216,6 @@ def test_create_template_file_by_list_index(mock_yaml_dump, project):
             "futureProperty": "value",
             "typeName": "AWS::Example::Resource",
             "canarySettings": {
-                FILE_GENERATION_ENABLED: True,
                 CONTRACT_TEST_FILE_NAMES: ["inputs_1.json", "inputs_2.json"],
             },
         }
@@ -3324,7 +3293,6 @@ def test_create_template_file_with_skipped_patch_operation(mock_yaml_dump, proje
             "futureProperty": "value",
             "typeName": "AWS::Example::Resource",
             "canarySettings": {
-                FILE_GENERATION_ENABLED: True,
                 CONTRACT_TEST_FILE_NAMES: ["inputs_1.json", "inputs_2.json"],
             },
         }
@@ -3403,7 +3371,6 @@ def test_create_template_file_with_patch_inputs_missing_from_create(
             "futureProperty": "value",
             "typeName": "AWS::Example::Resource",
             "canarySettings": {
-                FILE_GENERATION_ENABLED: True,
                 CONTRACT_TEST_FILE_NAMES: ["inputs_1.json", "inputs_2.json"],
             },
         }
@@ -3499,7 +3466,6 @@ def test_create_template_file_throws_error_with_invalid_path(mock_yaml_dump, pro
             "futureProperty": "value",
             "typeName": "AWS::Example::Resource",
             "canarySettings": {
-                FILE_GENERATION_ENABLED: True,
                 CONTRACT_TEST_FILE_NAMES: ["inputs_1.json", "inputs_2.json"],
             },
         }
@@ -3555,7 +3521,6 @@ def test_create_template_file_with_nested_replace_patch_inputs(mock_yaml_dump, p
             "futureProperty": "value",
             "typeName": "AWS::Example::Resource",
             "canarySettings": {
-                FILE_GENERATION_ENABLED: True,
                 CONTRACT_TEST_FILE_NAMES: ["inputs_1.json", "inputs_2.json"],
             },
         }
@@ -3661,7 +3626,6 @@ def test_create_template_file_with_nested_remove_patch_inputs(mock_yaml_dump, pr
             "futureProperty": "value",
             "typeName": "AWS::Example::Resource",
             "canarySettings": {
-                FILE_GENERATION_ENABLED: True,
                 CONTRACT_TEST_FILE_NAMES: ["inputs_1.json", "inputs_2.json"],
             },
         }
@@ -3760,7 +3724,6 @@ def test_create_template_file_with_nested_add_patch_inputs(mock_yaml_dump, proje
             "futureProperty": "value",
             "typeName": "AWS::Example::Resource",
             "canarySettings": {
-                FILE_GENERATION_ENABLED: True,
                 CONTRACT_TEST_FILE_NAMES: ["inputs_1.json", "inputs_2.json"],
             },
         }

@@ -77,11 +77,9 @@ CANARY_SETTINGS = "canarySettings"
 TYPE_NAME = "typeName"
 CONTRACT_TEST_FILE_NAMES = "contract_test_file_names"
 INPUT1_FILE_NAME = "inputs_1.json"
-FILE_GENERATION_ENABLED = "file_generation_enabled"
 CONTRACT_TEST_FOLDER = "contract-tests-artifacts"
 CONTRACT_TEST_INPUT_PREFIX = "inputs_*"
 CONTRACT_TEST_DEPENDENCY_FILE_NAME = "dependencies.yml"
-FILE_GENERATION_ENABLED = "file_generation_enabled"
 TYPE_NAME = "typeName"
 CONTRACT_TEST_FILE_NAMES = "contract_test_file_names"
 FN_SUB = "Fn::Sub"
@@ -181,6 +179,7 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
         self.executable_entrypoint = None
         self.fragment_dir = None
         self.canary_settings = {}
+        self.has_canary_settings = None
         self.target_info = {}
 
         self.env = Environment(
@@ -257,7 +256,9 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
 
     @property
     def file_generation_enabled(self):
-        return self.canary_settings.get(FILE_GENERATION_ENABLED, False)
+        if self.has_canary_settings is False:
+            return False
+        return True
 
     @property
     def contract_test_file_names(self):
@@ -338,6 +339,10 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
         self._plugin = load_plugin(raw_settings["language"])
         self.settings = raw_settings.get("settings", {})
         self.canary_settings = raw_settings.get("canarySettings", {})
+        if raw_settings.get("canarySettings", False) is False:
+            self.has_canary_settings = False
+        else:
+            self.has_canary_settings = True
 
     def _write_example_schema(self):
         self.schema = resource_json(
@@ -454,7 +459,6 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
         self._plugin = load_plugin(language)
         self.settings = settings or {}
         self.canary_settings = {
-            FILE_GENERATION_ENABLED: True,
             CONTRACT_TEST_FILE_NAMES: [INPUT1_FILE_NAME],
         }
         self._write_example_schema()
@@ -1323,9 +1327,16 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
             not self.file_generation_enabled
             or not Path(self.target_contract_test_folder_path).exists()
         ):
+            LOG.info("Skipping Canary Auto-Generation")
             return
+        LOG.info("Starting Canary Auto-Generation...")
+        if self.file_generation_enabled and self.canary_settings == {}:
+            LOG.warning(
+                "canarySettings are provided but empty. Generation is enabled with default settings."
+            )
         self._setup_stack_template_environment()
         self._generate_stack_template_files()
+        LOG.info("Finished Canary Auto-Generation")
 
     def _setup_stack_template_environment(self) -> None:
         stack_template_root = Path(self.target_canary_root_path)
@@ -1337,7 +1348,12 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
         )
         bootstrap_file = stack_template_root / CANARY_DEPENDENCY_FILE_NAME
         if dependencies_file.exists():
+            LOG.debug("Writing: %s", bootstrap_file)
             shutil.copy(str(dependencies_file), str(bootstrap_file))
+        else:
+            LOG.debug(
+                "Not found: %s. Not writing to: %s", dependencies_file, bootstrap_file
+            )
 
     def _generate_stack_template_files(self) -> None:
         stack_template_folder = Path(self.target_canary_folder_path)
@@ -1349,6 +1365,7 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
         ]
         contract_test_files = sorted(contract_test_files)
         for count, ct_file in enumerate(contract_test_files, start=1):
+            LOG.debug("Loading contract test input file: %s", ct_file)
             with ct_file.open("r") as f:
                 json_data = json.load(f)
             resource_name = self.type_info[2]
@@ -1398,6 +1415,7 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
             f"{CANARY_FILE_PREFIX}{contract_test_input_count}_{suffix}.yaml"
         )
         stack_template_file_path = stack_template_folder / stack_template_file_name
+        LOG.debug("Writing Canary Stack Template File: %s", stack_template_file_path)
         with stack_template_file_path.open("w") as stack_template_file:
             yaml.dump(stack_template_data, stack_template_file, indent=2)
 
