@@ -77,11 +77,9 @@ CANARY_SETTINGS = "canarySettings"
 TYPE_NAME = "typeName"
 CONTRACT_TEST_FILE_NAMES = "contract_test_file_names"
 INPUT1_FILE_NAME = "inputs_1.json"
-FILE_GENERATION_ENABLED = "file_generation_enabled"
 CONTRACT_TEST_FOLDER = "contract-tests-artifacts"
 CONTRACT_TEST_INPUT_PREFIX = "inputs_*"
 CONTRACT_TEST_DEPENDENCY_FILE_NAME = "dependencies.yml"
-FILE_GENERATION_ENABLED = "file_generation_enabled"
 TYPE_NAME = "typeName"
 CONTRACT_TEST_FILE_NAMES = "contract_test_file_names"
 FN_SUB = "Fn::Sub"
@@ -181,6 +179,7 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
         self.executable_entrypoint = None
         self.fragment_dir = None
         self.canary_settings = {}
+        self.has_canary_settings = None
         self.target_info = {}
 
         self.env = Environment(
@@ -257,7 +256,9 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
 
     @property
     def file_generation_enabled(self):
-        return self.canary_settings.get(FILE_GENERATION_ENABLED, False)
+        if self.has_canary_settings is False:
+            return False
+        return True
 
     @property
     def contract_test_file_names(self):
@@ -338,6 +339,10 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
         self._plugin = load_plugin(raw_settings["language"])
         self.settings = raw_settings.get("settings", {})
         self.canary_settings = raw_settings.get("canarySettings", {})
+        if raw_settings.get("canarySettings", False) is False:
+            self.has_canary_settings = False
+        else:
+            self.has_canary_settings = True
 
     def _write_example_schema(self):
         self.schema = resource_json(
@@ -454,7 +459,6 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
         self._plugin = load_plugin(language)
         self.settings = settings or {}
         self.canary_settings = {
-            FILE_GENERATION_ENABLED: True,
             CONTRACT_TEST_FILE_NAMES: [INPUT1_FILE_NAME],
         }
         self._write_example_schema()
@@ -1326,6 +1330,10 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
             LOG.info("Skipping Canary Auto-Generation")
             return
         LOG.info("Starting Canary Auto-Generation...")
+        if self.file_generation_enabled and self.canary_settings == {}:
+            LOG.warning(
+                "canarySettings are provided but empty. Generation is enabled with default settings."
+            )
         self._setup_stack_template_environment()
         self._generate_stack_template_files()
         LOG.info("Finished Canary Auto-Generation")
