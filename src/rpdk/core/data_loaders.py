@@ -3,6 +3,7 @@ import logging
 import os
 import re
 import shutil
+from copy import deepcopy
 from io import TextIOWrapper
 from pathlib import Path
 
@@ -11,6 +12,9 @@ import yaml
 from jsonschema import Draft7Validator, RefResolver
 from jsonschema.exceptions import RefResolutionError, ValidationError
 from nested_lookup import nested_lookup
+
+from rpdk.guard_rail.core.data_types import Stateful, Stateless
+from rpdk.guard_rail.core.runner import exec_compliance
 
 from .exceptions import InternalError, SpecValidationError
 from .jsonutils.flattener import JsonSchemaFlattener
@@ -144,10 +148,36 @@ def get_file_base_uri(file):
     return path.resolve().as_uri()
 
 
-def load_resource_spec(resource_spec_file):  # pylint: disable=R # noqa: C901
+def sgr_stateless_eval(schema):
+    schema_copy = deepcopy(schema)
+    result = exec_compliance(Stateless([schema_copy], []))[0]
+    result.display()
+
+
+def sgr_stateful_eval(schema, original_schema):
+    result = exec_compliance(
+        Stateful(current_schema=schema, previous_schema=original_schema, rules=[])
+    )[0]
+    result.display()
+
+
+def load_resource_spec(
+    resource_spec_file, original_schema_raw=None
+):  # pylint: disable=R # noqa: C901
     """Load a resource provider definition from a file, and validate it."""
+    original_resource_spec = None
     try:
         resource_spec = json.load(resource_spec_file)
+        if original_schema_raw:
+            print(
+                "Type Exists in CloudFormation Registry. Evaluating Resource Schema Backward Compatibility Compliance"
+            )
+            original_resource_spec = json.loads(original_schema_raw)
+            sgr_stateful_eval(resource_spec, original_resource_spec)
+
+        print("Evaluating Resource Schema Compliance")
+        sgr_stateless_eval(resource_spec)
+
     except ValueError as e:
         LOG.debug("Resource spec decode failed", exc_info=True)
         raise SpecValidationError(str(e)) from e
@@ -156,6 +186,7 @@ def load_resource_spec(resource_spec_file):  # pylint: disable=R # noqa: C901
     additional_properties_validator = (
         make_resource_validator_with_additional_properties_check()
     )
+
     try:
         validator.validate(resource_spec)
     except ValidationError as e:
