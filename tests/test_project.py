@@ -2805,7 +2805,7 @@ def test_generate_canary_files(project):
 
     with patch_settings(project, data) as mock_open, patch_load as mock_load:
         project.load_settings()
-    project.generate_canary_files()
+    project.generate_canary_files(local_code_generation=True)
     mock_open.assert_called_once_with("r", encoding="utf-8")
     mock_load.assert_called_once_with(LANGUAGE)
     canary_root_path = tmp_path / TARGET_CANARY_ROOT_FOLDER
@@ -2858,7 +2858,7 @@ def test_create_template_file(mock_yaml_dump, project):
 
     with patch_settings(project, data) as mock_open, patch_load as mock_load:
         project.load_settings()
-    project.generate_canary_files()
+    project.generate_canary_files(local_code_generation=True)
     mock_open.assert_called_once_with("r", encoding="utf-8")
     mock_load.assert_called_once_with(LANGUAGE)
     expected_template_data = {
@@ -2941,7 +2941,53 @@ def test_generate_canary_files_no_canary_settings(project):
     }
     tmp_path = project.root
     setup_rpdk_config(project, rpdk_config)
+    project.generate_canary_files(local_code_generation=True)
+
+    canary_root_path = tmp_path / TARGET_CANARY_ROOT_FOLDER
+    canary_folder_path = tmp_path / TARGET_CANARY_FOLDER
+    assert not canary_root_path.exists()
+    assert not canary_folder_path.exists()
+
+
+def test_generate_canary_files_no_local_code_generation(project):
+    rpdk_config = {
+        ARTIFACT_TYPE_RESOURCE: "RESOURCE",
+        "language": LANGUAGE,
+        "runtime": RUNTIME,
+        "entrypoint": None,
+        "testEntrypoint": None,
+        "futureProperty": "value",
+        "typeName": "AWS::Example::Resource",
+        "canarySettings": {
+            CONTRACT_TEST_FILE_NAMES: ["inputs_1.json", "inputs_2.json"],
+        },
+    }
+    tmp_path = project.root
+    setup_rpdk_config(project, rpdk_config)
     project.generate_canary_files()
+
+    canary_root_path = tmp_path / TARGET_CANARY_ROOT_FOLDER
+    canary_folder_path = tmp_path / TARGET_CANARY_FOLDER
+    assert not canary_root_path.exists()
+    assert not canary_folder_path.exists()
+
+
+def test_generate_canary_files_false_local_code_generation(project):
+    rpdk_config = {
+        ARTIFACT_TYPE_RESOURCE: "RESOURCE",
+        "language": LANGUAGE,
+        "runtime": RUNTIME,
+        "entrypoint": None,
+        "testEntrypoint": None,
+        "futureProperty": "value",
+        "typeName": "AWS::Example::Resource",
+        "canarySettings": {
+            CONTRACT_TEST_FILE_NAMES: ["inputs_1.json", "inputs_2.json"],
+        },
+    }
+    tmp_path = project.root
+    setup_rpdk_config(project, rpdk_config)
+    project.generate_canary_files(local_code_generation=False)
 
     canary_root_path = tmp_path / TARGET_CANARY_ROOT_FOLDER
     canary_folder_path = tmp_path / TARGET_CANARY_FOLDER
@@ -2964,7 +3010,7 @@ def test_generate_canary_files_empty_input_files(project):
     }
     tmp_path = project.root
     setup_rpdk_config(project, rpdk_config)
-    project.generate_canary_files()
+    project.generate_canary_files(local_code_generation=True)
 
     canary_root_path = tmp_path / TARGET_CANARY_ROOT_FOLDER
     canary_folder_path = tmp_path / TARGET_CANARY_FOLDER
@@ -2987,11 +3033,11 @@ def test_generate_canary_files_empty_canary_settings(project):
     }
     tmp_path = project.root
     setup_rpdk_config(project, rpdk_config)
-    project.generate_canary_files()
+    project.generate_canary_files(local_code_generation=True)
     canary_root_path = tmp_path / TARGET_CANARY_ROOT_FOLDER
     canary_folder_path = tmp_path / TARGET_CANARY_FOLDER
-    assert canary_root_path.exists()
-    assert canary_folder_path.exists()
+    assert not canary_root_path.exists()
+    assert not canary_folder_path.exists()
 
 
 def _get_mock_yaml_dump_call_arg(
@@ -3045,7 +3091,7 @@ def test_generate_canary_files_with_patch_inputs(mock_yaml_dump, project):
 
     with patch_settings(project, data) as mock_open, patch_load as mock_load:
         project.load_settings()
-    project.generate_canary_files()
+    project.generate_canary_files(local_code_generation=True)
     mock_open.assert_called_once_with("r", encoding="utf-8")
     mock_load.assert_called_once_with(LANGUAGE)
     canary_root_path = tmp_path / TARGET_CANARY_ROOT_FOLDER
@@ -3125,7 +3171,7 @@ def test_create_template_file_with_patch_inputs(mock_yaml_dump, project):
 
     with patch_settings(project, data) as mock_open, patch_load as mock_load:
         project.load_settings()
-    project.generate_canary_files()
+    project.generate_canary_files(local_code_generation=True)
     mock_open.assert_called_once_with("r", encoding="utf-8")
     mock_load.assert_called_once_with(LANGUAGE)
 
@@ -3226,7 +3272,7 @@ def test_create_template_file_by_list_index(mock_yaml_dump, project):
 
     with patch_settings(project, data) as mock_open, patch_load as mock_load:
         project.load_settings()
-    project.generate_canary_files()
+    project.generate_canary_files(local_code_generation=True)
     mock_open.assert_called_once_with("r", encoding="utf-8")
     mock_load.assert_called_once_with(LANGUAGE)
 
@@ -3303,7 +3349,7 @@ def test_create_template_file_with_skipped_patch_operation(mock_yaml_dump, proje
 
     with patch_settings(project, data) as mock_open, patch_load as mock_load:
         project.load_settings()
-    project.generate_canary_files()
+    project.generate_canary_files(local_code_generation=True)
     mock_open.assert_called_once_with("r", encoding="utf-8")
     mock_load.assert_called_once_with(LANGUAGE)
 
@@ -3381,7 +3427,7 @@ def test_create_template_file_with_patch_inputs_missing_from_create(
 
     with patch_settings(project, data) as mock_open, patch_load as mock_load:
         project.load_settings()
-    project.generate_canary_files()
+    project.generate_canary_files(local_code_generation=True)
     mock_open.assert_called_once_with("r", encoding="utf-8")
     mock_load.assert_called_once_with(LANGUAGE)
 
@@ -3477,7 +3523,7 @@ def test_create_template_file_throws_error_with_invalid_path(mock_yaml_dump, pro
     with patch_settings(project, data) as mock_open, patch_load as mock_load:
         project.load_settings()
     with pytest.raises(jsonpatch.JsonPointerException):
-        project.generate_canary_files()
+        project.generate_canary_files(local_code_generation=True)
     mock_open.assert_called_once_with("r", encoding="utf-8")
     mock_load.assert_called_once_with(LANGUAGE)
 
@@ -3531,7 +3577,7 @@ def test_create_template_file_with_nested_replace_patch_inputs(mock_yaml_dump, p
 
     with patch_settings(project, data) as mock_open, patch_load as mock_load:
         project.load_settings()
-    project.generate_canary_files()
+    project.generate_canary_files(local_code_generation=True)
     mock_open.assert_called_once_with("r", encoding="utf-8")
     mock_load.assert_called_once_with(LANGUAGE)
 
@@ -3636,7 +3682,7 @@ def test_create_template_file_with_nested_remove_patch_inputs(mock_yaml_dump, pr
 
     with patch_settings(project, data) as mock_open, patch_load as mock_load:
         project.load_settings()
-    project.generate_canary_files()
+    project.generate_canary_files(local_code_generation=True)
     mock_open.assert_called_once_with("r", encoding="utf-8")
     mock_load.assert_called_once_with(LANGUAGE)
     expected_template_data = {
@@ -3734,7 +3780,7 @@ def test_create_template_file_with_nested_add_patch_inputs(mock_yaml_dump, proje
 
     with patch_settings(project, data) as mock_open, patch_load as mock_load:
         project.load_settings()
-    project.generate_canary_files()
+    project.generate_canary_files(local_code_generation=True)
     mock_open.assert_called_once_with("r", encoding="utf-8")
     mock_load.assert_called_once_with(LANGUAGE)
 

@@ -20,7 +20,9 @@ def generate(args):
         args.profile,
     )
     project.generate_docs()
-    project.generate_canary_files()
+    project.generate_canary_files(
+        args.local_code_generation,
+    )
     LOG.warning("Generated files for %s", project.type_name)
 
 
@@ -38,3 +40,8 @@ def setup_subparser(subparsers, parents):
         "--target-schemas", help="Path to target schemas.", nargs="*", default=[]
     )
     parser.add_argument("--profile", help="AWS profile to use.")
+    parser.add_argument(
+        "--local-code-generation",
+        action="store_true",
+        help="Enable local code generation.",
+    )
