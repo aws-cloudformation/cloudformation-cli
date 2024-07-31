@@ -509,6 +509,7 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
         if "typeConfiguration" in self.schema:
             configuration_schema = self.schema["typeConfiguration"]
             configuration_schema["definitions"] = self.schema.get("definitions", {})
+            configuration_schema["remote"] = self.schema.get("remote", {})
             configuration_schema["typeName"] = self.type_name
             self.configuration_schema = configuration_schema
 
