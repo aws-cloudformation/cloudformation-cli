@@ -53,7 +53,6 @@ def get_temporary_credentials(
             params["headers"]["x-amz-source-arn"] = headers["source_arn"]
 
         sts_client.meta.events.register("before-call", inject_confused_deputy_headers)
-        LOG.info(headers)
     if role_arn:
         session_name = f"CloudFormationContractTest-{datetime.now():%Y%m%d%H%M%S}"
         try:
