@@ -179,7 +179,6 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
         self.executable_entrypoint = None
         self.fragment_dir = None
         self.canary_settings = {}
-        self.has_canary_settings = None
         self.target_info = {}
 
         self.env = Environment(
@@ -256,7 +255,7 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
 
     @property
     def file_generation_enabled(self):
-        if self.has_canary_settings is False:
+        if self.canary_settings == {}:
             return False
         return True
 
@@ -339,10 +338,6 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
         self._plugin = load_plugin(raw_settings["language"])
         self.settings = raw_settings.get("settings", {})
         self.canary_settings = raw_settings.get("canarySettings", {})
-        if raw_settings.get("canarySettings", False) is False:
-            self.has_canary_settings = False
-        else:
-            self.has_canary_settings = True
 
     def _write_example_schema(self):
         self.schema = resource_json(
@@ -1322,18 +1317,15 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
 
         return type_info
 
-    def generate_canary_files(self) -> None:
+    def generate_canary_files(self, local_code_generation=False) -> None:
         if (
             not self.file_generation_enabled
             or not Path(self.target_contract_test_folder_path).exists()
+            or not local_code_generation
         ):
             LOG.info("Skipping Canary Auto-Generation")
             return
         LOG.info("Starting Canary Auto-Generation...")
-        if self.file_generation_enabled and self.canary_settings == {}:
-            LOG.warning(
-                "canarySettings are provided but empty. Generation is enabled with default settings."
-            )
         self._setup_stack_template_environment()
         self._generate_stack_template_files()
         LOG.info("Finished Canary Auto-Generation")
