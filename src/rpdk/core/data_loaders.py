@@ -21,6 +21,7 @@ LOG = logging.getLogger(__name__)
 
 TIMEOUT_IN_SECONDS = 10
 STDIN_NAME = "<stdin>"
+MAX_CONFIGURATION_SCHEMA_LENGTH = 60 * 1024  # 60 KiB
 
 
 def resource_stream(package_name, resource_name, encoding="utf-8"):
@@ -151,6 +152,12 @@ def load_resource_spec(resource_spec_file):  # pylint: disable=R # noqa: C901
     except ValueError as e:
         LOG.debug("Resource spec decode failed", exc_info=True)
         raise SpecValidationError(str(e)) from e
+
+    # check TypeConfiguration schema size
+    if len(json.dumps(resource_spec).encode("utf-8")) > MAX_CONFIGURATION_SCHEMA_LENGTH:
+        raise SpecValidationError(
+            "TypeConfiguration schema exceeds maximum length of 60 KiB"
+        )
 
     validator = make_resource_validator()
     additional_properties_validator = (
