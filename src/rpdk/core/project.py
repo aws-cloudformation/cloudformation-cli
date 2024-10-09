@@ -335,7 +335,7 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
         self.entrypoint = raw_settings["entrypoint"]
         self.test_entrypoint = raw_settings["testEntrypoint"]
         self.executable_entrypoint = raw_settings.get("executableEntrypoint")
-        # self._plugin = load_plugin(raw_settings["language"])
+        self._plugin = load_plugin(raw_settings["language"])
         self.settings = raw_settings.get("settings", {})
         self.canary_settings = raw_settings.get("canarySettings", {})
 
@@ -509,10 +509,12 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
             return _response["Schema"]
         except ClientError as e:
             LOG.warning(
-                f"Attempted to retrieve latest schema from registry for ResourceType {type_name}"
+                "Attempted to retrieve latest schema from registry for ResourceType %s",
+                type_name,
             )
             LOG.warning(str(e))
             return None
+        # pylint: disable=broad-exception-caught
         except Exception as ex:
             print(str(ex))
             return None
@@ -655,7 +657,9 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
         try:
             self.load_schema(args)
             self.load_configuration_schema()
-            LOG.warning("Resource schema is valid.")
+            LOG.warning(
+                "\nAll resource schema validation checks have completed -- Please see output above for any errors"
+            )
         except FileNotFoundError as e:
             self._raise_invalid_project("Resource schema not found.", e)
         except SpecValidationError as e:

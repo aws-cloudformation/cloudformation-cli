@@ -152,6 +152,8 @@ def sgr_stateless_eval(schema):
     schema_copy = deepcopy(schema)
     result = exec_compliance(Stateless([schema_copy], []))[0]
     result.display()
+    if result.non_compliant.items() != {}:
+        LOG.warning("Issues detected: please see the schema compliance report above")
 
 
 def sgr_stateful_eval(schema, original_schema):
@@ -159,6 +161,8 @@ def sgr_stateful_eval(schema, original_schema):
         Stateful(current_schema=schema, previous_schema=original_schema, rules=[])
     )[0]
     result.display()
+    if result.non_compliant.items() != {}:
+        LOG.warning("Issues detected: please see the schema compliance report above\n")
 
 
 def load_resource_spec(
@@ -170,7 +174,8 @@ def load_resource_spec(
         resource_spec = json.load(resource_spec_file)
         if original_schema_raw:
             print(
-                "Type Exists in CloudFormation Registry. Evaluating Resource Schema Backward Compatibility Compliance"
+                "Type Exists in CloudFormation Registry. "
+                "Evaluating Resource Schema Backward Compatibility Compliance"
             )
             original_resource_spec = json.loads(original_schema_raw)
             sgr_stateful_eval(resource_spec, original_resource_spec)
