@@ -9,6 +9,7 @@ from .project import Project
 LOG = logging.getLogger(__name__)
 
 
+# validations for cfn validate are done in both project.py and data_loaders.py
 def validate(_args):
     project = Project()
     project.load()

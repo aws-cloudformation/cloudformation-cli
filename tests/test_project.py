@@ -173,6 +173,36 @@ def test_load_settings_invalid_hooks_settings(project):
     mock_open.assert_called_once_with("r", encoding="utf-8")
 
 
+def test_load_settings_invalid_protocol_version(project):
+    with patch_settings(
+        project, '{"settings": {"protocolVersion": "3.0.0"}}'
+    ) as mock_open:
+        with pytest.raises(InvalidProjectError):
+            project.load_settings()
+    mock_open.assert_called_once_with("r", encoding="utf-8")
+
+
+def test_load_settings_missing_protocol_version(project):
+    plugin = object()
+    data = json.dumps(
+        {"artifact_type": "MODULE", "typeName": MODULE_TYPE_NAME, "settings": {}}
+    )
+    patch_load = patch(
+        "rpdk.core.project.load_plugin", autospec=True, return_value=plugin
+    )
+
+    with patch_settings(project, data) as mock_open, patch_load as mock_load:
+        project.load_settings()
+    mock_open.assert_called_once_with("r", encoding="utf-8")
+    mock_load.assert_not_called()
+    assert project.type_info == ("AWS", "Color", "Red", "MODULE")
+    assert project.type_name == MODULE_TYPE_NAME
+    assert project.language is None
+    assert project.artifact_type == ARTIFACT_TYPE_MODULE
+    assert project._plugin is None
+    assert project.settings == {}
+
+
 def test_load_settings_valid_json_for_resource(project):
     plugin = object()
     data = json.dumps(
@@ -289,6 +319,57 @@ def test_load_settings_valid_json_for_hook(project):
     assert project.language == LANGUAGE
     assert project.artifact_type == ARTIFACT_TYPE_HOOK
     assert project._plugin is plugin
+    assert project.settings == {}
+
+
+def test_load_settings_valid_protocol_version(project):
+    plugin = object()
+    data = json.dumps(
+        {
+            "artifact_type": "MODULE",
+            "typeName": MODULE_TYPE_NAME,
+            "settings": {"protocolVersion": "2.0.0"},
+        }
+    )
+    patch_load = patch(
+        "rpdk.core.project.load_plugin", autospec=True, return_value=plugin
+    )
+
+    with patch_settings(project, data) as mock_open, patch_load as mock_load:
+        project.load_settings()
+
+    mock_open.assert_called_once_with("r", encoding="utf-8")
+    mock_load.assert_not_called()
+    assert project.type_info == ("AWS", "Color", "Red", "MODULE")
+    assert project.type_name == MODULE_TYPE_NAME
+    assert project.language is None
+    assert project.artifact_type == ARTIFACT_TYPE_MODULE
+    assert project._plugin is None
+    assert project.settings == {"protocolVersion": "2.0.0"}
+
+
+def test_load_settings_missing_settings(project):
+    plugin = object()
+    data = json.dumps(
+        {
+            "artifact_type": "MODULE",
+            "typeName": MODULE_TYPE_NAME,
+        }
+    )
+    patch_load = patch(
+        "rpdk.core.project.load_plugin", autospec=True, return_value=plugin
+    )
+
+    with patch_settings(project, data) as mock_open, patch_load as mock_load:
+        project.load_settings()
+
+    mock_open.assert_called_once_with("r", encoding="utf-8")
+    mock_load.assert_not_called()
+    assert project.type_info == ("AWS", "Color", "Red", "MODULE")
+    assert project.type_name == MODULE_TYPE_NAME
+    assert project.language is None
+    assert project.artifact_type == ARTIFACT_TYPE_MODULE
+    assert project._plugin is None
     assert project.settings == {}
 
 
