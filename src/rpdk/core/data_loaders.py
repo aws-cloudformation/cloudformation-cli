@@ -170,19 +170,8 @@ def load_resource_spec(  # pylint: disable=R # noqa: C901
     resource_spec_file, original_schema_raw=None
 ):
     """Load a resource provider definition from a file, and validate it."""
-    original_resource_spec = None
     try:
         resource_spec = json.load(resource_spec_file)
-        if original_schema_raw:
-            print(
-                "Type Exists in CloudFormation Registry. "
-                "Evaluating Resource Schema Backward Compatibility Compliance",
-            )
-            original_resource_spec = json.loads(original_schema_raw)
-            sgr_stateful_eval(resource_spec, original_resource_spec)
-
-        print("Evaluating Resource Schema Compliance")
-        sgr_stateless_eval(resource_spec)
 
     except ValueError as e:
         LOG.debug("Resource spec decode failed", exc_info=True)
@@ -424,6 +413,23 @@ def load_resource_spec(  # pylint: disable=R # noqa: C901
     except ValidationError as e:
         LOG.debug("Inlined schema is no longer valid", exc_info=True)
         raise InternalError() from e
+
+    LOG.warning(
+        "Resource schema metadata is valid. Running a schema compliance evaluation:\n"
+    )
+
+    # Run SGR checks once Schema Metadata is checked
+    original_resource_spec = None
+    if original_schema_raw:
+        print(
+            "Type Exists in CloudFormation Registry. "
+            "Evaluating Resource Schema Backward Compatibility Compliance",
+        )
+        original_resource_spec = json.loads(original_schema_raw)
+        sgr_stateful_eval(resource_spec, original_resource_spec)
+
+    print("Evaluating Resource Schema Compliance")
+    sgr_stateless_eval(resource_spec)
 
     return inlined
 

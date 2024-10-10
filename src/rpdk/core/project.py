@@ -358,7 +358,7 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
         self.entrypoint = raw_settings["entrypoint"]
         self.test_entrypoint = raw_settings["testEntrypoint"]
         self.executable_entrypoint = raw_settings.get("executableEntrypoint")
-        # self._plugin = load_plugin(raw_settings["language"])
+        self._plugin = load_plugin(raw_settings["language"])
         self.settings = raw_settings.get("settings", {})
         self.canary_settings = raw_settings.get("canarySettings", {})
 
