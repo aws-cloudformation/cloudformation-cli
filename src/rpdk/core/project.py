@@ -95,6 +95,10 @@ DEFAULT_ROLE_TIMEOUT_MINUTES = 120  # 2 hours
 # https://docs.aws.amazon.com/IAM/latest/APIReference/API_CreateRole.html
 MIN_ROLE_TIMEOUT_SECONDS = 3600  # 1 hour
 MAX_ROLE_TIMEOUT_SECONDS = 43200  # 12 hours
+MAX_RPDK_CONFIG_LENGTH = 10 * 1024  # 10 KiB
+MAX_CONFIGURATION_SCHEMA_LENGTH = 60 * 1024  # 60 KiB
+
+PROTOCOL_VERSION_VALUES = frozenset({"1.0.0", "2.0.0"})
 
 CFN_METADATA_FILENAME = ".cfn_metadata.json"
 
@@ -280,6 +284,25 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
         except json.JSONDecodeError as e:
             self._raise_invalid_project(
                 f"Project file '{self.settings_path}' is invalid", e
+            )
+
+        # check size of RPDK config
+        if len(json.dumps(raw_settings).encode("utf-8")) > MAX_RPDK_CONFIG_LENGTH:
+            raise InvalidProjectError(
+                f"Project file '{self.settings_path}' exceeds maximum length of 10 KiB."
+            )
+        # validate protocol version, if specified
+        if "settings" in raw_settings and "protocolVersion" in raw_settings["settings"]:
+            protocol_version = raw_settings["settings"]["protocolVersion"]
+            if protocol_version not in PROTOCOL_VERSION_VALUES:
+                raise InvalidProjectError(
+                    f"Invalid 'protocolVersion' settings in '{self.settings_path}"
+                )
+        else:
+            LOG.warning(
+                "No protovolVersion found: this will default to version 1.0.0 during registration. "
+                "Please consider upgrading to CFN-CLI 2.0 following the guide: "
+                "https://docs.aws.amazon.com/cloudformation-cli/latest/userguide/what-is-cloudformation-cli.html"
             )
 
         # backward compatible
@@ -870,13 +893,15 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
         target_names = (
             self.target_info.keys()
             if self.target_info
-            else {
-                target_name
-                for handler in self.schema.get("handlers", {}).values()
-                for target_name in handler.get("targetNames", [])
-            }
-            if self.artifact_type == ARTIFACT_TYPE_HOOK
-            else []
+            else (
+                {
+                    target_name
+                    for handler in self.schema.get("handlers", {}).values()
+                    for target_name in handler.get("targetNames", [])
+                }
+                if self.artifact_type == ARTIFACT_TYPE_HOOK
+                else []
+            )
         )
 
         LOG.debug("Removing generated docs: %s", docs_path)

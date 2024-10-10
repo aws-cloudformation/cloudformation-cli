@@ -25,6 +25,7 @@ LOG = logging.getLogger(__name__)
 
 TIMEOUT_IN_SECONDS = 10
 STDIN_NAME = "<stdin>"
+MAX_CONFIGURATION_SCHEMA_LENGTH = 60 * 1024  # 60 KiB
 
 
 def resource_stream(package_name, resource_name, encoding="utf-8"):
@@ -165,9 +166,9 @@ def sgr_stateful_eval(schema, original_schema):
         LOG.warning("Issues detected: please see the schema compliance report above\n")
 
 
-def load_resource_spec(
+def load_resource_spec(  # pylint: disable=R # noqa: C901
     resource_spec_file, original_schema_raw=None
-):  # pylint: disable=R # noqa: C901
+):
     """Load a resource provider definition from a file, and validate it."""
     original_resource_spec = None
     try:
@@ -175,7 +176,7 @@ def load_resource_spec(
         if original_schema_raw:
             print(
                 "Type Exists in CloudFormation Registry. "
-                "Evaluating Resource Schema Backward Compatibility Compliance"
+                "Evaluating Resource Schema Backward Compatibility Compliance",
             )
             original_resource_spec = json.loads(original_schema_raw)
             sgr_stateful_eval(resource_spec, original_resource_spec)
@@ -186,6 +187,12 @@ def load_resource_spec(
     except ValueError as e:
         LOG.debug("Resource spec decode failed", exc_info=True)
         raise SpecValidationError(str(e)) from e
+
+    # check TypeConfiguration schema size
+    if len(json.dumps(resource_spec).encode("utf-8")) > MAX_CONFIGURATION_SCHEMA_LENGTH:
+        raise SpecValidationError(
+            "TypeConfiguration schema exceeds maximum length of 60 KiB"
+        )
 
     validator = make_resource_validator()
     additional_properties_validator = (
