@@ -840,13 +840,15 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
         target_names = (
             self.target_info.keys()
             if self.target_info
-            else {
-                target_name
-                for handler in self.schema.get("handlers", {}).values()
-                for target_name in handler.get("targetNames", [])
-            }
-            if self.artifact_type == ARTIFACT_TYPE_HOOK
-            else []
+            else (
+                {
+                    target_name
+                    for handler in self.schema.get("handlers", {}).values()
+                    for target_name in handler.get("targetNames", [])
+                }
+                if self.artifact_type == ARTIFACT_TYPE_HOOK
+                else []
+            )
         )
 
         LOG.debug("Removing generated docs: %s", docs_path)
@@ -1286,7 +1288,9 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
         LOG.debug("Hook schema target names: %s", str(target_names))
 
         if self.artifact_type == ARTIFACT_TYPE_HOOK:
-            target_names = list(filter(lambda x: x not in HOOK_SPECIAL_TARGET_NAMES, target_names))
+            target_names = list(
+                filter(lambda x: x not in HOOK_SPECIAL_TARGET_NAMES, target_names)
+            )
 
         if local_only:
             targets = TypeNameResolver.resolve_type_names_locally(
