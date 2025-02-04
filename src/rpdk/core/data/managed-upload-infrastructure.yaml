@@ -3,6 +3,21 @@ Description: >
   This CloudFormation template provisions all the infrastructure that is
   required to upload artifacts to CloudFormation's managed experience.
 
+Parameters:
+  EnableKMSKeyForS3:
+    Type: String
+    Default: "true"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: >
+      Whether to enable a KMS key for S3 bucket encryption.
+    ConstraintDescription: >
+      Must be either "true" or "false".
+
+Conditions:
+  UseKMSKeyForS3: !Equals [!Ref EnableKMSKeyForS3, "true"]
+
 Resources:
   ArtifactBucket:
     Type: AWS::S3::Bucket
@@ -10,11 +25,15 @@ Resources:
     UpdateReplacePolicy: Delete
     Properties:
       AccessControl: BucketOwnerFullControl
-      BucketEncryption:
-        ServerSideEncryptionConfiguration:
-        - ServerSideEncryptionByDefault:
-            SSEAlgorithm: aws:kms
-            KMSMasterKeyID: !Ref EncryptionKey
+      BucketEncryption: !If
+        - UseKMSKeyForS3
+        - ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: aws:kms
+              KMSMasterKeyID: !Ref EncryptionKey
+        - ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
       LifecycleConfiguration:
         Rules:
           - Id: MultipartUploadLifecycleRule
@@ -110,6 +129,7 @@ Resources:
     Type: AWS::KMS::Key
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
+    Condition: UseKMSKeyForS3
     Properties:
       Description: KMS key used to encrypt the resource type artifacts
       EnableKeyRotation: true

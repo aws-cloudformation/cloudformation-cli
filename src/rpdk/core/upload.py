@@ -15,11 +15,12 @@ INFRA_STACK_NAME = "CloudFormationManagedUploadInfrastructure"
 
 
 class Uploader:
-    def __init__(self, cfn_client, s3_client):
+    def __init__(self, cfn_client, s3_client, use_kms_key):
         self.cfn_client = cfn_client
         self.s3_client = s3_client
         self.bucket_name = ""
         self.log_delivery_role_arn = ""
+        self.use_kms_key = use_kms_key
 
     @staticmethod
     def _get_template():
@@ -85,6 +86,15 @@ class Uploader:
 
     def _create_or_update_stack(self, template, stack_name):
         args = {"StackName": stack_name, "TemplateBody": template}
+        if stack_name == INFRA_STACK_NAME:
+            args |= {
+                "Parameters": [
+                    {
+                        "ParameterName": "EnableKMSKeyForS3",
+                        "ParameterValue": self.use_kms_key,
+                    }
+                ]
+            }
         # attempt to create stack. if the stack already exists, try to update it
         LOG.info("Creating %s", stack_name)
         try:

@@ -66,7 +66,7 @@ class AlreadyExistsException(Exception):
 
 @pytest.fixture
 def uploader():
-    uploader = Uploader(Mock(), Mock())
+    uploader = Uploader(Mock(), Mock(), True)
     uploader.cfn_client.exceptions.AlreadyExistsException = AlreadyExistsException
     return uploader
 
@@ -206,6 +206,12 @@ def test__create_or_update_stack_stack_doesnt_exist(uploader):
         StackName=INFRA_STACK_NAME,
         TemplateBody=CONTENTS_UTF8,
         EnableTerminationProtection=True,
+        Parameters=[
+            {
+                "ParameterName": "EnableKMSKeyForS3",
+                "ParameterValue": True,
+            }
+        ],
     )
     mock_wait.assert_called_once_with(STACK_ID, "stack_create_complete", ANY)
 
@@ -231,11 +237,23 @@ def test__create_or_update_stack_stack_exists_and_no_changes(uploader):
         StackName=INFRA_STACK_NAME,
         TemplateBody=CONTENTS_UTF8,
         EnableTerminationProtection=True,
+        Parameters=[
+            {
+                "ParameterName": "EnableKMSKeyForS3",
+                "ParameterValue": True,
+            }
+        ],
     )
     uploader.cfn_client.update_stack.assert_called_once_with(
         Capabilities=["CAPABILITY_IAM"],
         StackName=INFRA_STACK_NAME,
         TemplateBody=CONTENTS_UTF8,
+        Parameters=[
+            {
+                "ParameterName": "EnableKMSKeyForS3",
+                "ParameterValue": True,
+            }
+        ],
     )
 
     mock_wait.assert_not_called()
@@ -255,11 +273,23 @@ def test__create_or_update_stack_stack_exists_and_needs_changes(uploader):
         StackName=INFRA_STACK_NAME,
         TemplateBody=CONTENTS_UTF8,
         EnableTerminationProtection=True,
+        Parameters=[
+            {
+                "ParameterName": "EnableKMSKeyForS3",
+                "ParameterValue": True,
+            }
+        ],
     )
     uploader.cfn_client.update_stack.assert_called_once_with(
         Capabilities=["CAPABILITY_IAM"],
         StackName=INFRA_STACK_NAME,
         TemplateBody=CONTENTS_UTF8,
+        Parameters=[
+            {
+                "ParameterName": "EnableKMSKeyForS3",
+                "ParameterValue": True,
+            }
+        ],
     )
 
     mock_wait.assert_called_once_with(STACK_ID, "stack_update_complete", ANY)
@@ -279,6 +309,12 @@ def test__create_or_update_stack_create_unknown_failure(uploader):
         StackName=INFRA_STACK_NAME,
         TemplateBody=CONTENTS_UTF8,
         EnableTerminationProtection=True,
+        Parameters=[
+            {
+                "ParameterName": "EnableKMSKeyForS3",
+                "ParameterValue": True,
+            }
+        ],
     )
 
     assert uploader.get_log_delivery_role_arn() == ""
@@ -301,11 +337,23 @@ def test__create_or_update_stack_update_unknown_failure(uploader):
         StackName=INFRA_STACK_NAME,
         TemplateBody=CONTENTS_UTF8,
         EnableTerminationProtection=True,
+        Parameters=[
+            {
+                "ParameterName": "EnableKMSKeyForS3",
+                "ParameterValue": True,
+            }
+        ],
     )
     uploader.cfn_client.update_stack.assert_called_once_with(
         Capabilities=["CAPABILITY_IAM"],
         StackName=INFRA_STACK_NAME,
         TemplateBody=CONTENTS_UTF8,
+        Parameters=[
+            {
+                "ParameterName": "EnableKMSKeyForS3",
+                "ParameterValue": True,
+            }
+        ],
     )
 
     mock_wait.assert_not_called()
