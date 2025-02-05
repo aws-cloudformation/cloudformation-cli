@@ -6,17 +6,17 @@ Description: >
 Parameters:
   EnableKMSKeyForS3:
     Type: String
-    Default: "true"
+    Default: "True"
     AllowedValues:
-      - "true"
-      - "false"
+      - "True"
+      - "False"
     Description: >
       Whether to enable a KMS key for S3 bucket encryption.
     ConstraintDescription: >
-      Must be either "true" or "false".
+      Must be either "True" or "False".
 
 Conditions:
-  UseKMSKeyForS3: !Equals [!Ref EnableKMSKeyForS3, "true"]
+  UseKMSKeyForS3: !Equals [!Ref EnableKMSKeyForS3, "True"]
 
 Resources:
   ArtifactBucket:

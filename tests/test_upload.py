@@ -208,7 +208,7 @@ def test__create_or_update_stack_stack_doesnt_exist(uploader):
         EnableTerminationProtection=True,
         Parameters=[
             {
-                "ParameterName": "EnableKMSKeyForS3",
+                "ParameterKey": "EnableKMSKeyForS3",
                 "ParameterValue": True,
             }
         ],
@@ -239,7 +239,7 @@ def test__create_or_update_stack_stack_exists_and_no_changes(uploader):
         EnableTerminationProtection=True,
         Parameters=[
             {
-                "ParameterName": "EnableKMSKeyForS3",
+                "ParameterKey": "EnableKMSKeyForS3",
                 "ParameterValue": True,
             }
         ],
@@ -250,7 +250,7 @@ def test__create_or_update_stack_stack_exists_and_no_changes(uploader):
         TemplateBody=CONTENTS_UTF8,
         Parameters=[
             {
-                "ParameterName": "EnableKMSKeyForS3",
+                "ParameterKey": "EnableKMSKeyForS3",
                 "ParameterValue": True,
             }
         ],
@@ -275,7 +275,7 @@ def test__create_or_update_stack_stack_exists_and_needs_changes(uploader):
         EnableTerminationProtection=True,
         Parameters=[
             {
-                "ParameterName": "EnableKMSKeyForS3",
+                "ParameterKey": "EnableKMSKeyForS3",
                 "ParameterValue": True,
             }
         ],
@@ -286,7 +286,7 @@ def test__create_or_update_stack_stack_exists_and_needs_changes(uploader):
         TemplateBody=CONTENTS_UTF8,
         Parameters=[
             {
-                "ParameterName": "EnableKMSKeyForS3",
+                "ParameterKey": "EnableKMSKeyForS3",
                 "ParameterValue": True,
             }
         ],
@@ -311,7 +311,7 @@ def test__create_or_update_stack_create_unknown_failure(uploader):
         EnableTerminationProtection=True,
         Parameters=[
             {
-                "ParameterName": "EnableKMSKeyForS3",
+                "ParameterKey": "EnableKMSKeyForS3",
                 "ParameterValue": True,
             }
         ],
@@ -339,7 +339,7 @@ def test__create_or_update_stack_update_unknown_failure(uploader):
         EnableTerminationProtection=True,
         Parameters=[
             {
-                "ParameterName": "EnableKMSKeyForS3",
+                "ParameterKey": "EnableKMSKeyForS3",
                 "ParameterValue": True,
             }
         ],
@@ -350,7 +350,7 @@ def test__create_or_update_stack_update_unknown_failure(uploader):
         TemplateBody=CONTENTS_UTF8,
         Parameters=[
             {
-                "ParameterName": "EnableKMSKeyForS3",
+                "ParameterKey": "EnableKMSKeyForS3",
                 "ParameterValue": True,
             }
         ],

@@ -27,7 +27,7 @@ def submit(args):
         args.use_role,
         args.set_default,
         args.profile,
-        use_kms_key,
+        str(use_kms_key),
     )
 
 

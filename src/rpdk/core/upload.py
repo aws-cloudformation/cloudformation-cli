@@ -15,7 +15,7 @@ INFRA_STACK_NAME = "CloudFormationManagedUploadInfrastructure"
 
 
 class Uploader:
-    def __init__(self, cfn_client, s3_client, use_kms_key):
+    def __init__(self, cfn_client, s3_client, use_kms_key: str):
         self.cfn_client = cfn_client
         self.s3_client = s3_client
         self.bucket_name = ""
@@ -90,7 +90,7 @@ class Uploader:
             args |= {
                 "Parameters": [
                     {
-                        "ParameterName": "EnableKMSKeyForS3",
+                        "ParameterKey": "EnableKMSKeyForS3",
                         "ParameterValue": self.use_kms_key,
                     }
                 ]
