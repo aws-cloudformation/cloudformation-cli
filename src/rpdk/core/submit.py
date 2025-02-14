@@ -3,6 +3,7 @@
 Projects can be created via the 'init' sub command.
 """
 import logging
+import os
 
 from .project import Project
 
@@ -16,6 +17,9 @@ def submit(args):
     if args.use_docker or args.no_docker:
         project.settings["use_docker"] = args.use_docker
         project.settings["no_docker"] = args.no_docker
+    use_kms_key = True
+    if args.no_kms_key or os.getenv("CFN_CLI_NO_KMS_KEY"):
+        use_kms_key = False
     project.submit(
         args.dry_run,
         args.endpoint_url,
@@ -24,6 +28,7 @@ def submit(args):
         args.use_role,
         args.set_default,
         args.profile,
+        str(use_kms_key),
     )
 
 
@@ -43,6 +48,15 @@ def setup_subparser(subparsers, parents):
         help="If registration is successful, set submitted version to the default.",
     )
     parser.add_argument("--profile", help="AWS profile to use.")
+    parser.add_argument(
+        "--no-kms-key",
+        action="store_true",
+        help=(
+            "Use the default Server Side Encryption algorithm for the S3 Bucket."
+            "Does not create a KMS key or removes the KMS key from the management of the stack if it has already been created."
+            "Alternatively, the environment variable CFN_CLI_NO_KMS_KEY can be set to any truthy value."
+        ),
+    )
     role_group = parser.add_mutually_exclusive_group()
     role_group.add_argument(
         "--role-arn",

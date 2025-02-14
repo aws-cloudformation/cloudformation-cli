@@ -710,6 +710,7 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
         use_role,
         set_default,
         profile_name,
+        use_kms_key,
     ):  # pylint: disable=too-many-arguments
         context_mgr = self._create_context_manager(dry_run)
 
@@ -753,6 +754,7 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
                     use_role,
                     set_default,
                     profile_name,
+                    use_kms_key,
                 )
 
     def _add_overrides_file_to_zip(self, zip_file):
@@ -1180,13 +1182,14 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
         use_role,
         set_default,
         profile_name,
+        use_kms_key,
     ):  # pylint: disable=too-many-arguments, too-many-locals
         LOG.debug("Packaging complete, uploading...")
         session = create_sdk_session(region_name, profile_name)
         LOG.debug("Uploading to region '%s'", session.region_name)
         cfn_client = session.client("cloudformation", endpoint_url=endpoint_url)
         s3_client = session.client("s3")
-        uploader = Uploader(cfn_client, s3_client)
+        uploader = Uploader(cfn_client, s3_client, use_kms_key)
 
         if use_role and not role_arn and "handlers" in self.schema:
             LOG.debug("Creating execution role for provider to use")
