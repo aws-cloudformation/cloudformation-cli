@@ -1455,7 +1455,12 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
             if isinstance(value, dict):
                 properties[key] = self._replace_dynamic_values(value)
             elif isinstance(value, list):
-                properties[key] = [self._replace_dynamic_value(item) for item in value]
+                properties[key] = [
+                    self._replace_dynamic_values(item)
+                    if isinstance(item, dict)
+                    else self._replace_dynamic_value(item)
+                    for item in value
+                ]
             else:
                 return_value = self._replace_dynamic_value(value)
                 properties[key] = return_value
@@ -1468,7 +1473,12 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
         if isinstance(value, dict):
             properties[root_key] = self._replace_dynamic_values(value)
         elif isinstance(value, list):
-            properties[root_key] = [self._replace_dynamic_value(item) for item in value]
+            properties[root_key] = [
+                self._replace_dynamic_values(item)
+                if isinstance(item, dict)
+                else self._replace_dynamic_value(item)
+                for item in value
+            ]
         else:
             return_value = self._replace_dynamic_value(value)
             properties[root_key] = return_value

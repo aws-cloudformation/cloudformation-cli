@@ -2915,6 +2915,7 @@ def test_create_template_file(mock_yaml_dump, project):
             "Property5": "{{uuid}}",
             "Property6": "{{account}}",
             "Property7": "prefix-{{uuid}}-sufix",
+            "Property8": [{"Nested": "{{test123}}"}],
         }
     }
     setup_contract_test_data(project.root, contract_test_data)
@@ -2955,6 +2956,7 @@ def test_create_template_file(mock_yaml_dump, project):
                     "Property5": ANY,
                     "Property6": {"Fn::Sub": "${AWS::AccountId}"},
                     "Property7": ANY,
+                    "Property8": [{"Nested": {"Fn::ImportValue": "test123"}}],
                 },
             }
         },
@@ -3196,6 +3198,7 @@ def test_generate_canary_files_with_patch_inputs(mock_yaml_dump, project):
 def test_create_template_file_with_patch_inputs(mock_yaml_dump, project):
     update_value_1 = "Value1b"
     update_value_2 = "Value2b"
+    updated_value_3 = "{{test456}}"
 
     contract_test_data = {
         "CreateInputs": {
@@ -3206,6 +3209,7 @@ def test_create_template_file_with_patch_inputs(mock_yaml_dump, project):
             "Property5": "{{uuid}}",
             "Property6": "{{account}}",
             "Property7": "prefix-{{uuid}}-sufix",
+            "Property8": [{"Nested": "{{test123}}"}],
         },
         "PatchInputs": [
             {
@@ -3227,6 +3231,11 @@ def test_create_template_file_with_patch_inputs(mock_yaml_dump, project):
                 "op": "replace",
                 "path": "/Property4",
                 "value": ["{{region}}", update_value_2],
+            },
+            {
+                "op": "replace",
+                "path": "/Property8",
+                "value": [{"Nested": updated_value_3}],
             },
         ],
     }
@@ -3269,6 +3278,7 @@ def test_create_template_file_with_patch_inputs(mock_yaml_dump, project):
                     "Property5": ANY,
                     "Property6": {"Fn::Sub": "${AWS::AccountId}"},
                     "Property7": ANY,
+                    "Property8": [{"Nested": {"Fn::ImportValue": "test456"}}],
                 },
             }
         },
@@ -3295,6 +3305,7 @@ def test_create_template_file_with_patch_inputs(mock_yaml_dump, project):
                     "Property5": ANY,
                     "Property6": {"Fn::Sub": "${AWS::AccountId}"},
                     "Property7": ANY,
+                    "Property8": [{"Nested": {"Fn::ImportValue": "test123"}}],
                 },
             }
         },
