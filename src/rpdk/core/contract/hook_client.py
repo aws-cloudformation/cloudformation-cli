@@ -448,7 +448,7 @@ class HookClient:  # pylint: disable=too-many-instance-attributes
             LOG.debug("=== Handler execution logs ===")
             LOG.debug(result)
             # pylint: disable=W1401
-            regex = "__CFN_HOOK_START_RESPONSE__([\s\S]*)__CFN_HOOK_END_RESPONSE__"  # noqa: W605,B950 # pylint: disable=C0301
+            regex = r"__CFN_HOOK_START_RESPONSE__([\s\S]*)__CFN_HOOK_END_RESPONSE__"  # noqa: W605,B950 # pylint: disable=C0301
             payload = json.loads(re.search(regex, result).group(1))
         else:
             result = self._client.invoke(
