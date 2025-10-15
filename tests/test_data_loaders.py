@@ -10,13 +10,14 @@ from unittest.mock import ANY, create_autospec, patch
 
 import pytest
 import yaml
-from jsonschema.exceptions import RefResolutionError, ValidationError
+from jsonschema.exceptions import ValidationError, RefResolutionError
+import referencing.exceptions
 from pytest_localserver.http import Request, Response, WSGIServer
 
 from rpdk.core.data_loaders import (
     STDIN_NAME,
     get_file_base_uri,
-    get_schema_store,
+    get_schema_registry,
     load_hook_spec,
     load_resource_spec,
     resource_json,
@@ -669,36 +670,37 @@ def test_resource_yaml():
     assert result == obj
 
 
-def test_get_schema_store_schemas_with_id():
-    schema_store = get_schema_store(
+def test_get_schema_registry_schemas_with_id():
+    schema_registry = get_schema_registry(
         BASEDIR.parent / "src" / "rpdk" / "core" / "data" / "schema"
     )
-    assert len(schema_store) == 7
-    assert "http://json-schema.org/draft-07/schema#" in schema_store
+    assert len(schema_registry) == 8  # 7 original + HTTPS version of JSON Schema
+    assert "http://json-schema.org/draft-07/schema#" in schema_registry
+    assert "https://json-schema.org/draft-07/schema#" in schema_registry  # HTTPS version
     assert (
         "https://schema.cloudformation.us-east-1.amazonaws.com/base.definition.schema.v1.json"
-        in schema_store
+        in schema_registry
     )
     assert (
         "https://schema.cloudformation.us-east-1.amazonaws.com/provider.configuration.definition.schema.v1.json"
-        in schema_store
+        in schema_registry
     )
     assert (
         "https://schema.cloudformation.us-east-1.amazonaws.com/provider.definition.schema.v1.json"
-        in schema_store
+        in schema_registry
     )
     assert (
         "https://schema.cloudformation.us-east-1.amazonaws.com/provider.definition.schema.hooks.v1.json"
-        in schema_store
+        in schema_registry
     )
     assert (
         "https://schema.cloudformation.us-east-1.amazonaws.com/provider.configuration.definition.schema.hooks.v1.json"
-        in schema_store
+        in schema_registry
     )
 
 
-def test_get_schema_store_schemas_with_out_id():
-    schema_store = get_schema_store(
+def test_get_schema_registry_schemas_with_out_id():
+    schema_registry = get_schema_registry(
         BASEDIR.parent / "src" / "rpdk" / "core" / "data" / "examples" / "resource"
     )
-    assert len(schema_store) == 0
+    assert len(schema_registry) == 0

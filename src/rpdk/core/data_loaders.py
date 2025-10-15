@@ -8,8 +8,10 @@ from pathlib import Path
 
 import pkg_resources
 import yaml
-from jsonschema import Draft7Validator, RefResolver
+from jsonschema import Draft7Validator
 from jsonschema.exceptions import RefResolutionError, ValidationError
+import referencing
+import referencing.exceptions
 from nested_lookup import nested_lookup
 
 from .exceptions import InternalError, SpecValidationError
@@ -56,9 +58,9 @@ def copy_resource(package_name, resource_name, out_path):
         shutil.copyfileobj(fsrc, fdst)
 
 
-def get_schema_store(schema_search_path):
-    """Load all the schemas in schema_search_path and return a dict"""
-    schema_store = {}
+def get_schema_registry(schema_search_path):
+    """Load all the schemas in schema_search_path and return a registry"""
+    schemas = {}
     schema_fnames = os.listdir(schema_search_path)
     for schema_fname in schema_fnames:
         schema_path = os.path.join(schema_search_path, schema_fname)
@@ -66,20 +68,32 @@ def get_schema_store(schema_search_path):
             with open(schema_path, "r", encoding="utf-8") as schema_f:
                 schema = json.load(schema_f)
                 if "$id" in schema:
-                    schema_store[schema["$id"]] = schema
-    return schema_store
+                    schemas[schema["$id"]] = schema
+    
+    # Add HTTPS version of JSON Schema for compatibility
+    if "http://json-schema.org/draft-07/schema#" in schemas:
+        schemas["https://json-schema.org/draft-07/schema#"] = schemas["http://json-schema.org/draft-07/schema#"]
+    
+    # Create resources with proper specification
+    resources = []
+    for uri, schema in schemas.items():
+        try:
+            resource = referencing.Resource.from_contents(schema)
+            resources.append((uri, resource))
+        except Exception:
+            # Fallback for schemas without proper $schema
+            resource = referencing.Resource.from_contents(schema, default_specification=referencing.jsonschema.DRAFT7)
+            resources.append((uri, resource))
+    
+    return referencing.Registry().with_resources(resources)
 
 
 def make_validator(schema):
     schema_search_path = Path(os.path.dirname(os.path.realpath(__file__))).joinpath(
         "data/schema/"
     )
-    resolver = RefResolver(
-        base_uri=Draft7Validator.ID_OF(schema),
-        store=get_schema_store(schema_search_path),
-        referrer=schema,
-    )
-    return Draft7Validator(schema, resolver=resolver)
+    registry = get_schema_registry(schema_search_path)
+    return Draft7Validator(schema, registry=registry)
 
 
 def make_resource_validator():
@@ -379,7 +393,7 @@ def load_resource_spec(resource_spec_file):  # pylint: disable=R # noqa: C901
     inliner = RefInliner(base_uri, resource_spec)
     try:
         inlined = inliner.inline()
-    except RefResolutionError as e:
+    except (RefResolutionError, referencing.exceptions.Unresolvable) as e:
         LOG.debug("Resource spec validation failed", exc_info=True)
         raise SpecValidationError(str(e)) from e
 
@@ -444,7 +458,7 @@ def load_hook_spec(hook_spec_file):  # pylint: disable=R # noqa: C901
     inliner = RefInliner(base_uri, hook_spec)
     try:
         inlined = inliner.inline()
-    except RefResolutionError as e:
+    except (RefResolutionError, referencing.exceptions.Unresolvable) as e:
         LOG.debug("Hook spec validation failed", exc_info=True)
         raise SpecValidationError(str(e)) from e
 

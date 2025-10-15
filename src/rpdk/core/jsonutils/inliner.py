@@ -1,7 +1,9 @@
 import logging
 from collections.abc import Iterable, Mapping
 
-from jsonschema import RefResolutionError, RefResolver
+from jsonschema import RefResolver
+from jsonschema.exceptions import RefResolutionError
+import referencing.exceptions
 
 from .renamer import RefRenamer
 from .utils import BASE, rewrite_ref, traverse
