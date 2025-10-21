@@ -4,6 +4,9 @@ name: CloudFormation CLI Pull Request CI
 
 on: [push, pull_request]
 
+permissions:
+  contents: read
+
 jobs:
   build:
     env:
