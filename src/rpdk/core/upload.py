@@ -173,7 +173,7 @@ class Uploader:
 
         LOG.debug("Upload complete")
 
-        return f"s3://{self.bucket_name}/{key}"
+        return f"s3://{self.bucket_name}/{key}"  # noqa: E231
 
     def get_log_delivery_role_arn(self):
         return self.log_delivery_role_arn

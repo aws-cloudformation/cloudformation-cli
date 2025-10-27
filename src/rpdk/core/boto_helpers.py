@@ -54,7 +54,9 @@ def get_temporary_credentials(
 
         sts_client.meta.events.register("before-call", inject_confused_deputy_headers)
     if role_arn:
-        session_name = f"CloudFormationContractTest-{datetime.now():%Y%m%d%H%M%S}"
+        session_name = (
+            f"CloudFormationContractTest-{datetime.now():%Y%m%d%H%M%S}"  # noqa: E231
+        )
         try:
             response = sts_client.assume_role(
                 RoleArn=role_arn,

@@ -120,8 +120,8 @@ def error_test_model_in_list(resource_client, current_resource_model, message):
                 f"{message} \n Resource Model primary identifier"
                 f" {resource_model_primary_identifier[0]} does not match with Current"
                 " Resource Model primary identifier"
-                f" {current_model_primary_identifier[0]} \n Resource Model :"
-                f" {resource_model} \n Currrent Model : {current_resource_model} "
+                f" {current_model_primary_identifier[0]} \n Resource Model :"  # noqa: E203,E231
+                f" {resource_model} \n Currrent Model : {current_resource_model} "  # noqa: E203
             )
             return assertion_error_message
     return assertion_error_message

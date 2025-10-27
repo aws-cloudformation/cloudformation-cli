@@ -30,7 +30,8 @@ from rpdk.core.test import (
     get_inputs,
     get_marker_options,
     get_overrides,
-    temporary_ini_file, get_type,
+    get_type,
+    temporary_ini_file,
 )
 from rpdk.core.utils.handler_utils import generate_handler_name
 
@@ -725,6 +726,7 @@ def test_use_both_sam_and_docker_arguments():
 # "Build integration and unit tests for security"
 # These tests verify security controls are working as expected
 
+
 class TestSecurityInputValidation:
     """Test input validation - rejects malformed/invalid input"""
 
@@ -762,15 +764,23 @@ class TestSecurityAuthentication:
         mock_project.artifact_type = ARTIFACT_TYPE_RESOURCE
         mock_project.executable_entrypoint = None
         mock_project.type_name = "Test::Type::Name"
-        create_input_file(base, '{"a": 1}', '{"a": 2}', '{}')
-        
-        with patch("rpdk.core.test.Project", return_value=mock_project), \
-             patch("rpdk.core.test.ResourceClient") as mock_client, \
-             patch("rpdk.core.test.ContractPlugin"), \
-             patch("rpdk.core.test.pytest.main", return_value=0), \
-             patch("rpdk.core.test.temporary_ini_file", side_effect=mock_temporary_ini_file):
-            main(args_in=["test", "--role-arn", "arn:aws:iam::123456789012:role/TestRole"])
-        
+        create_input_file(base, '{"a": 1}', '{"a": 2}', "{}")
+
+        with patch("rpdk.core.test.Project", return_value=mock_project), patch(
+            "rpdk.core.test.ResourceClient"
+        ) as mock_client, patch("rpdk.core.test.ContractPlugin"), patch(
+            "rpdk.core.test.pytest.main", return_value=0
+        ), patch(
+            "rpdk.core.test.temporary_ini_file", side_effect=mock_temporary_ini_file
+        ):
+            main(
+                args_in=[
+                    "test",
+                    "--role-arn",
+                    "arn:aws:iam::123456789012:role/TestRole",
+                ]
+            )
+
         assert mock_client.call_args[0][6] == "arn:aws:iam::123456789012:role/TestRole"
 
 
@@ -785,15 +795,19 @@ class TestSecurityInformationLeakage:
         mock_project.artifact_type = ARTIFACT_TYPE_RESOURCE
         mock_project.executable_entrypoint = None
         mock_project.type_name = "Test::Type::Name"
-        create_input_file(base, '{"password": "secret123"}', '{"key": "secret456"}', '{}')
-        
-        with patch("rpdk.core.test.Project", return_value=mock_project), \
-             patch("rpdk.core.test.ResourceClient"), \
-             patch("rpdk.core.test.ContractPlugin"), \
-             patch("rpdk.core.test.pytest.main", return_value=0), \
-             patch("rpdk.core.test.temporary_ini_file", side_effect=mock_temporary_ini_file):
+        create_input_file(
+            base, '{"password": "secret123"}', '{"key": "secret456"}', "{}"
+        )
+
+        with patch("rpdk.core.test.Project", return_value=mock_project), patch(
+            "rpdk.core.test.ResourceClient"
+        ), patch("rpdk.core.test.ContractPlugin"), patch(
+            "rpdk.core.test.pytest.main", return_value=0
+        ), patch(
+            "rpdk.core.test.temporary_ini_file", side_effect=mock_temporary_ini_file
+        ):
             main(args_in=["test"])
-        
+
         _out, err = capsys.readouterr()
         assert "secret123" not in err and "secret456" not in err
 
@@ -805,11 +819,13 @@ class TestSecurityFileAccess:
         """Verify temporary files have secure permissions"""
         with temporary_ini_file() as path:
             stat_info = Path(path).stat()
-            assert not (stat_info.st_mode & 0o002)
+            assert not stat_info.st_mode & 0o002
 
     def test_path_traversal_blocked_in_overrides(self, base):
         """Verify system blocks path traversal in override paths"""
-        result = get_overrides(base / "../../../etc", DEFAULT_REGION, DEFAULT_ENDPOINT, None, None, {})
+        result = get_overrides(
+            base / "../../../etc", DEFAULT_REGION, DEFAULT_ENDPOINT, None, None, {}
+        )
         assert result == EMPTY_RESOURCE_OVERRIDE
 
     def test_input_files_read_safely(self, base):
@@ -819,6 +835,6 @@ class TestSecurityFileAccess:
         malicious = path / "inputs_1_create.json"
         with malicious.open("w", encoding="utf-8") as f:
             f.write('{"exec": "#!/bin/bash\\nrm -rf /"}')
-        
+
         result = get_inputs(base, DEFAULT_REGION, DEFAULT_ENDPOINT, 1, None, None, {})
         assert result is not None and "CREATE" in result

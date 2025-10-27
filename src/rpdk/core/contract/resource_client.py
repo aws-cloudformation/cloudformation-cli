@@ -1,5 +1,6 @@
 # pylint: disable=import-outside-toplevel
 # pylint: disable=R0904
+# pylint: disable=import-error
 import copy
 import json
 import logging
@@ -295,7 +296,7 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
             assertion_error_message = (
                 "The model MUST NOT return properties defined as writeOnlyProperties"
                 " in the resource schema \n Write only properties in resource model :"
-                f" {error_list}  \n Output Resource Model : {resource_model} \n"
+                f" {error_list}  \n Output Resource Model : {resource_model} \n"  # noqa: E203
             )
             assert not any(error_list), assertion_error_message
 
@@ -461,7 +462,7 @@ class ResourceClient:  # pylint: disable=too-many-instance-attributes
             "All properties specified in the request MUST be present in the model"
             " returned, and they MUST match exactly, with the exception of properties"
             " defined as writeOnlyProperties in the resource schema \n Request Model :"
-            f" {inputs} \n Returned Model : {outputs} \n"
+            f" {inputs} \n Returned Model : {outputs} \n"  # noqa: E203
         )
         try:
             if isinstance(inputs, dict):

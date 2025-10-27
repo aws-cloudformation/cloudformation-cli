@@ -36,7 +36,7 @@ def list_types_result(type_names):
                 "Type": "RESOURCE",
                 "TypeName": type_name,
                 "TypeArn": (
-                    f'arn:aws:cloudformation:us-east-1:123456789012:type/resource/{type_name.replace("::", "-")}'
+                    f'arn:aws:cloudformation:us-east-1:123456789012:type/resource/{type_name.replace("::", "-")}'  # noqa: E231
                 ),
             }
             for type_name in type_names

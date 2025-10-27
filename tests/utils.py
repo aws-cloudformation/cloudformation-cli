@@ -58,7 +58,7 @@ NAMES = [
 
 
 def random_type_name():
-    return f"Test::{NAMES[0]}::{NAMES[1]}"
+    return f"Test::{NAMES[0]}::{NAMES[1]}"  # noqa: E231
 
 
 def random_name():

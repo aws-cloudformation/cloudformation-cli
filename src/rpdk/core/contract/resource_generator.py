@@ -1,3 +1,4 @@
+# pylint: disable=import-error
 import logging
 import re
 from collections.abc import Sequence

@@ -37,9 +37,11 @@ MULTIPLE_TEST_TARGET_SCHEMAS_JSON = json.dumps(MULTIPLE_TEST_TARGET_SCHEMAS)
 TEST_TARGET_SCHEMA_BUCKET = "TestTargetSchemaBucket"
 TEST_TARGET_SCHEMA_KEY = "test-target-schema.json"
 TEST_TARGET_SCHEMA_FILE_PATH = f"/files/{TEST_TARGET_SCHEMA_KEY}"
-TEST_TARGET_SCHEMA_FILE_URI = f"file://{TEST_TARGET_SCHEMA_FILE_PATH}"
-TEST_S3_TARGET_SCHEMA_URI = f"s3://{TEST_TARGET_SCHEMA_BUCKET}/{TEST_TARGET_SCHEMA_KEY}"
-TEST_HTTPS_TARGET_SCHEMA_URI = f"https://{TEST_TARGET_SCHEMA_BUCKET}.s3.us-west-2.amazonaws.com/{TEST_TARGET_SCHEMA_KEY}"
+TEST_TARGET_SCHEMA_FILE_URI = f"file://{TEST_TARGET_SCHEMA_FILE_PATH}"  # noqa: E231
+TEST_S3_TARGET_SCHEMA_URI = (
+    f"s3://{TEST_TARGET_SCHEMA_BUCKET}/{TEST_TARGET_SCHEMA_KEY}"  # noqa: E231
+)
+TEST_HTTPS_TARGET_SCHEMA_URI = f"https://{TEST_TARGET_SCHEMA_BUCKET}.s3.us-west-2.amazonaws.com/{TEST_TARGET_SCHEMA_KEY}"  # noqa: E231
 
 
 # pylint: disable=C0103
@@ -54,7 +56,7 @@ def get_test_type_info(type_name, visibility, provisioning_type):
         "TargetType": "RESOURCE",
         "Type": "RESOURCE",
         "Arn": (
-            f'arn:aws:cloudformation:us-east-1:12345678902:type:resource:{type_name.replace("::", "-")}'
+            f'arn:aws:cloudformation:us-east-1:12345678902:type:resource:{type_name.replace("::", "-")}'  # noqa: E231
         ),
         "IsDefaultVersion": True,
         "Description": "Test Schema",
@@ -68,7 +70,7 @@ def get_test_type_info(type_name, visibility, provisioning_type):
 def describe_type_result(type_name, visibility, provisioning_type):
     return {
         "Arn": (
-            f'arn:aws:cloudformation:us-east-1:12345678902:type:resource:{type_name.replace("::", "-")}'
+            f'arn:aws:cloudformation:us-east-1:12345678902:type:resource:{type_name.replace("::", "-")}'  # noqa: E231
         ),
         "Type": "RESOURCE",
         "TypeName": type_name,

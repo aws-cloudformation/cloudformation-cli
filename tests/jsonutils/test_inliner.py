@@ -113,7 +113,7 @@ def test_refinliner_remote_refs_on_filesystem_are_inlined(tmpdir):
     filename = tmpdir.mkdir("bar").join("remote.json")
     with filename.open("w", encoding="utf-8") as f:
         json.dump(remote, f)
-    base_uri = f"file://{tmpdir.strpath}/foo/"
+    base_uri = f"file://{tmpdir.strpath}/foo/"  # noqa: E231
     ref = "../bar/remote.json#/nested/bar"
     inliner = make_inliner(
         {"type": "object", "properties": {"foo": {"$ref": ref}}}, base_uri=base_uri

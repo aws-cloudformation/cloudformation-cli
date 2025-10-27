@@ -78,7 +78,9 @@ class JsonSchemaFlattener:
                 ref_parts = fragment_decode(ref_path)
             except ValueError as e:
                 # pylint: disable=W0707
-                raise FlatteningError(f"Invalid ref at path '{ref_path}': { str(e)}")
+                raise FlatteningError(
+                    f"Invalid ref at path '{ref_path}': { str(e)}"  # noqa: E201
+                )
 
         ref_schema, ref_parts, _ref_parent = self._find_subschema_by_ref(ref_parts)
         return self._walk(ref_schema, ref_parts)
