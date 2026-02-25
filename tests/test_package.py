@@ -19,4 +19,5 @@ def test_package_command_valid_schema():
         use_role=False,
         set_default=False,
         profile_name=False,
+        use_kms_key=True,
     )

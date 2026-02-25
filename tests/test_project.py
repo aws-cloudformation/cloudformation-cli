@@ -1439,7 +1439,8 @@ def test_submit_dry_run(project, is_type_configuration_available):
             role_arn=None,
             use_role=True,
             set_default=False,
-            profile_name=PROFILE
+            profile_name=PROFILE,
+            use_kms_key=True,
         )
     # fmt: on
 
@@ -1540,7 +1541,8 @@ def test_submit_dry_run_modules(project):
             role_arn=None,
             use_role=True,
             set_default=False,
-            profile_name=PROFILE
+            profile_name=PROFILE,
+            use_kms_key=True,
         )
     # fmt: on
 
@@ -1606,7 +1608,8 @@ def test_submit_dry_run_hooks(project):
             role_arn=None,
             use_role=True,
             set_default=False,
-            profile_name=PROFILE
+            profile_name=PROFILE,
+            use_kms_key=True,
         )
     # fmt: on
 
@@ -1732,7 +1735,8 @@ def test_submit_dry_run_hooks_with_target_info(project, session):
             role_arn=None,
             use_role=True,
             set_default=False,
-            profile_name=PROFILE
+            profile_name=PROFILE,
+            use_kms_key=True,
         )
     # fmt: on
 
@@ -1811,7 +1815,8 @@ def test_submit_live_run(project):
             role_arn=None,
             use_role=True,
             set_default=True,
-            profile_name=PROFILE
+            profile_name=PROFILE,
+            use_kms_key=True,
         )
     # fmt: on
 
@@ -1830,6 +1835,7 @@ def test_submit_live_run(project):
         use_role=True,
         set_default=True,
         profile_name=PROFILE,
+        use_kms_key=True,
     )
 
     assert temp_file._was_closed
@@ -1865,7 +1871,8 @@ def test_submit_live_run_for_module(project):
             role_arn=None,
             use_role=True,
             set_default=True,
-            profile_name=PROFILE
+            profile_name=PROFILE,
+            use_kms_key=True,
         )
     # fmt: on
 
@@ -1908,7 +1915,8 @@ def test_submit_live_run_for_hooks(project):
             role_arn=None,
             use_role=True,
             set_default=True,
-            profile_name=PROFILE
+            profile_name=PROFILE,
+            use_kms_key=True,
         )
     # fmt: on
 
@@ -1927,6 +1935,7 @@ def test_submit_live_run_for_hooks(project):
         use_role=True,
         set_default=True,
         profile_name=PROFILE,
+        use_kms_key=True,
     )
 
     assert temp_file._was_closed
@@ -1964,6 +1973,7 @@ def test__upload_good_path_create_role_and_set_default(project):
                 use_role=True,
                 set_default=True,
                 profile_name=None,
+                use_kms_key=True,
             )
 
     mock_sdk.assert_called_once_with(region_name=None, profile_name=None)
@@ -2018,6 +2028,7 @@ def test__upload_good_path_create_role_and_set_default_hook(project):
                 use_role=True,
                 set_default=True,
                 profile_name=None,
+                use_kms_key=True,
             )
 
     mock_sdk.assert_called_once_with(region_name=None, profile_name=None)
@@ -2075,6 +2086,7 @@ def test__upload_good_path_skip_role_creation(
                 use_role=use_role,
                 set_default=True,
                 profile_name=None,
+                use_kms_key=True,
             )
 
     mock_sdk.assert_called_once_with(region_name=None, profile_name=None)
@@ -2130,6 +2142,7 @@ def test__upload_good_path_skip_role_creation_hook(
                 use_role=use_role,
                 set_default=True,
                 profile_name=None,
+                use_kms_key=True,
             )
 
     mock_sdk.assert_called_once_with(region_name=None, profile_name=None)
@@ -2181,6 +2194,7 @@ def test__upload_clienterror(project):
                 use_role=False,
                 set_default=True,
                 profile_name=None,
+                use_kms_key=True,
             )
 
     mock_sdk.assert_called_once_with(region_name=None, profile_name=None)
@@ -2229,6 +2243,7 @@ def test__upload_clienterror_module(project):
                 use_role=False,
                 set_default=True,
                 profile_name=None,
+                use_kms_key=True,
             )
 
     mock_sdk.assert_called_once_with(region_name=None, profile_name=None)
@@ -2277,6 +2292,7 @@ def test__upload_clienterror_hook(project):
                 use_role=False,
                 set_default=True,
                 profile_name=None,
+                use_kms_key=True,
             )
 
     mock_sdk.assert_called_once_with(region_name=None, profile_name=None)
