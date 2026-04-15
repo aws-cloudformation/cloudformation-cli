@@ -5,7 +5,8 @@ from pathlib import Path
 from random import sample
 from unittest.mock import Mock, patch
 
-import pkg_resources
+import importlib.metadata
+from unittest.mock import patch as _patch
 
 from rpdk.core.project import Project
 
@@ -74,14 +75,13 @@ def chdir(path):
 
 
 def add_dummy_language_plugin():
-    distribution = pkg_resources.Distribution(__file__)
-    entry_point = pkg_resources.EntryPoint.parse(
-        "dummy = rpdk.dummy:DummyLanguagePlugin", dist=distribution
+    ep = importlib.metadata.EntryPoint(
+        name="dummy", value="rpdk.dummy:DummyLanguagePlugin", group="rpdk.v1.languages"
     )
-    distribution._ep_map = {  # pylint: disable=protected-access
-        "rpdk.v1.languages": {"dummy": entry_point}
-    }
-    pkg_resources.working_set.add(distribution)
+    _patch(
+        "rpdk.core.plugin_registry._iter_entry_points",
+        side_effect=lambda group: [ep] if group == "rpdk.v1.languages" else [],
+    ).start()
 
 
 def get_mock_project():

@@ -57,6 +57,7 @@ setup(
         "cfn_flip>=1.2.3",
         "nested-lookup",
         "botocore>=1.31.17",
+        "importlib_resources>=5.0;python_version<'3.9'",
     ],
     entry_points={
         "console_scripts": ["cfn-cli = rpdk.core.cli:main", "cfn = rpdk.core.cli:main"]

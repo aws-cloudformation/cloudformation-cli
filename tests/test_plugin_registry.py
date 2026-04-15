@@ -18,7 +18,7 @@ def test_get_extensions():
     mock_entrypoint_2 = Mock()
 
     patch_iter_entry_points = patch(
-        "rpdk.core.plugin_registry.pkg_resources.iter_entry_points"
+        "rpdk.core.plugin_registry._iter_entry_points"
     )
     with patch_iter_entry_points as mock_iter_entry_points:
         mock_iter_entry_points.return_value = [mock_entrypoint_1, mock_entrypoint_2]
