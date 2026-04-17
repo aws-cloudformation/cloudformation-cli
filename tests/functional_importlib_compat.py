@@ -5,36 +5,38 @@ without pkg_resources, using only importlib.resources / importlib.metadata.
 Run with:
     pytest tests/functional_importlib_compat.py -v
 """
+# pylint: disable=import-outside-toplevel
 import sys
-import importlib
-import pytest
 
 
 def test_no_pkg_resources_imported_by_data_loaders():
     """data_loaders must not import pkg_resources at all."""
+    from unittest import mock
+
     # Force reimport to catch top-level imports
     if "rpdk.core.data_loaders" in sys.modules:
         del sys.modules["rpdk.core.data_loaders"]
 
-    import unittest.mock as mock
     with mock.patch.dict("sys.modules", {"pkg_resources": None}):
         # Should not raise ModuleNotFoundError
-        import rpdk.core.data_loaders  # noqa: F401
+        __import__("rpdk.core.data_loaders")
 
 
 def test_no_pkg_resources_imported_by_plugin_registry():
     """plugin_registry must not import pkg_resources at all."""
+    from unittest import mock
+
     if "rpdk.core.plugin_registry" in sys.modules:
         del sys.modules["rpdk.core.plugin_registry"]
 
-    import unittest.mock as mock
     with mock.patch.dict("sys.modules", {"pkg_resources": None}):
-        import rpdk.core.plugin_registry  # noqa: F401
+        __import__("rpdk.core.plugin_registry")
 
 
 def test_resource_json_loads_real_schema():
     """resource_json must load an actual bundled schema file end-to-end."""
     from rpdk.core.data_loaders import resource_json
+
     schema = resource_json(
         "rpdk.core", "data/schema/provider.definition.schema.v1.json"
     )
@@ -44,6 +46,7 @@ def test_resource_json_loads_real_schema():
 def test_resource_stream_returns_readable_content():
     """resource_stream must return a readable text stream for a bundled file."""
     from rpdk.core.data_loaders import resource_stream
+
     with resource_stream(
         "rpdk.core", "data/schema/provider.definition.schema.v1.json"
     ) as f:
@@ -55,6 +58,7 @@ def test_resource_stream_returns_readable_content():
 def test_plugin_registry_get_plugin_choices_does_not_raise():
     """get_plugin_choices must not raise even with no plugins installed."""
     from rpdk.core.plugin_registry import get_plugin_choices
+
     choices = get_plugin_choices()
     assert isinstance(choices, list)
 

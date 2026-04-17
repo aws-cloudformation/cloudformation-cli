@@ -42,6 +42,7 @@ def resource_stream(package_name, resource_name, encoding="utf-8"):
     are enabled. Can be used in a ``with`` statement.
     """
     import sys
+
     pkg = sys.modules[package_name].__spec__.parent or package_name
     f = importlib_resources_files(pkg).joinpath(resource_name).open("rb")
     return TextIOWrapper(f, encoding=encoding)
@@ -61,6 +62,7 @@ def resource_yaml(package_name, resource_name):
 
 def copy_resource(package_name, resource_name, out_path):
     import sys
+
     pkg = sys.modules[package_name].__spec__.parent or package_name
     with importlib_resources_files(pkg).joinpath(resource_name).open(
         "rb"

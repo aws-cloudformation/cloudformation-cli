@@ -1,12 +1,10 @@
+import importlib.metadata
 import os
 from contextlib import contextmanager
 from io import BytesIO
 from pathlib import Path
 from random import sample
-from unittest.mock import Mock, patch
-
-import importlib.metadata
-from unittest.mock import patch as _patch
+from unittest.mock import Mock, patch, patch as _patch
 
 from rpdk.core.project import Project
 
