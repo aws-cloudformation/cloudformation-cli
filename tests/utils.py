@@ -4,7 +4,7 @@ from contextlib import contextmanager
 from io import BytesIO
 from pathlib import Path
 from random import sample
-from unittest.mock import Mock, patch, patch as _patch
+from unittest.mock import Mock, patch
 
 from rpdk.core.project import Project
 
@@ -76,7 +76,7 @@ def add_dummy_language_plugin():
     ep = importlib.metadata.EntryPoint(
         name="dummy", value="rpdk.dummy:DummyLanguagePlugin", group="rpdk.v1.languages"
     )
-    _patch(
+    patch(
         "rpdk.core.plugin_registry._iter_entry_points",
         side_effect=lambda group: [ep] if group == "rpdk.v1.languages" else [],
     ).start()
