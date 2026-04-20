@@ -1909,6 +1909,24 @@ def test_compare_collection(resource_client, inputs, outputs, schema_fragment):
     resource_client.compare(inputs, outputs)
 
 
+def test_compare_collection_with_list_items_should_fail(resource_client):
+    inputs = {"CollectionToCompare": [[1]]}
+    outputs = {"CollectionToCompare": [[2]]}
+    schema_fragment = {
+        "properties": {
+            "CollectionToCompare": {
+                "type": "array",
+                "insertionOrder": False,
+                "items": {"type": "array", "items": {"type": "integer"}},
+            }
+        }
+    }
+    resource_client._update_schema(schema_fragment)
+
+    with pytest.raises(AssertionError):
+        resource_client.compare(inputs, outputs)
+
+
 def test_compare_should_throw_key_error(resource_client):
     resource_client._update_schema(SCHEMA_WITH_NESTED_PROPERTIES)
     inputs = {"b": {"d": 1}, "f": [{"d": 1}], "h": [{"d": 1}]}

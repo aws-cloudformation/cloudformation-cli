@@ -30,7 +30,7 @@ def item_hash(
     if isinstance(item, dict):
         item = {k: item_hash(v) for k, v in item.items()}
     if isinstance(item, list):
-        item = [item_hash(i) for i in item].sort()
+        item = sorted(item_hash(i) for i in item)
     encoded = json.dumps(item, sort_keys=True).encode()
     dhash.update(encoded)
     return dhash.hexdigest()
