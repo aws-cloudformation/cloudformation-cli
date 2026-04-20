@@ -373,7 +373,7 @@ def test_overwrite_doesnt_exist(template_fragment, tmpdir):
 
 def __make_resource_validator(base_uri=None, timeout=TIMEOUT_IN_SECONDS):
     schema = resource_json(
-        __name__,
-        "../../src/rpdk/core/data/schema/provider.definition.schema.modules.v1.json",
+        "rpdk.core",
+        "data/schema/provider.definition.schema.modules.v1.json",
     )
     return make_validator(schema)

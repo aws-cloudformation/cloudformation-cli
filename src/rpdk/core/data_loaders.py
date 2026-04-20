@@ -3,10 +3,14 @@ import logging
 import os
 import re
 import shutil
+import sys
 from io import TextIOWrapper
 from pathlib import Path
 
-import pkg_resources
+try:
+    from importlib.resources import files as importlib_resources_files
+except ImportError:  # Python < 3.9: importlib.resources.files() added in 3.9
+    from importlib_resources import files as importlib_resources_files
 import referencing
 import referencing.exceptions
 import yaml
@@ -38,7 +42,8 @@ def resource_stream(package_name, resource_name, encoding="utf-8"):
     Decoding errors raise :exc:`ValueError`. :term:`universal newlines`
     are enabled. Can be used in a ``with`` statement.
     """
-    f = pkg_resources.resource_stream(package_name, resource_name)
+    pkg = sys.modules[package_name].__spec__.parent or package_name
+    f = importlib_resources_files(pkg).joinpath(resource_name).open("rb")
     return TextIOWrapper(f, encoding=encoding)
 
 
@@ -55,8 +60,9 @@ def resource_yaml(package_name, resource_name):
 
 
 def copy_resource(package_name, resource_name, out_path):
-    with pkg_resources.resource_stream(
-        package_name, resource_name
+    pkg = sys.modules[package_name].__spec__.parent or package_name
+    with importlib_resources_files(pkg).joinpath(resource_name).open(
+        "rb"
     ) as fsrc, out_path.open("wb") as fdst:
         shutil.copyfileobj(fsrc, fdst)
 

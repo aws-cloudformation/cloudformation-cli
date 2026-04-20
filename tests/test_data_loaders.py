@@ -6,7 +6,7 @@ from contextlib import contextmanager
 from io import BytesIO, StringIO
 from pathlib import Path
 from subprocess import check_output
-from unittest.mock import ANY, create_autospec, patch
+from unittest.mock import ANY, Mock, create_autospec, patch
 
 import pytest
 import yaml
@@ -620,10 +620,18 @@ def plugin():
 
 def mock_pkg_resource_stream(bytes_in, func=resource_stream):
     resource_name = "data/test.utf-8"
-    target = "rpdk.core.data_loaders.pkg_resources.resource_stream"
-    with patch(target, autospec=True, return_value=BytesIO(bytes_in)) as mock_stream:
+    target = "rpdk.core.data_loaders.importlib_resources_files"
+    mock_open = Mock(return_value=BytesIO(bytes_in))
+    mock_path = Mock()
+    mock_path.open = mock_open
+    mock_joinpath = Mock(return_value=mock_path)
+    mock_files = Mock()
+    mock_files.joinpath = mock_joinpath
+    with patch(target, return_value=mock_files) as mock_stream:
         f = func(__name__, resource_name)
-    mock_stream.assert_called_once_with(__name__, resource_name)
+    mock_stream.assert_called_once_with("tests")
+    mock_joinpath.assert_called_once_with(resource_name)
+    mock_open.assert_called_once_with("rb")
     return f
 
 
