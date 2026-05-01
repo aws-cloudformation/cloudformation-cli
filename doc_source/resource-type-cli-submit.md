@@ -27,6 +27,8 @@ The user registering the extension must be able to access the schema handler pac
 [--role-arn <value>]
 [--no-role]
 [--set-default]
+[--use-docker]
+[--no-docker]
 ```
 
 ## Options<a name="resource-type-cli-submit-options"></a>
@@ -66,6 +68,18 @@ You can't specify both `--role-arn` and `--no-role` arguments\.
 `--set-default`
 
 Upon successful registration of the type version, sets the current type version as the default version\.
+
+`--use-docker`
+
+Use docker for platform\-independent packaging\. This is highly recommended unless you are experienced with cross\-platform packaging\. This overrides the `use_docker` setting in your project's `.rpdk-config` file\.
+
+You can't specify both `--use-docker` and `--no-docker` arguments\.
+
+`--no-docker`
+
+Skip docker when packaging the project\. Generally not recommended unless you are experienced with cross\-platform packaging\. This overrides the `use_docker` setting in your project's `.rpdk-config` file\.
+
+You can't specify both `--use-docker` and `--no-docker` arguments\.
 
 ## Output<a name="resource-type-cli-submit-output"></a>
 
