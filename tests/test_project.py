@@ -30,6 +30,7 @@ from rpdk.core.exceptions import (
     InvalidProjectError,
     SpecValidationError,
 )
+from rpdk.core.package_validator import PackageMetadata
 from rpdk.core.plugin_base import LanguagePlugin
 from rpdk.core.project import (
     CANARY_DEPENDENCY_FILE_NAME,
@@ -3922,3 +3923,73 @@ def test_create_template_file_with_nested_add_patch_inputs(mock_yaml_dump, proje
     )
     assert args[0] == expected_template_data_create
     assert kwargs
+
+
+# ---------------------------------------------------------------------------
+# Project.from_package (cfn submit --package workflow)
+# ---------------------------------------------------------------------------
+
+
+def _package_metadata(
+    artifact_type=ARTIFACT_TYPE_RESOURCE,
+    type_name="Acme::Example::Widget",
+    path="/tmp/fake-package.zip",
+):
+    """Return a PackageMetadata for a pre-built package test fixture."""
+    return PackageMetadata(
+        path=Path(path), type_name=type_name, artifact_type=artifact_type
+    )
+
+
+@pytest.mark.parametrize(
+    "artifact_type,type_name,expected_hyphenated",
+    [
+        ("RESOURCE", "Acme::Example::Widget", "acme-example-widget"),
+        (
+            "MODULE",
+            "Acme::Example::Thing::MODULE",
+            "acme-example-thing-module",
+        ),
+        ("HOOK", "Acme::Example::HookGuard", "acme-example-hookguard"),
+    ],
+)
+def test_from_package_copies_metadata(artifact_type, type_name, expected_hyphenated):
+    metadata = _package_metadata(artifact_type=artifact_type, type_name=type_name)
+
+    project = Project.from_package(metadata)
+
+    assert project.artifact_type == artifact_type
+    assert project.type_name == type_name
+    assert project.hypenated_name == expected_hyphenated
+
+
+def test_from_package_sets_empty_schema_so_upload_skips_role_branch():
+    # _upload uses ``"handlers" in self.schema`` as the gate for auto-creating
+    # an execution role template from disk. from_package intentionally sets
+    # ``schema = {}`` so that branch is never taken (the caller must supply
+    # --role-arn or --no-role instead).
+    project = Project.from_package(_package_metadata())
+
+    assert project.schema == {}
+    assert "handlers" not in project.schema
+
+
+def test_from_package_does_not_call_load(tmp_path, monkeypatch):
+    """``from_package`` must not depend on a ``.rpdk-config`` in CWD.
+    Running it from an empty tmp_path must succeed even though no such
+    file exists there.
+    """
+    monkeypatch.chdir(tmp_path)
+    assert not (tmp_path / ".rpdk-config").exists()
+
+    # Also guard against accidental calls to load()/load_settings().
+    with patch.object(Project, "load", autospec=True) as mock_load, patch.object(
+        Project, "load_settings", autospec=True
+    ) as mock_load_settings:
+        project = Project.from_package(_package_metadata())
+
+    assert mock_load.call_count == 0
+    assert mock_load_settings.call_count == 0
+    # And the built project still has the fields _upload needs.
+    assert project.type_name == "Acme::Example::Widget"
+    assert project.artifact_type == "RESOURCE"
