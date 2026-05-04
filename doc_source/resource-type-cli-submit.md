@@ -27,6 +27,7 @@ The user registering the extension must be able to access the schema handler pac
 [--role-arn <value>]
 [--no-role]
 [--set-default]
+[--package <value>]
 ```
 
 ## Options<a name="resource-type-cli-submit-options"></a>
@@ -66,6 +67,30 @@ You can't specify both `--role-arn` and `--no-role` arguments\.
 `--set-default`
 
 Upon successful registration of the type version, sets the current type version as the default version\.
+
+`--package <value>`, `-p <value>`
+
+Submit a pre-built schema handler package \(zip\) at the given path instead of building one from the current project\. The CloudFormation CLI validates the zip, reads the artifact type and `typeName` out of its `.rpdk-config` entry, and uploads the zip as-is\. This lets you build once and register the same artifact across multiple regions, or register a zip built by a third party, without rebuilding\.
+
+When `--package` is used, the CloudFormation CLI does not read `.rpdk-config` from the current working directory, so this option works even outside a CloudFormation CLI project\.
+
+`--package` cannot be combined with `--dry-run`, `--use-docker`, or `--no-docker`: those options configure the packaging step that `--package` skips\.
+
+Because the pre-built zip does not carry a role template, you must either specify `--role-arn` or pass `--no-role` together with `--package`\.
+
+## Examples<a name="resource-type-cli-submit-examples"></a>
+
+Register a pre-built package that you built earlier with `cfn submit --dry-run`:
+
+```
+cfn submit --package ./my-type.zip --region us-east-1 --no-role
+```
+
+Register the same zip in a second region using an existing execution role:
+
+```
+cfn submit --package ./my-type.zip --region ap-northeast-1 --role-arn arn:aws:iam::123456789012:role/MyExecutionRole
+```
 
 ## Output<a name="resource-type-cli-submit-output"></a>
 

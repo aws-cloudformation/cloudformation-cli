@@ -44,6 +44,7 @@ To register a resource provider, module, or hook in your account, use the `submi
 cfn submit
 cfn submit --dry-run #prepares schema handler package without submitting for registration
 cfn submit --set-default # if successfully registered, set submitted version to be the new default version
+cfn submit --package ./my-type.zip --region us-east-1 --no-role # register a pre-built package (cannot be combined with --dry-run, --use-docker, or --no-docker)
 ```
 
 ### Command: package
