@@ -371,3 +371,33 @@ def test_defaults_use_project_root_and_hyphenated_name():
     # No scenario selection: the argv ends at the output directory.
     assert "-s" not in argv
     assert argv[-2:] == ["-o", CONTAINER_OUTPUT_DIR]
+
+
+# ===========================================================================
+# Explicit overrides of the project-derived defaults
+# ===========================================================================
+def test_explicit_workdir_artifact_and_output_dir_override_defaults():
+    """Supplied workdir/artifact_name/output_dir replace the project defaults.
+
+    The defaults are derived from the project (``root`` and
+    ``hypenated_name``); when a caller passes them explicitly, none of the
+    project-derived values appear in the argv.
+    """
+    project = _make_project("aws-foo-bar", root="/project/root")
+
+    argv = build_docker_argv(
+        "img:ref",
+        project,
+        "us-west-2",
+        workdir="/elsewhere",
+        artifact_name="custom-artifact.zip",
+        output_dir="/work/custom-output",
+    )
+
+    assert f"/elsewhere:{CONTAINER_WORKDIR}" in argv
+    assert f"{CONTAINER_WORKDIR}/custom-artifact.zip" in argv
+    assert argv[-2:] == ["-o", "/work/custom-output"]
+    # None of the project-derived defaults leak in.
+    assert f"/project/root:{CONTAINER_WORKDIR}" not in argv
+    assert f"{CONTAINER_WORKDIR}/aws-foo-bar.zip" not in argv
+    assert CONTAINER_OUTPUT_DIR not in argv

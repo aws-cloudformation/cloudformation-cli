@@ -286,3 +286,48 @@ def test_image_present_locally_uses_docker_image_inspect(monkeypatch):
     absent = _RecordingDocker([1])
     monkeypatch.setattr(image_module, "_run_docker", absent)
     assert image_module.image_present_locally("ref:tag") is False
+
+
+# ===========================================================================
+# Internal docker seam and inspect failure handling
+# ===========================================================================
+def test_run_docker_invokes_docker_cli_with_fixed_argv():
+    """_run_docker drives the docker CLI with a fixed, non-shell argv.
+
+    This is the one place that actually reaches ``subprocess.run``; it is
+    patched here so no docker process is spawned. A fixed argv list (never a
+    shell string) is what makes the image reference safe to pass through.
+    """
+    completed = subprocess.CompletedProcess(args=["docker", "info"], returncode=0)
+
+    with mock.patch.object(
+        image_module.subprocess, "run", return_value=completed
+    ) as run:
+        result = image_module._run_docker(  # pylint: disable=protected-access
+            ["image", "inspect", "ref:tag"], timeout=7
+        )
+
+    assert result is completed
+    run.assert_called_once()
+    assert run.call_args[0][0] == ["docker", "image", "inspect", "ref:tag"]
+    assert run.call_args[1]["check"] is False
+    assert run.call_args[1]["capture_output"] is True
+    assert run.call_args[1]["timeout"] == 7
+
+
+@pytest.mark.parametrize(
+    "docker_error", [OSError("docker not found"), subprocess.SubprocessError("boom")]
+)
+def test_image_present_locally_false_when_inspect_cannot_run(monkeypatch, docker_error):
+    """An inspect that cannot even run is treated as 'not present locally'.
+
+    Keeps ``ensure_image``'s fallback decision safe when the docker CLI is
+    missing or unusable: absent, rather than assumed cached.
+    """
+
+    def raise_error(_docker_args, timeout=None):  # pylint: disable=unused-argument
+        raise docker_error
+
+    monkeypatch.setattr(image_module, "_run_docker", raise_error)
+
+    assert image_module.image_present_locally("ref:tag") is False

@@ -16,8 +16,10 @@ package file under a ``tmp_path`` working directory.
 """
 
 import contextlib
+import subprocess
 from unittest import mock
 
+import pytest
 from hypothesis import HealthCheck, given, settings, strategies as st
 
 from rpdk.core.exceptions import CLIMisconfiguredError
@@ -187,3 +189,74 @@ def test_credentials_unavailable_in_isolation(tmp_path):
     assert len(failures) == 1
     assert MESSAGE_SUBSTRINGS["credentials"] in failures[0]
     assert failures
+
+
+# ---------------------------------------------------------------------------
+# Docker daemon ping failure modes (docker CLI present, daemon unreachable).
+# ---------------------------------------------------------------------------
+
+
+@contextlib.contextmanager
+def docker_ping_env(work_dir, **run_kwargs):
+    """Yield ``(args, project)`` with docker on PATH and ``docker info`` stubbed.
+
+    The artifact and credential checks are forced to pass, so any failure the
+    caller observes comes from the Docker daemon ping alone. ``run_kwargs`` is
+    forwarded to ``mock.patch`` for ``subprocess.run`` (``return_value`` for an
+    exit status, ``side_effect`` to raise).
+    """
+    project = FakeProject(work_dir)
+    (work_dir / f"{project.hypenated_name}.zip").write_bytes(b"zip")
+
+    with contextlib.ExitStack() as stack:
+        stack.enter_context(
+            mock.patch(
+                f"{PRECONDITIONS_MODULE}.shutil.which", return_value="/usr/bin/docker"
+            )
+        )
+        stack.enter_context(
+            mock.patch(f"{PRECONDITIONS_MODULE}.subprocess.run", **run_kwargs)
+        )
+        stack.enter_context(
+            mock.patch(
+                f"{PRECONDITIONS_MODULE}.create_sdk_session", return_value=mock.Mock()
+            )
+        )
+        yield _make_args(), project
+
+
+def test_docker_daemon_ping_nonzero_exit_reports_unreachable(tmp_path):
+    """docker CLI present but ``docker info`` exits non-zero -> unreachable daemon.
+
+    Distinct from the missing-CLI case: the binary exists, so the ping itself is
+    what fails.
+
+    Validates: Requirements 3.2
+    """
+    with docker_ping_env(tmp_path, return_value=mock.Mock(returncode=1)) as (
+        args,
+        project,
+    ):
+        failures = check_preconditions(args, project)
+
+    assert len(failures) == 1
+    assert MESSAGE_SUBSTRINGS["docker"] in failures[0]
+
+
+@pytest.mark.parametrize(
+    "ping_error",
+    [OSError("cannot exec"), subprocess.TimeoutExpired(cmd="docker info", timeout=10)],
+)
+def test_docker_daemon_ping_error_reports_unreachable(tmp_path, ping_error):
+    """A ping that raises (spawn failure or timeout) -> unreachable daemon.
+
+    The check converts the exception into a message rather than propagating it,
+    so a hung or broken daemon still aggregates with other failures.
+
+    Validates: Requirements 3.2
+    """
+    with docker_ping_env(tmp_path, side_effect=ping_error) as (args, project):
+        failures = check_preconditions(args, project)
+
+    assert len(failures) == 1
+    assert MESSAGE_SUBSTRINGS["docker"] in failures[0]

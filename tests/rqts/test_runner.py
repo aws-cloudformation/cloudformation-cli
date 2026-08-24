@@ -369,3 +369,39 @@ def test_run_logs_full_docker_command_at_debug_on_happy_path(tmp_path, caplog):
     assert any(joined_command in message for message in debug_records)
     # The pass summary is surfaced (Req 6.1).
     assert PASS_SUMMARY in caplog.text
+
+
+# ===========================================================================
+# Precondition enforcement inside the pipeline
+# ===========================================================================
+def test_run_unmet_preconditions_aggregated_and_halts(tmp_path):
+    """Unmet preconditions -> a single error naming every failure; nothing runs.
+
+    The runner turns the aggregated list from ``check_preconditions`` into one
+    ``SysExitRecommendedError`` instead of failing on the first problem, and
+    halts before the image is ensured or any container is started.
+
+    Validates: Requirements 3.1, 3.5
+    """
+    project = _make_resource_project(str(tmp_path))
+    rqts_runner = RqtsRunner(_make_args(), project)
+    failures = [
+        "Docker is required and must be running: the Docker daemon could not "
+        "be reached.",
+        "artifact package 'aws-foo-bar.zip' not found; build the project first.",
+    ]
+
+    with mock.patch(
+        f"{RUNNER_MODULE}.check_preconditions", return_value=failures
+    ), mock.patch(f"{RUNNER_MODULE}.ensure_image") as ensure, mock.patch(
+        f"{RUNNER_MODULE}.run_container"
+    ) as run:
+        with pytest.raises(SysExitRecommendedError) as excinfo:
+            rqts_runner.run()
+
+    message = str(excinfo.value)
+    assert "preconditions were not met" in message
+    for failure in failures:
+        assert failure in message
+    ensure.assert_not_called()
+    run.assert_not_called()
