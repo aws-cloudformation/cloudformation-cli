@@ -418,6 +418,13 @@ def test(args):
         LOG.warning("The test command is not supported in a module project")
         return
 
+    if args.v2:
+        # local import keeps the pytest path import-light
+        from .rqts.runner import RqtsRunner  # pylint: disable=import-outside-toplevel
+
+        RqtsRunner(args, project).run()
+        return
+
     if project.artifact_type == ARTIFACT_TYPE_HOOK:
         overrides = get_hook_overrides(
             project.root,
@@ -543,6 +550,25 @@ def setup_subparser(subparsers, parents):
     parser.add_argument(
         "--source-arn",
         help="Source Type Version Arn key used for Assume Role to Run Contract Tests",
+    )
+
+    parser.add_argument(
+        "--v2",
+        action="store_true",
+        default=False,
+        help=(
+            "Opt-in: run the RQTS local test runner (CTv2) in a Docker container "
+            "instead of the default pytest-based contract tests."
+        ),
+    )
+
+    parser.add_argument(
+        "--rqts-image",
+        default=None,
+        help=(
+            "Override the RQTS container image reference (for testing or pre-release "
+            "images). Defaults to the CLI-pinned public.ecr.aws image."
+        ),
     )
 
 
