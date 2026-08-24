@@ -29,12 +29,7 @@ RQTS_IMAGE_REFERENCE = "public.ecr.aws/s5r7m5i4/cfn-rqts-executor-external:lates
 # top-level ``--extension`` option BEFORE the ``run-tests`` subcommand.
 EXTENSION_CONTRACT_TESTS = "contract-tests"
 
-# SAM Local handler port. Retained for reference; unused by the DirectJar mode
-# that ``cfn test --v2`` targets (DirectJar loads the handler in-process and
-# needs no handler endpoint).
-DEFAULT_HANDLER_PORT = 3031
-
-# Image pull retry policy (Req 2.4).
+# Image pull retry policy.
 PULL_MAX_ATTEMPTS = 3
 PULL_ATTEMPT_TIMEOUT_SECONDS = 120
 
