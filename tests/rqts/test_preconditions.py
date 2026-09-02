@@ -1,8 +1,9 @@
 """Tests for ``rpdk.core.rqts.preconditions``.
 
 Covers:
-- Property 3: precondition failures are aggregated exactly (over the three
-  DirectJar checks: Docker runtime, artifact package, credentials+region).
+- Property 3: precondition failures are aggregated exactly (over the four
+  DirectJar checks: Docker runtime, Java language, artifact package,
+  credentials+region).
 - Each precondition failing in isolation produces its own message and prevents
   any container run.
 
@@ -27,11 +28,12 @@ from rpdk.core.rqts.preconditions import check_preconditions
 
 PRECONDITIONS_MODULE = "rpdk.core.rqts.preconditions"
 
-# The three checks, in the order check_preconditions runs them, keyed to the
+# The checks, in the order check_preconditions runs them, keyed to the
 # distinctive substring of the failure message each one emits.
-CHECK_NAMES = ("docker", "artifact", "credentials")
+CHECK_NAMES = ("docker", "language", "artifact", "credentials")
 MESSAGE_SUBSTRINGS = {
     "docker": "Docker is required",
+    "language": "supports Java projects only",
     "artifact": "artifact package",
     "credentials": "valid AWS credentials and a region",
 }
@@ -40,12 +42,13 @@ MESSAGE_SUBSTRINGS = {
 class FakeProject:
     """Minimal stand-in for ``rpdk.core.project.Project``.
 
-    Only the attributes the precondition checks read are provided: ``root`` and
-    ``hypenated_name``.
+    Only the attributes the precondition checks read are provided: ``root``,
+    ``language`` and ``hypenated_name``.
     """
 
-    def __init__(self, root):
+    def __init__(self, root, language="java"):
         self.root = root
+        self.language = language
         self.hypenated_name = "aws-foo-bar"
 
 
@@ -64,7 +67,8 @@ def configured_env(work_dir, states):
     PASS and ``False`` means it should FAIL. Yields ``(args, project)`` wired so
     that ``check_preconditions`` observes exactly those outcomes.
     """
-    project = FakeProject(work_dir)
+    # Language: the Java plugin's entry point name passes, anything else fails.
+    project = FakeProject(work_dir, language="java" if states["language"] else "python")
 
     # Artifact package presence (real filesystem toggle).
     artifact_path = work_dir / f"{project.hypenated_name}.zip"
@@ -114,10 +118,10 @@ def _matched_checks(failures):
 
 
 # Feature: cfn-test-v2-flag, Property 3: For any subset of the precondition
-# checks (Docker runtime, artifact package, credentials+region) forced to fail,
-# check_preconditions returns a failure list whose messages correspond to
-# exactly that subset - every unmet precondition is named and every met
-# precondition is absent.
+# checks (Docker runtime, Java language, artifact package, credentials+region)
+# forced to fail, check_preconditions returns a failure list whose messages
+# correspond to exactly that subset - every unmet precondition is named and
+# every met precondition is absent.
 @settings(max_examples=200, suppress_health_check=[HealthCheck.function_scoped_fixture])
 @given(pass_flags=st.fixed_dictionaries({name: st.booleans() for name in CHECK_NAMES}))
 def test_precondition_failures_aggregated_exactly(tmp_path, pass_flags):
@@ -163,6 +167,23 @@ def test_docker_unavailable_in_isolation(tmp_path):
     assert MESSAGE_SUBSTRINGS["docker"] in failures[0]
     # A non-empty failure list prevents the caller from ever running a container.
     assert failures
+
+
+@pytest.mark.parametrize("language", ["python", "go", "typescript", ""])
+def test_non_java_language_in_isolation(tmp_path, language):
+    """A non-Java project yields its message and blocks the run.
+
+    DirectJar has no artifact it can load for a non-JVM project, so this is
+    caught up front rather than as an opaque failure inside the container.
+    """
+    states = _states_with_only_failing("language")
+    with configured_env(tmp_path, states) as (args, project):
+        project.language = language
+        failures = check_preconditions(args, project)
+
+    assert len(failures) == 1
+    assert MESSAGE_SUBSTRINGS["language"] in failures[0]
+    assert f"'{language}'" in failures[0]
 
 
 def test_artifact_missing_in_isolation(tmp_path):

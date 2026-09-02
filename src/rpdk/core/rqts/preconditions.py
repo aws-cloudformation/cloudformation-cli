@@ -1,13 +1,14 @@
 """Precondition checks for the RQTS (CTv2 local) contract test runner.
 
 ``cfn test --v2`` requires several runtime and project prerequisites before the
-RQTS container can run: a working Docker runtime, a built artifact package, and
-valid AWS credentials and region.
+RQTS container can run: a working Docker runtime, a Java project, a built
+artifact package, and valid AWS credentials and region.
 
 The DirectJar handler mode loads the handler JAR directly into the executor
 JVM, so there is no SAM Local handler endpoint to probe and no separate input
 resolution: inputs are packaged inside the artifact zip and read from there by
-the executor.
+the executor. It also means a non-Java project has no artifact the executor can
+invoke, which is why the language is checked up front.
 
 Each check in this module is independent and side-effect-free with respect to
 the others. A check appends a single human-readable message on failure and
@@ -22,6 +23,7 @@ import shutil
 import subprocess  # nosec B404
 
 from ..boto_helpers import create_sdk_session
+from .constants import JAVA_LANGUAGE
 
 LOG = logging.getLogger(__name__)
 
@@ -63,6 +65,22 @@ def _check_docker():
             "not be reached."
         )
 
+    return None
+
+
+def _check_language(project):
+    """Return a failure message unless the project is a Java project.
+
+    DirectJar loads a handler JAR directly into the executor JVM, so only the
+    Java language plugin produces a usable artifact. ``project.language`` is that
+    plugin's ``rpdk.v1.languages`` entry point name, as recorded in
+    ``.rpdk-config``.
+    """
+    if project.language != JAVA_LANGUAGE:
+        return (
+            "the RQTS local test runner supports Java projects only; this "
+            f"project's language is '{project.language}'."
+        )
     return None
 
 
@@ -111,6 +129,7 @@ def check_preconditions(args, project):
     failures = []
     for message in (
         _check_docker(),
+        _check_language(project),
         _check_artifact(project),
         _check_credentials(args),
     ):

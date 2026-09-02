@@ -1,25 +1,20 @@
 """Tests for ``rpdk.core.rqts.runner``.
 
-Covers:
-- Property 12: exit-code mapping (``map_exit_code``) over arbitrary exit codes.
-- Orchestration guards and container spawn failure edge cases
-  (``run_container`` spawn failure, ``RqtsRunner._guard_artifact_type`` for hook
-  and indeterminate artifact types).
-- Live output streaming integration for ``run_container`` using a fake child
-  process (no real Docker).
-- Result reporting (``report_result``) pass/fail summaries and the
-  ``RqtsRunner.run`` DEBUG log of the full ``docker run`` command line.
+Covers the orchestration the runner still owns after everything Docker-facing
+moved to :class:`rpdk.core.rqts.image.RqtsImage`: the artifact-type guards,
+precondition aggregation, credential minting, type configuration resolution,
+and the exit-code contract.
 
-Docker and AWS are never actually invoked: ``subprocess.Popen`` is patched with
-a deterministic fake, and the sibling functions imported into ``runner`` are
-patched at ``rpdk.core.rqts.runner`` so the happy path exercises the
-orchestration wiring without any external calls.
+Docker and AWS are never invoked: ``RqtsImage`` and the ``boto_helpers``
+functions imported into ``runner`` are patched at ``rpdk.core.rqts.runner``.
 
 Library: Hypothesis (the standard Python property-based testing library). The
 property test runs at least 100 generated examples via
 ``@settings(max_examples=100)`` and is tagged with a comment referencing the
 design property it validates.
 """
+
+import json
 import logging
 from types import SimpleNamespace
 from unittest import mock
@@ -27,58 +22,27 @@ from unittest import mock
 import pytest
 from hypothesis import given, settings, strategies as st
 
-from rpdk.core.exceptions import SysExitRecommendedError
+from rpdk.core.contract.type_configuration import TypeConfiguration
+from rpdk.core.exceptions import InvalidProjectError, SysExitRecommendedError
 from rpdk.core.project import ARTIFACT_TYPE_HOOK, ARTIFACT_TYPE_RESOURCE
-from rpdk.core.rqts.runner import (
-    FAIL_SUMMARY,
-    PASS_SUMMARY,
-    RqtsRunner,
-    map_exit_code,
-    report_result,
-    run_container,
-)
+from rpdk.core.rqts.constants import ENV_CRED_KEYS, FAIL_MESSAGE, PASS_MESSAGE
+from rpdk.core.rqts.runner import RqtsRunner
 
 RUNNER_MODULE = "rpdk.core.rqts.runner"
 
-
-# ---------------------------------------------------------------------------
-# Fakes
-# ---------------------------------------------------------------------------
+CREDS = dict(zip(ENV_CRED_KEYS, ("AKID", "SECRET", "TOKEN")))
 
 
-class FakePopen:
-    """Deterministic stand-in for ``subprocess.Popen``.
+@pytest.fixture(autouse=True)
+def _reset_type_configuration():
+    """Keep the ``TypeConfiguration`` class-level cache from leaking between tests.
 
-    Supports the context-manager protocol used by ``run_container`` and records
-    that ``wait()`` was called before the return code is surfaced, so the test
-    can assert the child was awaited (i.e. streamed to completion) rather than
-    abandoned. Optionally emits incremental "live" output lines to a sink to
-    model streaming.
+    The cache has no invalidation, so a value parsed by one test would otherwise
+    be reused by the next.
     """
-
-    def __init__(self, argv, return_code=0, output_lines=None, output_sink=None):
-        self.argv = argv
-        self._return_code = return_code
-        self._output_lines = list(output_lines or [])
-        self._output_sink = output_sink
-        self.waited = False
-        self.entered = False
-
-    def __enter__(self):
-        self.entered = True
-        return self
-
-    def __exit__(self, *_exc):
-        return False
-
-    def wait(self):
-        # Model live streaming: output is surfaced as the process runs, before
-        # wait() returns the exit code.
-        if self._output_sink is not None:
-            for line in self._output_lines:
-                self._output_sink.append(line)
-        self.waited = True
-        return self._return_code
+    TypeConfiguration.TYPE_CONFIGURATION = None
+    yield
+    TypeConfiguration.TYPE_CONFIGURATION = None
 
 
 def _make_resource_project(root):
@@ -91,22 +55,76 @@ def _make_resource_project(root):
     )
 
 
-def _make_args():
-    return SimpleNamespace(
+def _make_args(**overrides):
+    args = SimpleNamespace(
         region="us-east-1",
         profile=None,
         role_arn=None,
         source_account=None,
         source_arn=None,
+        typeconfig=None,
         rqts_image=None,
     )
+    for key, value in overrides.items():
+        setattr(args, key, value)
+    return args
+
+
+class _Pipeline:
+    """Context manager patching everything ``RqtsRunner.run`` depends on."""
+
+    def __init__(self, exit_code=0, type_configuration=None, failures=()):
+        self._exit_code = exit_code
+        self._patches = {
+            "check": mock.patch(
+                f"{RUNNER_MODULE}.check_preconditions", return_value=list(failures)
+            ),
+            "session": mock.patch(f"{RUNNER_MODULE}.create_sdk_session"),
+            "creds": mock.patch(
+                f"{RUNNER_MODULE}.get_temporary_credentials", return_value=CREDS
+            ),
+            "typeconfig": mock.patch.object(
+                TypeConfiguration,
+                "get_type_configuration",
+                return_value=type_configuration,
+            ),
+            "image": mock.patch(f"{RUNNER_MODULE}.RqtsImage", autospec=True),
+        }
+        self.mocks = {}
+
+    def __enter__(self):
+        self.mocks = {name: patch.start() for name, patch in self._patches.items()}
+        self.image.return_value.run.return_value = self._exit_code
+        return self
+
+    def __exit__(self, *_exc):
+        for patch in reversed(list(self._patches.values())):
+            patch.stop()
+        return False
+
+    @property
+    def image(self):
+        return self.mocks["image"]
+
+    @property
+    def container_run(self):
+        """The mocked ``RqtsImage.run`` the runner delegates to."""
+        return self.mocks["image"].return_value.run
+
+    @property
+    def get_type_configuration(self):
+        return self.mocks["typeconfig"]
+
+    @property
+    def get_temporary_credentials(self):
+        return self.mocks["creds"]
 
 
 # ===========================================================================
 # Property 12: exit-code mapping
 # ===========================================================================
 # Feature: cfn-test-v2-flag, Property 12: Exit code mapping
-@settings(max_examples=100)
+@settings(max_examples=100, deadline=None)
 @given(
     code=st.one_of(
         st.just(0),
@@ -116,54 +134,43 @@ def _make_args():
     )
 )
 def test_property_12_exit_code_mapping(code):
-    """map_exit_code(0) returns None without raising; any non-zero code raises
-    SysExitRecommendedError.
+    """A zero container exit code returns normally; any non-zero code raises
+    SysExitRecommendedError with the fail message.
 
     Validates: Requirements 5.2, 5.3, 6.3
     """
-    if code == 0:
-        assert map_exit_code(code) is None
-    else:
-        with pytest.raises(SysExitRecommendedError):
-            map_exit_code(code)
+    TypeConfiguration.TYPE_CONFIGURATION = None
+    runner = RqtsRunner(_make_args(), _make_resource_project("/tmp/project"))
+
+    with _Pipeline(exit_code=code):
+        if code == 0:
+            assert runner.run() is None
+        else:
+            with pytest.raises(SysExitRecommendedError) as excinfo:
+                runner.run()
+            assert str(excinfo.value) == FAIL_MESSAGE
 
 
 # ===========================================================================
-# Orchestration guards and spawn failure
+# Artifact-type guards
 # ===========================================================================
-@pytest.mark.parametrize(
-    "spawn_error", [FileNotFoundError("no docker"), OSError("boom")]
-)
-def test_run_container_spawn_failure_raises(spawn_error):
-    """Container spawn failure -> SysExitRecommendedError naming the start failure.
-
-    Validates: Requirements 5.4
-    """
-    with mock.patch(f"{RUNNER_MODULE}.subprocess.Popen", side_effect=spawn_error):
-        with pytest.raises(SysExitRecommendedError) as excinfo:
-            run_container(["docker", "run", "--rm", "image"])
-
-    assert "could not be started" in str(excinfo.value)
-
-
 def test_guard_artifact_type_hook_rejected_and_does_not_proceed():
     """Hook project -> SysExitRecommendedError 'resources only'; pipeline halts.
 
     Validates: Requirements 7.2
     """
-    project = SimpleNamespace(artifact_type=ARTIFACT_TYPE_HOOK)
-    rqts_runner = RqtsRunner(_make_args(), project)
+    runner = RqtsRunner(_make_args(), SimpleNamespace(artifact_type=ARTIFACT_TYPE_HOOK))
 
     with mock.patch(f"{RUNNER_MODULE}.check_preconditions") as check, mock.patch(
-        f"{RUNNER_MODULE}.run_container"
-    ) as run:
+        f"{RUNNER_MODULE}.RqtsImage"
+    ) as image:
         with pytest.raises(SysExitRecommendedError) as excinfo:
-            rqts_runner.run()
+            runner.run()
 
     assert "resource types only" in str(excinfo.value)
     # The guard fails fast: no downstream stage runs.
     check.assert_not_called()
-    run.assert_not_called()
+    image.assert_not_called()
 
 
 def test_guard_artifact_type_indeterminate_rejected_and_does_not_proceed():
@@ -171,237 +178,156 @@ def test_guard_artifact_type_indeterminate_rejected_and_does_not_proceed():
 
     Validates: Requirements 7.5
     """
-    project = SimpleNamespace(artifact_type=None)
-    rqts_runner = RqtsRunner(_make_args(), project)
+    runner = RqtsRunner(_make_args(), SimpleNamespace(artifact_type=None))
 
     with mock.patch(f"{RUNNER_MODULE}.check_preconditions") as check, mock.patch(
-        f"{RUNNER_MODULE}.run_container"
-    ) as run:
+        f"{RUNNER_MODULE}.RqtsImage"
+    ) as image:
         with pytest.raises(SysExitRecommendedError) as excinfo:
-            rqts_runner.run()
+            runner.run()
 
     assert "could not determine the project artifact type" in str(excinfo.value)
     check.assert_not_called()
-    run.assert_not_called()
+    image.assert_not_called()
 
 
 # ===========================================================================
-# Live output streaming integration
+# Precondition enforcement
 # ===========================================================================
-def test_run_container_streams_output_and_returns_code():
-    """run_container surfaces incremental child output and returns the exit code.
-
-    A fake child process emits incremental lines as it runs (before wait()
-    returns), modelling the inherited-stdio live streaming; run_container
-    returns the child's exit code.
-
-    Validates: Requirements 5.1
-    """
-    argv = [
-        "docker",
-        "run",
-        "--rm",
-        "image:tag",
-        "--extension",
-        "contract-tests",
-        "run-tests",
-        "/work/aws-foo-bar.zip",
-        "--direct-jar",
-    ]
-    streamed = []
-    process = FakePopen(
-        argv,
-        return_code=0,
-        output_lines=["scenario create: PASS", "scenario delete: PASS"],
-        output_sink=streamed,
-    )
-
-    def factory(passed_argv, *_args, **_kwargs):
-        # run_container must spawn docker with exactly the argv it was given.
-        assert passed_argv == argv
-        return process
-
-    with mock.patch(f"{RUNNER_MODULE}.subprocess.Popen", side_effect=factory):
-        code = run_container(argv)
-
-    assert code == 0
-    # Output was surfaced live (during the run) and the child was awaited.
-    assert streamed == ["scenario create: PASS", "scenario delete: PASS"]
-    assert process.waited is True
-
-
-def test_run_container_returns_nonzero_code():
-    """run_container returns a non-zero child exit code unchanged (no raise)."""
-    argv = ["docker", "run", "--rm", "image:tag"]
-
-    with mock.patch(
-        f"{RUNNER_MODULE}.subprocess.Popen",
-        side_effect=lambda passed_argv, *a, **k: FakePopen(passed_argv, return_code=7),
-    ):
-        assert run_container(argv) == 7
-
-
-def test_run_container_merges_env_over_ambient_environment(monkeypatch):
-    """run_container spawns docker with the supplied env merged over os.environ,
-    and inherits the ambient environment untouched (env=None) when none is given.
-
-    This is the delivery half of the name-only ``-e`` contract: credential
-    values reach docker exclusively through the process environment.
-    """
-    argv = ["docker", "run", "--rm", "image:tag"]
-    captured = {}
-
-    def factory(passed_argv, *_args, **kwargs):
-        captured["env"] = kwargs.get("env")
-        return FakePopen(passed_argv, return_code=0)
-
-    monkeypatch.setenv("SOME_AMBIENT_VAR", "ambient")
-
-    with mock.patch(f"{RUNNER_MODULE}.subprocess.Popen", side_effect=factory):
-        run_container(argv, env={"AWS_ACCESS_KEY_ID": "AKID"})
-    assert captured["env"]["AWS_ACCESS_KEY_ID"] == "AKID"
-    assert captured["env"]["SOME_AMBIENT_VAR"] == "ambient"
-
-    with mock.patch(f"{RUNNER_MODULE}.subprocess.Popen", side_effect=factory):
-        run_container(argv)
-    assert captured["env"] is None
-
-
-# ===========================================================================
-# Result reporting and DEBUG logging
-# ===========================================================================
-def test_report_result_pass_logs_summary_and_does_not_raise(caplog):
-    """report_result(0) logs PASS_SUMMARY at INFO and does not raise.
-
-    Validates: Requirements 6.1
-    """
-    with caplog.at_level(logging.INFO, logger=RUNNER_MODULE):
-        assert report_result(0) is None
-
-    assert PASS_SUMMARY in caplog.text
-
-
-def test_report_result_fail_raises_with_fail_summary():
-    """report_result(non-zero) raises SysExitRecommendedError with FAIL_SUMMARY.
-
-    Validates: Requirements 6.2
-    """
-    with pytest.raises(SysExitRecommendedError) as excinfo:
-        report_result(1)
-
-    assert str(excinfo.value) == FAIL_SUMMARY
-
-
-def test_run_logs_full_docker_command_at_debug_on_happy_path(tmp_path, caplog):
-    """RqtsRunner.run logs the full docker run command at DEBUG and passes.
-
-    A fully-mocked happy path (no preconditions failures, stubbed credentials,
-    image resolve/ensure, and a zero container exit code) drives the runner and
-    asserts the full docker command line is emitted at DEBUG and the run reports
-    a pass. It also asserts check_preconditions is called with (args, project).
-
-    Validates: Requirements 4.10, 6.1
-    """
-    project = _make_resource_project(str(tmp_path))
-    args = _make_args()
-    rqts_runner = RqtsRunner(args, project)
-    docker_argv = [
-        "docker",
-        "run",
-        "--rm",
-        "image:tag",
-        "--extension",
-        "contract-tests",
-        "run-tests",
-        "/work/aws-foo-bar.zip",
-        "--direct-jar",
-    ]
-
-    creds = {
-        "aws_access_key_id": "AKID",
-        "aws_secret_access_key": "SECRET",
-        "aws_session_token": "TOKEN",
-    }
-
-    with mock.patch(
-        f"{RUNNER_MODULE}.check_preconditions", return_value=[]
-    ) as check, mock.patch(f"{RUNNER_MODULE}.create_sdk_session"), mock.patch(
-        f"{RUNNER_MODULE}.get_temporary_credentials", return_value=creds
-    ), mock.patch(
-        f"{RUNNER_MODULE}.resolve_image", return_value="image:tag"
-    ), mock.patch(
-        f"{RUNNER_MODULE}.ensure_image"
-    ), mock.patch(
-        f"{RUNNER_MODULE}.build_docker_argv", return_value=docker_argv
-    ), mock.patch(
-        f"{RUNNER_MODULE}.run_container", return_value=0
-    ) as run:
-        with caplog.at_level(logging.DEBUG, logger=RUNNER_MODULE):
-            # Returns normally (pass) on a zero container exit code.
-            assert rqts_runner.run() is None
-
-    # check_preconditions is called with exactly (args, project) - no host arg.
-    check.assert_called_once_with(args, project)
-    # run_container receives the credential-free argv plus the env mapping that
-    # carries the credential values (never present in the argv itself).
-    run.assert_called_once_with(
-        docker_argv,
-        env={
-            "AWS_ACCESS_KEY_ID": "AKID",
-            "AWS_SECRET_ACCESS_KEY": "SECRET",
-            "AWS_SESSION_TOKEN": "TOKEN",
-            "AWS_REGION": args.region,
-        },
-    )
-    # The DEBUG-logged command line contains no credential values.
-    for record in caplog.records:
-        for secret in creds.values():
-            assert secret not in record.getMessage()
-    # The host-side output directory was created under the project root.
-    assert (tmp_path / "rqts-output").is_dir()
-    # The full docker run command line is logged at DEBUG (Req 4.10).
-    debug_records = [
-        record.getMessage()
-        for record in caplog.records
-        if record.levelno == logging.DEBUG
-    ]
-    joined_command = " ".join(docker_argv)
-    assert any(joined_command in message for message in debug_records)
-    # The pass summary is surfaced (Req 6.1).
-    assert PASS_SUMMARY in caplog.text
-
-
-# ===========================================================================
-# Precondition enforcement inside the pipeline
-# ===========================================================================
-def test_run_unmet_preconditions_aggregated_and_halts(tmp_path):
+def test_run_unmet_preconditions_aggregated_and_halts():
     """Unmet preconditions -> a single error naming every failure; nothing runs.
 
     The runner turns the aggregated list from ``check_preconditions`` into one
     ``SysExitRecommendedError`` instead of failing on the first problem, and
-    halts before the image is ensured or any container is started.
+    halts before any container is started.
 
-    Validates: Requirements 3.1, 3.5
+    Validates: Requirements 3.1, 3.5, 3.7
     """
-    project = _make_resource_project(str(tmp_path))
-    rqts_runner = RqtsRunner(_make_args(), project)
+    runner = RqtsRunner(_make_args(), _make_resource_project("/tmp/project"))
     failures = [
         "Docker is required and must be running: the Docker daemon could not "
         "be reached.",
         "artifact package 'aws-foo-bar.zip' not found; build the project first.",
     ]
 
-    with mock.patch(
-        f"{RUNNER_MODULE}.check_preconditions", return_value=failures
-    ), mock.patch(f"{RUNNER_MODULE}.ensure_image") as ensure, mock.patch(
-        f"{RUNNER_MODULE}.run_container"
-    ) as run:
+    with _Pipeline(failures=failures) as pipeline:
         with pytest.raises(SysExitRecommendedError) as excinfo:
-            rqts_runner.run()
+            runner.run()
 
     message = str(excinfo.value)
     assert "preconditions were not met" in message
     for failure in failures:
         assert failure in message
-    ensure.assert_not_called()
-    run.assert_not_called()
+    pipeline.image.assert_not_called()
+
+
+# ===========================================================================
+# Credentials and type configuration
+# ===========================================================================
+def test_run_mints_credentials_keyed_for_the_executor():
+    """Credentials are requested with the executor's env var names as key names,
+    with the confused-deputy headers, and handed to the image unchanged.
+
+    Validates: Requirements 3.5
+    """
+    args = _make_args(
+        role_arn="arn:aws:iam::1:role/r", source_account="1", source_arn="arn:x"
+    )
+    project = _make_resource_project("/tmp/project")
+    runner = RqtsRunner(args, project)
+
+    with _Pipeline() as pipeline:
+        runner.run()
+
+    session = pipeline.get_temporary_credentials.call_args[0][0]
+    assert pipeline.get_temporary_credentials.call_args[0][1] is ENV_CRED_KEYS
+    assert pipeline.get_temporary_credentials.call_args[0][2] == args.role_arn
+    assert pipeline.get_temporary_credentials.call_args[1]["headers"] == {
+        "account_id": "1",
+        "source_arn": "arn:x",
+    }
+    assert session is not None
+
+    pipeline.image.assert_called_once_with(args.rqts_image)
+    pipeline.container_run.assert_called_once_with(
+        project, args.region, CREDS, type_configuration=None
+    )
+
+
+def test_run_serializes_type_configuration_to_json():
+    """A resolved type configuration is passed to the image as a JSON string."""
+    config = {"Credentials": {"ApiKey": "123", "ApplicationKey": "456"}}
+    project = _make_resource_project("/tmp/project")
+    runner = RqtsRunner(_make_args(typeconfig="./tc.json"), project)
+
+    with _Pipeline(type_configuration=config) as pipeline:
+        runner.run()
+
+    pipeline.get_type_configuration.assert_called_once_with("./tc.json")
+    passed = pipeline.container_run.call_args[1]["type_configuration"]
+    assert json.loads(passed) == config
+
+
+@pytest.mark.parametrize("config", [None, {}])
+def test_run_passes_no_type_configuration_when_absent_or_empty(config):
+    """A missing or empty type configuration leaves the variable unset so the
+    executor falls back to the one packaged in the artifact."""
+    runner = RqtsRunner(_make_args(), _make_resource_project("/tmp/project"))
+
+    with _Pipeline(type_configuration=config) as pipeline:
+        runner.run()
+
+    assert pipeline.container_run.call_args[1]["type_configuration"] is None
+
+
+def test_run_clears_the_type_configuration_cache_before_reading():
+    """The class-level cache is cleared so each run reads the file from disk
+    rather than reusing a value parsed earlier in the process."""
+    TypeConfiguration.TYPE_CONFIGURATION = {"stale": True}
+    observed = {}
+
+    def record(typeconfigloc):  # pylint: disable=unused-argument
+        observed["cache"] = TypeConfiguration.TYPE_CONFIGURATION
+
+    runner = RqtsRunner(_make_args(), _make_resource_project("/tmp/project"))
+
+    with _Pipeline() as pipeline:
+        pipeline.get_type_configuration.side_effect = record
+        runner.run()
+
+    assert observed["cache"] is None
+
+
+def test_run_surfaces_invalid_type_configuration():
+    """An invalid type configuration file fails the run with the CLI's own
+    InvalidProjectError (a SysExitRecommendedError), before the container runs."""
+    runner = RqtsRunner(
+        _make_args(typeconfig="./bad.json"), _make_resource_project("/x")
+    )
+
+    with _Pipeline() as pipeline:
+        pipeline.get_type_configuration.side_effect = InvalidProjectError(
+            "Type configuration file './bad.json' is invalid"
+        )
+        with pytest.raises(SysExitRecommendedError) as excinfo:
+            runner.run()
+
+    assert "is invalid" in str(excinfo.value)
+    pipeline.container_run.assert_not_called()
+
+
+# ===========================================================================
+# Reporting
+# ===========================================================================
+def test_run_logs_pass_message_on_success(caplog):
+    """A passing run logs the pass message at INFO and returns.
+
+    Validates: Requirements 6.1
+    """
+    runner = RqtsRunner(_make_args(), _make_resource_project("/tmp/project"))
+
+    with _Pipeline(exit_code=0):
+        with caplog.at_level(logging.INFO, logger=RUNNER_MODULE):
+            assert runner.run() is None
+
+    assert PASS_MESSAGE in caplog.text
