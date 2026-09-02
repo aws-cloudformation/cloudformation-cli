@@ -22,7 +22,7 @@ import logging
 import shutil
 import subprocess  # nosec B404
 
-from ..boto_helpers import create_sdk_session
+from ..boto_helpers import create_sdk_session, get_service_endpoint
 from .constants import JAVA_LANGUAGE
 
 LOG = logging.getLogger(__name__)
@@ -102,15 +102,26 @@ def _check_artifact(project):
 def _check_credentials(args):
     """Return a failure message if AWS credentials or region are unavailable.
 
-    Reuses ``boto_helpers.create_sdk_session`` which raises when the region or
-    credentials are missing; that exception is caught and converted to a failure
-    message so the check never raises (Requirement 3.5).
+    ``create_sdk_session`` raises when the region or credentials are missing, but
+    it makes no network call, so it cannot tell whether the credentials still
+    work. ``sts:GetCallerIdentity`` verifies them, which matters because
+    ``get_temporary_credentials`` passes an already-temporary session token
+    through unchanged: without this, expired credentials would reach the
+    container and fail there instead of here (Requirement 3.5).
     """
     try:
-        create_sdk_session(args.region, args.profile)
+        session = create_sdk_session(args.region, args.profile)
+        session.client(
+            "sts",
+            endpoint_url=get_service_endpoint("sts", session.region_name),
+            region_name=session.region_name,
+        ).get_caller_identity()
     except Exception as e:  # pylint: disable=broad-except
-        LOG.debug("AWS session could not be created", exc_info=e)
-        return "valid AWS credentials and a region are required."
+        LOG.debug("AWS credentials could not be verified", exc_info=e)
+        return (
+            "valid AWS credentials and a region are required; they could not be "
+            "verified and may be expired."
+        )
     return None
 
 

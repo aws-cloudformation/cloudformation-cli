@@ -21,6 +21,7 @@ import subprocess
 from unittest import mock
 
 import pytest
+from botocore.exceptions import ClientError
 from hypothesis import HealthCheck, given, settings, strategies as st
 
 from rpdk.core.exceptions import CLIMisconfiguredError
@@ -81,7 +82,11 @@ def configured_env(work_dir, states):
     which_return = "/usr/bin/docker" if states["docker"] else None
     docker_info_result = mock.Mock(returncode=0 if states["docker"] else 1)
 
-    # Credentials: create_sdk_session succeeds => pass, raises => fail.
+    # Credentials: create_sdk_session succeeds => pass, raises => fail. The
+    # session needs a real region_name because the check resolves the regional
+    # STS endpoint from it before calling GetCallerIdentity.
+    session = mock.Mock()
+    session.region_name = "us-east-1"
     session_side_effect = (
         None if states["credentials"] else CLIMisconfiguredError("no creds")
     )
@@ -101,7 +106,7 @@ def configured_env(work_dir, states):
         stack.enter_context(
             mock.patch(
                 f"{PRECONDITIONS_MODULE}.create_sdk_session",
-                return_value=mock.Mock(),
+                return_value=session,
                 side_effect=session_side_effect,
             )
         )
@@ -212,6 +217,33 @@ def test_credentials_unavailable_in_isolation(tmp_path):
     assert failures
 
 
+def test_expired_credentials_caught_before_the_container_runs(tmp_path):
+    """Credentials that exist but no longer work fail here, not in the container.
+
+    ``create_sdk_session`` makes no network call, and
+    ``get_temporary_credentials`` passes an already-temporary session token
+    through unchanged, so nothing else on the host would notice expiry: the
+    executor would fail on its first AWS call instead.
+    """
+    session = mock.Mock()
+    session.region_name = "us-east-1"
+    session.client.return_value.get_caller_identity.side_effect = ClientError(
+        {"Error": {"Code": "ExpiredToken", "Message": "token is expired"}},
+        "GetCallerIdentity",
+    )
+
+    with configured_env(tmp_path, dict(ALL_PASS)) as (args, project):
+        with mock.patch(
+            f"{PRECONDITIONS_MODULE}.create_sdk_session", return_value=session
+        ):
+            failures = check_preconditions(args, project)
+
+    assert len(failures) == 1
+    assert MESSAGE_SUBSTRINGS["credentials"] in failures[0]
+    assert "may be expired" in failures[0]
+    session.client.return_value.get_caller_identity.assert_called_once_with()
+
+
 # ---------------------------------------------------------------------------
 # Docker daemon ping failure modes (docker CLI present, daemon unreachable).
 # ---------------------------------------------------------------------------
@@ -229,6 +261,10 @@ def docker_ping_env(work_dir, **run_kwargs):
     project = FakeProject(work_dir)
     (work_dir / f"{project.hypenated_name}.zip").write_bytes(b"zip")
 
+    # A real region_name so the credential check can resolve the STS endpoint.
+    session = mock.Mock()
+    session.region_name = "us-east-1"
+
     with contextlib.ExitStack() as stack:
         stack.enter_context(
             mock.patch(
@@ -240,7 +276,7 @@ def docker_ping_env(work_dir, **run_kwargs):
         )
         stack.enter_context(
             mock.patch(
-                f"{PRECONDITIONS_MODULE}.create_sdk_session", return_value=mock.Mock()
+                f"{PRECONDITIONS_MODULE}.create_sdk_session", return_value=session
             )
         )
         yield _make_args(), project
