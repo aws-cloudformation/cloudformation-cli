@@ -1,5 +1,6 @@
 # fixture and parameter have the same name
-# pylint: disable=protected-access,redefined-outer-name
+# pylint: disable=protected-access,redefined-outer-name,too-many-lines
+import argparse
 import json
 import os
 from contextlib import contextmanager
@@ -31,6 +32,7 @@ from rpdk.core.test import (
     get_marker_options,
     get_overrides,
     get_type,
+    setup_subparser,
     temporary_ini_file,
 )
 from rpdk.core.utils.handler_utils import generate_handler_name
@@ -838,3 +840,193 @@ class TestSecurityFileAccess:
 
         result = get_inputs(base, DEFAULT_REGION, DEFAULT_ENDPOINT, 1, None, None, {})
         assert result is not None and "CREATE" in result
+
+
+# --v2 flag registration and RQTS routing tests
+# (Task 8.3: flag registration; Task 8.4: routing + backward compatibility)
+
+
+def _build_test_parser():
+    """Build a parser wired up exactly the way cli.py does for the test command.
+
+    Mirrors rpdk.core.cli.main: a root parser with a shared base subparser
+    (providing -v/--verbose) as the only parent, and the test subcommand
+    registered via setup_subparser.
+    """
+    parser = argparse.ArgumentParser()
+    base_subparser = argparse.ArgumentParser(add_help=False)
+    base_subparser.add_argument("-v", "--verbose", action="count", default=0)
+    subparsers = parser.add_subparsers(dest="subparser_name")
+    setup_subparser(subparsers, [base_subparser])
+    return parser, subparsers
+
+
+# Task 8.3 - Requirements 1.1, 1.5, 4.11
+
+
+def test_v2_flag_defaults_to_false():
+    parser, _subparsers = _build_test_parser()
+    args = parser.parse_args(["test"])
+    assert args.v2 is False
+
+
+def test_v2_flag_present_sets_true():
+    parser, _subparsers = _build_test_parser()
+    args = parser.parse_args(["test", "--v2"])
+    assert args.v2 is True
+
+
+def test_rqts_image_defaults_to_none():
+    parser, _subparsers = _build_test_parser()
+    args = parser.parse_args(["test"])
+    assert args.rqts_image is None
+
+
+def test_rqts_image_can_be_overridden():
+    parser, _subparsers = _build_test_parser()
+    args = parser.parse_args(["test", "--rqts-image", "foo:bar"])
+    assert args.rqts_image == "foo:bar"
+
+
+def test_v2_help_text_identifies_opt_in_rqts_runner():
+    _parser, subparsers = _build_test_parser()
+    help_text = subparsers.choices["test"].format_help()
+    lowered = help_text.lower()
+    assert "opt-in" in lowered
+    assert "rqts local test runner" in lowered
+
+
+def test_no_scenario_selection_option_on_parser():
+    parser, _subparsers = _build_test_parser()
+    # Scenario selection is owned by the executor image and is not
+    # user-selectable through the CLI (Req 4.11); a scenario-selection option
+    # is not a recognized argument.
+    with pytest.raises(SystemExit):
+        parser.parse_args(["test", "--scenarios", "x"])
+
+
+# Task 8.4 - Requirements 1.2, 1.3, 1.4, 7.1, 7.3, 7.4
+
+
+def test_v2_absent_uses_pytest_path_and_does_not_construct_runner(base):
+    create_input_file(base, '{"a": 1}', '{"a": 2}', '{"b": 1}')
+    mock_project = Mock(spec=Project)
+    mock_project.schema = RESOURCE_SCHEMA
+    mock_project.root = base
+    mock_project.executable_entrypoint = None
+    mock_project.artifact_type = ARTIFACT_TYPE_RESOURCE
+
+    patch_project = patch(
+        "rpdk.core.test.Project", autospec=True, return_value=mock_project
+    )
+    patch_plugin = patch("rpdk.core.test.ContractPlugin", autospec=True)
+    patch_resource_client = patch("rpdk.core.test.ResourceClient", autospec=True)
+    patch_pytest = patch("rpdk.core.test.pytest.main", autospec=True, return_value=0)
+    patch_ini = patch(
+        "rpdk.core.test.temporary_ini_file", side_effect=mock_temporary_ini_file
+    )
+    patch_runner = patch("rpdk.core.rqts.runner.RqtsRunner", autospec=True)
+    # fmt: off
+    with patch_project, \
+            patch_plugin, \
+            patch_resource_client, \
+            patch_ini, \
+            patch_pytest as mock_pytest, \
+            patch_runner as mock_runner:
+        main(args_in=["test"])
+    # fmt: on
+
+    # The pytest path is exercised and the RQTS runner is never constructed.
+    mock_pytest.assert_called_once()
+    mock_runner.assert_not_called()
+
+
+def test_v2_absent_nonzero_pytest_return_still_raises(base):
+    create_input_file(base, '{"a": 1}', '{"a": 2}', '{"b": 1}')
+    mock_project = Mock(spec=Project)
+    mock_project.schema = RESOURCE_SCHEMA
+    mock_project.root = base
+    mock_project.executable_entrypoint = None
+    mock_project.artifact_type = ARTIFACT_TYPE_RESOURCE
+
+    patch_project = patch(
+        "rpdk.core.test.Project", autospec=True, return_value=mock_project
+    )
+    patch_plugin = patch("rpdk.core.test.ContractPlugin", autospec=True)
+    patch_resource_client = patch("rpdk.core.test.ResourceClient", autospec=True)
+    patch_pytest = patch("rpdk.core.test.pytest.main", autospec=True, return_value=1)
+    patch_ini = patch(
+        "rpdk.core.test.temporary_ini_file", side_effect=mock_temporary_ini_file
+    )
+    patch_runner = patch("rpdk.core.rqts.runner.RqtsRunner", autospec=True)
+    # fmt: off
+    with patch_project, \
+            patch_plugin, \
+            patch_resource_client, \
+            patch_ini, \
+            patch_pytest as mock_pytest, \
+            patch_runner as mock_runner:
+        with pytest.raises(SystemExit) as excinfo:
+            main(args_in=["test"])
+    # fmt: on
+
+    # Existing backward-compatible behavior: a non-zero pytest return raises
+    # SysExitRecommendedError, mapped by cli.py to a non-unhandled SystemExit.
+    assert excinfo.value.code != EXIT_UNHANDLED_EXCEPTION
+    # The --v2 branch did not alter forwarding to the pytest path.
+    mock_pytest.assert_called_once()
+    mock_runner.assert_not_called()
+
+
+def test_v2_resource_project_constructs_and_runs_runner(base):
+    mock_project = Mock(spec=Project)
+    mock_project.schema = RESOURCE_SCHEMA
+    mock_project.root = base
+    mock_project.executable_entrypoint = None
+    mock_project.artifact_type = ARTIFACT_TYPE_RESOURCE
+
+    patch_project = patch(
+        "rpdk.core.test.Project", autospec=True, return_value=mock_project
+    )
+    patch_pytest = patch("rpdk.core.test.pytest.main", autospec=True, return_value=0)
+    # test() imports RqtsRunner locally (from .rqts.runner import RqtsRunner),
+    # so patch it at its source module.
+    patch_runner = patch("rpdk.core.rqts.runner.RqtsRunner", autospec=True)
+    # fmt: off
+    with patch_project, \
+            patch_pytest as mock_pytest, \
+            patch_runner as mock_runner:
+        main(args_in=["test", "--v2"])
+    # fmt: on
+
+    # The runner is constructed with the parsed args and loaded project, and
+    # run() is invoked exactly once; the pytest path is not exercised.
+    mock_runner.assert_called_once()
+    called_args = mock_runner.call_args[0]
+    assert called_args[1] is mock_project
+    mock_runner.return_value.run.assert_called_once_with()
+    mock_pytest.assert_not_called()
+
+
+def test_v2_module_project_warns_and_does_not_construct_runner(capsys):
+    mock_project = Mock(spec=Project)
+    mock_project.artifact_type = ARTIFACT_TYPE_MODULE
+
+    patch_project = patch(
+        "rpdk.core.test.Project", autospec=True, return_value=mock_project
+    )
+    patch_pytest = patch("rpdk.core.test.pytest.main", autospec=True, return_value=0)
+    patch_runner = patch("rpdk.core.rqts.runner.RqtsRunner", autospec=True)
+    # fmt: off
+    with patch_project, \
+            patch_pytest as mock_pytest, \
+            patch_runner as mock_runner:
+        # The module short-circuit precedes the --v2 branch: clean return, no
+        # SystemExit raised.
+        main(args_in=["test", "--v2"])
+    # fmt: on
+
+    mock_runner.assert_not_called()
+    mock_pytest.assert_not_called()
+    out, err = capsys.readouterr()
+    assert "module" in (out + err).lower()
