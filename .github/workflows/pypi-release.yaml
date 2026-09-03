@@ -20,10 +20,11 @@ jobs:
         cache: 'pip'
     - name: Install dependencies
       run: |
-        pip install --upgrade wheel twine
+        pip install --upgrade pip
+        pip install --upgrade wheel twine build
     - name: Package project
       run: |
-        python setup.py sdist bdist_wheel
+        python -m build
     - name: Publish distribution 📦 to PyPI (If triggered from release)
       uses: pypa/gh-action-pypi-publish@release/v1
       with:

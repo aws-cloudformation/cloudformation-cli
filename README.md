@@ -96,6 +96,30 @@ Install PYJQ for Ubuntu system
 pip install pyjq
 ```
 
+#### Running contract tests with `--v2`
+
+`cfn test --v2` is an opt-in flag that runs the contract tests through the RQTS (CTv2) executor in a Docker container instead of the default pytest-based suite. Without `--v2`, the existing behavior is unchanged.
+
+```bash
+cfn test --v2
+cfn test --v2 --region us-west-2 --profile my-profile
+cfn test --v2 --typeconfig ./myResourceTypeConfig.json # type configuration is passed through to the executor
+cfn test --v2 --rqts-image my-registry/my-executor:my-tag # override the CLI-pinned executor image
+```
+
+The runner checks all of the following before starting the container, and reports every unmet requirement at once:
+
+* Docker is installed and the daemon is reachable.
+* The project is a **Java** resource type. Hook and module projects are not supported, and other language plugins do not produce an artifact the executor can load.
+* The project has been built, so that `<hyphenated-type-name>.zip` exists in the project root. Run `cfn generate` and your language plugin's build first.
+* AWS credentials and a region resolve and pass `sts:GetCallerIdentity`.
+
+Notes:
+
+* Scenario selection is owned by the executor image, so pytest-style arguments such as `-- -k contract_delete_update` are silently ignored on the `--v2` path. Test inputs are read from the ones packaged inside the artifact zip.
+* Executor output is written to `rqts-output/` in the project root, and per-scenario results are streamed to the console as the container runs.
+* The default image reference follows the `latest` tag on [ECR Public](https://gallery.ecr.aws/), matching what the cloud contract-test path runs. The CLI attempts a pull on each run and falls back to a locally cached image when the registry is unreachable.
+
 ### Command: validate
 
 To validate the schema, use the `validate` command.
