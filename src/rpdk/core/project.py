@@ -703,6 +703,30 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
     def _validate_fragments(template_fragment):
         template_fragment.validate_fragments()
 
+    @classmethod
+    def from_package(cls, metadata):
+        """Build a minimal :class:`Project` from a :class:`PackageMetadata`.
+
+        Used by the ``cfn submit --package`` workflow, in which the caller
+        already has a fully-built zip and only needs to call ``_upload``.
+        Unlike :meth:`load`, this constructor does not read ``.rpdk-config``
+        from the current working directory; every value that ``_upload``
+        depends on comes from ``metadata`` or from the caller's CLI
+        arguments.
+
+        The returned instance has ``schema = {}`` on purpose: this keeps
+        ``_upload`` out of its automatic-role branch (which would require a
+        role template on disk).
+
+        :param metadata: result of
+            :meth:`rpdk.core.package_validator.PackageValidator.validate`.
+        """
+        project = cls()
+        project.type_name = metadata.type_name
+        project.artifact_type = metadata.artifact_type
+        project.schema = {}
+        return project
+
     def submit(
         self,
         dry_run,
