@@ -46,6 +46,7 @@ SETTINGS_FILENAME = ".rpdk-config"
 SCHEMA_UPLOAD_FILENAME = "schema.json"
 CONFIGURATION_SCHEMA_UPLOAD_FILENAME = "configuration-schema.json"
 OVERRIDES_FILENAME = "overrides.json"
+CONTRACT_TEST_EXCEPTIONS_FILENAME = "contract-test-exceptions.json"
 TARGET_INFO_FILENAME = "target-info.json"
 INPUTS_FOLDER = "inputs"
 EXAMPLE_INPUTS_FOLDER = "example_inputs"
@@ -232,6 +233,10 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
         return self.root / OVERRIDES_FILENAME
 
     @property
+    def contract_test_exceptions_path(self):
+        return self.root / CONTRACT_TEST_EXCEPTIONS_FILENAME
+
+    @property
     def inputs_path(self):
         return self.root / INPUTS_FOLDER
 
@@ -388,6 +393,49 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
 
         self.safewrite(self.schema_path, _write)
 
+    def _write_contract_test_exceptions(self):
+        """Scaffold contract-test-exceptions.json with two example entries.
+
+        Both examples are exceptions already granted by default to every
+        third-party resource, so the file as generated has no effect. It shows
+        the expected shape and level of justification. Only read for
+        third-party types; first-party types ignore it.
+        """
+        scaffold = {
+            "contractTestExceptions": {
+                "handlerTests": [],
+                "sgrLinterChecks": [
+                    {
+                        "id": "TAG001",
+                        "reason": (
+                            "Example entry. Granted by default for all"
+                            " third-party resources. Vendor APIs often have"
+                            " no tag support."
+                        ),
+                    }
+                ],
+                "sgrBackwardChecks": [],
+                "propertyCoverageTests": [
+                    {
+                        "id": "no_missing_properties_for_create",
+                        "reason": (
+                            "Example entry. Granted by default for all"
+                            " third-party resources. Not every schema"
+                            " property is settable on create."
+                        ),
+                    }
+                ],
+                "excludedCreateProperties": [],
+                "excludedPatchProperties": [],
+            }
+        }
+
+        def _write(f):
+            json.dump(scaffold, f, indent=4)
+            f.write("\n")
+
+        self.safewrite(self.contract_test_exceptions_path, _write)
+
     def _write_example_inputs(self):
         shutil.rmtree(self.example_inputs_path, ignore_errors=True)
         self.example_inputs_path.mkdir(exist_ok=True)
@@ -483,6 +531,7 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
         }
         self._write_example_schema()
         self._write_example_inputs()
+        self._write_contract_test_exceptions()
         self._plugin.init(self)
         self.write_settings()
 
@@ -742,6 +791,7 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
                     self._add_resources_content_to_zip(zip_file)
 
                 self._add_overrides_file_to_zip(zip_file)
+                self._add_contract_test_exceptions_file_to_zip(zip_file)
 
             if dry_run:
                 LOG.error("Dry run complete: %s", self._get_zip_file_path().resolve())
@@ -763,6 +813,20 @@ class Project:  # pylint: disable=too-many-instance-attributes,too-many-public-m
             LOG.debug("%s found. Writing to package.", OVERRIDES_FILENAME)
         except FileNotFoundError:
             LOG.debug("%s not found. Not writing to package.", OVERRIDES_FILENAME)
+
+    def _add_contract_test_exceptions_file_to_zip(self, zip_file):
+        try:
+            zip_file.write(
+                self.contract_test_exceptions_path, CONTRACT_TEST_EXCEPTIONS_FILENAME
+            )
+            LOG.debug(
+                "%s found. Writing to package.", CONTRACT_TEST_EXCEPTIONS_FILENAME
+            )
+        except FileNotFoundError:
+            LOG.debug(
+                "%s not found. Not writing to package.",
+                CONTRACT_TEST_EXCEPTIONS_FILENAME,
+            )
 
     def _add_resources_content_to_zip(self, zip_file):
         zip_file.write(self.schema_path, SCHEMA_UPLOAD_FILENAME)
