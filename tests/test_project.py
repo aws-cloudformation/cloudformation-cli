@@ -37,6 +37,7 @@ from rpdk.core.project import (
     CFN_METADATA_FILENAME,
     CONFIGURATION_SCHEMA_UPLOAD_FILENAME,
     CONTRACT_TEST_DEPENDENCY_FILE_NAME,
+    CONTRACT_TEST_EXCEPTIONS_FILENAME,
     CONTRACT_TEST_FILE_NAMES,
     CONTRACT_TEST_FOLDER,
     OVERRIDES_FILENAME,
@@ -1015,6 +1016,49 @@ def test_init_resource(project):
         f.seek(-1, os.SEEK_END)
         assert f.read() == b"\n"
 
+    # contract-test-exceptions.json is scaffolded with two example entries
+    with project.contract_test_exceptions_path.open("r", encoding="utf-8") as f:
+        exceptions = json.load(f)["contractTestExceptions"]
+    assert set(exceptions) == {
+        "handlerTests",
+        "sgrLinterChecks",
+        "sgrBackwardChecks",
+        "propertyCoverageTests",
+        "excludedCreateProperties",
+        "excludedPatchProperties",
+    }
+    assert [entry["id"] for entry in exceptions["sgrLinterChecks"]] == ["TAG001"]
+    assert [entry["id"] for entry in exceptions["propertyCoverageTests"]] == [
+        "no_missing_properties_for_create"
+    ]
+    for entry in exceptions["sgrLinterChecks"] + exceptions["propertyCoverageTests"]:
+        assert entry["reason"]
+    for key in (
+        "handlerTests",
+        "sgrBackwardChecks",
+        "excludedCreateProperties",
+        "excludedPatchProperties",
+    ):
+        assert exceptions[key] == []
+
+    # ends with newline
+    with project.contract_test_exceptions_path.open("rb") as f:
+        f.seek(-1, os.SEEK_END)
+        assert f.read() == b"\n"
+
+
+def test_write_contract_test_exceptions_does_not_clobber_existing(project):
+    # A publisher's edited file must survive a re-run of the scaffold
+    # (safewrite semantics, matching _write_example_schema).
+    edited = '{"contractTestExceptions": {"handlerTests": [{"id": "x"}]}}\n'
+    with project.contract_test_exceptions_path.open("w", encoding="utf-8") as f:
+        f.write(edited)
+
+    project._write_contract_test_exceptions()
+
+    with project.contract_test_exceptions_path.open("r", encoding="utf-8") as f:
+        assert f.read() == edited
+
 
 def test_generate_hook_handlers(project, tmpdir, session):
     project.type_name = "Test::Handler::Test"
@@ -1142,6 +1186,8 @@ def test_init_hook(project):
     assert project.artifact_type == ARTIFACT_TYPE_HOOK
     assert project._plugin is mock_plugin
     assert project.settings == {}
+    # contract-test-exceptions.json is scaffolded for resources only
+    assert not project.contract_test_exceptions_path.exists()
 
     with project.settings_path.open("r", encoding="utf-8") as f:
         assert json.load(f)
@@ -1180,6 +1226,8 @@ def test_init_module(project):
     assert project.artifact_type == ARTIFACT_TYPE_MODULE
     assert project._plugin is None
     assert project.settings == {}
+    # contract-test-exceptions.json is scaffolded for resources only
+    assert not project.contract_test_exceptions_path.exists()
 
     with project.settings_path.open("r", encoding="utf-8") as f:
         assert json.load(f)
@@ -1417,6 +1465,10 @@ def test_submit_dry_run(project, is_type_configuration_available):
     with project.overrides_path.open("w", encoding="utf-8") as f:
         f.write(json.dumps(empty_override()))
 
+    exceptions = {"contractTestExceptions": {"handlerTests": []}}
+    with project.contract_test_exceptions_path.open("w", encoding="utf-8") as f:
+        f.write(json.dumps(exceptions))
+
     create_input_file(project.root)
 
     project.write_settings()
@@ -1452,6 +1504,7 @@ def test_submit_dry_run(project, is_type_configuration_available):
         SCHEMA_UPLOAD_FILENAME,
         SETTINGS_FILENAME,
         OVERRIDES_FILENAME,
+        CONTRACT_TEST_EXCEPTIONS_FILENAME,
         CREATE_INPUTS_FILE,
         INVALID_INPUTS_FILE,
         UPDATE_INPUTS_FILE,
